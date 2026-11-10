@@ -1,5 +1,6 @@
-import type { AnyGameDefinition, Results } from "./contract"
+import type { AnyGameDefinition, Results, SetupArgs } from "./contract"
 import { isEngineError, isSharedErrorCode } from "./errors"
+import { viewLog } from "./log"
 import { applyPreset, defaultOptions, normalizeOptions, type OptionValues } from "./options"
 import { canPlayFor, playFor, waitingPlayers } from "./turns"
 
@@ -181,6 +182,9 @@ class Suite {
     if (!Array.isArray(game.clientActions) || game.clientActions.length === 0) found.flag("clientActions lists no action type", "clientActions")
     else if (new Set(game.clientActions).size !== game.clientActions.length) found.flag("clientActions lists a type twice", game.clientActions.join(", "))
     if (!canPlayFor(game)) found.flag("the server cannot play for an absent player: the definition needs waitingFor and autoPlayFor", "waitingFor, autoPlayFor")
+    if (game.step && !game.autoPlayStep) found.flag("the definition has a step but no autoPlayStep: what is played for an absent player would leave nothing in the log", "autoPlayStep")
+    if (game.autoPlayStep && !game.step) found.flag("the definition has an autoPlayStep but no step: the moves of the players would leave nothing in the log", "step")
+    if (game.setupStep && !game.step) found.flag("the definition has a setupStep but no step: the log would open with the deal and say nothing after it", "step")
 
     for (const [key, def] of Object.entries(game.options ?? {})) {
       const where = `options.${key}`
@@ -267,6 +271,7 @@ class Suite {
     let state = made.value
     const twice = this.attempt(where, () => game.setup({ players, options: values, seed, data }))
     if (twice.ok && !deepEqual(twice.value, state)) found.flag("the same seed does not give the same game: setup is not deterministic", where)
+    this.checkOpening({ players, options: values, seed, data }, state, ids, where)
 
     for (let step = 0; ; step++) {
       if (step >= this.maxSteps) return found.flag(`a game does not end within ${this.maxSteps} steps of autoPlayFor`, where)
@@ -287,6 +292,7 @@ class Suite {
       const stored = this.attempt(at, () => playFor(game, reorderKeys(state), pick))
       if (stored.ok && !deepEqual(stored.value, next.value)) found.flag("the game plays differently once jsonb has reordered the keys of its state: an order comes from the keys of an object", at)
       if (deepEqual(next.value, state)) return found.flag("autoPlayFor changes nothing: the game never moves on", at)
+      this.checkLog(state, pick, next.value, ids, at)
       state = next.value
     }
   }
@@ -371,6 +377,64 @@ class Suite {
     const json = JSON.stringify(result.value)
     const leaked = secrets.find((secret) => json.includes(JSON.stringify(secret)))
     if (leaked !== undefined) found.flag("a view shows what its viewer must not know", `${at}, ${who}: ${leaked}`)
+  }
+
+  // ----------------------------------------------------------------------------------------------------------------------------------------------------------------- the log
+
+  /**
+   * The log of a game that says what happens: `autoPlayStep` plays like `autoPlayFor` and says the same each time, and what it says is held to the rules of an entry (`checkEntries`).
+   */
+  private checkLog(state: unknown, pick: string, next: unknown, ids: string[], at: string) {
+    const { game, found } = this
+    if (!game.autoPlayStep) return
+    const played = this.attempt(at, () => game.autoPlayStep!(state, pick))
+    if (!played.ok) return this.thrown(at, "autoPlayStep", played.error)
+    const { state: after, events } = played.value
+    if (!deepEqual(after, next)) found.flag("autoPlayStep gives another state than autoPlayFor: a move is one thing, whoever asks for it", at)
+    const again = this.attempt(at, () => game.autoPlayStep!(state, pick))
+    if (again.ok && !deepEqual(again.value.events, events)) found.flag("autoPlayStep gives two different logs for the same state: it is not deterministic", at)
+    this.checkEntries(events, after, ids, at)
+  }
+
+  /** The opening of a game that says what its setup did: `setupStep` sets the game up like `setup` and says the same each time, and what it says is held to the rules of an entry (`checkEntries`). */
+  private checkOpening(args: SetupArgs<unknown>, made: unknown, ids: string[], at: string) {
+    const { game, found } = this
+    if (!game.setupStep) return
+    const opened = this.attempt(at, () => game.setupStep!(args))
+    if (!opened.ok) return this.thrown(at, "setupStep", opened.error)
+    const { state: after, events } = opened.value
+    if (!deepEqual(after, made)) found.flag("setupStep gives another game than setup: a setup is one thing, whoever asks for it", at)
+    const again = this.attempt(at, () => game.setupStep!(args))
+    if (again.ok && !deepEqual(again.value.events, events)) found.flag("setupStep gives two different logs for the same seed: it is not deterministic", at)
+    this.checkEntries(events, after, ids, `${at}, setup`)
+  }
+
+  /**
+   * What the entries of a step must be: a list of plain data, each with an event, addressed to players of the table, with no nickname in it, and showing each viewer nothing they must not know (`secretsFor`, as of the state the
+   * step leaves).
+   */
+  private checkEntries(events: unknown, after: unknown, ids: string[], at: string) {
+    const { found } = this
+    if (!Array.isArray(events)) return found.flag("the events of a step are not a list", at)
+    const problems = jsonProblems(events, "events")
+    if (problems.length) found.flag("the log of a step is not plain JSON: it does not come back from jsonb as it went in", `${at}: ${problems[0]}`)
+    const names = table(ids.length).map((p) => p.nickname)
+    for (const [i, entry] of events.entries()) {
+      const here = `${at}, entry ${i}`
+      if (!entry || typeof entry !== "object" || !entry.event || typeof entry.event !== "object") {
+        found.flag("an entry of the log has no event: a LogEntry is { event, to?, masked? }", here)
+        continue
+      }
+      if (entry.to !== undefined && (!Array.isArray(entry.to) || entry.to.some((id: string) => !ids.includes(id)))) found.flag("an entry of the log is addressed to somebody who is not at the table", here)
+      if (entry.masked !== undefined && entry.to === undefined) found.flag("an entry of the log has a masked version but nobody it is addressed to: masked is what the others read of an event that only some may, so to must say who", here)
+      if (names.some((name) => JSON.stringify(entry).includes(name))) found.flag("an entry of the log holds a nickname: names are the table's, the log keeps the ids", here)
+    }
+    for (const viewer of [...ids, null]) {
+      const secrets = this.options.secretsFor?.(after as never, viewer) ?? []
+      const json = JSON.stringify(viewLog(events, viewer))
+      const leaked = secrets.find((secret) => json.includes(JSON.stringify(secret)))
+      if (leaked !== undefined) found.flag("the log shows what its viewer must not know", `${at}, ${viewer === null ? "a spectator" : `seat ${viewer}`}: ${leaked}`)
+    }
   }
 
   // --------------------------------------------------------------------------------------------------------------------------------------------------------- junk actions
@@ -472,6 +536,8 @@ class Suite {
  *   all of them at the end, and leaks none of the `secretsFor`; when a view carries `standings` they hold each player once, in seat order, with a finite score, the same for every viewer; the step does not write to the state it was given, gives the same state twice, plays the same once `jsonb` has reordered the keys,
  *   moves the game on, and never asks `Math.random` or `Date.now`; the results hold each player once, with ranks, winners and lines of score in order (a table that plays together, `coop`,
  *   wins or loses as one: every player at rank 1 with the table's score, and everybody among the winners or nobody).
+ * - The log, for a game that says what happens (`step`, `autoPlayStep`, and `setupStep` for its opening): the first two come together, `autoPlayStep` plays like `autoPlayFor` and `setupStep` sets up like `setup`, each says the same
+ *   every time, and the entries they give are plain data, are addressed to players of the table, hold no nickname, and leak none of the `secretsFor` to a viewer who may only read their `masked` version.
  * - Junk actions: whatever a client could send is refused with an `EngineError` whose code is in the vocabulary, or else is a move; it never throws a plain error and never writes to the state.
  */
 export function conformanceProblems(game: AnyGameDefinition, options: ConformanceOptions = {}): string[] {

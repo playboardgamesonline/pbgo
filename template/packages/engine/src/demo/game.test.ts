@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { playFor, playOn, waitingPlayers } from "@pbgo/engine-kit"
+import { playFor, playOn, playStepFor, setupOf, stepOf, viewLog, waitingPlayers } from "@pbgo/engine-kit"
 import { demo } from "./game"
 import type { Action, State } from "./types"
 
@@ -220,5 +220,51 @@ describe("secret bids", () => {
 
   it("refuses an unknown action", () => {
     expect(() => demo.apply(open(), { type: "unknown", playerId: "j0" } as unknown as Action)).toThrow(expect.objectContaining({ code: "INVALID_ACTION" }))
+  })
+})
+
+describe("what the game says happened", () => {
+  it("opens the log with the first round, dealt while the game is set up", () => {
+    const table = { players: players(3), options: {}, seed: 4 }
+    const opened = setupOf(demo, table)
+    expect(opened.state).toEqual(demo.setup(table))
+    expect(opened.events).toEqual([{ event: { type: "newRound", round: 1 } }])
+  })
+
+  it("says each card played, then the trick it completes, and the new round when the last trick ends one", () => {
+    let e = demo.setup({ players: players(2), options: { bids: false, rounds: 2, handSize: 3 }, seed: 5 })
+    const said: string[] = []
+    while (e.phase !== "over") {
+      const j = e.players[e.activePlayer]!
+      const played = stepOf(demo, e, { type: "playCard", playerId: j.id, cardId: j.hand[0]!.id })
+      said.push(played.events.map(({ event }) => event.type).join("+"))
+      e = played.state
+    }
+    // two players, three cards, two rounds: a card, then a card that completes the trick, six times; the third trick of the first round starts the second
+    expect(said).toEqual(["cardPlayed", "cardPlayed+trickWon", "cardPlayed", "cardPlayed+trickWon", "cardPlayed", "cardPlayed+trickWon+newRound", "cardPlayed", "cardPlayed+trickWon", "cardPlayed", "cardPlayed+trickWon", "cardPlayed", "cardPlayed+trickWon"])
+  })
+
+  it("plays through step and autoPlayStep as it does through apply and autoPlayFor", () => {
+    let e = demo.setup({ players: players(3), options: {}, seed: 6 })
+    while (e.phase !== "over") {
+      const [next] = waitingPlayers(demo, e)
+      const stepped = playStepFor(demo, e, next!)
+      expect(stepped.state).toEqual(playFor(demo, e, next!))
+      e = stepped.state
+    }
+  })
+
+  it("keeps the log out of the state and out of the view: the platform keeps it", () => {
+    const e = demo.setup({ players: players(2), options: { bids: false }, seed: 7 })
+    expect(Object.keys(e)).not.toContain("log")
+    expect(Object.keys(demo.view(e, "j0"))).not.toContain("log")
+  })
+
+  it("says everything to everybody: none of its events is for some players only", () => {
+    let e = demo.setup({ players: players(3), options: { bids: false }, seed: 8 })
+    const j = e.players[e.activePlayer]!
+    const played = stepOf(demo, e, { type: "playCard", playerId: j.id, cardId: j.hand[0]!.id })
+    e = played.state
+    expect(viewLog(played.events, null)).toEqual(played.events.map(({ event }) => event))
   })
 })

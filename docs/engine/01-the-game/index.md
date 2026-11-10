@@ -13,5 +13,6 @@ What every game has, whatever its rules: players, turns and phases, actions, an 
 - [State](09-state.md): what the server keeps of a game, and where its randomness comes from.
 - [Views](10-views.md): what each player sees, and what is kept back.
 - [The contract](11-the-contract.md): `GameDefinition`, field by field.
+- [Events and the log](12-events-and-the-log.md): what each move says happened, how the platform keeps it and what a board does with it.
 
 What lies on the table is in [Components](../02-components/index.md).

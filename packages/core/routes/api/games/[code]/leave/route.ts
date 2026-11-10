@@ -1,6 +1,6 @@
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { handle } from "../../../../../server/api"
-import { publicGame, updateGame } from "../../../../../server/games"
+import { servedGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { withdrawPatch } from "../../../../../server/ready"
@@ -16,5 +16,5 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     const host_id = row.host_id === id ? (players[0]?.id ?? row.host_id) : row.host_id
     return { players, host_id }
   })
-  return publicGame(game, row, id)
+  return servedGame(game, row, id)
 })

@@ -13,12 +13,15 @@
 | `presets` | no | Option combinations, `OptionPreset`s | Applied over the defaults and normalized by `applyPreset`; no screen of the app offers them |
 | `clientActions` | yes | The action types a client may send | See [What clientActions controls](05-actions.md#what-clientactions-controls) |
 | `setup` | yes | `({ players, options, seed?, data? }) => State`: a new game | `data` is the `SetupData` (the last type parameter, `undefined` by default) that the binding's `loadSetupData` hands over; see [Starting a game](01-how-a-game-runs.md#starting-a-game) |
+| `setupStep` | no | `({ players, options, seed?, data? }) => Step`: `setup` that also says what happened while the game was set up | `setupStep(args).state` is what `setup(args)` gives; see [Events and the log](12-events-and-the-log.md) |
 | `apply` | yes | `(state, action) => State`: plays one action | Validates everything, throws `EngineError` for an illegal move, never mutates `state` |
+| `step` | no | `(state, action) => Step`: `apply` that also says what happened | `step(state, action).state` is what `apply` gives; the events go to the log of the table ([Events and the log](12-events-and-the-log.md)) |
 | `view` | yes | `(state, playerId) => View`: what one viewer sees | `playerId` is `null` outside the table; see [Hidden information](10-views.md#hidden-information) |
 | `isOver` | yes | `(state) => boolean` | True once the game has ended; core then stores the status `over` |
 | `debug` | no | `Partial<Record<DebugCommand, (state) => State>>` | See [Debug commands](#debug-commands) |
 | `waitingFor` | no, but a game with turns needs it | `(state) => readonly string[]`: the players the game waits for | See [`waitingFor`](03-turns.md#waitingfor) |
 | `autoPlayFor` | no, but absent players need it | `(state, playerId) => State`: plays one waiting player's current step | See [Playing for an absent player](03-turns.md#playing-for-an-absent-player) |
+| `autoPlayStep` | no, but a game with a `step` needs it | `(state, playerId) => Step`: `autoPlayFor` that also says what happened | `autoPlayStep(state, playerId).state` is what `autoPlayFor` gives; see [Events and the log](12-events-and-the-log.md) |
 | `activePlayer`, `autoPlay` | no | `@deprecated` | See [Deprecated hooks](#deprecated-hooks) |
 
 ## The types around it
@@ -29,7 +32,8 @@
 | `PlayerAction` | `{ type, playerId }`: what every `Action` extends; the server sets `playerId` |
 | `Results`, `PlayerResult` | The end of a game, in the view ([Results](06-victory.md#results)), and `outcomesOf`, which reads them as a win, a loss, a draw or a win or loss of the whole table for each player ([Outcomes](06-victory.md#outcomes)) |
 | `Standing` | `{ playerId, score }`: what a player has so far, in the view as `standings`, for the list of the players in the HUD ([Keeping the score](../02-components/09-score.md#keeping-the-score)) |
-| `AnyGameDefinition` | `GameDefinition<any, any, any, any>`: what core, the registry and the kit's helpers hold |
+| `Step`, `LogEntry` | What a move gives back when the game says what happened: the state and the events, each event with the players who read it in full and what the others read instead ([Events and the log](12-events-and-the-log.md)) |
+| `AnyGameDefinition` | `GameDefinition<any, any, any, any, any>`: what core, the registry and the kit's helpers hold |
 | `OptionDefinitions`, `OptionValues`, `OptionPreset` | The options, their values and the presets (`packages/engine-kit/src/options.ts`) |
 
 ## A minimal engine
@@ -37,7 +41,7 @@
 From `games/flip-7/packages/engine/src/game.ts`, the whole definition of Flip 7. Its bodies are in `setup.ts`, `actions.ts` (`step`), `view.ts`, `machine.ts` (`isOver`, `waitingFor`), `autoplay.ts`, `debug.ts` and `options.ts`, and its types in `types.ts`:
 
 ```ts
-export const GAME: GameDefinition<State, Action, PlayerView> = {
+export const GAME: GameDefinition<State, Action, PlayerView, undefined, Flip7Event> = {
   id: "flip-7",
   name: "Flip 7",
   minPlayers: MIN_PLAYERS,
@@ -45,11 +49,14 @@ export const GAME: GameDefinition<State, Action, PlayerView> = {
   options: OPTIONS,
   clientActions: CLIENT_ACTIONS,
   setup: ({ players, options, seed }) => setupGame({ players, options, seed }),
+  setupStep: ({ players, options, seed }) => setupStep({ players, options, seed }),
   apply: (state, action) => step(state, action).state,
+  step,
   view: (state, playerId) => playerView(state, playerId),
   isOver,
   waitingFor,
   autoPlayFor,
+  autoPlayStep,
   debug: debugCommands,
 }
 ```

@@ -26,8 +26,14 @@ export type PublicPlayer = PlayerInfo & {
   badge?: string
 }
 
-/** A game as a player sees it. `View` is the game's player view (`GAME.view`); core only reads `CoreView`. */
-export type PublicGame<View = CoreView> = {
+/**
+ * One line of the log of a table as a player reads it: what happened (`event`: plain data of the game, that the board turns into a sentence or an animation) and `v`, the version of the table that the move which said it produced. A move can say
+ * several things: they share their `v` and come in the order they happened. A board that plays what is new keeps the greatest `v` it has played.
+ */
+export type LogLine<Event = unknown> = { v: number; event: Event }
+
+/** A game as a player sees it. `View` is the game's player view (`GAME.view`); core only reads `CoreView`. `Event` is what the game says happened (`GameDefinition.step`). */
+export type PublicGame<View = CoreView, Event = unknown> = {
   code: string
   hostId: string
   status: GameStatus
@@ -54,6 +60,11 @@ export type PublicGame<View = CoreView> = {
   /** Creation of the game (ISO): shown under the score table */
   createdAt?: string | null
   view: View | null
+  /**
+   * The last lines of the log of the table, oldest first, as this viewer reads them (`viewLog`: an event in full when it is theirs to read, what the others read instead when it is not). What happened in the game, for the history on the
+   * screen and for a board that plays what is new; empty for a game that says nothing, and while no move has been played. Kept apart from `view`, which is the state seen by a player: the log is not in the state.
+   */
+  log: LogLine<Event>[]
 }
 
 // The slug keeps two games with the same table code apart on the shared Supabase project.

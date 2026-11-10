@@ -4,7 +4,7 @@ import { CATALOGUE, type CardKey, cardType } from "./catalogue"
 import { lineScore } from "./scoring"
 import { GAME } from "./game"
 import { setupGame } from "./setup"
-import type { Action, Frame, PlayerView, PublicPhase, State, Status, Step } from "./types"
+import type { Action, Flip7LogEntry, Frame, PlayerView, PublicPhase, State, Status } from "./types"
 import { playerView } from "./view"
 
 /**
@@ -181,7 +181,7 @@ export const give = (state: State, playerId: string, target: string): State => s
 export const deal = (state: State, playerId: string): State => step(state, { type: "deal", playerId }).state
 
 /** The kinds of the events of a step, in order. */
-export function kinds(result: Step): string[] {
+export function kinds(result: { events: readonly Flip7LogEntry[] }): string[] {
   return result.events.map(({ event }) => event.kind)
 }
 

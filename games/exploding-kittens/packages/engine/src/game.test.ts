@@ -1,4 +1,4 @@
-import { type OptionValues, canPlayFor, defaultOptions, isEngineError, playFor, playOn, waitingPlayers } from "@pbgo/engine-kit"
+import { type OptionValues, canPlayFor, defaultOptions, isEngineError, playFor, playOn, playStepFor, stepOf, waitingPlayers } from "@pbgo/engine-kit"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { step } from "./actions"
 import { GAME, createGame } from "./game"
@@ -596,6 +596,32 @@ describe("a game played for the players who are not there", () => {
     const [winner] = living(end)
     expect(end.out).toHaveLength(3)
     expect(new Set([...end.out, winner]).size).toBe(4)
+  })
+})
+
+describe("what the game says happened", () => {
+  it.each([2, 3, 4, 5])("plays a table of %i through autoPlayStep as it does through autoPlayFor, and says something each time", (n) => {
+    for (let i = 0; i < 6; i++) {
+      let state = GAME.setup({ players: players(n), options: {}, seed: seedOf(i) })
+      for (let steps = 0; !GAME.isOver(state) && steps < 400; steps++) {
+        const [absent] = waiting(state)
+        const stepped = playStepFor(GAME, state, absent!)
+        expect(stepped.state, `game ${i}, step ${steps}`).toStrictEqual(playedFor(state, absent!))
+        expect(stepped.events.length, `game ${i}, step ${steps}`).toBeGreaterThan(0)
+        expect(JSON.parse(JSON.stringify(stepped.events)), `game ${i}, step ${steps}`).toEqual(stepped.events)
+        state = stepped.state
+      }
+      expect(GAME.isOver(state)).toBe(true)
+    }
+  })
+
+  it("plays an action through step as it does through apply, and says what it did", () => {
+    const skip = act(turn, play("bob", "skip"))
+    const played = stepOf(GAME, turn, skip)
+    expect(played.state).toStrictEqual(GAME.apply(turn, skip))
+    expect(played.events.length).toBeGreaterThan(0)
+    const answer = act(reaction, nope("dan"))
+    expect(stepOf(GAME, reaction, answer).state).toStrictEqual(GAME.apply(reaction, answer))
   })
 })
 

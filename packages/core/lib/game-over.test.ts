@@ -38,6 +38,16 @@ describe("winnerAnnouncement", () => {
     expect(winnerAnnouncement(game, view, phrases, pts)).toEqual({ kind: "victory", phrase: "Bravo", detail: "Bob · 9 pts", winners: ["b"] })
   })
 
+  it("varies the phrase from one game of a table to the next: with the length of the view's own log, or the version of the last move in the log of the table", () => {
+    const view = viewOf({ winners: ["b"], players: [result("a", 4, 2), result("b", 9, 1)] })
+    const many = ["A {pseudo}", "B {pseudo}", "C {pseudo}", "D {pseudo}", "E {pseudo}", "F {pseudo}", "G {pseudo}", "H {pseudo}"]
+    const seen = new Set<string>()
+    for (let v = 1; v <= 40; v++) seen.add(winnerAnnouncement({ ...game, log: [{ v, event: {} }] }, view, many, pts).phrase)
+    expect(seen.size).toBeGreaterThan(3)
+    const same = (v: number) => winnerAnnouncement({ ...game, log: [{ v: 5, event: {} }, { v, event: {} }] }, view, many, pts).phrase
+    expect(same(9)).toBe(same(9))
+  })
+
   it("announces every winner of a tie, and a table that won together as a victory of the whole table", () => {
     const together = viewOf({ winners: ["a", "b"], players: [result("a", 12, 1), result("b", 12, 1)], coop: "won" })
     expect(winnerAnnouncement(game, together, phrases, pts)).toEqual({ kind: "victory", phrase: "Bravo", detail: "Ada & Bob · 12 pts", winners: ["a", "b"] })

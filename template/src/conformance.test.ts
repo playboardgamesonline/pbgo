@@ -3,9 +3,9 @@ import { GAME, type State } from "@template/engine"
 import { expect, it } from "vitest"
 import { ERROR_CODES } from "./lib/site"
 
-// What a seat must never see of the others: the ids of the cards in their hands. A card played in an earlier round is public, and its id is dealt again in the next one
+// What a seat must never see of the others: the ids of the cards in their hands. A card played is public, and its id is dealt again in the next round: the cards of the trick and of the last trick are the ones the state still shows
 const secretsFor = (state: State, viewer: string | null) => {
-  const played = JSON.stringify([state.log, state.trick, state.lastTrick])
+  const played = JSON.stringify([state.trick, state.lastTrick])
   return state.players.filter((player) => player.id !== viewer).flatMap((player) => player.hand.map((card) => card.id)).filter((id) => !played.includes(JSON.stringify(id)))
 }
 

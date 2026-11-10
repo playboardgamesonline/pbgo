@@ -5,7 +5,7 @@ import { loadSettings } from "../../../../../lib/settings-server"
 import { ageGateFor } from "../../../../../server/age-gate"
 import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle, readJson } from "../../../../../server/api"
-import { publicGame, updateGame } from "../../../../../server/games"
+import { servedGame, updateGame } from "../../../../../server/games"
 import { getOrCreatePlayerId } from "../../../../../server/player"
 import { seatMember } from "../../../../../server/presence"
 import { type ProfileInput, resolveSeat } from "../../../../../server/profile"
@@ -46,5 +46,5 @@ export const postJoin = (ageRules: AgeRulesSource) =>
     if (gate.restricted) await seatMember(game, row.code, id, memberId)
     else after(() => seatMember(game, row.code, id, memberId))
     if (joined.added) trackAfter("player_joined", id, { game: game.slug, seat: row.players.findIndex((j) => j.id === id), players: row.players.length })
-    return publicGame(game, row, id)
+    return servedGame(game, row, id)
   })

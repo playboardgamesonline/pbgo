@@ -4,7 +4,7 @@ import { gameOptions } from "../../../../../lib/settings"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { ageGateFor } from "../../../../../server/age-gate"
 import { ApiError, handle, readJson } from "../../../../../server/api"
-import { publicGame, readGame, updateGame, type GameRow } from "../../../../../server/games"
+import { servedGame, readGame, updateGame, type GameRow } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { resolveActor } from "../../../../../server/profile"
 import { rateLimit } from "../../../../../server/rate-limit"
@@ -38,5 +38,5 @@ export const postOptions = (ageRules: AgeRulesSource) =>
       }
       return { options: next }
     })
-    return publicGame(game, row, id)
+    return servedGame(game, row, id)
   })

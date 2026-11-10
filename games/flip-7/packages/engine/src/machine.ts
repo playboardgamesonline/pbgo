@@ -2,7 +2,7 @@ import { EngineError, type RoundsRule, type SaveableRng, cardOf, restoreRng, rou
 import { type ActionEffect, CARDS, CATALOGUE, type CardKey, type CardType } from "./catalogue"
 import { DEFAULT_TARGET } from "./options"
 import { lineScore, numberValues } from "./scoring"
-import type { Face, Flip7Event, FrameOf, State, Step } from "./types"
+import type { Face, Flip7Event, FrameOf, State, Flip7Step } from "./types"
 
 /**
  * The machinery every rule is written with: one step of the game is `open` (a private copy of the state), a few mutations, then `close`
@@ -14,7 +14,7 @@ export type Ctx = {
   s: State
   /** Shuffles. */
   rng: SaveableRng
-  events: Step["events"]
+  events: Flip7Step["events"]
 }
 
 /** A step starts here: a copy of the state to mutate, with the stream picked up where the last step left it. */
@@ -24,7 +24,7 @@ export function open(state: State): Ctx {
 }
 
 /** A step ends here: the stream is saved back into the state, which comes out with what happened. */
-export function close(ctx: Ctx): Step {
+export function close(ctx: Ctx): Flip7Step {
   ctx.s.rng = ctx.rng.save()
   return { state: ctx.s, events: ctx.events }
 }

@@ -22,7 +22,7 @@ import {
   waitingFor,
 } from "./machine"
 import type { Rules } from "./rules"
-import { type Action, CLIENT_ACTIONS, type CardPending, type PhaseOf, type State, type Step } from "./types"
+import { type Action, CLIENT_ACTIONS, type CardPending, type PhaseOf, type State, type EkStep } from "./types"
 import { nope, pass } from "./window"
 
 /**
@@ -194,7 +194,7 @@ export function perform(ctx: Ctx, input: unknown): void {
  * Plays one action on `state`. Gives the new state and what happened (the events a log is made of: some of them are for certain
  * players only, see `EkLogEntry`). `state` is never touched. Throws an `EngineError` when the action is refused.
  */
-export function step(rules: Rules, state: State, action: Action): Step {
+export function step(rules: Rules, state: State, action: Action): EkStep {
   const ctx = open(rules, state)
   perform(ctx, action)
   return close(ctx)

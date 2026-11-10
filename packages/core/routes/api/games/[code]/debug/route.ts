@@ -2,7 +2,7 @@ import type { DebugCommand } from "@pbgo/engine-kit"
 import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { ApiError, handle, readJson } from "../../../../../server/api"
-import { loadSetupData, newGame, publicGame, readGame, updateGame } from "../../../../../server/games"
+import { loadSetupData, newGame, servedGame, readGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { markGameStarted, recordGameResult } from "../../../../../server/results"
 
@@ -29,5 +29,5 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   // A command can end the game, or start a new one. One that finds the table over again ends nothing, so the game is not written twice. A debug game counts for no rating
   if (!wasOver && row.status === "over") after(() => recordGameResult(game, row, { debug: true }))
   if (command === "start") after(() => markGameStarted(game, row))
-  return publicGame(game, row, id)
+  return servedGame(game, row, id)
 })

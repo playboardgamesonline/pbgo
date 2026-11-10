@@ -2,7 +2,7 @@ import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle } from "../../../../../server/api"
-import { publicGame, updateGame } from "../../../../../server/games"
+import { servedGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { readyExpired, readyPatch, expirePatch } from "../../../../../server/ready"
@@ -33,5 +33,5 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     trackAfter("game_started", row.host_id, { game: game.slug, players: row.players.length, options: row.options })
     after(() => markGameStarted(game, row))
   }
-  return publicGame(game, row, id)
+  return servedGame(game, row, id)
 })

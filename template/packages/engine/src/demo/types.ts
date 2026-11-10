@@ -1,4 +1,4 @@
-import type { Results, Standing, Submissions } from "@pbgo/engine-kit"
+import type { Results, Standing, Step, Submissions } from "@pbgo/engine-kit"
 
 export const CARD_COLORS = ["sun", "moon", "star", "comet"] as const
 export type CardColor = (typeof CARD_COLORS)[number]
@@ -14,10 +14,17 @@ export type PlayerState = {
   pointsPerRound: number[]
 }
 
+/**
+ * What happened, as plain data: the board turns it into sentences (the history of the HUD). A move says it with `step`, the platform keeps it in the log of the table and sends each player their lines of it (`useGameLog`):
+ * the state holds none.
+ */
 export type GameEvent =
   | { type: "cardPlayed"; playerId: string; card: Card }
   | { type: "trickWon"; playerId: string; cards: Card[] }
   | { type: "newRound"; round: number }
+
+/** What a move gives back: the new state and the events it says. */
+export type DemoStep = Step<State, GameEvent>
 
 export type DemoOptions = { rounds: number; handSize: number; inverse: boolean; bids: boolean }
 
@@ -34,7 +41,6 @@ export type State = {
   phase: "bidding" | "playing" | "over"
   /** Number of tricks each player announced for the round, `null` until they did. Secret while the phase is `bidding`; empty without the `bids` option */
   bids: Submissions<number>
-  log: GameEvent[]
 }
 
 export type Action = { type: "playCard"; playerId: string; cardId: string } | { type: "bid"; playerId: string; amount: number }
@@ -57,7 +63,6 @@ export type PlayerView = {
   activePlayerId: string | null
   trick: PlayedCard[]
   lastTrick: State["lastTrick"]
-  log: GameEvent[]
   /** What each player has so far, for the list of the players of the HUD */
   standings: Standing[]
   results: Results | null

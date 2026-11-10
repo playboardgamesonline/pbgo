@@ -6,7 +6,7 @@ Flip 7 is a press-your-luck card game played in rounds up to a target score. Its
 
 | File | What it holds |
 | --- | --- |
-| `types.ts` | `State`, `Frame`, `Status`, `Action` and `CLIENT_ACTIONS`, the views (`PlayerView`, `PublicSeat`, `PublicPhase`), the events (`Flip7Event`, `Step`) and `FLIP7_ERROR_CODES` |
+| `types.ts` | `State`, `Frame`, `Status`, `Action` and `CLIENT_ACTIONS`, the views (`PlayerView`, `PublicSeat`, `PublicPhase`), the events (`Flip7Event`, `Flip7Step`) and `FLIP7_ERROR_CODES` |
 | `catalogue.ts` | The box as data: `CARDS`, `DECK`, `CATALOGUE`, `cardType` |
 | `options.ts` | `OPTIONS` and `DEFAULT_TARGET` |
 | `scoring.ts` | What a line of cards is worth: `lineScore`, `isFlip7`, `numberValues` |
@@ -48,10 +48,10 @@ export type State = {
 
 ## The step and who it waits for
 
-- `step` opens a private copy of the state, checks and plays the action on it ([Two kinds of errors](../01-the-game/05-actions.md#two-kinds-of-errors)) and closes it with the stream saved back; it returns the state and the events of the move (`Step`), and `GAME.apply` keeps the state. From `games/flip-7/packages/engine/src/actions.ts`:
+- `step` opens a private copy of the state, checks and plays the action on it ([Two kinds of errors](../01-the-game/05-actions.md#two-kinds-of-errors)) and closes it with the stream saved back; it returns the state and the events of the move (`Flip7Step`); `GAME.apply` keeps the state and `GAME.step` hands the events to the platform ([Events and the log](../01-the-game/12-events-and-the-log.md)). From `games/flip-7/packages/engine/src/actions.ts`:
 
 ```ts
-export function step(state: State, action: Action): Step {
+export function step(state: State, action: Action): Flip7Step {
   const ctx = open(state)
   perform(ctx, action)
   return close(ctx)

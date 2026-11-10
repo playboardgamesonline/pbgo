@@ -1,10 +1,10 @@
-import { canPlayFor, isEngineError, playFor, waitingPlayers } from "@pbgo/engine-kit"
+import { canPlayFor, isEngineError, playStepFor, waitingPlayers, type LogEntry } from "@pbgo/engine-kit"
 import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { trackAfter, trackGameFinished } from "../../../../../server/analytics"
 import { ApiError, handle, notPlaying, readJson } from "../../../../../server/api"
-import { publicGame, stateFingerprint, updateGame } from "../../../../../server/games"
+import { servedGame, stateFingerprint, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { markSeen } from "../../../../../server/presence"
 import { rateLimit } from "../../../../../server/rate-limit"
@@ -61,10 +61,14 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
           return { takeover_votes: entries }
         }
         let state = row.state
+        // What each play said, in the order the players were played for: one write, one entry list
+        const events: LogEntry<unknown>[] = []
         for (const target of play) {
           if (GAME.isOver(state)) break
           if (waitingPlayers(GAME, state).includes(target)) {
-            state = playFor(GAME, state, target)
+            const played = playStepFor(GAME, state, target)
+            state = played.state
+            events.push(...played.events)
             outcome.played += 1
             outcome.targets.push(target)
           }
@@ -72,7 +76,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
         // The first vote on this state, and the last one: on a table of two they are the same request
         outcome.started = !parseVotes(row.takeover_votes, fingerprint).length
         outcome.completed = true
-        return { state, status: GAME.isOver(state) ? "over" : "playing", takeover_votes: [] }
+        return { state, status: GAME.isOver(state) ? "over" : "playing", takeover_votes: [], ...(events.length ? { log: { entries: events } } : {}) }
       } catch (error) {
         if (error instanceof TakeoverError) throw new ApiError(error.code, error.code === "UNKNOWN_PLAYER" ? 403 : 409)
         if (isEngineError(error) && error.code === "NOT_WAITING") throw new ApiError("NOT_WAITING", 409)
@@ -98,5 +102,5 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
       if (row.status === "over") await recordGameResult(game, row, { takenOver: targets })
     })
   }
-  return publicGame(game, row, id)
+  return servedGame(game, row, id)
 })

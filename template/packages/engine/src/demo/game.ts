@@ -2,6 +2,7 @@ import {
   type GameDefinition,
   type OptionDefinitions,
   type Results,
+  type SetupArgs,
   EngineError,
   allSubmitted,
   assertPlayers,
@@ -13,7 +14,7 @@ import {
   submit,
   submittedFlags,
 } from "@pbgo/engine-kit"
-import { type Action, type Card, CARD_COLORS, type State, type DemoOptions, MAX_VALUE, type PlayerState, type PlayerView } from "./types"
+import { type Action, type Card, CARD_COLORS, type DemoOptions, type DemoStep, type GameEvent, MAX_VALUE, type PlayerState, type PlayerView, type State } from "./types"
 
 type PlayCard = Extract<Action, { type: "playCard" }>
 type Bid = Extract<Action, { type: "bid" }>
@@ -30,6 +31,9 @@ const DECK: Card[] = CARD_COLORS.flatMap((color) => Array.from({ length: MAX_VAL
 
 /** Ids of the players in seat order: the order of every list of players the engine builds (an object's keys do not keep it in the stored state) */
 const seats = (state: State) => state.players.map((j) => j.id)
+
+/** A move that says what it did: the new state and the events, each one public (none is for some players only). */
+const say = (state: State, ...events: GameEvent[]): DemoStep => ({ state, events: events.map((event) => ({ event })) })
 
 const addPoint = (player: PlayerState): PlayerState => ({
   ...player,
@@ -72,7 +76,7 @@ function scoreBids(state: State): State {
   return { ...state, players: state.players.map((j) => (j.pointsPerRound.at(-1) === state.bids[j.id] ? addPoint(j) : j)) }
 }
 
-function playCard(state: State, action: PlayCard): State {
+function playCard(state: State, action: PlayCard): DemoStep {
   if (state.phase !== "playing") throw new EngineError("INVALID_PHASE")
   const index = state.players.findIndex((j) => j.id === action.playerId)
   if (index < 0) throw new EngineError("UNKNOWN_PLAYER")
@@ -81,36 +85,31 @@ function playCard(state: State, action: PlayCard): State {
   const card = player.hand.find((c) => c.id === action.cardId)
   if (!card) throw new EngineError("UNKNOWN_CARD")
 
+  const played: GameEvent = { type: "cardPlayed", playerId: player.id, card }
   let nextOne: State = {
     ...state,
     players: state.players.map((j, i) => (i === index ? { ...j, hand: j.hand.filter((c) => c.id !== card.id) } : j)),
     trick: [...state.trick, { playerId: player.id, card }],
     activePlayer: (index + 1) % state.players.length,
-    log: [...state.log, { type: "cardPlayed", playerId: player.id, card }],
   }
-  if (nextOne.trick.length < nextOne.players.length) return nextOne
+  if (nextOne.trick.length < nextOne.players.length) return say(nextOne, played)
 
   const winner = trickWinner(nextOne.trick, nextOne.options.inverse)
   const winnerIndex = nextOne.players.findIndex((j) => j.id === winner.playerId)
+  const won: GameEvent = { type: "trickWon", playerId: winner.playerId, cards: nextOne.trick.map((p) => p.card) }
   nextOne = {
     ...nextOne,
     players: nextOne.players.map((j, i) => (i === winnerIndex ? addPoint(j) : j)),
     lastTrick: { cards: nextOne.trick, winnerId: winner.playerId },
     trick: [],
     activePlayer: winnerIndex,
-    log: [...nextOne.log, { type: "trickWon", playerId: winner.playerId, cards: nextOne.trick.map((p) => p.card) }],
   }
-  if (nextOne.players.some((j) => j.hand.length > 0)) return nextOne
+  if (nextOne.players.some((j) => j.hand.length > 0)) return say(nextOne, played, won)
 
   nextOne = scoreBids(nextOne)
-  if (nextOne.round >= nextOne.options.rounds) return { ...nextOne, phase: "over" }
+  if (nextOne.round >= nextOne.options.rounds) return say({ ...nextOne, phase: "over" }, played, won)
   const round = nextOne.round + 1
-  return deal({
-    ...nextOne,
-    round,
-    roundLeader: (nextOne.roundLeader + 1) % nextOne.players.length,
-    log: [...nextOne.log, { type: "newRound", round }],
-  })
+  return say(deal({ ...nextOne, round, roundLeader: (nextOne.roundLeader + 1) % nextOne.players.length }), played, won, { type: "newRound", round })
 }
 
 export function results(state: State): Results {
@@ -137,27 +136,53 @@ function waiting(state: State): string[] {
   return []
 }
 
-function autoMove(state: State): State {
+function autoMove(state: State): DemoStep {
   const player = state.players[state.activePlayer]!
   return playCard(state, { type: "playCard", playerId: player.id, cardId: player.hand[0]!.id })
 }
 
-/** Completes the current step of one waiting player. Deterministic: no random draw, so that a replay stays exact. */
-function autoPlayFor(state: State, playerId: string): State {
+/** Completes the current step of one waiting player, and says what it did. Deterministic: no random draw, so that a replay stays exact. */
+function autoPlayStep(state: State, playerId: string): DemoStep {
   if (!waiting(state).includes(playerId)) throw new EngineError("NOT_WAITING")
   if (state.phase !== "bidding") return autoMove(state)
   // the average number of tricks per player
   const hand = state.players.find((j) => j.id === playerId)!.hand
-  return bid(state, { type: "bid", playerId, amount: Math.floor(hand.length / state.players.length) })
+  return say(bid(state, { type: "bid", playerId, amount: Math.floor(hand.length / state.players.length) }))
 }
 
 function autoBids(state: State): State {
   let e = state
-  while (e.phase === "bidding") e = autoPlayFor(e, waiting(e)[0]!)
+  while (e.phase === "bidding") e = autoPlayStep(e, waiting(e)[0]!).state
   return e
 }
 
-export const demo: GameDefinition<State, Action, PlayerView> = {
+/** A new game, and what happened while it was set up: the first round is dealt. */
+function setupStep({ players, options, seed = Math.floor(Math.random() * 2 ** 31) }: SetupArgs): DemoStep {
+  assertPlayers(players, { min: 2, max: 6 })
+  const opts = normalizeOptions(DEMO_OPTIONS, options) as DemoOptions
+  const state = deal({
+    seed,
+    options: opts,
+    players: players.map((j) => ({ id: j.id, hand: [], pointsPerRound: [] })),
+    round: 1,
+    roundLeader: Math.floor(createRng(seed)() * players.length),
+    activePlayer: 0,
+    trick: [],
+    lastTrick: null,
+    phase: "playing",
+    bids: {},
+  })
+  return say(state, { type: "newRound", round: 1 })
+}
+
+/** Plays an action, and says what it did: the moves that matter to a player's history are the events of the log. */
+function step(state: State, action: Action): DemoStep {
+  if (action.type === "playCard") return playCard(state, action)
+  if (action.type === "bid") return say(bid(state, action))
+  throw new EngineError("INVALID_ACTION")
+}
+
+export const demo: GameDefinition<State, Action, PlayerView, undefined, GameEvent> = {
   id: "demo",
   name: "La Plus Haute",
   minPlayers: 2,
@@ -166,29 +191,12 @@ export const demo: GameDefinition<State, Action, PlayerView> = {
   scoreLines: ["round"],
   clientActions: ["bid", "playCard"],
   waitingFor: waiting,
-  autoPlayFor,
-  setup: ({ players, options, seed = Math.floor(Math.random() * 2 ** 31) }) => {
-    assertPlayers(players, { min: 2, max: 6 })
-    const opts = normalizeOptions(DEMO_OPTIONS, options) as DemoOptions
-    return deal({
-      seed,
-      options: opts,
-      players: players.map((j) => ({ id: j.id, hand: [], pointsPerRound: [] })),
-      round: 1,
-      roundLeader: Math.floor(createRng(seed)() * players.length),
-      activePlayer: 0,
-      trick: [],
-      lastTrick: null,
-      phase: "playing",
-      bids: {},
-      log: [],
-    })
-  },
-  apply: (state, action) => {
-    if (action.type === "playCard") return playCard(state, action)
-    if (action.type === "bid") return bid(state, action)
-    throw new EngineError("INVALID_ACTION")
-  },
+  autoPlayFor: (state, playerId) => autoPlayStep(state, playerId).state,
+  autoPlayStep,
+  setup: (args) => setupStep(args).state,
+  setupStep,
+  apply: (state, action) => step(state, action).state,
+  step,
   view: (state, playerId): PlayerView => {
     const me = state.players.find((j) => j.id === playerId)
     const hasBid = submittedFlags(state.bids)
@@ -209,22 +217,25 @@ export const demo: GameDefinition<State, Action, PlayerView> = {
       activePlayerId: state.phase === "playing" ? (state.players[state.activePlayer]?.id ?? null) : null,
       trick: state.trick,
       lastTrick: state.lastTrick,
-      log: state.log.slice(-40),
       standings: state.players.map((j) => ({ playerId: j.id, score: j.pointsPerRound.reduce((a, b) => a + b, 0) })),
       results: state.phase === "over" ? results(state) : null,
     }
   },
   isOver: (state) => state.phase === "over",
   debug: {
+    // Plays on until a trick is won
     turn: (state) => {
       let e = autoBids(state)
-      const prevFold = state.log.filter((ev) => ev.type === "trickWon").length
-      while (e.phase === "playing" && e.log.filter((ev) => ev.type === "trickWon").length === prevFold) e = autoMove(e)
+      while (e.phase === "playing") {
+        const played = autoMove(e)
+        e = played.state
+        if (played.events.some(({ event }) => event.type === "trickWon")) break
+      }
       return e
     },
     over: (state) => {
       let e = state
-      while (e.phase !== "over") e = e.phase === "bidding" ? autoBids(e) : autoMove(e)
+      while (e.phase !== "over") e = e.phase === "bidding" ? autoBids(e) : autoMove(e).state
       return e
     },
   },

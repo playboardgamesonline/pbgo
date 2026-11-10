@@ -1,7 +1,7 @@
 import { EngineError } from "@pbgo/engine-kit"
 import { type Ctx, close, lineOf, open, playerAt, refuse, roundScore, seatOf, targetsOf, waitingFor } from "./machine"
 import { giveCard, receive, run, startRound } from "./round"
-import { type Action, CLIENT_ACTIONS, type FrameOf, type State, type Step } from "./types"
+import { type Action, CLIENT_ACTIONS, type FrameOf, type State, type Flip7Step } from "./types"
 
 /**
  * What a player does, one function per action. Every one of them checks what it is given before it changes anything and throws an
@@ -94,7 +94,7 @@ export function perform(ctx: Ctx, input: unknown): void {
  * Plays one action on `state`. Gives the new state and what happened (the events a log is made of). `state` is never touched. Throws an
  * `EngineError` when the action is refused.
  */
-export function step(state: State, action: Action): Step {
+export function step(state: State, action: Action): Flip7Step {
   const ctx = open(state)
   perform(ctx, action)
   return close(ctx)

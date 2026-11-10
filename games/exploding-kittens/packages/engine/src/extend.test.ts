@@ -7,7 +7,7 @@ import { type Effect, currentId, emit, facesOf, hasCards, livingIds, seatOf, sta
 import { ORIGINAL_RULES, type Rules } from "./rules"
 import { setupGame } from "./setup"
 import { CATS, type Move, chainOf, codeOf, draw, eventOf, kinds, oneOf, pass, players, seedOf } from "./test-utils"
-import type { Action, EkLogEntry, State, Step } from "./types"
+import type { Action, EkLogEntry, State, EkStep } from "./types"
 import { playerView } from "./view"
 import { resolveWindow } from "./window"
 
@@ -150,7 +150,7 @@ const combo =
     return { type: "combo", playerId, cards, ...(target === undefined ? {} : { target }), ...(named === undefined ? {} : { named }) }
   }
 
-function trace(state: State, ...moves: Move[]): Step {
+function trace(state: State, ...moves: Move[]): EkStep {
   let current = state
   const events: EkLogEntry[] = []
   for (const move of moves) {
@@ -164,7 +164,7 @@ function trace(state: State, ...moves: Move[]): Step {
 const run = (state: State, ...moves: Move[]): State => trace(state, ...moves).state
 
 /** Everybody the open window waits for passes, one after the other, until it closes. */
-function settle(state: State): Step {
+function settle(state: State): EkStep {
   let current = state
   const events: EkLogEntry[] = []
   while (current.phase.kind === "reaction") {
@@ -179,7 +179,7 @@ function settle(state: State): Step {
 }
 
 /** The card is played and nobody answers: it resolves. */
-const playThrough = (state: State, playerId: string, title: string, target?: string): Step => {
+const playThrough = (state: State, playerId: string, title: string, target?: string): EkStep => {
   const played = trace(state, play(playerId, title, target))
   const settled = settle(played.state)
   return { state: settled.state, events: [...played.events, ...settled.events] }

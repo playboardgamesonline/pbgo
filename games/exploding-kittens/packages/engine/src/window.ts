@@ -2,7 +2,7 @@ import { EngineError, allSubmitted, openSubmissions, submit } from "@pbgo/engine
 import { resolveCombo } from "./combos"
 import { type Ctx, close, effectOf, emit, faceOf, handOf, kindOf, livingIds, open, removeFrom, seatOf, typeOf } from "./machine"
 import type { Rules } from "./rules"
-import type { PhaseOf, State, Step } from "./types"
+import type { PhaseOf, State, EkStep } from "./types"
 
 /**
  * The Nope window. Every action card and every combo opens one on itself, and the cards are on the discard from the start. Every
@@ -75,7 +75,7 @@ export function closeWindow(ctx: Ctx): void {
  * what a timer would call when it runs out (the engine has none: a window waits until everybody has answered); with no window
  * open it changes nothing. Pure, like `GAME.apply`: it gives back a new state and the events.
  */
-export function resolveWindow(rules: Rules, state: State): Step {
+export function resolveWindow(rules: Rules, state: State): EkStep {
   const ctx = open(rules, state)
   closeWindow(ctx)
   return close(ctx)

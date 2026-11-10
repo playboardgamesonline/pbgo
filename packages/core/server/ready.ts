@@ -1,3 +1,4 @@
+import type { LogWrite } from "./game-log"
 import type { GameRow } from "./games"
 
 /**
@@ -33,11 +34,12 @@ export function readyLeft(row: Pick<GameRow, "status" | "ready_deadline">, now: 
 }
 
 /** What the host's start writes: the game set up (`started`, from `newGame`) and waiting for the players. */
-export function startingPatch(started: Pick<GameRow, "state" | "replay" | "takeover_votes">, now: number, windowMs = readyWindowMs()): Partial<GameRow> {
+export function startingPatch(started: Pick<GameRow, "state" | "replay" | "takeover_votes"> & { log?: LogWrite }, now: number, windowMs = readyWindowMs()): Partial<GameRow> & { log?: LogWrite } {
   return {
     state: started.state,
     replay: started.replay,
     takeover_votes: started.takeover_votes,
+    ...(started.log ? { log: started.log } : {}),
     status: "starting",
     ready_at: {},
     ready_deadline: new Date(now + windowMs).toISOString(),

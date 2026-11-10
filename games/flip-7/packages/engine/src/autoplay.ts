@@ -1,7 +1,7 @@
 import { EngineError } from "@pbgo/engine-kit"
 import { chooseTarget, dealRound, hit, stay } from "./actions"
 import { type Ctx, close, effectOf, lineOf, open, playerAt, targetsOf, waitingFor } from "./machine"
-import type { FrameOf, State } from "./types"
+import type { FrameOf, State, Flip7Step } from "./types"
 
 /**
  * Who gets the card an absent player holds: nothing is hidden and no randomness is needed, so the choice is plain and always the same.
@@ -46,9 +46,14 @@ export function autoPlay(ctx: Ctx, playerId: string): void {
   throw new RangeError("The round is not settled")
 }
 
-/** `GAME.autoPlayFor`: the state once `playerId` has been played for. */
-export function autoPlayFor(state: State, playerId: string): State {
+/** `GAME.autoPlayStep`: the state once `playerId` has been played for, and what happened. */
+export function autoPlayStep(state: State, playerId: string): Flip7Step {
   const ctx = open(state)
   autoPlay(ctx, playerId)
-  return close(ctx).state
+  return close(ctx)
+}
+
+/** `GAME.autoPlayFor`: the state once `playerId` has been played for. */
+export function autoPlayFor(state: State, playerId: string): State {
+  return autoPlayStep(state, playerId).state
 }

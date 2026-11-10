@@ -1,11 +1,12 @@
 import "server-only"
-import { normalizeOptions, waitingPlayers, type OptionValues } from "@pbgo/engine-kit"
+import { normalizeOptions, setupOf, waitingPlayers, type OptionValues } from "@pbgo/engine-kit"
 import type { GameEntry, PlayableGame } from "../lib/binding"
 import { type PublicGame, type PublicPlayer, type GameStatus, UPDATE_EVENT, gameChannel } from "../lib/game-types"
 import { DEFAULT_LOCALE, type Locale } from "../lib/i18n"
 import { sanityClient } from "../sanity/client"
 import { ApiError } from "./api"
 import { validCode, generateCode, normalizeCode } from "./code"
+import { type LoggedStep, type LogWrite, readLog, viewLogged, writeLog } from "./game-log"
 import { expirePatch, readyExpired, readyIds, readyLeft } from "./ready"
 import { supabaseAdmin } from "./supabase"
 import { publicTakeover } from "./takeover"
@@ -118,10 +119,15 @@ export function stateFingerprint(state: unknown): string {
   return (h >>> 0).toString(36)
 }
 
+/**
+ * What a modifier of `updateGame` changes: columns of the table, and what the move adds to its log (`log`, which is not a column: the log has a table of its own, `game_log`). A game that says nothing of what its moves did leaves `log` out.
+ */
+export type GamePatch = Partial<Omit<GameRow, "code" | "version">> & { log?: LogWrite }
+
 export async function updateGame(
   game: GameRef,
   code: string,
-  modifier: (row: GameRow) => Partial<Omit<GameRow, "code" | "version">> | null,
+  modifier: (row: GameRow) => GamePatch | null,
   { quiet = false }: { quiet?: boolean } = {},
 ): Promise<GameRow> {
   const db = supabaseAdmin()
@@ -130,18 +136,21 @@ export async function updateGame(
     const row = await readGame(game, code)
     const patch = modifier(row)
     if (!patch) return row
+    const { log, ...columns } = patch
     // `quiet` (votes): the version changes so clients refresh, but not the turn's inactivity clock
-    const updatedAt = quiet && !("state" in patch) && row.updated_at ? row.updated_at : new Date().toISOString()
-    const next = { ...row, ...patch, version: row.version + 1, updated_at: updatedAt }
+    const updatedAt = quiet && !("state" in columns) && row.updated_at ? row.updated_at : new Date().toISOString()
+    const next = { ...row, ...columns, version: row.version + 1, updated_at: updatedAt }
     const { data, error } = await db
       .from("games")
-      .update({ ...patch, version: next.version, updated_at: updatedAt })
+      .update({ ...columns, version: next.version, updated_at: updatedAt })
       .eq("game", game.slug)
       .eq("code", row.code)
       .eq("version", row.version)
       .select("code")
     if (error) throw error
     if (data.length === 1) {
+      // What the move said is written before the others are told, so that whoever reads the table on the ping finds it in the log
+      if (log) await writeLog(game.slug, row.code, next.version, log)
       await notify(game.slug, row.code, next.version)
       return next
     }
@@ -186,19 +195,21 @@ export function newSeed(): number {
   return (high! & 0xfffff) * 2 ** 32 + low!
 }
 
-export function newGame(game: PlayableGame, row: GameRow, data?: unknown): Pick<GameRow, "status" | "state" | "replay" | "takeover_votes"> {
+export function newGame(game: PlayableGame, row: GameRow, data?: unknown): Pick<GameRow, "status" | "state" | "replay" | "takeover_votes"> & { log?: LogWrite } {
   const { GAME } = game.binding
   const options = normalizeOptions(GAME.options, row.options, { playerCount: row.players.length })
   // The engine is given `PlayerInfo` and nothing more: a picture of an account is for the seat labels, never for the state
   const players = row.players.map(({ id, nickname }) => ({ id, nickname }))
-  return { status: "playing", state: GAME.setup({ players, options, seed: newSeed(), data }), replay: [], takeover_votes: [] }
+  const opened = setupOf(GAME, { players, options, seed: newSeed(), data })
+  // A new game on the table starts a new log, when the game keeps one, and the log opens with what the setup said (the first round dealt). A game that says nothing never touches `game_log`
+  return { status: "playing", state: opened.state, replay: [], takeover_votes: [], ...(GAME.step ? { log: { reset: true, entries: opened.events } } : {}) }
 }
 
 /**
  * The table as `playerId` sees it. `waitingFor`, `present` and `takeovers` are public information, identical for every viewer
  * except that the viewer counts as present (their request is being served right now; `markSeen` records it after the response).
  */
-export function publicGame(game: PlayableGame, row: GameRow, playerId: string | null, now = Date.now()): PublicGame {
+export function publicGame(game: PlayableGame, row: GameRow, playerId: string | null, now = Date.now(), steps: readonly LoggedStep[] = []): PublicGame {
   const { GAME } = game.binding
   const member = row.players.some((j) => j.id === playerId)
   const playing = row.status === "playing" && !!row.state
@@ -229,5 +240,15 @@ export function publicGame(game: PlayableGame, row: GameRow, playerId: string | 
     updatedAt: row.updated_at ?? null,
     createdAt: row.created_at ?? null,
     view: row.state ? GAME.view(row.state, member ? playerId : null) : null,
+    log: viewLogged(steps, member ? playerId : null),
   }
+}
+
+/**
+ * The table as `playerId` sees it, with its log: `publicGame` after a read of the log of the table. Every route that answers a player with the table goes through it. A game that says nothing of what its moves did, and a table with no
+ * game in it yet, have no log and cost no read.
+ */
+export async function servedGame(game: PlayableGame, row: GameRow, playerId: string | null, now = Date.now()): Promise<PublicGame> {
+  const steps = game.binding.GAME.step && row.state ? await readLog(game.slug, row.code) : []
+  return publicGame(game, row, playerId, now, steps)
 }

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
 import { conformanceProblems, type ConformanceOptions, deepEqual, deepFreeze, jsonProblems, reorderKeys } from "./conformance"
-import type { GameDefinition, Results, Standing } from "./contract"
+import type { AnyGameDefinition, GameDefinition, Results, Standing } from "./contract"
 import { EngineError } from "./errors"
+import type { LogEntry, Step } from "./log"
 import { normalizeOptions, type OptionDefinitions } from "./options"
 import { assertPlayers } from "./players"
 import { createSaveableRng, restoreRng } from "./rng"
@@ -115,7 +116,7 @@ const dash: GameDefinition<State, Roll, View> = {
 const secretsFor = (state: State, viewer: string | null) => state.secrets.filter((_, i) => state.seats[i] !== viewer)
 
 /** The sentences the suite says about a game, one per line. */
-const said = (game: GameDefinition<State, Roll, View>, extra: ConformanceOptions = {}) =>
+const said = (game: AnyGameDefinition, extra: ConformanceOptions = {}) =>
   conformanceProblems(game, { seeds: 2, variantSeeds: 1, playerCounts: [2, 3], secretsFor, errorCodes: [], ...extra }).join("\n")
 
 /** The game, with one part of it broken. */
@@ -399,6 +400,116 @@ describe("junk actions", () => {
     expect(said(own)).toContain("a refusal has a code that is neither shared nor in the game's ERROR_CODES")
     expect(said(own, { errorCodes: ["MY_CODE"] })).toBe("")
     expect(said(own, { errorCodes: undefined })).toBe("")
+  })
+})
+
+// The same game, now saying what happens: each roll is an event of the log. A step and an autoPlayStep come together, and what they say is held to the rules of the log.
+type Rolled = { kind: "rolled"; by: string; points: number; secret?: string }
+
+const rolled = (before: State, after: State, id: string): LogEntry<Rolled> => ({ event: { kind: "rolled", by: id, points: after.scores[id]! - before.scores[id]! } })
+
+const logged: GameDefinition<State, Roll, View, undefined, Rolled> = {
+  ...dash,
+  setupStep: (args): Step<State, Rolled> => ({ state: dash.setup(args), events: [{ event: { kind: "rolled", by: args.players[0]!.id, points: 0 } }] }),
+  step: (state, action): Step<State, Rolled> => {
+    const next = dash.apply(state, action)
+    return { state: next, events: [rolled(state, next, action.playerId)] }
+  },
+  autoPlayStep: (state, playerId): Step<State, Rolled> => {
+    const next = dash.autoPlayFor!(state, playerId)
+    return { state: next, events: [rolled(state, next, playerId)] }
+  },
+}
+
+/** The logged game, with what its auto-play says changed. */
+const saying = (change: (step: Step<State, Rolled>, playerId: string) => Step<State, Rolled>): AnyGameDefinition => ({
+  ...logged,
+  autoPlayStep: (state, playerId) => change(logged.autoPlayStep!(state, playerId), playerId),
+})
+
+const entries = (...list: unknown[]) => (step: Step<State, Rolled>) => ({ ...step, events: list as LogEntry<Rolled>[] })
+
+describe("the log", () => {
+  it("has nothing said about a game that says what happens and keeps the contract", () => {
+    expect(conformanceProblems(logged, { secretsFor, errorCodes: [] })).toEqual([])
+  })
+
+  it("wants a step and an autoPlayStep together", () => {
+    expect(said({ ...logged, autoPlayStep: undefined })).toContain("a step but no autoPlayStep")
+    expect(said({ ...logged, step: undefined })).toContain("an autoPlayStep but no step")
+  })
+
+  it("wants autoPlayStep to play the move autoPlayFor plays", () => {
+    expect(said(saying((step) => ({ ...step, state: { ...step.state, target: step.state.target + 1 } })))).toContain("autoPlayStep gives another state than autoPlayFor")
+  })
+
+  it("wants the same log each time for the same state", () => {
+    let count = 0
+    expect(said(saying((step, id) => ({ ...step, events: [{ event: { kind: "rolled", by: id, points: count++ } }] })))).toContain("two different logs for the same state")
+  })
+
+  it("wants the entries to be plain JSON", () => {
+    expect(said(saying((step, id) => entries({ event: { kind: "rolled", by: id, points: undefined } })(step)))).toContain("the log of a step is not plain JSON")
+  })
+
+  it("wants every entry to have an event", () => {
+    expect(said(saying((step) => entries({})(step)))).toContain("an entry of the log has no event")
+    expect(said(saying((step) => entries({ event: "rolled" })(step)))).toContain("an entry of the log has no event")
+  })
+
+  it("wants an entry to be addressed to players of the table, and a masked version to have somebody it is addressed to", () => {
+    expect(said(saying((step, id) => entries({ event: { kind: "rolled", by: id, points: 1 }, to: ["nobody"] })(step)))).toContain("addressed to somebody who is not at the table")
+    expect(said(saying((step, id) => entries({ event: { kind: "rolled", by: id, points: 1 }, masked: { kind: "rolled", by: id, points: 0 } })(step)))).toContain("a masked version but nobody it is addressed to")
+  })
+
+  it("refuses a nickname in an entry: the log keeps the ids", () => {
+    expect(said(saying((step) => entries({ event: { kind: "rolled", by: "Nickname 1", points: 1 } })(step)))).toContain("an entry of the log holds a nickname")
+  })
+
+  it("refuses a log that shows a viewer what they must not know, unless only the owner reads it in full", () => {
+    const secretOf = (state: State, id: string) => state.secrets[state.seats.indexOf(id)]!
+    const everybody = saying((step, id) => entries({ event: { kind: "rolled", by: id, points: 1, secret: secretOf(step.state, id) } })(step))
+    expect(said(everybody)).toContain("the log shows what its viewer must not know")
+    const owner = saying((step, id) => entries({ event: { kind: "rolled", by: id, points: 1, secret: secretOf(step.state, id) }, to: [id], masked: { kind: "rolled", by: id, points: 1 } })(step))
+    expect(said(owner)).toBe("")
+  })
+
+  it("is not asked of a game that says nothing", () => {
+    expect(said(dash)).toBe("")
+  })
+})
+
+describe("the opening of the log", () => {
+  it("wants a setupStep to come with a step", () => {
+    expect(said({ ...logged, step: undefined, autoPlayStep: undefined })).toContain("a setupStep but no step")
+  })
+
+  it("wants setupStep to set up the game setup sets up", () => {
+    const other: AnyGameDefinition = { ...logged, setupStep: (args) => ({ ...logged.setupStep!(args), state: { ...dash.setup(args), target: 7 } }) }
+    expect(said(other)).toContain("setupStep gives another game than setup")
+  })
+
+  it("wants the same log each time for the same seed", () => {
+    let count = 0
+    const other: AnyGameDefinition = { ...logged, setupStep: (args) => ({ state: dash.setup(args), events: [{ event: { kind: "rolled", by: args.players[0]!.id, points: count++ } }] }) }
+    expect(said(other)).toContain("setupStep gives two different logs for the same seed")
+  })
+
+  it("holds what it says to the rules of an entry, as the moves are", () => {
+    const named: AnyGameDefinition = { ...logged, setupStep: (args) => ({ state: dash.setup(args), events: [{ event: { kind: "rolled", by: "Nickname 1", points: 0 } }] }) }
+    expect(said(named)).toContain("an entry of the log holds a nickname")
+    const leaking: AnyGameDefinition = {
+      ...logged,
+      setupStep: (args) => {
+        const state = dash.setup(args)
+        return { state, events: [{ event: { kind: "rolled", by: args.players[0]!.id, points: 0, secret: state.secrets[0] } }] }
+      },
+    }
+    expect(said(leaking)).toContain("the log shows what its viewer must not know")
+  })
+
+  it("says which hook of the opening refuses a table where it must work", () => {
+    expect(said({ ...logged, setupStep: (args) => ({ state: dash.setup({ ...args, players: [] }), events: [] }) })).toContain("setupStep")
   })
 })
 

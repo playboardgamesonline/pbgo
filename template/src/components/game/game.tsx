@@ -5,7 +5,7 @@ import dynamic from "next/dynamic"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useAnnouncementSettings } from "@pbgo/core/components/game/announcement"
-import { GameProvider, useGame } from "@pbgo/core/components/game/context"
+import { GameProvider, useGame, useGameLog } from "@pbgo/core/components/game/context"
 import { DebugSlot } from "@pbgo/core/components/game/debug-controls"
 import { useDebugFolder } from "@pbgo/core/components/game/debug-folders"
 import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-over"
@@ -94,6 +94,8 @@ function Table({ onUpdate, onLeave, held = false, onLoaded }: Props) {
   const api = useApi()
   const { victoryPhrases, playerColors } = useSkin()
   const { game, view } = useGame<PlayerView>()
+  // What happened, as the platform keeps it for the table and sends it to this player: the state and the view hold no log
+  const log = useGameLog<GameEvent>()
   const settings = useAnnouncementSettings()
   const { announce, element: announcement, current } = useAnnouncements(settings)
   const [scoresOpen, setScoresOpen] = useState(true)
@@ -183,12 +185,15 @@ function Table({ onUpdate, onLeave, held = false, onLoaded }: Props) {
 
   const history = useMemo(
     () =>
-      groupTurns(view.log, {
-        actor: (e) => (e.type === "newRound" ? null : e.playerId),
-        closes: (e) => e.type === "trickWon",
-        render: eventText,
-      }),
-    [view.log],
+      groupTurns(
+        log.map((line) => line.event),
+        {
+          actor: (e) => (e.type === "newRound" ? null : e.playerId),
+          closes: (e) => e.type === "trickWon",
+          render: eventText,
+        },
+      ),
+    [log],
   )
 
   return (

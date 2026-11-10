@@ -1,6 +1,10 @@
+import type { Step } from "./log"
 import type { OptionDefinitions, OptionPreset, OptionValues } from "./options"
 
 export type PlayerInfo = { id: string; nickname: string }
+
+/** What `setup` is given: the table, the options, the seed of the game and the data the server loaded for it. */
+export type SetupArgs<SetupData = undefined> = { players: PlayerInfo[]; options: OptionValues; seed?: number; data?: SetupData }
 
 export type PlayerAction = { type: string; playerId: string }
 
@@ -35,8 +39,10 @@ export type Standing = { playerId: string; score: number }
 /**
  * `SetupData`: data loaded on the server before the game starts (e.g. missions from Sanity).
  * The game's server binding provides it through `loadSetupData`; without one it is `undefined`.
+ *
+ * `Event`: what the game says happened, when it says it (`step`): plain data, ids and numbers, that the client turns into sentences and animations. A game that says nothing leaves it out.
  */
-export type GameDefinition<State, Action extends PlayerAction, View, SetupData = undefined> = {
+export type GameDefinition<State, Action extends PlayerAction, View, SetupData = undefined, Event = never> = {
   id: string
   name: string
   minPlayers: number
@@ -54,8 +60,22 @@ export type GameDefinition<State, Action extends PlayerAction, View, SetupData =
    * `seed`: an integer below 2^52 drawn by the server for each game; the same seed and the same actions
    * replay the same game. Optional for backwards compatibility: without one, the game draws its own.
    */
-  setup: (args: { players: PlayerInfo[]; options: OptionValues; seed?: number; data?: SetupData }) => State
+  setup: (args: SetupArgs<SetupData>) => State
+  /**
+   * `setup` that also says what happened while the game was being set up (the first round dealt, the hands drawn): the state, and the entries those moves add to the log, which opens with them. Optional: a game whose setup
+   * has nothing to say, or none that a player would read, leaves it out. `setupStep(args).state` is the state `setup(args)` gives. Set a game up through `setupOf()`, never directly.
+   */
+  setupStep?: (args: SetupArgs<SetupData>) => Step<State, Event>
   apply: (state: State, action: Action) => State
+  /**
+   * `apply` that also says what happened: the new state, and the entries this move adds to the log of the table (`Step`, `LogEntry`). Optional: a game without it has no log.
+   * - `step(state, action).state` is the state `apply(state, action)` gives: a game writes `apply` as `(state, action) => step(state, action).state`, and the other way round it is `step` that holds the rules.
+   * - The entries are plain data (ids and numbers, never display text), oldest first, those of this move only: what an event says in full goes to the players it concerns (`to`), what the others read instead is `masked`.
+   * - It is the log that carries them: the state keeps none (`docs/engine/01-the-game/09-state.md`, Lean state). The platform writes them down with the move, in the same order for everybody, and a board reads them with `useGameLog`.
+   *
+   * Play an action through `stepOf()`, never through `apply` or `step` directly: it works for a game with or without a log.
+   */
+  step?: (state: State, action: Action) => Step<State, Event>
   view: (state: State, playerId: string | null) => View
   isOver: (state: State) => boolean
   debug?: Partial<Record<DebugCommand, (state: State) => State>>
@@ -84,6 +104,11 @@ export type GameDefinition<State, Action extends PlayerAction, View, SetupData =
    */
   autoPlayFor?: (state: State, playerId: string) => State
   /**
+   * `autoPlayFor` that also says what happened, like `step` for `apply`: a game that has a `step` has this one too, so that what is played for an absent player is in the log as well.
+   * `autoPlayStep(state, playerId).state` is the state `autoPlayFor(state, playerId)` gives. Play for a player through `playStepFor()`, never directly.
+   */
+  autoPlayStep?: (state: State, playerId: string) => Step<State, Event>
+  /**
    * @deprecated Engine contract v2: implement `waitingFor` and `autoPlayFor`.
    * Plays the active player's turn for them. Default: `debug.turn`. Read through `playFor()`.
    */
@@ -100,7 +125,7 @@ export type GameDefinition<State, Action extends PlayerAction, View, SetupData =
  * state, action, view or setup data types.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AnyGameDefinition = GameDefinition<any, any, any, any>
+export type AnyGameDefinition = GameDefinition<any, any, any, any, any>
 
 /** Debug commands: `turn` (automatic turn) and `over` (play to the end) are shared; a game can add its own (e.g. `missions`). */
 export type DebugCommand = "turn" | "over" | (string & {})

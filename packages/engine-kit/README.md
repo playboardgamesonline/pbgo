@@ -19,7 +19,7 @@ The template's engine re-exports the whole kit (`export * from "@pbgo/engine-kit
 
 - **Ids and numbers only.** Names, texts, labels, colours and image paths are display data. They live in the game's catalogue (code) and in Sanity, and the client draws them from the view. A card in the state is an id, an amount is a number.
 - **No derived values.** What can be computed from the rest of the state is computed, never stored: the totals from the scores of the rounds (`sumRounds`), who leads (`leaders`), how many cards a pile holds, whose turn it is when it follows from a counter, who the game waits for (`waitingFor`).
-- **No log in the state.** What happened is not something the next move needs. A game keeps no history in its `State`. The kit gives the shape of a log entry and the per-viewer filter ([`log`](#log-logts)); how an engine hands its entries to the platform is not settled yet, so nothing in the kit assumes it.
+- **No log in the state.** What happened is not something the next move needs. A game keeps no history in its `State`. It says what each move did with `step` (the new state and the entries of the move), and the platform keeps them in the log of the table (`game_log`) and sends each player the lines they may read; the kit gives the shape of an entry, the per-viewer filter and the helpers that play through `step` ([`log`](#log-logts)).
 
 The helpers follow from the rule: cards are numbers ([`ids`](#opaque-ids-idsts), [`deck`](#decks-deckts)), piles are arrays of ids, totals are arrays of numbers in seat order, and the position of a random stream is one number. A state in that style (an illustration, not a template):
 
@@ -57,7 +57,7 @@ type State = {
 
 ### Contract
 
-`contract.ts`, `errors.ts`, `outcomes.ts`. `GameDefinition<State, Action, View, SetupData>` with `setup`, `apply`, `view`, `isOver`, `options`, `presets`, `clientActions`, `waitingFor`, `autoPlayFor`, `debug` (and `activePlayer` / `autoPlay`, `@deprecated`). Also `PlayerInfo`, `PlayerAction`, `PlayerResult`, `Results` (`coop` says that a table that plays on one side won or lost together), `AnyGameDefinition`, `DebugCommand`, `EngineError` and `isEngineError`, and the vocabulary of the refusals every game shares: `SHARED_ERROR_CODES`, `SharedErrorCode` and `isSharedErrorCode`. `outcomesOf(results)` reads the results as the outcome of each player for the history (`win`, `loss`, `draw`, `coop_win`, `coop_loss`: `PLAYER_OUTCOMES`; `abandoned` is the platform's). For the tests of a game, `@pbgo/engine-kit/testing` has `errorVocabularyProblems`, which reads the sources of an engine and says what is wrong with its codes. The principles and the demo game are explained in `template/docs/GAME_GUIDE.md`.
+`contract.ts`, `errors.ts`, `outcomes.ts`. `GameDefinition<State, Action, View, SetupData, Event>` with `setup`, `apply`, `view`, `isOver`, `options`, `presets`, `clientActions`, `waitingFor`, `autoPlayFor`, `debug` (and `activePlayer` / `autoPlay`, `@deprecated`), and, for a game that says what its moves did, `step`, `autoPlayStep` and `setupStep`. Also `PlayerInfo`, `PlayerAction`, `PlayerResult`, `Results` (`coop` says that a table that plays on one side won or lost together), `AnyGameDefinition`, `DebugCommand`, `EngineError` and `isEngineError`, and the vocabulary of the refusals every game shares: `SHARED_ERROR_CODES`, `SharedErrorCode` and `isSharedErrorCode`. `outcomesOf(results)` reads the results as the outcome of each player for the history (`win`, `loss`, `draw`, `coop_win`, `coop_loss`: `PLAYER_OUTCOMES`; `abandoned` is the platform's). For the tests of a game, `@pbgo/engine-kit/testing` has `errorVocabularyProblems`, which reads the sources of an engine and says what is wrong with its codes. The principles and the demo game are explained in `template/docs/GAME_GUIDE.md`.
 
 ### Turns
 
@@ -128,7 +128,17 @@ viewLog(entries, "bob") // the draw, then the masked peek
 viewLog(entries, null) // a spectator: the same as bob
 ```
 
-`viewLog(entries, viewerId)` returns the log as that viewer reads it, oldest first: the full event when the entry is public (`to` absent) or addressed to them, else its `masked` version, else nothing. `null` is a spectator. `event` and `masked` are plain data (ids and numbers, never display text): the client turns them into sentences in the viewer's language. The log is never part of the state, see [the rule](#the-rule-lean-state): these functions only filter, wherever the entries are kept.
+`viewLog(entries, viewerId)` returns the log as that viewer reads it, oldest first: the full event when the entry is public (`to` absent) or addressed to them, else its `masked` version, else nothing. `null` is a spectator. `event` and `masked` are plain data (ids and numbers, never display text): the client turns them into sentences in the viewer's language. The log is never part of the state, see [the rule](#the-rule-lean-state): `viewLog` only filters, wherever the entries are kept, and the platform keeps them in `game_log`.
+
+A game gives its entries with `step`, the `apply` that also says what happened, and `autoPlayStep` and `setupStep` for the player it plays for and the moves of its setup. `Step<State, E>` is `{ state, events }`; `step(state, action).state` is what `apply` gives. The platform never calls the members of the definition for this, it plays through the helpers, which work for a game that has no log:
+
+| Export | What it does |
+| --- | --- |
+| `stepOf(game, state, action)` | The game's `step`, else `apply` with no events |
+| `playStepFor(game, state, playerId)` | The game's `autoPlayStep`, else `playFor` with no events; the same refusals as `playFor` |
+| `setupOf(game, args)` | The game's `setupStep`, else `setup` with no events |
+
+`docs/engine/01-the-game/12-events-and-the-log.md` tells the whole way, from the engine to the board.
 
 ### Rounds (`rounds.ts`)
 

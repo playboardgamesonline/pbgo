@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo } from "react"
 import type { CoreView } from "../../lib/binding"
-import type { PublicGame } from "../../lib/game-types"
+import type { LogLine, PublicGame } from "../../lib/game-types"
 import { seatColor } from "../../lib/seat-avatar"
 import { useSkin } from "../skin-provider"
 
@@ -37,4 +37,12 @@ export function useGame<V extends CoreView = CoreView>() {
   const ctx = useContext(GameContext)
   if (!ctx) throw new Error("useGame() needs a GameProvider above it")
   return ctx as GameContextValue<V>
+}
+
+/**
+ * The log of the table as this player reads it, oldest first: what happened in the game (`PublicGame.log`), at most the last lines. `E` is the game's event type, `useGameLog<Flip7Event>()`. Each line has the version of the table that
+ * its move produced (`v`): a board that plays what is new keeps the greatest `v` it has played, and plays the lines with a greater one. A game that says nothing of what its moves did has an empty log.
+ */
+export function useGameLog<E = unknown>() {
+  return useGame().game.log as LogLine<E>[]
 }

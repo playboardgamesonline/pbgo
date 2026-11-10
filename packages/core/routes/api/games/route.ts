@@ -7,7 +7,7 @@ import { loadSettings } from "../../../lib/settings-server"
 import { ageGateFor } from "../../../server/age-gate"
 import { trackAfter } from "../../../server/analytics"
 import { handle, readJson } from "../../../server/api"
-import { createGame, publicGame } from "../../../server/games"
+import { createGame, servedGame } from "../../../server/games"
 import { getOrCreatePlayerId } from "../../../server/player"
 import { seatMember } from "../../../server/presence"
 import { type ProfileInput, resolveSeat } from "../../../server/profile"
@@ -33,5 +33,5 @@ export const postGame = (ageRules: AgeRulesSource) =>
     if (gate.restricted) await seatMember(game, row.code, id, memberId)
     else after(() => seatMember(game, row.code, id, memberId))
     trackAfter("game_created", id, { game: game.slug, options: row.options, max_players: maxPlayers, locale: await getLocale() })
-    return publicGame(game, row, id)
+    return servedGame(game, row, id)
   })

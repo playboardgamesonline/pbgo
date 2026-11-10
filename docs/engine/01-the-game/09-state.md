@@ -6,7 +6,7 @@ The server stores a game as a state and rebuilds from it what every player sees,
 
 - **Ids and numbers only.** Names, texts, labels, colours and image paths are display data: they live in the game's catalogue (code) and in Sanity, and the board draws them from the view. A card in the state is an id, an amount is a number.
 - **No derived values.** What can be computed from the rest of the state is computed, never stored: totals, who leads, the size of a pile, whose turn it is, who the game waits for.
-- **No log.** What happened is not what the next move needs. `apply` returns a state and nothing else, so the contract has no way to hand events over.
+- **No log.** What happened is not what the next move needs. The engine says it apart from the state, with `step`: the new state and the events of the move ([Events and the log](12-events-and-the-log.md)). The platform keeps them in the log of the table.
 - **Plain JSON.** The state is stored as `jsonb`: an `undefined` field vanishes, and `Map`, `Set`, `Date` and class instances do not survive.
 
 ## What goes where
@@ -14,6 +14,7 @@ The server stores a game as a state and rebuilds from it what every player sees,
 | Kind | In Flip 7 |
 | --- | --- |
 | In the state | `seats`, `ids`, `rng`, `deck`, `discard`, `lines`, `status`, `stack`, `rounds`, `stats`, `dealer`, `options` (`State` in `types.ts`) |
+| In the log, not in the state | The events of a move (`Flip7Event`: a round, a draw, a stay, a bust…), said by `step` and kept by the platform ([Events and the log](12-events-and-the-log.md)) |
 | Computed | `totalsOf` (from `rounds`), `isOver`, `results`, `waitingFor`, `roundScore`, the size of the deck |
 | Lives elsewhere | The faces (`CATALOGUE`, `CARDS`), the names, pictures and texts (Sanity), the nicknames (the table's `players`) |
 

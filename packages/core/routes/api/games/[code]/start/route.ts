@@ -3,7 +3,7 @@ import type { GameRouteContext } from "../../../../../lib/binding"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { ageGateFor } from "../../../../../server/age-gate"
 import { ApiError, handle } from "../../../../../server/api"
-import { loadSetupData, newGame, publicGame, readGame, settleReadyCheck, updateGame } from "../../../../../server/games"
+import { loadSetupData, newGame, servedGame, readGame, settleReadyCheck, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { resolveActor } from "../../../../../server/profile"
 import { rateLimit } from "../../../../../server/rate-limit"
@@ -32,5 +32,5 @@ export const postStart = (ageRules: AgeRulesSource) =>
       gate.assertSeats(row, gate.tableAge(row.options), seats)
       return startingPatch(newGame(game, row, data), Date.now())
     })
-    return publicGame(game, row, id)
+    return servedGame(game, row, id)
   })
