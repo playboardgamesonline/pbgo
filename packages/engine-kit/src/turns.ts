@@ -41,14 +41,14 @@ export function canPlayFor<State>(game: TurnHooks<State>): boolean {
 
 /**
  * Plays the current step for one waiting player, with the game's `autoPlayFor`. An engine that only has the legacy
- * `autoPlay` (or `debug.turn`) can do it when that player is the only one waiting.
+ * `autoPlay` (or `debug.turn`) can do it when that player is the only one waiting. `at` is the time of the play when it is known (see `PlayerAction.at`).
  * - `NOT_WAITING`: the player is not waiting for anyone to play for them (the state moved on, or they never were).
  * - `AUTOPLAY_UNSUPPORTED`: the game has no way to play for that player.
  */
-export function playFor<State>(game: TurnHooks<State>, state: State, playerId: string): State {
+export function playFor<State>(game: TurnHooks<State>, state: State, playerId: string, at?: number): State {
   const waiting = waitingPlayers(game, state)
   if (!waiting.includes(playerId)) throw new EngineError("NOT_WAITING")
-  if (game.autoPlayFor) return game.autoPlayFor(state, playerId)
+  if (game.autoPlayFor) return game.autoPlayFor(state, playerId, at)
   const legacy = game.autoPlay ?? game.debug?.turn
   if (legacy && waiting.length === 1) return legacy(state)
   throw new EngineError("AUTOPLAY_UNSUPPORTED")
@@ -59,11 +59,31 @@ export function playFor<State>(game: TurnHooks<State>, state: State, playerId: s
  * For tests, simulations and previews.
  */
 export function playOn<State>(game: TurnHooks<State>, state: State, maxSteps = 1000): State {
+  return playUntil(game, state, () => false, maxSteps)
+}
+
+/**
+ * `playOn` that also stops when `stop` says so: it is asked before each play, with the state the game is in and how many plays were made (0 on the state it starts from), so a state that already satisfies it is
+ * returned as it is. To reach a situation without playing up to it by hand: the end of a round, the turn of a given player, half the game. For tests, simulations and the debug tools.
+ */
+export function playUntil<State>(game: TurnHooks<State>, state: State, stop: (state: State, plays: number) => boolean, maxSteps = 1000): State {
   let current = state
-  for (let step = 0; step < maxSteps; step++) {
+  for (let plays = 0; plays < maxSteps; plays++) {
+    if (stop(current, plays)) break
     const [next] = waitingPlayers(game, current)
     if (next === undefined) break
     current = playFor(game, current, next)
   }
   return current
+}
+
+/**
+ * How far the game has come, from 0 to 100, as a whole number: the game's `progress`, never more than 99 while the game is not over and 100 once it is. `null` when the game does not say, or says something that is not a number.
+ * Core and the HUD read it through this, never from the definition.
+ */
+export function progressOf<State>(game: Pick<GameDefinition<State, PlayerAction, unknown, unknown, unknown>, "isOver" | "progress">, state: State): number | null {
+  if (!game.progress) return null
+  if (game.isOver(state)) return 100
+  const said = game.progress(state)
+  return typeof said === "number" && Number.isFinite(said) ? Math.min(99, Math.max(0, Math.round(said))) : null
 }

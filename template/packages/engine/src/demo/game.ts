@@ -7,17 +7,21 @@ import {
   allSubmitted,
   assertPlayers,
   createRng,
+  isSystemAction,
   normalizeOptions,
   openSubmissions,
   pendingSubmissions,
   shuffle,
+  startTimer,
   submit,
   submittedFlags,
+  systemAction,
 } from "@pbgo/engine-kit"
 import { type Action, type Card, CARD_COLORS, type DemoOptions, type DemoStep, type GameEvent, MAX_VALUE, type PlayerState, type PlayerView, type State } from "./types"
 
 type PlayCard = Extract<Action, { type: "playCard" }>
 type Bid = Extract<Action, { type: "bid" }>
+type Timeout = Extract<Action, { type: "timeout" }>
 
 // The options name no text: their words (`option.rounds.label`, `option.handSize.help`…) are written in the game's Sanity, in every language of the game
 export const DEMO_OPTIONS: OptionDefinitions = {
@@ -25,6 +29,8 @@ export const DEMO_OPTIONS: OptionDefinitions = {
   handSize: { type: "number", defaultValue: 5, min: 3, max: 8 },
   inverse: { type: "boolean", defaultValue: false },
   bids: { type: "boolean", defaultValue: true },
+  // How long each turn lasts, in seconds, for the table that wants a clock: a turn that runs out is played for the player (the clock, a system action). 0, the default, is no limit
+  turnSeconds: { type: "number", defaultValue: 0, min: 0, max: 120 },
 }
 
 const DECK: Card[] = CARD_COLORS.flatMap((color) => Array.from({ length: MAX_VALUE }, (_, i) => ({ id: `${color}-${i + 1}`, color, value: i + 1 })))
@@ -141,8 +147,8 @@ function autoMove(state: State): DemoStep {
   return playCard(state, { type: "playCard", playerId: player.id, cardId: player.hand[0]!.id })
 }
 
-/** Completes the current step of one waiting player, and says what it did. Deterministic: no random draw, so that a replay stays exact. */
-function autoPlayStep(state: State, playerId: string): DemoStep {
+/** Completes the current step of one waiting player, and says what it did, with no clock. Deterministic: no random draw, so that a replay stays exact. */
+function playForRaw(state: State, playerId: string): DemoStep {
   if (!waiting(state).includes(playerId)) throw new EngineError("NOT_WAITING")
   if (state.phase !== "bidding") return autoMove(state)
   // the average number of tricks per player
@@ -152,8 +158,45 @@ function autoPlayStep(state: State, playerId: string): DemoStep {
 
 function autoBids(state: State): State {
   let e = state
-  while (e.phase === "bidding") e = autoPlayStep(e, waiting(e)[0]!).state
+  while (e.phase === "bidding") e = playForRaw(e, waiting(e)[0]!).state
   return e
+}
+
+/** What a step is, for the clock: while it stays the same the clock runs on, and when it changes the clock of the new step starts (a bid in the simultaneous step does not start the clock of the others, a card played does) */
+const stepKey = (state: State) => `${state.phase}:${state.round}:${state.phase === "playing" ? state.activePlayer : ""}:${state.trick.length}`
+
+/**
+ * The state `after` a move, with the clock of the step it is on (the option `turnSeconds`): the clock of the step that was running goes on while the step is the same, a new step starts its clock at `at`, the time of the move, and a game that is over
+ * has none. Nobody told the time (`at` absent, a test or a debug command): a new step has no clock rather than one that began in 1970.
+ */
+function clocked(before: State, after: State, at: number | undefined): State {
+  const seconds = after.options.turnSeconds
+  if (seconds <= 0 || after.phase === "over") return after.timer === null ? after : { ...after, timer: null }
+  if (stepKey(before) === stepKey(after)) return after
+  return { ...after, timer: at === undefined ? null : startTimer(at, seconds) }
+}
+
+/** `playForRaw` for the server, which tells the time of the play: the step it begins starts its clock from it */
+function autoPlayStep(state: State, playerId: string, at?: number): DemoStep {
+  const played = playForRaw(state, playerId)
+  return { ...played, state: clocked(state, played.state, at) }
+}
+
+/**
+ * The clock ran out (a system action, played at the time of the deadline): every player the game was waiting for is played for, in seat order, as the takeover plays for an absent one, and the step that follows starts its clock from that time. The
+ * players that the first play makes wait are not played for: it is the turn that ran out, not the next one.
+ */
+function timeout(state: State, action: Timeout): DemoStep {
+  if (!isSystemAction(action) || state.timer === null) throw new EngineError("INVALID_ACTION")
+  let current = state
+  const events: DemoStep["events"][number][] = []
+  for (const id of waiting(state)) {
+    if (!waiting(current).includes(id)) continue
+    const played = playForRaw(current, id)
+    current = played.state
+    events.push(...played.events)
+  }
+  return { state: clocked(state, current, action.at), events }
 }
 
 /** A new game, and what happened while it was set up: the first round is dealt. */
@@ -171,15 +214,24 @@ function setupStep({ players, options, seed = Math.floor(Math.random() * 2 ** 31
     lastTrick: null,
     phase: "playing",
     bids: {},
+    timer: null,
   })
   return say(state, { type: "newRound", round: 1 })
 }
 
 /** Plays an action, and says what it did: the moves that matter to a player's history are the events of the log. */
 function step(state: State, action: Action): DemoStep {
-  if (action.type === "playCard") return playCard(state, action)
-  if (action.type === "bid") return say(bid(state, action))
-  throw new EngineError("INVALID_ACTION")
+  if (action.type === "timeout") return timeout(state, action)
+  if (action.type !== "playCard" && action.type !== "bid") throw new EngineError("INVALID_ACTION")
+  const played = action.type === "playCard" ? playCard(state, action) : say(bid(state, action))
+  return { ...played, state: clocked(state, played.state, action.at) }
+}
+
+/** How far the game has come, from 0 to 100: the rounds played, and the share of this round's cards that have been played */
+function progress(state: State): number {
+  const size = Math.min(state.options.handSize, Math.floor(DECK.length / state.players.length))
+  const inHand = state.players.reduce((n, j) => n + j.hand.length, 0)
+  return ((state.round - 1 + 1 - inHand / (size * state.players.length)) / state.options.rounds) * 100
 }
 
 export const demo: GameDefinition<State, Action, PlayerView, undefined, GameEvent> = {
@@ -191,8 +243,11 @@ export const demo: GameDefinition<State, Action, PlayerView, undefined, GameEven
   scoreLines: ["round"],
   clientActions: ["bid", "playCard"],
   waitingFor: waiting,
-  autoPlayFor: (state, playerId) => autoPlayStep(state, playerId).state,
+  autoPlayFor: (state, playerId, at) => autoPlayStep(state, playerId, at).state,
   autoPlayStep,
+  // The game goes live: the clock of the first step starts now, and not when the game was set up
+  begin: (state, at) => (state.options.turnSeconds > 0 && state.phase !== "over" ? { ...state, timer: startTimer(at, state.options.turnSeconds) } : { ...state, timer: null }),
+  nextDeadline: (state) => (state.timer !== null && state.phase !== "over" ? { at: state.timer.endsAt, action: systemAction("timeout", state.timer.endsAt) as Action } : null),
   setup: (args) => setupStep(args).state,
   setupStep,
   apply: (state, action) => step(state, action).state,
@@ -217,11 +272,13 @@ export const demo: GameDefinition<State, Action, PlayerView, undefined, GameEven
       activePlayerId: state.phase === "playing" ? (state.players[state.activePlayer]?.id ?? null) : null,
       trick: state.trick,
       lastTrick: state.lastTrick,
+      timer: state.timer === null ? null : { seconds: state.timer.seconds },
       standings: state.players.map((j) => ({ playerId: j.id, score: j.pointsPerRound.reduce((a, b) => a + b, 0) })),
       results: state.phase === "over" ? results(state) : null,
     }
   },
   isOver: (state) => state.phase === "over",
+  progress,
   debug: {
     // Plays on until a trick is won
     turn: (state) => {

@@ -59,10 +59,10 @@ export function stepOf<State, Action extends PlayerAction, E = unknown>(game: St
  * `playFor` that also says what happened: the game's `autoPlayStep` when it has one, else `playFor` with nothing to log. The same refusals: `NOT_WAITING` for a player the game does not wait for, `AUTOPLAY_UNSUPPORTED`
  * when it has no way to play for them.
  */
-export function playStepFor<State, E = unknown>(game: TurnHooks<State> & Pick<GameDefinition<State, PlayerAction, unknown, unknown, E>, "autoPlayStep">, state: State, playerId: string): Step<State, E> {
-  if (!game.autoPlayStep) return { state: playFor(game, state, playerId), events: [] }
+export function playStepFor<State, E = unknown>(game: TurnHooks<State> & Pick<GameDefinition<State, PlayerAction, unknown, unknown, E>, "autoPlayStep">, state: State, playerId: string, at?: number): Step<State, E> {
+  if (!game.autoPlayStep) return { state: playFor(game, state, playerId, at), events: [] }
   if (!waitingPlayers(game, state).includes(playerId)) throw new EngineError("NOT_WAITING")
-  return game.autoPlayStep(state, playerId)
+  return game.autoPlayStep(state, playerId, at)
 }
 
 /** Sets a game up and says what happened while it was: the game's `setupStep` when it has one, else `setup` with nothing to log. A table it cannot play is refused with the `EngineError` of `setup`. */

@@ -45,6 +45,8 @@ export type PublicGame<View = CoreView, Event = unknown> = {
   ready: string[]
   /** What is left of the time to be ready when this was sent, in milliseconds (a duration, not a date: a clock that is off does not matter); null outside `starting` */
   readyInMs: number | null
+  /** What is left of the time of the step the game is on when this was sent, in milliseconds, for a game with a clock (`GAME.nextDeadline`): a duration, not a date, so a clock that is off does not matter, counted by the board from the moment it reads this. When it comes to 0 the game plays the deadline, on the first request that looks at the table (`POST …/tick`). Null for a game with no clock, and outside a game in progress */
+  deadlineInMs: number | null
   /**
    * Players the game waits for now: one on a turn, several on a simultaneous step. Public information, the same for every
    * viewer (it tells who has not played yet, never what). Empty outside a game in progress.
@@ -55,6 +57,8 @@ export type PublicGame<View = CoreView, Event = unknown> = {
   /** Takeover of each waiting player: who has to agree to play for them, who already did. Empty outside a game in progress. */
   takeovers: TakeoverStatus[]
   version: number
+  /** How far the game has come, from 0 to 100 (`GAME.progress`, read through `progressOf`): the bar of the HUD. Null for a game that does not say, and for a table that has no game in it any more */
+  progress: number | null
   /** Last write (ISO): spots a turn blocked by an absent player */
   updatedAt?: string | null
   /** Creation of the game (ISO): shown under the score table */
@@ -66,6 +70,9 @@ export type PublicGame<View = CoreView, Event = unknown> = {
    */
   log: LogLine<Event>[]
 }
+
+/** A state saved by the debug tools (`Copy state`): the game, the ids of the seats in order and the state itself, so that it can be loaded into any table of the same game with as many seats (`restoreState`) */
+export type SavedState = { game: string; players: string[]; state: unknown; savedAt: string }
 
 // The slug keeps two games with the same table code apart on the shared Supabase project.
 export const gameChannel = (slug: string, code: string) => `game:${slug}:${code}`

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { conformanceProblems, type ConformanceOptions, deepEqual, deepFreeze, jsonProblems, reorderKeys } from "./conformance"
 import type { AnyGameDefinition, GameDefinition, Results, Standing } from "./contract"
+import { isSystemAction, systemAction } from "./deadline"
 import { EngineError } from "./errors"
 import type { LogEntry, Step } from "./log"
 import { normalizeOptions, type OptionDefinitions } from "./options"
@@ -21,8 +22,10 @@ type State = {
   rng: number
   secrets: string[]
   over: boolean
+  /** The time the step ends at, for the game with a clock */
+  deadline?: number | null
 }
-type Roll = { type: "roll"; playerId: string }
+type Roll = { type: "roll"; playerId: string; at?: number }
 type View = { scores: { id: string; points: number }[]; turn: string | null; me: { secret: string } | null; results: Results | null; standings?: Standing[] }
 
 const OPTIONS: OptionDefinitions = {
@@ -106,6 +109,7 @@ const dash: GameDefinition<State, Roll, View> = {
     }
   },
   isOver: (state) => state.over,
+  progress: (state) => Math.min(100, (Math.max(...Object.values(state.scores)) / state.target) * 100),
   waitingFor: waiting,
   autoPlayFor: (state, playerId) => {
     if (!waiting(state).includes(playerId)) throw new EngineError("NOT_WAITING")
@@ -161,6 +165,27 @@ describe("the definition", () => {
   it("is refused when it lists a line of score twice, or when a line of the results is not listed", () => {
     expect(said(broken({ scoreLines: ["rolls", "rolls"] }))).toContain("scoreLines lists a line twice")
     expect(said(broken({ scoreLines: ["other"] }))).toContain("a line of the score is not in the definition's scoreLines")
+  })
+})
+
+describe("progress", () => {
+  it("is not asked of a game that does not say how far it has come", () => {
+    expect(said(broken({ progress: undefined }))).toBe("")
+  })
+
+  it("must be a number from 0 to 100", () => {
+    expect(said(broken({ progress: () => 140 }))).toContain("progress is not a number from 0 to 100")
+    expect(said(broken({ progress: () => -1 }))).toContain("progress is not a number from 0 to 100")
+    expect(said(broken({ progress: () => Number.NaN }))).toContain("progress is not a number from 0 to 100")
+    expect(said(broken({ progress: (() => "half") as unknown as () => number }))).toContain("progress is not a number from 0 to 100")
+  })
+
+  it("may not throw", () => {
+    expect(said(broken({ progress: () => { throw new Error("boom") } }))).toContain("progress throws an error where it must work")
+  })
+
+  it("may not change once jsonb has reordered the keys of the state", () => {
+    expect(said(broken({ progress: (state) => (Object.keys(state.scores)[0] === state.seats[0] ? 10 : 20) }))).toContain("progress changes once jsonb has reordered the keys")
   })
 })
 
@@ -548,5 +573,77 @@ describe("the helpers a test of an engine can use", () => {
       "state.f is a bigint",
       "state.g.self points back at itself",
     ])
+  })
+})
+
+// The same race with a clock: each turn lasts ten seconds, and a turn that runs out is rolled for by the clock, a system action that no client can send.
+describe("the clock", () => {
+  type Timeout = { type: "timeout"; playerId: string; at?: number }
+  const SECONDS = 10_000
+  const after = (state: State, at: number | undefined): State => ({ ...state, deadline: at === undefined ? null : at + SECONDS })
+  const timed: GameDefinition<State, Roll | Timeout, View> = {
+    ...dash,
+    step: undefined,
+    autoPlayStep: undefined,
+    begin: (state, at) => after(state, at),
+    apply: (state, action) => {
+      if (action.type === "timeout") {
+        if (!isSystemAction(action)) throw new EngineError("INVALID_ACTION")
+        return after(roll(state, state.seats[state.turn]!), action.at)
+      }
+      if (action.type !== "roll") throw new EngineError("INVALID_ACTION")
+      return after(roll(state, action.playerId), action.at)
+    },
+    autoPlayFor: (state, playerId, at) => {
+      if (!waiting(state).includes(playerId)) throw new EngineError("NOT_WAITING")
+      return after(roll(state, playerId), at)
+    },
+    nextDeadline: (state) => (state.over || state.deadline === null || state.deadline === undefined ? null : { at: state.deadline, action: systemAction("timeout", state.deadline) as Timeout }),
+  }
+  const clocked = (patch: Partial<GameDefinition<State, Roll | Timeout, View>>) => ({ ...timed, ...patch }) as unknown as AnyGameDefinition
+
+  it("has nothing said about a game that keeps the contract, played to its end by its players and by its clock", () => {
+    expect(conformanceProblems(timed as unknown as AnyGameDefinition, { secretsFor, errorCodes: [], seeds: 4 })).toEqual([])
+  })
+
+  it("is not asked of a game that has none", () => {
+    expect(said(dash)).toBe("")
+  })
+
+  it("must name a time that is a finite number of milliseconds", () => {
+    expect(said(clocked({ nextDeadline: (state) => (state.over || state.deadline == null ? null : { at: Number.NaN, action: systemAction("timeout", 0) as Timeout }) }))).toContain("the time of a deadline is not a finite number")
+  })
+
+  it("must name an action that the clock plays, not one of a seat", () => {
+    expect(said(clocked({ nextDeadline: (state) => (state.over || state.deadline == null ? null : { at: state.deadline, action: { type: "timeout", playerId: state.seats[0]! } }) }))).toContain("the action of a deadline is not a system action")
+  })
+
+  it("must name an action that no client may send", () => {
+    expect(said(clocked({ clientActions: ["roll", "timeout"] }))).toContain("the action of a deadline is one a client may send")
+  })
+
+  it("must have none once the game is over", () => {
+    expect(said(clocked({ nextDeadline: (state) => ({ at: state.deadline ?? 0, action: systemAction("timeout", state.deadline ?? 0) as Timeout }) }))).toContain("nextDeadline names a deadline once the game is over")
+  })
+
+  it("must move the game on when its action is played", () => {
+    expect(said(clocked({ apply: (state, action) => (action.type === "timeout" ? state : timed.apply(state, action)) }))).toContain("the action of a deadline changes nothing")
+  })
+
+  it("must not be earlier than the one just played", () => {
+    expect(said(clocked({ apply: (state, action) => (action.type === "timeout" ? { ...timed.apply(state, action), deadline: (action.at ?? 0) - 1 } : timed.apply(state, action)) }))).toContain("the next deadline is earlier than the one just played")
+  })
+
+  it("must come from the state alone, the same on every call", () => {
+    let calls = 0
+    expect(said(clocked({ nextDeadline: (state) => (state.over || state.deadline == null ? null : { at: state.deadline + calls++, action: systemAction("timeout", state.deadline) as Timeout }) }))).toContain("the deadline of a game changes")
+  })
+
+  it("must leave a game that goes live twice as it is once, at the later time", () => {
+    expect(said(clocked({ begin: (state, at) => ({ ...state, deadline: (state.deadline ?? 0) + at + SECONDS }) }))).toContain("begin is not harmless to call again")
+  })
+
+  it("must refuse a system action from a seat", () => {
+    expect(() => timed.apply(timed.setup({ players: [{ id: "a", nickname: "A" }, { id: "b", nickname: "B" }], options: {}, seed: 1 }), { type: "timeout", playerId: "a" })).toThrow(EngineError)
   })
 })

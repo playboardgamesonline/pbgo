@@ -1,4 +1,4 @@
-import type { Results, Standing, Step, Submissions } from "@pbgo/engine-kit"
+import type { Results, Standing, Step, Submissions, Timer } from "@pbgo/engine-kit"
 
 export const CARD_COLORS = ["sun", "moon", "star", "comet"] as const
 export type CardColor = (typeof CARD_COLORS)[number]
@@ -26,7 +26,7 @@ export type GameEvent =
 /** What a move gives back: the new state and the events it says. */
 export type DemoStep = Step<State, GameEvent>
 
-export type DemoOptions = { rounds: number; handSize: number; inverse: boolean; bids: boolean }
+export type DemoOptions = { rounds: number; handSize: number; inverse: boolean; bids: boolean; turnSeconds: number }
 
 export type State = {
   seed: number
@@ -41,9 +41,22 @@ export type State = {
   phase: "bidding" | "playing" | "over"
   /** Number of tricks each player announced for the round, `null` until they did. Secret while the phase is `bidding`; empty without the `bids` option */
   bids: Submissions<number>
+  /** The clock of the step the game is on, for the option `turnSeconds`: when it ends and how long it was set for. `null` without the option, between two moves that nobody told the time of, and once the game is over */
+  timer: Timer | null
 }
 
-export type Action = { type: "playCard"; playerId: string; cardId: string } | { type: "bid"; playerId: string; amount: number }
+/** What the server puts on every action it plays: the time it played it at (`PlayerAction.at`) */
+type Stamped = { at?: number }
+
+/**
+ * `timeout` is the clock's, a system action: the turn or the step that runs out is played for the players it was waiting for. It is not in `clientActions`, and only `SYSTEM_PLAYER` may carry it.
+ */
+export type Action = (
+  | { type: "playCard"; playerId: string; cardId: string }
+  | { type: "bid"; playerId: string; amount: number }
+  | { type: "timeout"; playerId: string }
+) &
+  Stamped
 
 export type PlayerView = {
   phase: State["phase"]
@@ -63,6 +76,8 @@ export type PlayerView = {
   activePlayerId: string | null
   trick: PlayedCard[]
   lastTrick: State["lastTrick"]
+  /** How long each step lasts, for a game with the option `turnSeconds`: the board draws the time left from it and from the deadline the platform gives it. `null` without the option and between two steps that nobody told the time of */
+  timer: { seconds: number } | null
   /** What each player has so far, for the list of the players of the HUD */
   standings: Standing[]
   results: Results | null

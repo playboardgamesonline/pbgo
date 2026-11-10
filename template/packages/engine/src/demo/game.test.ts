@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { playFor, playOn, playStepFor, setupOf, stepOf, viewLog, waitingPlayers } from "@pbgo/engine-kit"
+import { beginOf, deadlineOf, deadlineIn, playFor, playOn, playStepFor, progressOf, settleDeadlines, setupOf, stepOf, SYSTEM_PLAYER, systemAction, viewLog, waitingPlayers } from "@pbgo/engine-kit"
 import { demo } from "./game"
 import type { Action, State } from "./types"
 
@@ -266,5 +266,180 @@ describe("what the game says happened", () => {
     const played = stepOf(demo, e, { type: "playCard", playerId: j.id, cardId: j.hand[0]!.id })
     e = played.state
     expect(viewLog(played.events, null)).toEqual(played.events.map(({ event }) => event))
+  })
+})
+
+describe("how far the game has come", () => {
+  it("goes from 0 to 100 with the cards played, never back, and is 100 once the game is over", () => {
+    for (const bids of [true, false]) {
+      let e = demo.setup({ players: players(3), options: { bids, rounds: 3, handSize: 4 }, seed: 12 })
+      expect(demo.progress!(e)).toBe(0)
+      let previous = 0
+      while (e.phase !== "over") {
+        e = playFor(demo, e, waitingPlayers(demo, e)[0]!)
+        const now = progressOf(demo, e)!
+        expect(now).toBeGreaterThanOrEqual(previous)
+        previous = now
+      }
+      expect(progressOf(demo, e)).toBe(100)
+    }
+  })
+
+  it("is halfway through a game of two rounds when the first is played", () => {
+    let e = demo.setup({ players: players(2), options: { bids: false, rounds: 2, handSize: 3 }, seed: 5 })
+    while (e.round === 1) e = playFor(demo, e, waitingPlayers(demo, e)[0]!)
+    expect(Math.round(demo.progress!(e))).toBe(50)
+  })
+})
+
+describe("the turn timer", () => {
+  const SECONDS = 10
+  const T0 = 1_700_000_000_000
+  const table = (options: Record<string, number | boolean> = {}, seed = 6) => beginOf(demo, demo.setup({ players: players(3), options: { turnSeconds: SECONDS, ...options }, seed }), T0)
+  const timeout = (at: number): Action => ({ ...systemAction("timeout", at) }) as Action
+
+  it("is off unless the table asks for it: no clock, no deadline, nothing in the view", () => {
+    const plain = beginOf(demo, demo.setup({ players: players(3), options: {}, seed: 6 }), T0)
+    expect(plain.timer).toBeNull()
+    expect(deadlineOf(demo, plain)).toBeNull()
+    expect(demo.view(plain, "j0").timer).toBeNull()
+    // And a move at a time changes nothing about that
+    const moved = demo.apply(bid(plain, waitingPlayers(demo, plain)[0]!, 0), { type: "bid", playerId: waitingPlayers(demo, plain)[0]!, amount: 1, at: T0 + 500 })
+    expect(moved.timer).toBeNull()
+  })
+
+  it("starts the clock of the first step when the game goes live, not when it is set up", () => {
+    const opened = demo.setup({ players: players(3), options: { turnSeconds: SECONDS }, seed: 6 })
+    expect(opened.timer).toBeNull()
+    expect(deadlineOf(demo, opened)).toBeNull()
+    const live = beginOf(demo, opened, T0)
+    expect(live.timer).toEqual({ endsAt: T0 + SECONDS * 1000, seconds: SECONDS })
+    expect(deadlineOf(demo, live)).toEqual({ at: T0 + SECONDS * 1000, action: { type: "timeout", playerId: SYSTEM_PLAYER, at: T0 + SECONDS * 1000 } })
+    expect(deadlineIn(demo, live, T0 + 4_000)).toBe(6_000)
+    // Going live again later starts it again from then, and changes nothing else
+    expect(beginOf(demo, live, T0 + 5_000)).toEqual({ ...live, timer: { endsAt: T0 + 5_000 + SECONDS * 1000, seconds: SECONDS } })
+  })
+
+  it("tells the board how long a step lasts, never when it ends", () => {
+    const view = demo.view(table({ bids: false }), "j0")
+    expect(view.timer).toEqual({ seconds: SECONDS })
+    expect(JSON.stringify(view)).not.toContain(String(T0))
+  })
+
+  it("starts the clock of the next turn from the time of the card that was played", () => {
+    const state = table({ bids: false })
+    const active = state.players[state.activePlayer]!
+    const next = demo.apply(state, { type: "playCard", playerId: active.id, cardId: active.hand[0]!.id, at: T0 + 3_000 })
+    expect(next.timer).toEqual({ endsAt: T0 + 3_000 + SECONDS * 1000, seconds: SECONDS })
+  })
+
+  it("lets the clock of a step run on while the step stays the same: a bid does not start the clock of the others", () => {
+    const state = table()
+    expect(state.phase).toBe("bidding")
+    const [first] = waitingPlayers(demo, state)
+    const next = demo.apply(state, { type: "bid", playerId: first!, amount: 1, at: T0 + 4_000 })
+    expect(next.phase).toBe("bidding")
+    expect(next.timer).toEqual(state.timer)
+  })
+
+  it("starts the clock of the playing step when the last bid ends the bidding", () => {
+    let state = table()
+    const ids = waitingPlayers(demo, state)
+    ids.forEach((id, i) => {
+      state = demo.apply(state, { type: "bid", playerId: id, amount: 1, at: T0 + 1_000 * (i + 1) })
+    })
+    expect(state.phase).toBe("playing")
+    expect(state.timer).toEqual({ endsAt: T0 + 3_000 + SECONDS * 1000, seconds: SECONDS })
+  })
+
+  it("plays for the player whose turn ran out, at the time of the deadline, and starts the next clock from it", () => {
+    const state = table({ bids: false })
+    const active = state.players[state.activePlayer]!
+    const due = state.timer!.endsAt
+    const { state: next, events } = stepOf(demo, state, timeout(due))
+    // The first card of the hand was played for them, as for an absent player
+    expect(next.trick).toEqual([{ playerId: active.id, card: active.hand[0] }])
+    expect(events.map(({ event }) => event.type)).toEqual(["cardPlayed"])
+    expect(next.timer).toEqual({ endsAt: due + SECONDS * 1000, seconds: SECONDS })
+    // It is the next player's turn, and the clock did not play for them as well
+    expect(waitingPlayers(demo, next)).toEqual([next.players[next.activePlayer]!.id])
+  })
+
+  it("plays for every player who owes a bid when the step runs out", () => {
+    const state = table()
+    const [first, ...others] = waitingPlayers(demo, state)
+    const partly = demo.apply(state, { type: "bid", playerId: first!, amount: 2, at: T0 + 1_000 })
+    const next = demo.apply(partly, timeout(state.timer!.endsAt))
+    expect(next.phase).toBe("playing")
+    // Their own bid is kept, and the others were played for
+    expect(next.bids[first!]).toBe(2)
+    for (const id of others) expect(next.bids[id]).toBe(Math.floor(next.players[0]!.hand.length / 3))
+    expect(next.timer).toEqual({ endsAt: state.timer!.endsAt + SECONDS * 1000, seconds: SECONDS })
+  })
+
+  it("is refused to a seat: only the clock may play a timeout", () => {
+    const state = table()
+    for (const playerId of ["j0", "j1", "stranger"]) expect(() => demo.apply(state, { type: "timeout", playerId, at: state.timer!.endsAt })).toThrow(expect.objectContaining({ code: "INVALID_ACTION" }))
+  })
+
+  it("is refused when no clock is running", () => {
+    const plain = demo.setup({ players: players(3), options: {}, seed: 6 })
+    expect(() => demo.apply(plain, timeout(T0))).toThrow(expect.objectContaining({ code: "INVALID_ACTION" }))
+  })
+
+  it("is not an action a client may send", () => {
+    expect(demo.clientActions).not.toContain("timeout")
+  })
+
+  it("plays a table that nobody looked at for a long time to its end, one deadline after the other, and has no clock then", () => {
+    const state = table({ rounds: 1, handSize: 3 })
+    const settled = settleDeadlines(demo, state, T0 + 24 * 3600 * 1000)
+    expect(settled.state.phase).toBe("over")
+    expect(settled.state.timer).toBeNull()
+    expect(deadlineOf(demo, settled.state)).toBeNull()
+    // A step per turn of the round, and the bids: 3 players, 3 cards each, then the bidding of the round
+    expect(settled.applied).toBe(1 + 9)
+    expect(settled.events.length).toBeGreaterThan(0)
+  })
+
+  it("is the same game whenever the table is settled: the deadlines are played at their own times", () => {
+    const state = table({ rounds: 1, handSize: 3 })
+    const late = settleDeadlines(demo, state, T0 + 24 * 3600 * 1000).state
+    let along = state
+    for (const now of [T0 + 5_000, T0 + 10_000, T0 + 10_001, T0 + 37_000, T0 + 40_000, T0 + 24 * 3600 * 1000]) along = settleDeadlines(demo, along, now).state
+    expect(along).toEqual(late)
+  })
+
+  it("replays the same game from the same seed and the same timestamped moves", () => {
+    const play = () => {
+      let state = table({ bids: false })
+      let clock = T0
+      for (let i = 0; i < 6 && state.phase !== "over"; i++) {
+        const id = waitingPlayers(demo, state)[0]!
+        clock += 1_500
+        state = playFor(demo, state, id, clock)
+      }
+      return state
+    }
+    expect(play()).toEqual(play())
+  })
+
+  it("starts a new round's clock from the card that ended the last one", () => {
+    let state = table({ bids: false, rounds: 2, handSize: 3 })
+    let clock = T0
+    while (state.round === 1) {
+      const active = state.players[state.activePlayer]!
+      clock += 2_000
+      state = demo.apply(state, { type: "playCard", playerId: active.id, cardId: active.hand[0]!.id, at: clock })
+    }
+    expect(state.timer).toEqual({ endsAt: clock + SECONDS * 1000, seconds: SECONDS })
+  })
+
+  it("has no clock for a step that nobody told the time of, rather than one that began in 1970", () => {
+    const state = table({ bids: false })
+    const active = state.players[state.activePlayer]!
+    const next = demo.apply(state, { type: "playCard", playerId: active.id, cardId: active.hand[0]!.id })
+    expect(next.timer).toBeNull()
+    expect(deadlineOf(demo, next)).toBeNull()
   })
 })

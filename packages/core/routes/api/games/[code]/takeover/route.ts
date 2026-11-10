@@ -4,6 +4,7 @@ import type { GameRouteContext } from "../../../../../lib/binding"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { trackAfter, trackGameFinished } from "../../../../../server/analytics"
 import { ApiError, handle, notPlaying, readJson } from "../../../../../server/api"
+import { playDueSafely } from "../../../../../server/deadlines"
 import { servedGame, stateFingerprint, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { markSeen } from "../../../../../server/presence"
@@ -29,8 +30,8 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   if (playerIds !== undefined && (!Array.isArray(playerIds) || !playerIds.every((p) => typeof p === "string"))) throw new ApiError("INVALID_REQUEST")
   const { turnTimeout } = await loadSettings(game)
 
-  // What the write of the modifier's last run did: it runs again when it loses a race, so it starts from nothing each time
-  const outcome = { started: false, completed: false, played: 0, targets: [] as string[] }
+  // What the write of the modifier's last run did: it runs again when it loses a race, so it starts from nothing each time. `clocked` is whom the deadline of the game was played for, when it was due before the vote
+  const outcome = { started: false, completed: false, played: 0, targets: [] as string[], clocked: [] as string[] }
   const row = await updateGame(
     game,
     params.code ?? "",
@@ -39,9 +40,16 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
       outcome.completed = false
       outcome.played = 0
       outcome.targets = []
+      outcome.clocked = []
       if (!id || !row.players.some((p) => p.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
       if (row.status !== "playing" || !row.state) throw notPlaying(row)
       const now = Date.now()
+      // A game with a clock that has run out has moved on without a vote: the deadline is played, and the votes that were for the state before it are no more
+      const due = playDueSafely(GAME, row.state, now)
+      if (due.applied > 0) {
+        outcome.clocked = due.playedFor
+        return { state: due.state, status: GAME.isOver(due.state) ? "over" : "playing", takeover_votes: [], ...(due.events.length ? { log: { entries: due.events } } : {}) }
+      }
       if (!isStalled(row.updated_at, now, turnTimeout)) throw new ApiError("NOT_STALLED", 409)
       const waiting = waitingPlayers(GAME, row.state)
       const fingerprint = stateFingerprint(row.state)
@@ -66,7 +74,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
         for (const target of play) {
           if (GAME.isOver(state)) break
           if (waitingPlayers(GAME, state).includes(target)) {
-            const played = playStepFor(GAME, state, target)
+            const played = playStepFor(GAME, state, target, now)
             state = played.state
             events.push(...played.events)
             outcome.played += 1
@@ -95,7 +103,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   // The modifier only runs on a table in play, so an `over` table is the one this takeover has just ended
   if (row.status === "over") trackGameFinished(game.slug, row, id)
   // The players the others played for count for no rating. They are told to the table first, then the game this takeover may have ended is written, with them named, since the table is over by then and takes no note any more
-  const targets = outcome.targets
+  const targets = outcome.targets.length ? outcome.targets : outcome.clocked
   if (targets.length || row.status === "over") {
     after(async () => {
       await markTakenOver(game, row.code, targets)

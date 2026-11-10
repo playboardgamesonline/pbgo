@@ -35,6 +35,8 @@ export const RATE_LIMITS = {
   ready: { limit: 20, windowMs: 10_000 },
   /** Game moves (including Courtisans `readMissions` and its retries): per player, never per table */
   action: { limit: 20, windowMs: 10_000 },
+  /** The countdown of a table's deadline came to 0 (`POST …/tick`): each board sends one, and a few more when the server's clock is a hair behind the board's */
+  tick: { limit: 20, windowMs: 10_000 },
   replay: { limit: 10, windowMs: 60_000 },
   /** Votes to play for the players the game waits for and who don't play (core `takeover`) */
   vote: { limit: 10, windowMs: 60_000 },

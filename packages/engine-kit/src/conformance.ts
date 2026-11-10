@@ -1,6 +1,7 @@
 import type { AnyGameDefinition, Results, SetupArgs } from "./contract"
+import { beginOf, deadlineOf, SYSTEM_PLAYER } from "./deadline"
 import { isEngineError, isSharedErrorCode } from "./errors"
-import { viewLog } from "./log"
+import { stepOf, viewLog } from "./log"
 import { applyPreset, defaultOptions, normalizeOptions, type OptionValues } from "./options"
 import { canPlayFor, playFor, waitingPlayers } from "./turns"
 
@@ -273,28 +274,86 @@ class Suite {
     if (twice.ok && !deepEqual(twice.value, state)) found.flag("the same seed does not give the same game: setup is not deterministic", where)
     this.checkOpening({ players, options: values, seed, data }, state, ids, where)
 
+    // The clock of the run: what the server would tell the game. The table goes live at 0, and every play is a second after the last
+    let clock = 0
+    if (game.begin) {
+      const begun = this.attempt(where, () => beginOf(game, state, clock))
+      if (!begun.ok) return this.thrown(where, "begin", begun.error)
+      const once = this.attempt(where, () => beginOf(game, state, clock + 1000))
+      const twice = this.attempt(where, () => beginOf(game, begun.value, clock + 1000))
+      if (once.ok && twice.ok && !deepEqual(once.value, twice.value)) found.flag("begin is not harmless to call again: calling it twice gives another game than calling it once at the later time", where)
+      state = begun.value
+    }
+
     for (let step = 0; ; step++) {
       if (step >= this.maxSteps) return found.flag(`a game does not end within ${this.maxSteps} steps of autoPlayFor`, where)
       deepFreeze(state)
       const at = `${where}, step ${step}`
       this.checkState(state, ids, at)
+      const due = this.checkDeadline(state, at)
       if (step === 0 || step === 7) this.checkJunk(state, ids, at)
       if (game.isOver(state)) return this.checkResults(state, ids, where)
+      // The clock plays a step now and then in place of the players: a game with a timer is played to its end by timeouts as well
+      if (due && step % 3 === 1) {
+        clock = Math.max(clock, due.at)
+        const played = this.attempt(at, () => stepOf(game, state, { ...due.action, at: due.at }))
+        if (!played.ok) return this.thrown(at, "the action of the deadline", played.error)
+        const again = this.attempt(at, () => stepOf(game, state, { ...due.action, at: due.at }))
+        if (again.ok && !deepEqual(again.value, played.value)) found.flag("the action of a deadline gives two different steps for the same state: it is not deterministic", at)
+        if (deepEqual(played.value.state, state)) return found.flag("the action of a deadline changes nothing: the clock never moves on", at)
+        const next = this.attempt(at, () => deadlineOf(game, played.value.state))
+        if (next.ok && next.value && next.value.at < due.at) found.flag("the next deadline is earlier than the one just played: time does not go back", at)
+        this.checkEntries(played.value.events, played.value.state, ids, `${at}, deadline`)
+        state = played.value.state
+        continue
+      }
       const waits = this.attempt(at, () => waitingPlayers(game, state))
       if (!waits.ok) return // checkState has said what waitingFor does
       const waiting = waits.value
       if (waiting.length === 0) return found.flag("the game is not over and waits for nobody", at)
       const pick = waiting[step % waiting.length]!
-      const next = this.attempt(at, () => playFor(game, state, pick))
+      clock += 1000
+      const next = this.attempt(at, () => playFor(game, state, pick, clock))
       if (!next.ok) return this.thrown(at, "autoPlayFor", next.error)
-      const again = this.attempt(at, () => playFor(game, state, pick))
+      const again = this.attempt(at, () => playFor(game, state, pick, clock))
       if (again.ok && !deepEqual(again.value, next.value)) found.flag("autoPlayFor gives two different states for the same state: it is not deterministic", at)
-      const stored = this.attempt(at, () => playFor(game, reorderKeys(state), pick))
+      const stored = this.attempt(at, () => playFor(game, reorderKeys(state), pick, clock))
       if (stored.ok && !deepEqual(stored.value, next.value)) found.flag("the game plays differently once jsonb has reordered the keys of its state: an order comes from the keys of an object", at)
       if (deepEqual(next.value, state)) return found.flag("autoPlayFor changes nothing: the game never moves on", at)
-      this.checkLog(state, pick, next.value, ids, at)
+      this.checkLog(state, pick, next.value, ids, at, clock)
       state = next.value
     }
+  }
+
+  /**
+   * The deadline a game says it has (`nextDeadline`), when it has a clock: none, or a finite time and a system action that no client may send, the same from the state and from the state once jsonb has reordered its keys, never once the
+   * game is over. Returns the deadline when it is one that can be played.
+   */
+  private checkDeadline(state: unknown, at: string) {
+    const { game, found } = this
+    if (!game.nextDeadline) return null
+    const said = this.attempt(at, () => game.nextDeadline!(state) as unknown)
+    if (!said.ok) {
+      this.thrown(at, "nextDeadline", said.error)
+      return null
+    }
+    const deadline = said.value as { at?: unknown; action?: { type?: unknown; playerId?: unknown } } | null | undefined
+    if (deadline === null || deadline === undefined) return null
+    const problems = jsonProblems(deadline, "deadline")
+    if (problems.length) found.flag("a deadline is not plain JSON: it cannot be kept as it is", `${at}: ${problems[0]}`)
+    if (!this.same(at, () => game.nextDeadline!(reorderKeys(state)), deadline) || !this.same(at, () => game.nextDeadline!(state), deadline)) found.flag("the deadline of a game changes once jsonb has reordered the keys of its state, or between two calls: it comes from the state alone", at)
+    if (game.isOver(state)) found.flag("nextDeadline names a deadline once the game is over", at)
+    if (typeof deadline.at !== "number" || !Number.isFinite(deadline.at)) {
+      found.flag("the time of a deadline is not a finite number of milliseconds", at)
+      return null
+    }
+    if (!deadline.action || typeof deadline.action.type !== "string") {
+      found.flag("a deadline has no action to play", at)
+      return null
+    }
+    if (deadline.action.playerId !== SYSTEM_PLAYER) found.flag("the action of a deadline is not a system action: its playerId is SYSTEM_PLAYER, the clock is nobody at the table", `${at}: ${String(deadline.action.playerId)}`)
+    if ((game.clientActions as readonly string[]).includes(deadline.action.type)) found.flag("the action of a deadline is one a client may send: a system action is never in clientActions, or a player could play it early", `${at}: ${deadline.action.type}`)
+    return game.isOver(state) || deadline.action.playerId !== SYSTEM_PLAYER ? null : (deadline as { at: number; action: { type: string; playerId: string } })
   }
 
   /** What must hold of any state of a game, at any moment. */
@@ -332,6 +391,7 @@ class Suite {
     }
     for (const viewer of [...ids, null, STRANGER]) this.checkView(state, stored, viewer, over.value, at)
     this.checkStandings(state, ids, at)
+    this.checkProgress(state, at)
   }
 
   /**
@@ -354,6 +414,16 @@ class Suite {
       return
     }
     if (rows.some((row) => typeof row.score !== "number" || !Number.isFinite(row.score))) found.flag("a standing has a score that is not a finite number", at)
+  }
+
+  /** How far the game has come, when the definition says it (`progress`): a number from 0 to 100 at every state, and the same for the same state. */
+  private checkProgress(state: unknown, at: string) {
+    const { game, found } = this
+    if (!game.progress) return
+    const said = this.attempt(at, () => game.progress!(state) as unknown)
+    if (!said.ok) return this.thrown(at, "progress", said.error)
+    if (typeof said.value !== "number" || !Number.isFinite(said.value) || said.value < 0 || said.value > 100) found.flag("progress is not a number from 0 to 100", `${at}: ${String(said.value)}`)
+    else if (!this.same(at, () => game.progress!(reorderKeys(state)), said.value)) found.flag("progress changes once jsonb has reordered the keys of the state: an order comes from the keys of an object", at)
   }
 
   private same(at: string, f: () => unknown, expected: unknown): boolean {
@@ -384,14 +454,14 @@ class Suite {
   /**
    * The log of a game that says what happens: `autoPlayStep` plays like `autoPlayFor` and says the same each time, and what it says is held to the rules of an entry (`checkEntries`).
    */
-  private checkLog(state: unknown, pick: string, next: unknown, ids: string[], at: string) {
+  private checkLog(state: unknown, pick: string, next: unknown, ids: string[], at: string, clock?: number) {
     const { game, found } = this
     if (!game.autoPlayStep) return
-    const played = this.attempt(at, () => game.autoPlayStep!(state, pick))
+    const played = this.attempt(at, () => game.autoPlayStep!(state, pick, clock))
     if (!played.ok) return this.thrown(at, "autoPlayStep", played.error)
     const { state: after, events } = played.value
     if (!deepEqual(after, next)) found.flag("autoPlayStep gives another state than autoPlayFor: a move is one thing, whoever asks for it", at)
-    const again = this.attempt(at, () => game.autoPlayStep!(state, pick))
+    const again = this.attempt(at, () => game.autoPlayStep!(state, pick, clock))
     if (again.ok && !deepEqual(again.value.events, events)) found.flag("autoPlayStep gives two different logs for the same state: it is not deterministic", at)
     this.checkEntries(events, after, ids, at)
   }
@@ -536,6 +606,7 @@ class Suite {
  *   all of them at the end, and leaks none of the `secretsFor`; when a view carries `standings` they hold each player once, in seat order, with a finite score, the same for every viewer; the step does not write to the state it was given, gives the same state twice, plays the same once `jsonb` has reordered the keys,
  *   moves the game on, and never asks `Math.random` or `Date.now`; the results hold each player once, with ranks, winners and lines of score in order (a table that plays together, `coop`,
  *   wins or loses as one: every player at rank 1 with the table's score, and everybody among the winners or nobody).
+ * - `progress`, when the definition has one: a number from 0 to 100 at every state, the same once `jsonb` has reordered the keys.
  * - The log, for a game that says what happens (`step`, `autoPlayStep`, and `setupStep` for its opening): the first two come together, `autoPlayStep` plays like `autoPlayFor` and `setupStep` sets up like `setup`, each says the same
  *   every time, and the entries they give are plain data, are addressed to players of the table, hold no nickname, and leak none of the `secretsFor` to a viewer who may only read their `masked` version.
  * - Junk actions: whatever a client could send is refused with an `EngineError` whose code is in the vocabulary, or else is a move; it never throws a plain error and never writes to the state.

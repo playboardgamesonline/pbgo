@@ -6,7 +6,8 @@ import { getLocale } from "../lib/locale-server"
 import { tableTitle } from "../lib/settings"
 import { loadSettings } from "../lib/settings-server"
 import { tablePath } from "../lib/site-url"
-import { loadGameData, readGame, settleReadyCheck } from "../server/games"
+import { loadGameData, readGame } from "../server/games"
+import { settleTable } from "../server/settle"
 
 /** `generateMetadata` of `/<slug>/game/[code]`: title of the table, not indexed. */
 export async function gameMetadata(game: PlayableGame, code: string): Promise<Metadata> {
@@ -20,8 +21,8 @@ export async function gameMetadata(game: PlayableGame, code: string): Promise<Me
  */
 export async function GamePage({ game, code }: { game: PlayableGame; code: string }) {
   const read = await readGame(game, code).catch(() => null)
-  // A ready check that ran out of time ends here if nobody looked before: the table is back in the lobby
-  const row = read && (await settleReadyCheck(game, read))
+  // A ready check that ran out of time ends here if nobody looked before: the table is back in the lobby. So does the deadline of a game that has passed
+  const row = read && (await settleTable(game, read))
   if (row?.status === "lobby") redirect(tablePath(game.slug, row.code))
   const data = await loadGameData(game, await getLocale())
   return <GameClient code={code.toUpperCase()} data={data} />

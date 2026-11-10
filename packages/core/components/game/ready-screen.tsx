@@ -8,6 +8,7 @@ import type { BoardProps } from "../../lib/binding"
 import { useApi, useBinding } from "../../lib/binding-context"
 import type { PublicGame } from "../../lib/game-types"
 import { collectiveProgress, curtainState, loadingRows, READY_LOAD_GRACE_MS, secondsLeft } from "../../lib/ready-curtain"
+import { useDeadline } from "../../lib/use-deadline"
 import { type LoadingProgress, openLoading } from "../../lib/realtime"
 import { StartScreen } from "./start-screen"
 
@@ -96,6 +97,9 @@ export function BoardEntry({
   }, [starting, meId, SLUG, game.code])
   useEffect(() => channel?.report(own), [channel, own])
 
+  // The deadline of a game with a clock: counted down here for every board, and the table asked to play it when it ends
+  const deadlineAt = useDeadline(game, receivedAt, async () => onUpdate(await api.tick(game.code)))
+
   // The time left, measured from the moment the table said it; when it is up the table is asked at once, and again until it answers: the first look at it ends the check
   const [now, setNow] = useState(() => performance.now())
   useEffect(() => {
@@ -122,7 +126,7 @@ export function BoardEntry({
     <>
       {/* Nothing under the screen can be reached by the keyboard either */}
       <div className="contents" inert={!lifted}>
-        <Game game={game} data={data} onUpdate={onUpdate} onLeave={onLeave} held={!lifted} onLoaded={onLoaded} onProgress={onProgress} />
+        <Game game={game} data={data} onUpdate={onUpdate} onLeave={onLeave} held={!lifted} deadlineAt={deadlineAt} onLoaded={onLoaded} onProgress={onProgress} />
       </div>
       <MotionConfig reducedMotion="user">
         <AnimatePresence>

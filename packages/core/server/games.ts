@@ -1,5 +1,5 @@
 import "server-only"
-import { normalizeOptions, setupOf, waitingPlayers, type OptionValues } from "@pbgo/engine-kit"
+import { beginOf, deadlineIn, normalizeOptions, progressOf, setupOf, waitingPlayers, type OptionValues } from "@pbgo/engine-kit"
 import type { GameEntry, PlayableGame } from "../lib/binding"
 import { type PublicGame, type PublicPlayer, type GameStatus, UPDATE_EVENT, gameChannel } from "../lib/game-types"
 import { DEFAULT_LOCALE, type Locale } from "../lib/i18n"
@@ -195,14 +195,15 @@ export function newSeed(): number {
   return (high! & 0xfffff) * 2 ** 32 + low!
 }
 
-export function newGame(game: PlayableGame, row: GameRow, data?: unknown): Pick<GameRow, "status" | "state" | "replay" | "takeover_votes"> & { log?: LogWrite } {
+export function newGame(game: PlayableGame, row: GameRow, data?: unknown, now = Date.now()): Pick<GameRow, "status" | "state" | "replay" | "takeover_votes"> & { log?: LogWrite } {
   const { GAME } = game.binding
   const options = normalizeOptions(GAME.options, row.options, { playerCount: row.players.length })
   // The engine is given `PlayerInfo` and nothing more: a picture of an account is for the seat labels, never for the state
   const players = row.players.map(({ id, nickname }) => ({ id, nickname }))
   const opened = setupOf(GAME, { players, options, seed: newSeed(), data })
   // A new game on the table starts a new log, when the game keeps one, and the log opens with what the setup said (the first round dealt). A game that says nothing never touches `game_log`
-  return { status: "playing", state: opened.state, replay: [], takeover_votes: [], ...(GAME.step ? { log: { reset: true, entries: opened.events } } : {}) }
+  // The clock of the first step starts when the game is live: here for a table that is played at once, and again when the last player of a ready check is ready
+  return { status: "playing", state: beginOf(GAME, opened.state, now), replay: [], takeover_votes: [], ...(GAME.step ? { log: { reset: true, entries: opened.events } } : {}) }
 }
 
 /**
@@ -233,10 +234,12 @@ export function publicGame(game: PlayableGame, row: GameRow, playerId: string | 
     replay: row.replay,
     ready: row.status === "starting" ? readyIds(row) : [],
     readyInMs: readyLeft(row, now),
+    deadlineInMs: playing ? deadlineIn(GAME, row.state, now) : null,
     waitingFor,
     present,
     takeovers,
     version: row.version,
+    progress: row.state ? progressOf(GAME, row.state) : null,
     updatedAt: row.updated_at ?? null,
     createdAt: row.created_at ?? null,
     view: row.state ? GAME.view(row.state, member ? playerId : null) : null,

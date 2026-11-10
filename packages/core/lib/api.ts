@@ -1,5 +1,5 @@
 import type { OptionValues } from "@pbgo/engine-kit"
-import type { PublicGame } from "./game-types"
+import type { PublicGame, SavedState } from "./game-types"
 import type { ChatMessage, ChatReaction } from "./chat"
 import { missing } from "./missing"
 import { isPreviewWindow } from "./preview"
@@ -20,6 +20,9 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   UNKNOWN_PLAYER: "You are not a player of this game.",
   UNKNOWN_CARD: "This card is not in your hand.",
   INVALID_TARGET: "You can't choose this player.",
+  INVALID_TEXT: "This text can't be used. It may be empty or too long.",
+  INVALID_NUMBER: "This number can't be used.",
+  INVALID_CHOICE: "This choice isn't available.",
   AUTOPLAY_UNSUPPORTED: "This game can't play for this player.",
   // What the routes of a game refuse with
   INVALID_NICKNAME: "Pick a nickname.",
@@ -34,6 +37,7 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   CODE_UNAVAILABLE: "Couldn't open the table, try again.",
   CONFLICT: "Someone played at the same time, try again.",
   DEBUG_DISABLED: "Debug is disabled on this server (DEBUG_GAMES=1).",
+  INVALID_STATE: "This state can't be loaded into this table.",
   NOT_STALLED: "The game is still moving: wait a little before playing for them.",
   TAKEOVER_UNSUPPORTED: "This game doesn't allow playing for an absent player.",
   INVALID_REQUEST: "This request isn't valid.",
@@ -99,12 +103,17 @@ function buildApi(slug: string) {
     /** "I'm ready", while the table is `starting` (PLT-107), sent by a player's board once it is loaded: the last player to say it begins the game */
     ready: (code: string) => post(`${games}/${code}/ready`),
     action: (code: string, action: { type: string } & Record<string, unknown>) => post(`${games}/${code}/action`, action),
+    /** The countdown of the table's deadline came to 0 (`PublicGame.deadlineInMs`): the server plays the deadline if it has passed, and answers with the table as it is then */
+    tick: (code: string) => post(`${games}/${code}/tick`),
     replay: (code: string) => post(`${games}/${code}/replay`),
     /** Votes to play for the players the game waits for (`playerIds`, by default all of them): they are played for once every present player has voted */
     takeover: (code: string, playerIds?: string[]) => post(`${games}/${code}/takeover`, { playerIds }),
     /** Route of the game itself (`ROUTES` of its server binding): same translated errors, same neutralization in the preview */
     custom: (code: string, route: string, body?: unknown) => post(`${games}/${code}/${route}`, body),
     debug: (code: string, command: ClientDebugCommand) => post(`${games}/${code}/debug`, { command }),
+    /** Debug tools, never on a production deployment: the state of the table to keep, and a saved state to load into it */
+    debugState: (code: string) => post<SavedState>(`${games}/${code}/debug`, { command: "state" }),
+    debugLoad: (code: string, saved: SavedState) => post(`${games}/${code}/debug`, { command: "load", saved }),
     /** Chat message or reaction: the server sets the author from the player cookie and broadcasts it (`id` matches the optimistic copy) */
     chat: (code: string, body: { id: string } & ({ text: string } | { reaction: string })) => post<ChatMessage | ChatReaction>(`${games}/${code}/chat`, body),
     /** Shareable link of a table */

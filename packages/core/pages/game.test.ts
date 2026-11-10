@@ -4,7 +4,7 @@ import { GamePage } from "./game"
 
 const h = vi.hoisted(() => ({
   row: null as { code: string; status: "lobby" | "starting" | "playing" | "over" } | null,
-  /** What the table is once its ready check has been looked at, when that check had run out of time */
+  /** What the table is once what is due on it has been settled (its ready check that ran out of time, the deadline of its game), when something was */
   settled: null as { code: string; status: "lobby" | "starting" | "playing" | "over" } | null,
   failure: null as Error | null,
   redirected: [] as string[],
@@ -27,7 +27,9 @@ vi.mock("../server/games", () => ({
     if (!h.row) throw new Error("GAME_NOT_FOUND")
     return h.row
   },
-  settleReadyCheck: async (_game: unknown, row: unknown) => h.settled ?? row,
+}))
+vi.mock("../server/settle", () => ({
+  settleTable: async (_game: unknown, row: unknown) => h.settled ?? row,
 }))
 
 const game = { slug: "courtisans" } as PlayableGame

@@ -12,6 +12,9 @@ export const SHARED_ERROR_CODES = [
   "UNKNOWN_PLAYER", // the player is not at the table
   "UNKNOWN_CARD", // the card is not in the player's hand
   "INVALID_TARGET", // the player the action aims at cannot be chosen
+  "INVALID_TEXT", // a text a player wrote is empty, too long or not a text (`cleanText` throws it)
+  "INVALID_NUMBER", // a number a player chose is not a number, is outside the range or is off the steps (`cleanNumber` throws it)
+  "INVALID_CHOICE", // an option a player chose is not one of the options (`cleanChoice` and `cleanChoices` throw it)
   "AUTOPLAY_UNSUPPORTED", // the engine cannot play for this player (the kit throws it)
 ] as const
 export type SharedErrorCode = (typeof SHARED_ERROR_CODES)[number]
