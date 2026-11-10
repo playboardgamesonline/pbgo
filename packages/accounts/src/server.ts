@@ -10,6 +10,7 @@ import { supabaseAuthConfig } from "./config"
 import { DEMO_ACCOUNT, DEMO_COOKIE, demoAllowed } from "./demo"
 import type { ExternalDeps } from "./external"
 import { secondStepPendingOf } from "./mfa"
+import { hasSessionCookie } from "./proxy"
 
 // The accounts on the server: the Supabase client of a request (it reads the session from the cookies and writes a refreshed one back), and who is
 // signed in. A page that shows an account is rendered per request, so it is not static: the hub's pages that stay static ask the browser instead
@@ -88,6 +89,16 @@ export async function secondStepPendingAfterSignIn(supabase: SupabaseClient, acc
   } catch {
     return false
   }
+}
+
+/**
+ * Takes the session off this device: the cookies of the Supabase session go, whatever the Auth server would say about them. For an account that was just closed or deleted (PLT-36), the session ended in the database and the Auth server
+ * refuses every call that carries it, so `signOut` could not be trusted to clear them; and a cookie that outlives its session would send the visitor to the member home (the proxy reads the cookie) and from there back to the sign-in.
+ * Only a route handler can write cookies.
+ */
+export async function clearSessionCookies(): Promise<void> {
+  const store = await cookies()
+  for (const { name } of store.getAll()) if (hasSessionCookie([name])) store.delete(name)
 }
 
 /** The account of a page that is for a signed-in visitor alone: a visitor who is not signed in is sent to `/login` and brought back to `path`. */

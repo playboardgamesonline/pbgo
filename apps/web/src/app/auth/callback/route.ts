@@ -7,7 +7,8 @@ import { createAuthClient, secondStepPendingAfterSignIn } from "@pbgo/accounts/s
  * the page they came from (`next`, a path of this site: `safeNext`). The language their account keeps goes out with the session, in the cookie the server reads, so that the page
  * they land on, a game's perhaps, is drawn in it on a device that has never seen the account; an account that keeps none yet takes the language in use once the page is there
  * (`LanguageSync`). A member whose account asks for a second step (PLT-129) is sent to the sign-in instead, which asks for the code and brings them on to `next`: `next` can be a page that anybody sees, and they would be left there as
- * a guest. Anything that goes wrong sends them to the sign-in page with a sentence.
+ * a guest. Anything that goes wrong sends them to the sign-in page with a sentence. A provider's sign-in to an account that the member closed (PLT-36: the Auth server bans it, and sends the visitor back with `error_code=user_banned`)
+ * says so, and where the link that reopens it is: only the owner of that provider's account gets this far, so it tells a stranger nothing.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl
@@ -24,5 +25,6 @@ export async function GET(request: NextRequest) {
       return response
     }
   }
-  return NextResponse.redirect(new URL(`/login?error=signin&next=${encodeURIComponent(next)}`, origin))
+  const problem = searchParams.get("error_code") === "user_banned" ? "closed" : "signin"
+  return NextResponse.redirect(new URL(`/login?error=${problem}&next=${encodeURIComponent(next)}`, origin))
 }

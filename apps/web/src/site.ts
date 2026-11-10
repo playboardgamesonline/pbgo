@@ -17,6 +17,12 @@ export const PUBLISHER = { name: "oré", url: "https://ore.today" }
 export const CONTACT = "hey@playboardgamesonline.app"
 
 /**
+ * The sender of the e-mails that the site's own code sends (the link that reopens a deleted account, PLT-36): the name of the site and an address on the subdomain that Resend verified, the one Supabase Auth sends its
+ * e-mails from too (`docs/accounts.md`, "Setting it up", 6). Nobody reads what is written to it: the replies go to `CONTACT`.
+ */
+export const MAIL_FROM = `${SITE_NAME} <no-reply@mail.playboardgamesonline.app>`
+
+/**
  * Whether the Pricing page exists. There is no pricing to show yet (no paid plan is on sale, since the games are not licensed), so for now the page answers 404, the bar has no tab for it and the Billing settings have no way
  * to it. The page, its plans (`lib/plans.ts`) and the card (`PlanCard`) are kept: the day a plan is on sale, set this to true, rewrite the sentence of the Terms about the plans and the notes in `CLAUDE.md` and `docs/`.
  */

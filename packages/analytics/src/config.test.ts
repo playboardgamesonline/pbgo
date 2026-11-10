@@ -71,7 +71,7 @@ describe("resolveConfig", () => {
 })
 
 describe("isExcludedPath", () => {
-  it("never reports from the gamemaster, the previews it shows nor the docs", () => {
+  it("never reports from the gamemaster, the previews it shows, the docs nor the page of the link that deletes an account", () => {
     for (const path of [
       "/docs",
       "/docs/design",
@@ -84,6 +84,8 @@ describe("isExcludedPath", () => {
       "/hanabi/preview/home",
       "/hanabi/preview/game",
       "/hanabi/preview",
+      "/auth/reopen-account",
+      "/auth/reopen-account/",
     ]) {
       expect(isExcludedPath(path), path).toBe(true)
     }
@@ -101,6 +103,9 @@ describe("isExcludedPath", () => {
       "/docs-and-more",
       "/preview/game/ABC123",
       "/hanabi/previews",
+      "/auth/callback",
+      "/auth/reopen-accounts",
+      "/login",
     ]) {
       expect(isExcludedPath(path), path).toBe(false)
     }
