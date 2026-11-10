@@ -58,6 +58,9 @@ export function parseTableSettings(raw: unknown): TableSettings {
   return settings
 }
 
+/** Who may find a table: what its host set, and a private table for one that kept no setting. */
+export const visibilityOf = (settings: Pick<TableSettings, "visibility"> | undefined): Visibility => settings?.visibility ?? "private"
+
 /** How a table counts: `ranked` for the rank, `normal` for playing. A table that kept no setting is a normal one. */
 export const modeOf = (settings: Pick<TableSettings, "ranked">): "normal" | "ranked" => (settings.ranked === true ? "ranked" : "normal")
 

@@ -24,9 +24,9 @@ Every property is a boolean, a count or a word of a closed list; `game` is a slu
 
 | Event | From | Properties | Question |
 | --- | --- | --- | --- |
-| `game_created` | server, player id | game, options, max_players, locale | How many tables are opened, with which options? |
-| `player_joined` | server, player id | game, seat, players | How full do tables get? |
-| `game_started` | server, player id | game, players, options | How many tables begin? |
+| `game_created` | server, player id | game, options, max_players, locale, visibility | How many tables are opened, with which options, and how many to everyone? |
+| `player_joined` | server, player id | game, seat, players, visibility | How full do tables get, public or private? |
+| `game_started` | server, player id | game, players, options, visibility | How many tables begin, public or private? |
 | `game_finished` | server, player id | game, duration_s, players, moves_count | How long do games last, how many end? |
 | `game_left`, `rematch_started`, `chat_message_sent` | server, player id | game, phase or kind | Where do players leave, do they play again, is the chat used? |
 | `takeover_vote_started`, `takeover_completed`, `turn_auto_played` | server, player id | game | How often is somebody played for? |
@@ -58,5 +58,5 @@ Do it on a preview, then on production. Filter on `env`.
 Funnels worth building (dashboards are PLT-18):
 1. Sign-up to first table: `auth_started` (flow signup), `signup_code_sent`, `signed_in` (new_account), `game_created` or `player_joined`. Whole only for visitors who accepted: the stored id is what ties the browser's steps to the player id at the table.
 2. A table: `game_created`, `game_started`, `game_finished`. `game_finished` is sent for the player whose move ended the game, so the steps share a person only when it is the host.
-3. A public table: `public_table_clicked`, `player_joined`, `game_started`.
+3. A public table: `public_table_clicked`, `player_joined` (visibility public), `game_started` (visibility public).
 4. From the hub to a table: `game_opened_from_hub`, `game_page_clicked` (create_table), `game_created`.

@@ -21,7 +21,7 @@ describe("createTracker", () => {
   it("sends one event with the player id, the environment and no person profile", async () => {
     const { client, captureImmediate } = fakeClient()
     const track = createTracker(client, "preview")
-    await track("player_joined", "6c0ad2de-1b0f-4f4e-a1a2-5d1f0ae3c0aa", { game: "hanabi", seat: 1, players: 2 })
+    await track("player_joined", "6c0ad2de-1b0f-4f4e-a1a2-5d1f0ae3c0aa", { game: "hanabi", seat: 1, players: 2, visibility: "private" })
     expect(captureImmediate).toHaveBeenCalledTimes(1)
     expect(captureImmediate).toHaveBeenCalledWith({
       distinctId: "6c0ad2de-1b0f-4f4e-a1a2-5d1f0ae3c0aa",
@@ -30,6 +30,7 @@ describe("createTracker", () => {
         game: "hanabi",
         seat: 1,
         players: 2,
+        visibility: "private",
         env: "preview",
         identity_stable: false,
         $process_person_profile: false,
@@ -77,7 +78,7 @@ describe("createTracker", () => {
       },
     }
     const track = createTracker(client, "production", log)
-    await expect(track("game_started", "id-1", { game: "hanabi", players: 3, options: {} })).resolves.toBeUndefined()
+    await expect(track("game_started", "id-1", { game: "hanabi", players: 3, options: {}, visibility: "public" })).resolves.toBeUndefined()
     expect(log).toHaveBeenCalledTimes(1)
     expect(log.mock.calls[0][0]).toContain("game_started")
   })
@@ -106,7 +107,7 @@ describe("createTracker", () => {
       const log = vi.fn()
       const { client, fail } = fakeClient()
       const track = createTracker(client, "production", log)
-      await expect(track("game_started", "id-1", { game: "hanabi", players: 3, options: {} })).resolves.toBeUndefined()
+      await expect(track("game_started", "id-1", { game: "hanabi", players: 3, options: {}, visibility: "public" })).resolves.toBeUndefined()
       expect(log).not.toHaveBeenCalled()
       const failure = new Error("HTTP error while fetching PostHog: status=500, reqByteLength=246")
       fail(failure)

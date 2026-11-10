@@ -1,5 +1,6 @@
 import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
+import { visibilityOf } from "../../../../../lib/table-settings"
 import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle } from "../../../../../server/api"
 import { publicGame, updateGame } from "../../../../../server/games"
@@ -8,6 +9,7 @@ import { rateLimit } from "../../../../../server/rate-limit"
 import { readyExpired, readyPatch, expirePatch } from "../../../../../server/ready"
 import { markGameStarted } from "../../../../../server/results"
 import { leaveOtherLobbies } from "../../../../../server/table-seat"
+import { readTableSettingsOf } from "../../../../../server/table-settings"
 
 /**
  * "I'm ready" (PLT-107): sent by a player's board by itself once it is loaded, no click. The last of them to say it begins the game, and the answer says so (`status` is `playing`). Saying it again, or saying it for a table that is
@@ -30,9 +32,10 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     outcome.began = patch?.status === "playing"
     return patch
   })
-  // The host is the one who started it, whoever was the last to be ready
+  // The host is the one who started it, whoever was the last to be ready. Who may find the table is kept apart from it: it is read once, for the count, when the game begins
   if (outcome.began) {
-    trackAfter("game_started", row.host_id, { game: game.slug, players: row.players.length, options: row.options })
+    const kept = await readTableSettingsOf(game.slug, row.code)
+    trackAfter("game_started", row.host_id, { game: game.slug, players: row.players.length, options: row.options, visibility: visibilityOf(kept) })
     after(() => markGameStarted(game, row))
     // The people who play leave the other lobbies where they sit: a player in a game cannot begin another, so they would only block them
     after(() => leaveOtherLobbies(game, row))

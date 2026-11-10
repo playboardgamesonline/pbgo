@@ -16,6 +16,7 @@ import {
   tierOf,
   unmetCriteria,
   UNMET_CODES,
+  visibilityOf,
   withinRankGap,
   type TableSettings,
   type TableSettingsInput,
@@ -96,6 +97,23 @@ describe("effectiveSettings", () => {
     expect(effectiveSettings({ visibility: "public", minRank: "Gold", language: "fr", pace: "slow", seats: 3 }, 5)).toEqual({ visibility: "public", minRank: "Gold", language: "fr", pace: "slow", seats: 3 })
     expect(effectiveSettings({ seats: 9 }, 5).seats).toBe(5)
     expect(effectiveSettings({}, 0).seats).toBe(1)
+  })
+})
+
+describe("visibilityOf", () => {
+  it("is what the host set", () => {
+    expect(visibilityOf({ visibility: "public" })).toBe("public")
+    expect(visibilityOf({ visibility: "private" })).toBe("private")
+  })
+
+  it("is private for a table that kept no setting, whatever else it kept", () => {
+    expect(visibilityOf({})).toBe("private")
+    expect(visibilityOf(undefined)).toBe("private")
+    expect(visibilityOf({ pace: "fast", seats: 3 } as TableSettings)).toBe("private")
+  })
+
+  it("agrees with the settings the lobby shows", () => {
+    for (const settings of [{}, { visibility: "public" as const }, { visibility: "private" as const }]) expect(visibilityOf(settings)).toBe(effectiveSettings(settings, 5).visibility)
   })
 })
 

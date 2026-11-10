@@ -20,7 +20,7 @@ const Stored = (props: { items: { name: string; text: ReactNode }[] }) => <Legal
 const STATISTICS: ReactNode[] = [
   "We use PostHog, on its European cloud, to see how the site is used and to fix what breaks. IP addresses are discarded. Three kinds of counts run whatever you choose, and none stores anything on your device:",
   <>
-    <span className={LEGAL_LEAD}>Game statistics.</span> When a table is created, joined, started or finished, or goes because nobody sits at it any more, the server counts it with the game, the number of players, the options and how long it lasted. Each count carries a code made from that game&apos;s
+    <span className={LEGAL_LEAD}>Game statistics.</span> When a table is created, joined, started or finished, or goes because nobody sits at it any more, the server counts it with the game, the number of players, the options, whether it is open to everyone and how long it lasted. Each count carries a code made from that game&apos;s
     player cookie (a one-way hash: the cookie&apos;s own value is never stored or sent on), so we can tell that someone came back to a game, but never a nickname or anything typed in the chat (a chat message is counted, never read).
   </>,
   <>

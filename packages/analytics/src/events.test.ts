@@ -26,9 +26,9 @@ const noFreeTextOnTheServer: [EventsWithFreeText<ServerEvents>] extends [never] 
 const noFreeTextInTheBrowser: [EventsWithFreeText<ClientEvents>] extends [never] ? true : never = true
 
 const SERVER: { [Name in keyof ServerEvents]: ServerEvents[Name] } = {
-  game_created: { game: "courtisans", options: { speed: "fast", expansion: true }, max_players: 4, locale: "en" },
-  player_joined: { game: "courtisans", seat: 1, players: 2 },
-  game_started: { game: "courtisans", players: 2, options: {} },
+  game_created: { game: "courtisans", options: { speed: "fast", expansion: true }, max_players: 4, locale: "en", visibility: "public" },
+  player_joined: { game: "courtisans", seat: 1, players: 2, visibility: "private" },
+  game_started: { game: "courtisans", players: 2, options: {}, visibility: "public" },
   game_finished: { game: "courtisans", duration_s: 600, players: 2, moves_count: 42, ended_by: "natural", approximate: true },
   game_left: { game: "courtisans", phase: "playing" },
   table_deleted: { game: "courtisans", reason: "lobby_left" },

@@ -46,11 +46,11 @@ export type GameRoute = "create" | "read" | "join" | "leave" | "action" | "chat"
  * (the free tier is 1M events a month): the move count travels on `game_finished`.
  */
 export type ServerEvents = {
-  game_created: { game: string; options: Record<string, unknown>; max_players: number; locale: Locale }
+  game_created: { game: string; options: Record<string, unknown>; max_players: number; locale: Locale; visibility: TableVisibility }
   /** `seat` is 0-based, `players` counts the table after the join. */
-  player_joined: { game: string; seat: number; players: number }
+  player_joined: { game: string; seat: number; players: number; visibility: TableVisibility }
   /** The game begins: the last player has said they are ready (PLT-107; before it, the host's start). Sent for the host, whoever was the last. */
-  game_started: { game: string; players: number; options: Record<string, unknown> }
+  game_started: { game: string; players: number; options: Record<string, unknown>; visibility: TableVisibility }
   /**
    * `duration_s` and `moves_count` are approximations: a table has no start date and no move counter, so they come from the
    * row (`updated_at - created_at` and `version`, which every write bumps: joins, options, votes too). `approximate` says so.

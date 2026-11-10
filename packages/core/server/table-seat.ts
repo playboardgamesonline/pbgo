@@ -5,7 +5,7 @@ import type { AgeRulesSource } from "../lib/age-rules"
 import type { PlayableGame } from "../lib/binding"
 import { getLocale } from "../lib/locale-server"
 import { loadSettings } from "../lib/settings-server"
-import { effectiveSettings, unmetCriteria, UNMET_CODES, type TableSettings, type Viewer } from "../lib/table-settings"
+import { effectiveSettings, unmetCriteria, UNMET_CODES, visibilityOf, type TableSettings, type Viewer } from "../lib/table-settings"
 import { ageGateFor, type AgeGate } from "./age-gate"
 import { trackAfter } from "./analytics"
 import { ApiError } from "./api"
@@ -63,7 +63,7 @@ export async function joinTable(game: PlayableGame, code: string, sitter: Sitter
     return { players: [...row.players, { id, ...profile }], ...(row.players.length === 0 ? { host_id: id } : {}) }
   })
   await recordSeat(game, row.code, sitter, gate)
-  if (joined.added) trackAfter("player_joined", id, { game: game.slug, seat: row.players.findIndex((j) => j.id === id), players: row.players.length })
+  if (joined.added) trackAfter("player_joined", id, { game: game.slug, seat: row.players.findIndex((j) => j.id === id), players: row.players.length, visibility: visibilityOf(settings) })
   return { row, added: joined.added }
 }
 
@@ -75,7 +75,7 @@ export async function openTable(game: PlayableGame, sitter: Sitter, { gate, opti
   gate.assertMay(gate.tableAge(options))
   const row = await createGame(game, { id: sitter.id, ...sitter.profile }, options, { settings, ranked })
   await recordSeat(game, row.code, sitter, gate)
-  trackAfter("game_created", sitter.id, { game: game.slug, options: row.options, max_players: maxPlayers, locale: await getLocale() })
+  trackAfter("game_created", sitter.id, { game: game.slug, options: row.options, max_players: maxPlayers, locale: await getLocale(), visibility: visibilityOf(settings) })
   return row
 }
 
