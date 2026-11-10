@@ -39,8 +39,8 @@ const SEARCH_SIZES = {
 type QueueButtonProps = Omit<React.ComponentProps<typeof Button>, "variant" | "size" | "asChild" | "onClick"> & {
   /** `xl` (the default) is the main button of a game's page; `lg` is the smaller one of the signed-in home. */
   size?: keyof typeof SEARCH_SIZES
-  /** How the button looks while it waits for a press: the main way to play is filled, a second one is `secondary`. The counter that it becomes is the same fill either way. */
-  variant?: "default" | "secondary"
+  /** For a button that opens a menu of what to look for: the page puts the idle button in the trigger of its menu (`DropdownMenuTrigger asChild`), and the menu's items start the search. The counter that the button becomes is not put in it. */
+  around?: (button: React.ReactElement) => React.ReactElement
   /** Whether the visitor looks for a table through this button's search. */
   searching: boolean
   /** How long they have, in whole seconds. */
@@ -52,11 +52,11 @@ type QueueButtonProps = Omit<React.ComponentProps<typeof Button>, "variant" | "s
 }
 
 /**
- * The button that starts a search, "Play ranked" or "Play normal" (its children: a play icon and its name). A press starts the search and the button becomes, in the same place and at the same width so that nothing next to it moves,
+ * The button that starts a search, "Play ranked", "Play normal" or "Play" (its children: a play icon and its name). A press starts the search and the button becomes, in the same place and at the same width so that nothing next to it moves,
  * a counter of the time waited with a cross that stops it, on the same fill; the cross takes the focus when it was the keyboard that pressed, and the button takes it back when the cross was pressed. A disabled button is
- * the one of a game that cannot be played yet, or of a search with no game picked, and has no counter.
+ * the one of a game that cannot be played yet, or of a search with no game picked, and has no counter. A button that has to ask what to look for first is the trigger of a menu (`around`): its items start the search.
  */
-function QueueButton({ size = "xl", variant = "default", searching, seconds, onSearch, onCancel, className, children, disabled, ...props }: QueueButtonProps) {
+function QueueButton({ size = "xl", around, searching, seconds, onSearch, onCancel, className, children, disabled, ...props }: QueueButtonProps) {
   const find = React.useRef<HTMLButtonElement>(null)
   const stop = React.useRef<HTMLButtonElement>(null)
   // Which way the focus goes when the button changes: only when it is this button that was pressed, not when the search was stopped from elsewhere (the social panel)
@@ -92,11 +92,10 @@ function QueueButton({ size = "xl", variant = "default", searching, seconds, onS
     )
   }
 
-  return (
+  const idle = (
     <Button
       ref={find}
       type="button"
-      variant={variant}
       size={size}
       disabled={disabled}
       className={cn("justify-center", SEARCH_SIZES[size].idle, className)}
@@ -109,6 +108,7 @@ function QueueButton({ size = "xl", variant = "default", searching, seconds, onS
       {children}
     </Button>
   )
+  return around ? around(idle) : idle
 }
 
 type QueueCardProps = Omit<React.ComponentProps<"div">, "children"> & {
