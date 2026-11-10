@@ -43,7 +43,8 @@ describe("findPlayerGame", () => {
       // A string: for an array supabase-js writes a Postgres array literal (`{…}`), which a jsonb column does not read
       ["contains", "players", '[{"id":"p1"}]'],
       ["order", "updated_at", { ascending: false }],
-      ["limit", 1],
+      // A few of the most recent: the first one that the player did not leave is theirs
+      ["limit", 10],
     ])
   })
 
@@ -57,6 +58,14 @@ describe("findPlayerGame", () => {
     h.result = { data: [], error: null }
     expect(await findPlayerGame({ slug: "courtisans" }, "p1", NOW)).toBeNull()
     h.result = { data: null, error: null }
+    expect(await findPlayerGame({ slug: "courtisans" }, "p1", NOW)).toBeNull()
+  })
+
+  it("skips a game the player left (their seat stays at it, marked), and finds the table they sit at after it", async () => {
+    const left = { ...row, code: "OLD111", status: "playing", players: [{ id: "p1", nickname: "Ann", left: true }, { id: "p2", nickname: "Bob" }] }
+    h.result = { data: [left, row], error: null }
+    expect(await findPlayerGame({ slug: "courtisans" }, "p1", NOW)).toEqual(row)
+    h.result = { data: [left], error: null }
     expect(await findPlayerGame({ slug: "courtisans" }, "p1", NOW)).toBeNull()
   })
 

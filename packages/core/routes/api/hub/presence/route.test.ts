@@ -3,12 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const mocks = vi.hoisted(() => ({
   account: null as { id: string } | null,
   touchMember: vi.fn(async (_userId: string): Promise<void> => {}),
+  tables: [] as Array<{ game: string; code: string; status: "lobby" | "starting" | "playing" }>,
+  readMemberTables: vi.fn(async (_userId: string) => mocks.tables),
 }))
 
 vi.mock("server-only", () => ({}))
 vi.mock("@pbgo/accounts/server", () => ({ getAccount: async () => mocks.account }))
 vi.mock("../../../../server/player", () => ({ getPlayerId: async () => null }))
 vi.mock("../../../../server/presence", () => ({ touchMember: mocks.touchMember }))
+vi.mock("../../../../server/tables", async (importOriginal) => ({ ...(await importOriginal<typeof import("../../../../server/tables")>()), readMemberTables: mocks.readMemberTables }))
 
 import { setRateLimitStore } from "../../../../server/rate-limit"
 import { MemoryRateLimitStore } from "../../../../server/rate-limiter"
@@ -20,6 +23,8 @@ beforeEach(() => {
   mocks.account = null
   mocks.touchMember.mockReset()
   mocks.touchMember.mockResolvedValue(undefined)
+  mocks.tables = []
+  mocks.readMemberTables.mockClear()
   setRateLimitStore(new MemoryRateLimitStore())
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
@@ -29,8 +34,34 @@ describe("POST /api/hub/presence", () => {
     mocks.account = { id: "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11" }
     const response = await POST(request())
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ ok: true })
+    expect(await response.json()).toEqual({ ok: true, table: null, watching: false })
     expect(mocks.touchMember).toHaveBeenCalledWith("0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11")
+  })
+
+  it("tells the member where their game is, so that the page takes them there", async () => {
+    mocks.account = { id: "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11" }
+    mocks.tables = [
+      { game: "hanabi", code: "LOB123", status: "lobby" },
+      { game: "courtisans", code: "ABC234", status: "playing" },
+    ]
+    const response = await POST(request())
+    expect(await response.json()).toEqual({ ok: true, table: { game: "courtisans", code: "ABC234" }, watching: true })
+    expect(mocks.readMemberTables).toHaveBeenCalledWith("0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11")
+  })
+
+  it("has no table to take a member to while they only wait in lobbies, and asks for a closer look", async () => {
+    mocks.account = { id: "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11" }
+    mocks.tables = [{ game: "hanabi", code: "LOB123", status: "lobby" }]
+    expect(await (await POST(request())).json()).toEqual({ ok: true, table: null, watching: true })
+  })
+
+  it("still counts the member when their tables cannot be read", async () => {
+    mocks.account = { id: "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11" }
+    mocks.readMemberTables.mockRejectedValueOnce(new Error("function public.member_tables(uuid, text) does not exist"))
+    const response = await POST(request())
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true, table: null, watching: false })
+    expect(mocks.touchMember).toHaveBeenCalled()
   })
 
   it("refuses a visitor who is not signed in, and records nobody: a guest is online at a table, not on the site", async () => {
@@ -45,6 +76,7 @@ describe("POST /api/hub/presence", () => {
     const response = await POST(request())
     expect(response.status).toBe(200)
     expect(mocks.touchMember).not.toHaveBeenCalled()
+    expect(mocks.readMemberTables).not.toHaveBeenCalled()
   })
 
   it("answers with an error when the database cannot write it, so the browser waits longer", async () => {

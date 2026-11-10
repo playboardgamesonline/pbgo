@@ -16,6 +16,7 @@ import { readGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { markSeen } from "../../../../../server/presence"
 import { supabaseAdmin } from "../../../../../server/supabase"
+import { isSeated } from "../../../../../server/table-rules"
 
 /** Reactions a player may send: the common ones plus the game's own (`REACTIONS` of its binding). */
 const reactionIds = new WeakMap<GameBinding, Set<string>>()
@@ -80,7 +81,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   }
 
   const row = await readGame(game, params.code ?? "")
-  if (!row.players.some((p) => p.id === playerId)) throw new ApiError("UNKNOWN_PLAYER", 403)
+  if (!isSeated(row, playerId)) throw new ApiError("UNKNOWN_PLAYER", 403)
   if (!take(`${game.slug}:${playerId}`)) throw new ApiError("TOO_MANY_REQUESTS", 429)
   after(() => markSeen(game, row, playerId))
 

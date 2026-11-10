@@ -5,10 +5,11 @@ import { useEffect, useState } from "react"
 import { useIdentifyPlayer } from "@pbgo/analytics/client"
 import { Button } from "@pbgo/ui/platform/button"
 import { PrimaryButton, Screen, Paragraph } from "../home/screen"
-import { useBinding } from "../../lib/binding-context"
+import { useApi, useBinding } from "../../lib/binding-context"
 import { gamePath, tablePath } from "../../lib/site-url"
 import { useLiveGame } from "../../lib/use-live-game"
 import { useText } from "../skin-provider"
+import { LeaveDialog } from "./leave-dialog"
 import { BoardEntry } from "./ready-screen"
 import { StartScreen } from "./start-screen"
 
@@ -20,12 +21,19 @@ const FAILED_MS = 3500
  * page has no lobby: the server sends the link of a table that waits to the platform (`GamePage`), and a table that is read as waiting here, a moment after it was not (the page was drawn from an older read), is sent there too, after a few words when it
  * was in its ready check (the players who were not ready are unseated, the others are back at the table). What is left is the board, a spinner while it loads, and the two screens of a table that has no board for the visitor: one that does not exist,
  * and one that started without them.
+ *
+ * "Leave" in the menu of the game really leaves (PLT-120): a table in its ready check or a game in progress asks first (`LeaveDialog`), then tells the server (the leave route: the seat is played from then on, and the player may open another
+ * game at once), then takes the player to the platform's page of the game; a game that is over has nothing to leave, so the player is taken there at once.
  */
 export function GameClient({ code, data }: { code: string; data?: unknown }) {
   const router = useRouter()
   const t = useText()
   const { SLUG, Game } = useBinding()
+  const api = useApi()
   const { game, receivedAt, error, apply, reload } = useLiveGame(code)
+  const [asking, setAsking] = useState(false)
+  // The player has left: the screen goes on saying so until the page is gone, instead of showing the table as one they do not sit at
+  const [left, setLeft] = useState(false)
   useIdentifyPlayer(game?.meId ?? null)
   const waiting = game?.status === "lobby"
   // The table was in its ready check when this page saw it: if it is back in the lobby, the check fell through
@@ -43,8 +51,25 @@ export function GameClient({ code, data }: { code: string; data?: unknown }) {
     return () => clearTimeout(timer)
   }, [waiting, fellThrough, router, SLUG, code])
 
+  if (left) return <StartScreen title="Leaving the table" busy />
+
   if (Game && game && game.meId && game.status !== "lobby" && game.view) {
-    return <BoardEntry game={game} receivedAt={receivedAt} reload={reload} data={data} onUpdate={apply} onLeave={() => router.push(gamePath(SLUG))} />
+    const phase = game.status === "starting" ? "starting" : "playing"
+    return (
+      <>
+        <BoardEntry game={game} receivedAt={receivedAt} reload={reload} data={data} onUpdate={apply} onLeave={() => (game.status === "over" ? router.push(gamePath(SLUG)) : setAsking(true))} />
+        <LeaveDialog
+          open={asking}
+          phase={phase}
+          onOpenChange={setAsking}
+          onConfirm={async () => {
+            await api.leave(code)
+            setLeft(true)
+            router.push(gamePath(SLUG))
+          }}
+        />
+      </>
+    )
   }
 
   const backButton = <PrimaryButton onClick={() => router.push(gamePath(SLUG))}>{t("backHome")}</PrimaryButton>

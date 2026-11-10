@@ -2,6 +2,7 @@ import "server-only"
 import type { GameEntry } from "../lib/binding"
 import type { GameRow } from "./games"
 import { supabaseAdmin } from "./supabase"
+import { isSeated } from "./table-rules"
 import { seenNeedsWrite } from "./takeover"
 
 /**
@@ -13,7 +14,7 @@ import { seenNeedsWrite } from "./takeover"
  * - `touch_game_player` changes neither `version` nor `updated_at`: presence is not a move, it must not wake the clients up
  *   nor restart the turn's inactivity clock.
  * - Never throws: presence is a convenience, a failure is logged and the request goes on. Call it from `after()` of `next/server`.
- * - Ignores whoever is not a member of the table (spectators, a stale cookie).
+ * - Ignores whoever is not a member of the table (spectators, a stale cookie, a player who left the game).
  */
 export async function markSeen(
   game: Pick<GameEntry, "slug">,
@@ -21,7 +22,7 @@ export async function markSeen(
   playerId: string | null,
   now = Date.now(),
 ): Promise<void> {
-  if (!playerId || !row.players.some((player) => player.id === playerId)) return
+  if (!playerId || !isSeated(row, playerId)) return
   if (!seenNeedsWrite(row.seen?.[playerId], now)) return
   try {
     const { error } = await supabaseAdmin().rpc("touch_game_player", { p_game: game.slug, p_code: row.code, p_player: playerId })

@@ -7,6 +7,8 @@ import { ApiError } from "@pbgo/core/server/api"
 import { findPlayerGame, readGame, type GameRow } from "@pbgo/core/server/games"
 import { getPlayerId } from "@pbgo/core/server/player"
 import { readBoard, readHistory, readPlayerStanding } from "@pbgo/core/server/standings"
+import { seatedPlayers } from "@pbgo/core/server/table-rules"
+import type { MemberTable } from "@pbgo/core/server/tables"
 import type { Outcome } from "@pbgo/ui/results"
 import type { Rank } from "@pbgo/ui/ranks"
 import type { PlayerRecord } from "@pbgo/ui/tables"
@@ -203,9 +205,11 @@ export async function getTables(slug: string): Promise<GameTable[]> {
 }
 
 /** A row of `games` as a table of the page, null when it is over (that is a result, not a table). Its people are in the order they sat down, which is their seat. Every table of the current backend is reached by its link alone, so it is `private`. */
-function tableOfRow(row: GameRow, seatsMax: number): GameTable | null {
+function tableOfRow(row: Pick<GameRow, "code" | "host_id" | "status" | "players" | "options" | "version" | "created_at" | "updated_at">, seatsMax: number): GameTable | null {
   if (row.status === "over") return null
   const options = row.options ?? {}
+  // The people at a table are those who did not leave it (PLT-120): a game in progress keeps the seat of a player who left, and the table does not show them
+  const seated = seatedPlayers(row.players)
   return {
     id: row.code,
     code: row.code,
@@ -213,8 +217,8 @@ function tableOfRow(row: GameRow, seatsMax: number): GameTable | null {
     visibility: "private",
     hostId: row.host_id,
     // Never fewer seats than people: the game's own limit is enforced by its routes
-    seatsMax: Math.max(seatsMax, row.players.length),
-    players: row.players.map((player, seat) => ({ playerId: player.id, seat, name: player.nickname, avatarUrl: player.avatarUrl ?? null, record: null })),
+    seatsMax: Math.max(seatsMax, seated.length),
+    players: seated.map((player, seat) => ({ playerId: player.id, seat, name: player.nickname, avatarUrl: player.avatarUrl ?? null, record: null })),
     turnTimer: "normal",
     expansions: Object.entries(options).flatMap(([key, value]) => (value === true ? [key] : [])),
     createdAt: row.created_at ?? row.updated_at ?? new Date().toISOString(),
@@ -222,6 +226,19 @@ function tableOfRow(row: GameRow, seatsMax: number): GameTable | null {
     version: row.version,
     optionKeys: Object.keys(options),
   }
+}
+
+/**
+ * A table of a member (`readMemberTables`, the home's list of their tables) as the page draws a table, so that it is drawn by the same row as the tables of a game's page. The table is never over, since the member's tables are not;
+ * `seatsMax` is how many seats the game's tables have, which only a table that waits is drawn with: one that is played has the seats of the people who play it, and no seat left to sit at.
+ */
+export function tableOfMember(table: MemberTable, seatsMax: number): GameTable {
+  const drawn = tableOfRow(
+    { code: table.code, host_id: table.hostId, status: table.status, players: table.players, options: table.options, version: 0, created_at: table.createdAt, updated_at: table.updatedAt },
+    table.status === "lobby" ? seatsMax : 0,
+  )
+  if (!drawn) throw new Error(`The table ${table.code} of ${table.game} is over and is not a table of a member`)
+  return drawn
 }
 
 /**

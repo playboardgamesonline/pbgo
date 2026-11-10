@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock("server-only", () => ({}))
 vi.mock("./supabase", () => ({ supabaseAdmin: () => ({ rpc: mocks.rpc }) }))
 
-import { seatMember, touchMember } from "./presence"
+import { markSeen, seatMember, touchMember } from "./presence"
 
 const USER = "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11"
 
@@ -46,5 +46,23 @@ describe("seatMember", () => {
     mocks.rpc.mockRejectedValue(new Error("network down"))
     await expect(seatMember({ slug: "courtisans" }, "ABCD", "seat-1", USER)).resolves.toBeUndefined()
     expect(console.error).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe("markSeen", () => {
+  const NOW = Date.parse("2026-11-10T10:00:00.000Z")
+  const table = (players: Array<{ id: string; nickname: string; left?: boolean }>) => ({ code: "ABCD", players, seen: {} })
+
+  it("records a player who sits at the table", async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: null })
+    await markSeen({ slug: "courtisans" }, table([{ id: "p1", nickname: "Ann" }]), "p1", NOW)
+    expect(mocks.rpc).toHaveBeenCalledWith("touch_game_player", { p_game: "courtisans", p_code: "ABCD", p_player: "p1" })
+  })
+
+  it("records nobody who is not at the table, and nobody who left it: they are not present any more", async () => {
+    await markSeen({ slug: "courtisans" }, table([{ id: "p1", nickname: "Ann", left: true }]), "p1", NOW)
+    await markSeen({ slug: "courtisans" }, table([{ id: "p1", nickname: "Ann" }]), "stranger", NOW)
+    await markSeen({ slug: "courtisans" }, table([{ id: "p1", nickname: "Ann" }]), null, NOW)
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 })

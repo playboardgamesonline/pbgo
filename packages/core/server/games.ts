@@ -8,6 +8,7 @@ import { ApiError } from "./api"
 import { validCode, generateCode, normalizeCode } from "./code"
 import { expirePatch, readyExpired, readyIds, readyLeft } from "./ready"
 import { supabaseAdmin } from "./supabase"
+import { isSeated, seatedPlayers } from "./table-rules"
 import { publicTakeover } from "./takeover"
 
 /** A table, as stored in `games` (one table per game and code: `(game, code)` is the key). */
@@ -54,10 +55,14 @@ export async function readGame(game: GameRef, rawCode: string): Promise<GameRow>
 /** A table nobody has written to for this long is no longer the one a player "sits at": a lobby walked away from, a game dropped. Presence does not count (`touch_game_player` leaves `updated_at` alone), a move or a join does. */
 export const TABLE_IDLE_MS = 6 * 60 * 60 * 1000
 
+/** How many of a player's most recent tables `findPlayerGame` looks at for one they did not leave: a player is seldom at more than a few. */
+const RECENT_TABLES = 10
+
 /**
  * The table a player sits at in a game: the one that waits for players, is starting or is being played and that was written last, null when there is none. The platform's page of the game asks it
- * to show a visitor their lobby or their game (PLT-106). A table idle for `TABLE_IDLE_MS` is left out, so that a player is never held by a table they have forgotten. The people of a table are a column
- * of `games` (jsonb), not rows of their own: this reads the game's recent tables with a containment filter, which asks for no index while there are few; PLT-13's `table_players` replaces it.
+ * to show a visitor their lobby or their game (PLT-106). A table idle for `TABLE_IDLE_MS` is left out, so that a player is never held by a table they have forgotten, and so is a game they left (PLT-120: their seat stays at
+ * the table, marked `left`, and the table is not theirs any more). The people of a table are a column of `games` (jsonb), not rows of their own: this reads the game's recent tables with a containment filter, which asks
+ * for no index while there are few, and looks at the first few for one they did not leave; PLT-13's `table_players` replaces it.
  */
 export async function findPlayerGame(game: GameRef, playerId: string, now = Date.now()): Promise<GameRow | null> {
   const { data, error } = await supabaseAdmin()
@@ -69,9 +74,9 @@ export async function findPlayerGame(game: GameRef, playerId: string, now = Date
     // The JSON as a string: for an array supabase-js writes a Postgres array literal (`{…}`), which a jsonb column does not read
     .contains("players", JSON.stringify([{ id: playerId }]))
     .order("updated_at", { ascending: false })
-    .limit(1)
+    .limit(RECENT_TABLES)
   if (error) throw error
-  return (data?.[0] as GameRow | undefined) ?? null
+  return ((data ?? []) as GameRow[]).find((row) => isSeated(row, playerId)) ?? null
 }
 
 /**
@@ -200,11 +205,12 @@ export function newGame(game: PlayableGame, row: GameRow, data?: unknown): Pick<
  */
 export function publicGame(game: PlayableGame, row: GameRow, playerId: string | null, now = Date.now()): PublicGame {
   const { GAME } = game.binding
-  const member = row.players.some((j) => j.id === playerId)
+  // A player who left the game is no longer a member of the table: they see it as anybody does, and they are not present for the takeover (PLT-120)
+  const member = isSeated(row, playerId)
   const playing = row.status === "playing" && !!row.state
   const waitingFor = playing ? waitingPlayers(GAME, row.state) : []
   const { present, takeovers } = publicTakeover({
-    players: row.players,
+    players: seatedPlayers(row.players),
     seen: row.seen,
     viewer: playerId,
     waiting: waitingFor,

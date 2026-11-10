@@ -7,6 +7,7 @@ import { getPlayerId } from "../../../../../server/player"
 import { markSeen } from "../../../../../server/presence"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { recordGameResult } from "../../../../../server/results"
+import { hasLeft, settleLeavers } from "../../../../../server/table-rules"
 
 export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
   await rateLimit(game.slug, request, "action")
@@ -18,7 +19,10 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
 
   const row = await updateGame(game, params.code ?? "", (row) => {
     if (!row.state || row.status !== "playing") throw notPlaying(row)
-    const state = GAME.apply(row.state, { ...action, playerId: id })
+    // A player who left the game has no part in it any more (PLT-120)
+    if (row.players.some((player) => player.id === id && hasLeft(player))) throw new ApiError("LEFT_GAME", 403)
+    // The step that follows may be one that the game waits for from a player who left: the server plays it at once, so that the others are never kept waiting for a seat nobody is at
+    const { state } = settleLeavers(GAME, GAME.apply(row.state, { ...action, playerId: id }), row.players)
     return { state, status: GAME.isOver(state) ? "over" : "playing" }
   })
   after(() => markSeen(game, row, id))
