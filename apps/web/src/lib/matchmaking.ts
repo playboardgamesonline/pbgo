@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react"
 import { ApiClientError, gameRequest } from "@pbgo/core/lib/api"
-import { PLAY_CANCEL_PATH, PLAY_PATH, type PlayState } from "@pbgo/core/lib/quick-play"
+import { PLAY_CANCEL_PATH, PLAY_PATH, SEARCH_MAX_GAMES, type PlayState } from "@pbgo/core/lib/quick-play"
 import { parseQueue, queueSeconds, type Queue, type QueueGame, type QueueMode, type QueueTable } from "@pbgo/ui/queue"
 
 // The search of the visitor who looks for a table: the one place that knows it, read by the buttons that start a search (a game's page, the signed-in home), by the social panel, which shows the same wait, and by `SearchSync`, which keeps it alive. A search is real
@@ -81,8 +81,10 @@ function leaveTables(tables: readonly { game: string; code: string }[], current:
 /**
  * The visitor presses Play: from now, and in place of the search they had (which is stopped), they look for a table of these games (one at least), ranked or normal. The server sits them down at one table for each game and the answer is kept; a refusal (a guest who
  * asks for a ranked table, a game for adults, too many requests) stops the search and is thrown for the caller to tell. `who.nickname` is the name a guest sits down under: a member sits down as their account.
+ * A search looks for `SEARCH_MAX_GAMES` games at the most, since it sits the visitor at a table of each: when more are given, the first ones are looked for.
  */
-export async function startSearch(games: readonly QueueGame[], mode: QueueMode, who: { nickname?: string } = {}): Promise<void> {
+export async function startSearch(all: readonly QueueGame[], mode: QueueMode, who: { nickname?: string } = {}): Promise<void> {
+  const games = all.slice(0, SEARCH_MAX_GAMES)
   if (games.length === 0 || pressing) return
   pressing = true
   try {

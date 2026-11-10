@@ -6,10 +6,9 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import type { AgeRefusal } from "@pbgo/accounts"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { GamePick } from "@pbgo/ui/platform/game-pick"
-import { SEARCH_MAX_GAMES } from "@pbgo/core/lib/quick-play"
 import { QueueButton } from "@pbgo/ui/platform/queue"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
-import { QUEUE_MODE_LABELS, QUEUE_MODES, queueProgress, type QueueMode } from "@pbgo/ui/queue"
+import { QUEUE_MODE_LABELS, QUEUE_MODES, type QueueMode } from "@pbgo/ui/queue"
 import { cn } from "@pbgo/ui/utils"
 import { leaveQueue, startSearch, useQueue, useQueueSeconds } from "@/lib/matchmaking"
 import { useAgeGate } from "./age-gate"
@@ -41,14 +40,13 @@ function Group({ title, aside, children }: { title: string; aside?: string; chil
 
 /**
  * Find a game, on the signed-in home, the larger of the two cards that open the play zone (two thirds of the row from `xl`, three fifths from `lg`, on a surface a step lighter than the other containers, `--card-bar`, which is what is read first): look for a table
- * among the games the visitor picks, against players they do not know (PLT-21). The games are tiles to press (`GamePick`), all picked to begin with (ten at the most, which is what a search takes); under them the kind of table, ranked or normal, two options to choose between, the ranked one
+ * among the games the visitor picks, against players they do not know (PLT-21). The games are tiles to press (`GamePick`), all picked to begin with; under them the kind of table, ranked or normal, two options to choose between, the ranked one
  * with its rank and no helpers said in a line; at the foot, a small button with a play icon starts the search, "Play ranked" or "Play normal" (`QueueButton`). A search is the platform's one queue (`lib/matchmaking.ts`, which the social panel shows
- * too): the visitor is sat at a table of each game they picked, one that waits for players or one they open, and the table that fills first begins by itself. It counts on the button, with a cross that stops it, and the card shows the search that is on, whichever page began it,
- * its games and its kind of table and how full the nearest table is, and cannot be changed until it is stopped.
+ * too): a press sits the member at a table of each game they picked, and the table that fills first begins by itself. It counts on the button, with a cross that stops it, and the card shows the search that is on, whichever page began it, its games and its kind of table,
+ * and cannot be changed until it is stopped.
  */
 export function HomeFindGame({ games, className }: { games: readonly FindableGame[]; className?: string }) {
-  // A search takes ten games at the most: the first ten are picked to begin with, when there are more
-  const [picked, setPicked] = useState<readonly string[]>(() => games.slice(0, SEARCH_MAX_GAMES).map((game) => game.slug))
+  const [picked, setPicked] = useState<readonly string[]>(() => games.map((game) => game.slug))
   const [mode, setMode] = useState<QueueMode>("ranked")
   const queue = useQueue()
   const { guard, demand, fail, dialog: ageDialog } = useAgeGate()
@@ -58,8 +56,6 @@ export function HomeFindGame({ games, className }: { games: readonly FindableGam
   const chosen = queue ? queue.games.map((game) => game.slug) : picked
   const shownMode = queue ? queue.mode : mode
   const asked = games.filter((game) => picked.includes(game.slug))
-  const tooMany = asked.length > SEARCH_MAX_GAMES
-  const progress = queue ? queueProgress(queue) : null
 
   return (
     <Card className={cn("h-full gap-8 [--card:var(--card-bar)] md:[--card-spacing:--spacing(8)]", className)}>
@@ -68,20 +64,7 @@ export function HomeFindGame({ games, className }: { games: readonly FindableGam
         <CardDescription className="text-base">Pick the games you like and play against other players.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-8">
-        <Group
-          title="Games"
-          aside={
-            games.length > 0
-              ? chosen.length === 0
-                ? "Pick at least one game"
-                : tooMany && !searching
-                  ? `Pick ${SEARCH_MAX_GAMES} games at most`
-                  : progress
-                    ? `${chosen.length} selected · ${progress.players}/${progress.seats} seated`
-                    : `${chosen.length} selected`
-              : undefined
-          }
-        >
+        <Group title="Games" aside={games.length > 0 ? (chosen.length === 0 ? "Pick at least one game" : `${chosen.length} selected`) : undefined}>
           {games.length > 0 ? (
             <div role="group" aria-label="Games to look for" className="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]">
               {games.map((game, index) => (
@@ -125,7 +108,7 @@ export function HomeFindGame({ games, className }: { games: readonly FindableGam
           size="lg"
           searching={searching}
           seconds={seconds}
-          disabled={asked.length === 0 || tooMany}
+          disabled={asked.length === 0}
           onSearch={async () => {
             // A game for adults needs the member's date of birth before the search begins
             if (asked.some((game) => game.refusal === "date") && !(await demand("date"))) return
