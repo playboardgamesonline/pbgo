@@ -68,6 +68,52 @@ A simultaneous step is one that several players answer in any order, the last an
 - `0`, an empty string and `false` are answers, only `null` means no answer, and a step with no player is complete.
 - On the table, an answer that is given and not yet known is a card face down at its player's seat, and the bids turn over together when the step is resolved: [A bid made with cards](../02-components/12-bets-and-choices.md#a-bid-made-with-cards).
 
+## Tricks
+
+A trick is a round of the table in which every player plays one card, in turn: the card of the player who leads sets the suit, the others follow it when they can, and the best card takes the trick, whose winner usually leads the next (Skull King, Wizard, Hearts, Omens, Cry Baby, French Tarot). The cards are opaque ids in the state, so the helpers are given `suitOf` and `rankOf`, which read a card in the game's catalogue. They keep no state: the trick is the game's to store, a leader and the plays in the order they were made, and the helpers answer the questions about it. They are in `packages/engine-kit/src/tricks.ts`.
+
+| Export | What it does | Errors |
+| --- | --- | --- |
+| `TrickPlay` | `{ playerId, card }`: a card played to a trick, and who played it | |
+| `TrickCards<Card>` | What a card is to a trick: `suitOf(card)`, the suit it belongs to, or null for a card with none (a jester, an escape), and `rankOf(card)`, how high it ranks in its suit | |
+| `TrickRules<Card>` | The cards, the `trump` suit of the round, and two ways for the special cards of a game to overrule the usual rules, `beats` and `decide` | |
+| `TrickContext` | `{ led, trump }`: what the rules of the game's own are told about the trick | |
+| `ledSuit(plays, suitOf)` | The suit that was led: that of the first card played that has one, so a jester that leads leaves it to the next card; null while no card played has a suit | |
+| `playableCards(hand, led, { suitOf, free? })` | The cards a player may play, in the order of the hand: those of the led suit when the hand holds any, else every card, and every card when nothing was led. `free` names the cards that may always be played (a wizard, an escape) | |
+| `outranks(card, winning, rules)` | Whether a card takes the trick from the one that is winning it, by the usual rules: a card with a suit beats one with none, a trump beats what is not a trump, two cards of a suit are told by their rank, the first played keeps a tie, and a card of another suit never wins | |
+| `trickWinner(plays, rules)` | The play that takes the trick: `decide` of the game first, then each card meets the one that is winning so far, through `beats` of the game and then `outranks` | `RangeError` for a trick with no card |
+| `playOrder(players, leader)` | The players in the order they play: the leader first, then the others round the table | `RangeError` for a leader who is not a player |
+
+- In `apply`, a card played is checked in three steps, each with its code: the card is in the hand (`UNKNOWN_CARD`), it is the player's turn (`NOT_YOUR_TURN`), and it is among `playableCards(hand, ledSuit(plays, suitOf), { suitOf, free })`, which refuses with a code of the game's own, such as `MUST_FOLLOW_SUIT`, listed in its `ERROR_CODES`. The card then joins the plays, and when the last player has played `trickWinner` gives the winner, who takes the cards and leads the next trick.
+- The special cards of a game are rules of its own. `beats(card, winning, { led, trump })` says that a wizard beats everything and that a card that meets a wizard does not: true, false, or undefined to leave it to the usual rules. A rule that no two cards give goes in `decide(plays, { led, trump })`: Skull King's mermaid takes the trick that holds the Skull King, although the cards met in turn would give it to him.
+- The helpers do not count tricks, bids or points. What a bet is worth, who leads the first trick, what the trump of a round is and how many cards are dealt are the game's: a bet is asked with the [fields of the table](../02-components/12-bets-and-choices.md) and checked with `cleanNumber`, and the scores of several rounds are [Rounds](06-victory.md#rounds).
+- On the table the cards of a trick lie in the middle, each toward the seat that played it ([A trick](../02-components/07-zones.md#a-trick)).
+
+```ts
+const rules: TrickRules<string> = {
+  suitOf: (card) => CARDS[card].suit,
+  rankOf: (card) => CARDS[card].rank,
+  trump: state.trump,
+  // A wizard beats everything the first time, and nothing beats it; the rest is the usual rules
+  beats: (card, winning) => (CARDS[winning].kind === "wizard" ? false : CARDS[card].kind === "wizard" ? true : undefined),
+}
+
+function playCard(state: State, playerId: string, card: string): State {
+  const hand = state.hands[playerId] ?? []
+  if (!hand.includes(card)) throw new EngineError("UNKNOWN_CARD")
+  if (state.turn !== playerId) throw new EngineError("NOT_YOUR_TURN")
+  const free = (card: string) => CARDS[card].kind !== "number"
+  if (!playableCards(hand, ledSuit(state.trick, rules.suitOf), { suitOf: rules.suitOf, free }).includes(card)) throw new EngineError("MUST_FOLLOW_SUIT")
+  const trick = [...state.trick, { playerId, card }]
+  const next = { ...state, hands: { ...state.hands, [playerId]: hand.filter((held) => held !== card) }, trick }
+  // The trick goes on: the next player plays
+  if (trick.length < state.players.length) return { ...next, turn: playOrder(state.players, state.leader)[trick.length]! }
+  // The last card: the best takes the trick and leads
+  const winner = trickWinner(trick, rules)
+  return { ...next, trick: [], leader: winner.playerId, turn: winner.playerId, won: { ...state.won, [winner.playerId]: (state.won[winner.playerId] ?? 0) + 1 } }
+}
+```
+
 ## Absent players
 
 When the others vote to play for a player who left, the server calls the engine's `autoPlayFor` and stores the result. The engine writes that one hook; the vote, the delay and the presence are core's (the pure rules are in `packages/core/server/takeover.ts`).

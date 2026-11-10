@@ -90,3 +90,23 @@ export function handLayout(n: number, raised: number): Pose[] {
   return slots.map((slot, i) => (i === raised ? shifted(slot, { y: R.hoverLift, z: -0.25 }) : slot))
 }
 ```
+
+## A trick
+
+The cards played to a trick lie in the middle, each toward the seat that played it. A trick is no zone of its own: it is a `Zone` whose layout has one slot for each seat, laid out in the order the cards were played.
+
+```tsx
+// One slot toward each seat, a third of the way from the middle of the table
+const ring = seats(players.length, { radiusX: 6, radiusZ: 4, me: myIndex })
+const slotOf = (seat: number) => onTable(ring[seat].x * 0.34, ring[seat].z * 0.34, { yaw: ring[seat].yaw })
+
+<Zone
+  layout={view.trick.map((play) => slotOf(seatOf(play.playerId)))}
+  size={CARD_SIZE}
+  cards={view.trick.map((play) => ({ key: play.card, id: `card-${play.card}`, front: face(play.card), back }))}
+/>
+```
+
+- The slots come in the order of the plays, not of the seats: the second card played is the second of the list, and lies in front of the seat of its player.
+- Give a card the same `id` in the hand and in the trick: it glides from where the hand held it to its slot ([Poses and motion](05-poses-and-motion.md)).
+- Who takes the trick, and when it ends, is the engine's ([Tricks](../01-the-game/03-turns.md#tricks)). A board that wants the players to read the last trick keeps it in the view until the next one starts, and moves its cards to the pile of the winner then.

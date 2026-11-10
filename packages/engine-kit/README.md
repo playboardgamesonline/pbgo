@@ -283,6 +283,19 @@ const amounts = revealSubmissions(bids, state.seats) // amounts[seat]
 // …resolve the step with `amounts`, then open the next one with openSubmissions(state.seats)
 ```
 
+### Tricks (`tricks.ts`)
+
+A trick is one card from each player: the leader's sets the suit, the others follow it when they can, the best card takes it (`docs/engine/01-the-game/03-turns.md`). The helpers keep no state, and read the cards through `suitOf` and `rankOf` of the game's catalogue.
+
+| | |
+| --- | --- |
+| `ledSuit(plays, suitOf)` | The suit that was led: that of the first card played that has one (a jester leads nothing); null while none has. |
+| `playableCards(hand, led, { suitOf, free? })` | The cards a player may play: those of the led suit when the hand holds any, else every card; `free` names the cards that may always be played. |
+| `outranks(card, winning, rules)` | Whether a card takes the trick from the one winning it, by the usual rules: suit, trump, rank, the first played keeping a tie. |
+| `trickWinner(plays, rules)` | The play that wins: `rules.decide` for the whole trick, then each card against the one winning so far through `rules.beats` and `outranks`. `RangeError` for no play. |
+| `playOrder(players, leader)` | The players in the order they play, the leader first. `RangeError` for a leader who is not a player. |
+| `TrickPlay`, `TrickCards`, `TrickRules`, `TrickContext` | A play, what a card is to a trick, the rules (`trump`, `beats`, `decide`), and what a rule of the game is told (`led`, `trump`). |
+
 ## Putting it together
 
 ```ts
