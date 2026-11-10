@@ -19,7 +19,7 @@ export default async function AppearanceSettingsPage() {
   const choice = demo ? displayChoiceOf(store.get(DISPLAY_SETTINGS.reduceTransparency.cookie)?.value) : account.preferences.reduceTransparency
 
   return (
-    <SettingsPage title="Appearance" description="How the site looks for you.">
+    <SettingsPage title="Appearance">
       <SettingsGroup title="Transparency">
         <ReduceTransparencyRow choice={choice} demo={demo} />
       </SettingsGroup>

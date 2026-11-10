@@ -43,7 +43,7 @@ export default async function AccountSettingsPage({ searchParams }: { searchPara
       })
 
   return (
-    <SettingsPage title="Account" description="Your details, how you sign in and the standing of your account.">
+    <SettingsPage title="Account">
       <SettingsGroup title="Account info">
         <NicknameRow nickname={account.nickname} demo={demo} />
         <EmailRow email={account.email} demo={demo} />
