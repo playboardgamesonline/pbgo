@@ -1,3 +1,4 @@
+import type { TableSettingsInput } from "@pbgo/core/lib/table-settings"
 import type { HelperOption } from "@pbgo/ui/platform/lobby-settings"
 import { playerRange } from "@pbgo/ui/tables"
 import type { Expansion, ViewerTable } from "@/lib/game-activity"
@@ -11,7 +12,7 @@ import { TableCreator } from "./table-creator"
 // `TableCreator`, whose button creates the table with the game's own route, and the lobby the visitor sits at is `OwnLobby`, the details of any table (`LobbyDetail`) with, under them, the button that starts the game for the one who opened the lobby (`StartGameButton`, which waits for enough players) or, for anybody
 // else, one that cannot be pressed and says how many have joined of those expected, and, beside it, a secondary button to leave it (which only a lobby that waits has), with the plus of its free seats opening the menu that invites a friend or copies the link, and with the number of players, the settings and the button of who may join,
 // that are theirs to set when they opened it (`ownTableDetail`). The number of players (between the game's least and most) and the settings of the game follow the seats (`LobbyPlayers`, `LobbySettings`: the speed, the expansions as pictures with an outline for the ones chosen, the helpers), and who may join the table is the one button at its top right
-// (`LobbyAccess`: public or private and, for a public table, a minimum rank and a language). A game that is not live has the same space, as it is for the others, with the settings that its game has and a button that does nothing and says "Coming soon" under its label (`live`). A table picked in the list of the
+// (`LobbyAccess`: public or private and, for a public table, a minimum rank and a language), all of them kept with the table (PLT-21, `OwnLobby`). A game that is not live has the same space, as it is for the others, with the settings that its game has and a button that does nothing and says "Coming soon" under its label (`live`). A table picked in the list of the
 // open tables takes the space's place for as long as it is picked (`OpenTables`).
 
 /**
@@ -58,7 +59,15 @@ export function GameLobby({
   if (live && viewerTable) {
     const detail = ownTableDetail(viewerTable, slug, expansions, minPlayers, maxPlayers, helpers)
     const offered = { expansions: expansions.map(({ id }) => id), helpers: helpers.map(({ id }) => id) }
-    return <OwnLobby slug={slug} code={viewerTable.code} detail={detail} optionKeys={viewerTable.optionKeys ?? []} offered={offered} flat={flat} className={className} />
+    // What the table is set to, as the panel starts from it: the speed is one the lobby offers, and the seats are the table's
+    const table: TableSettingsInput = {
+      visibility: viewerTable.visibility,
+      minRank: viewerTable.minRank ?? null,
+      language: viewerTable.language ?? null,
+      pace: viewerTable.turnTimer === "async" ? "normal" : viewerTable.turnTimer,
+      seats: viewerTable.seatsMax,
+    }
+    return <OwnLobby slug={slug} code={viewerTable.code} detail={detail} optionKeys={viewerTable.optionKeys ?? []} offered={offered} table={table} flat={flat} className={className} />
   }
   return (
     <TableCreator

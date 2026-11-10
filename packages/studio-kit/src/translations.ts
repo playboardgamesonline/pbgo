@@ -412,6 +412,9 @@ export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>
     BIRTHDATE_UNDER_MINIMUM: "You must be at least 13 to use the site.",
     BIRTHDATE_LOCKED: "Your date of birth is already saved and cannot be changed here. Write to us if it needs to be corrected.",
     PLAYER_BUSY: "Someone at this table is in a game right now. Start when they are done.",
+    RANK_TOO_LOW: "Your rank in this game is too low for this table.",
+    LANGUAGE_MISMATCH: "This table asks its players to speak another language.",
+    SETTINGS_UNAVAILABLE: "The table's settings can't be saved right now, try again later.",
     LEFT_GAME: "You left this game.",
   },
   es: {

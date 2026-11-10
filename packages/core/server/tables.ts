@@ -2,6 +2,8 @@ import "server-only"
 import type { OptionValues } from "@pbgo/engine-kit"
 import type { GameEntry } from "../lib/binding"
 import type { GameStatus, PublicPlayer } from "../lib/game-types"
+import { parseTableSettings, type TableSettings } from "../lib/table-settings"
+import { isMissingColumn, isMissingFunction } from "./db-error"
 import { TABLE_IDLE_MS } from "./games"
 import { supabaseAdmin } from "./supabase"
 
@@ -80,6 +82,65 @@ export async function busySeats(game: Pick<GameEntry, "slug">, code: string): Pr
     return Array.isArray(data) ? data.filter((seat): seat is string => typeof seat === "string") : []
   } catch (error) {
     console.error("The busy seats of a table could not be read", { game: game.slug }, error instanceof Error ? error.message : error)
+    return []
+  }
+}
+
+/** A public lobby: a table that waits for players and that its host listed (PLT-21, phase B), with the people who sit at it and what the host set. */
+export type PublicTable = {
+  /** The slug of the game */
+  game: string
+  code: string
+  hostId: string
+  players: PublicPlayer[]
+  options: OptionValues
+  settings: TableSettings
+  createdAt: string
+  updatedAt: string
+}
+
+type PublicTableRow = {
+  game: string
+  code: string
+  host_id: string
+  players: PublicPlayer[] | null
+  options: OptionValues | null
+  settings: unknown
+  created_at: string
+  updated_at: string
+}
+
+/** How lately somebody who sits at a public lobby must have been seen for it to be listed: the page of a lobby asks the table again every few seconds (a tab in the background at least once a minute), and a lobby its people walked away from stops being offered. */
+export const PUBLIC_ALIVE_MS = 3 * 60 * 1000
+
+const ALIVE = `${Math.round(PUBLIC_ALIVE_MS / 1000)} seconds`
+
+/** How many public lobbies a list holds at the most. */
+export const PUBLIC_TABLES_MAX = 50
+
+/**
+ * The public lobbies of a game, or of every game when none is given, the newest first (`public_tables`, migration 0014): the tables that wait for players, that their host made public, that somebody who sits at them was seen at lately (`PUBLIC_ALIVE_MS`)
+ * and that were written within `TABLE_IDLE_MS`. Never throws: a list is a convenience, and a project where the migration is not applied yet, or a database that cannot answer, lists none (a failure is logged).
+ */
+export async function readPublicTables(game: string | null = null, limit: number = PUBLIC_TABLES_MAX): Promise<PublicTable[]> {
+  try {
+    const { data, error } = await supabaseAdmin().rpc("public_tables", { p_game: game, p_alive: ALIVE, p_idle: IDLE, p_limit: limit })
+    if (error) {
+      if (!isMissingFunction(error) && !isMissingColumn(error)) console.error("The public tables could not be read", { game }, error.code, error.message)
+      return []
+    }
+    return ((data ?? []) as PublicTableRow[]).map((row) => ({
+      game: row.game,
+      code: row.code,
+      hostId: row.host_id,
+      players: row.players ?? [],
+      options: row.options ?? {},
+      settings: parseTableSettings(row.settings),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }))
+  } catch (error) {
+    console.error("The public tables could not be read", { game }, error instanceof Error ? error.message : error)
     return []
   }
 }

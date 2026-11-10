@@ -4,6 +4,7 @@ import type { ChatMessage, ChatReaction } from "./chat"
 import { missing } from "./missing"
 import { isPreviewWindow } from "./preview"
 import type { Profile } from "./profile"
+import type { TableSettingsInput } from "./table-settings"
 
 /**
  * Error messages of the codes the platform words: the shared codes of the engines (`SHARED_ERROR_CODES` of engine-kit) and the codes of its own routes (English, the default
@@ -32,6 +33,9 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   HOST_ONLY: "Only the host can do that.",
   NOT_ENOUGH_PLAYERS: "More players are needed to start the game.",
   PLAYER_BUSY: "Someone at this table is in a game right now. Start when they are done.",
+  RANK_TOO_LOW: "Your rank in this game is too low for this table.",
+  LANGUAGE_MISMATCH: "This table asks its players to speak another language.",
+  SETTINGS_UNAVAILABLE: "The table's settings can't be saved right now, try again later.",
   LEFT_GAME: "You left this game.",
   CODE_UNAVAILABLE: "Couldn't open the table, try again.",
   CONFLICT: "Someone played at the same time, try again.",
@@ -91,12 +95,14 @@ export type ClientDebugCommand = "start" | "turn" | "over" | (string & {})
 function buildApi(slug: string) {
   const games = `/api/${slug}/games`
   return {
-    /** `profile` is the nickname of a guest; a signed-in visitor sends none, the server sits them down as their account (`resolveSeat`). */
-    create: (profile: Partial<Profile>) => post(games, profile),
+    /** `profile` is the nickname of a guest; a signed-in visitor sends none, the server sits them down as their account (`resolveSeat`). `settings` are what the host chose before the table existed: who may join, the speed and the seats (PLT-21). */
+    create: (profile: Partial<Profile>, settings?: TableSettingsInput) => post(games, settings ? { ...profile, settings } : profile),
     read: (code: string) => apiRequest(`${games}/${code}`),
     join: (code: string, profile: Partial<Profile>) => post(`${games}/${code}/join`, profile),
     leave: (code: string) => post(`${games}/${code}/leave`),
     options: (code: string, options: OptionValues) => post(`${games}/${code}/options`, { options }),
+    /** The host sets who may join the table, how fast it is played and how many seats it has, all at once (PLT-21): what the panel shows is what is kept. */
+    settings: (code: string, settings: TableSettingsInput) => post(`${games}/${code}/settings`, { settings }),
     start: (code: string) => post(`${games}/${code}/start`),
     /** "I'm ready", while the table is `starting` (PLT-107), sent by a player's board once it is loaded: the last player to say it begins the game */
     ready: (code: string) => post(`${games}/${code}/ready`),

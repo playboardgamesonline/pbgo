@@ -12,8 +12,8 @@ import { ToggleGroup, ToggleGroupItem } from "./toggle-group"
 
 // Who may join a lobby, as one button at the top right of its panel: an icon that says what it is now (a globe, with no stand, for a public lobby, whatever it asks of its players, and a padlock for a private one), and a press opens a small panel
 // that sets it. There the visitor picks Public, a table that is listed with the open tables, or Private, one that is reached by its link alone; and, for a public one, the criteria that restrict who may sit at it: a minimum rank and a language (each a select whose
-// first choice asks for nothing). Only a lobby that is opened or set has it (`LobbyDetail` for the visitor's own, and the space that opens one): every table of the list is public and asks for nothing. Nothing is kept yet (no lobby has a place to keep it: the
-// tables of PLT-13), so what is set stays in the page; `onChange` is for the page that has somewhere to put it.
+// first choice asks for nothing). Only a lobby that is opened or set has it (`LobbyDetail` for the visitor's own, and the space that opens one): the tables of the list show what they ask in tags under their seats instead. The button keeps what it shows while it is open; `onChange` is how the page keeps it
+// (a table's settings, PLT-21: the lobby's panel sends them to the server, and the space that opens a table sends them with it).
 
 type LobbyVisibilityValue = "public" | "private"
 

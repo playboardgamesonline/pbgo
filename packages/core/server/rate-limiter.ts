@@ -30,6 +30,8 @@ export const RATE_LIMITS = {
   leave: { limit: 20, windowMs: 60_000 },
   /** Host tweaking options in the lobby (each click is a request) */
   options: { limit: 30, windowMs: 10_000 },
+  /** Host setting who may join, the speed and the seats in the lobby (each click is a request, like the options) */
+  settings: { limit: 30, windowMs: 10_000 },
   start: { limit: 10, windowMs: 60_000 },
   /** "I'm ready" of the ready check (PLT-107): one request per player, a few more for one that lost a race */
   ready: { limit: 20, windowMs: 10_000 },

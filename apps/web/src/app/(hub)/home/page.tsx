@@ -5,6 +5,8 @@ import { getSessionState } from "@pbgo/accounts/server"
 import { KIND_LABELS, activeAnnouncements, bannersOf, entryHref, newsOf } from "@pbgo/catalog/editorial"
 import { getCatalog, getEditorial } from "@pbgo/catalog/server"
 import { NO_AGE_STATES } from "@pbgo/core/lib/age-rules"
+import type { TableSettings } from "@pbgo/core/lib/table-settings"
+import { readTableSettings } from "@pbgo/core/server/table-settings"
 import { readMemberTables } from "@pbgo/core/server/tables"
 import { Section } from "@pbgo/ui/platform/section"
 import { playerRange } from "@pbgo/ui/tables"
@@ -23,6 +25,7 @@ import { demoTables } from "@/lib/demo-tables"
 import { getExpansions, tableOfMember } from "@/lib/game-activity"
 import { expansionOption, LANGUAGE_OPTIONS, tableEntryProps } from "@/lib/game-activity-props"
 import { gamePicture } from "@/lib/game-card-props"
+import { publicTableRows } from "@/lib/public-table-rows"
 
 // The home of a signed-in member. The proxy sends a visitor who has a session from `/` to it, instead of leaving them on the public home (`apps/web/src/proxy.ts`), and a visitor
 // who is not signed in who asks for `/home` is sent to `/`, and one who has signed in but not passed the second step of their account (PLT-129) to the sign-in, which asks for the code and brings them back here: the proxy
@@ -33,10 +36,13 @@ export const dynamic = "force-dynamic"
 /** How many announcements the top of the home shows at once. */
 const ANNOUNCEMENTS_MAX = 2
 
+/** How many of the tables open to everyone the home lists after the member's own: the Tables tab has the rest. */
+const PUBLIC_TABLES_MAX = 6
+
 /**
  * What a member opens the hub on: what is new and what to do now. From the top: the announcements (a message bar each), the banners (a new game, a new feature, each leading to its game or to what's new), the play zone, Find a game on two thirds of the row
- * and Create a table on the third beside it (from `xl`: two fifths for it from `lg`, the whole row for each below) (the games that can be played, each with the picture of its tile and, for a table, how many may play, its expansions and its helpers, which the game's page offers the same way), the tables the member sits at (and, one day, the ones
- * open on their games), their history, stats and ranks (the games that were recorded, PLT-13), their tournaments, and the news, like the public home's. The zones that come from the platform's Sanity project (announcements, banners, news) are drawn only when it holds something, and it holds nothing yet.
+ * and Create a table on the third beside it (from `xl`: two fifths for it from `lg`, the whole row for each below) (the games that can be played, each with the picture of its tile and, for a table, how many may play, its expansions and its helpers, which the game's page offers the same way), the tables the member sits at
+ * and, after them, the ones open to everyone (PLT-21, six at the most: the Tables tab has the rest), their history, stats and ranks (the games that were recorded, PLT-13), their tournaments, and the news, like the public home's. The zones that come from the platform's Sanity project (announcements, banners, news) are drawn only when it holds something, and it holds nothing yet.
  * The others are drawn whole: the play zone works as far as the platform does, and the lists have their empty state, so the shape of the home is there to see (docs/accounts.md, PLT-21). It has no title and no search bar: the title and the figures are the public home's.
  */
 export default async function MemberHome() {
@@ -68,17 +74,29 @@ export default async function MemberHome() {
 
   // The tables the member sits at: the row of each is the one of a game's page, which leads to the table (PLT-120). A project where the database cannot say (migration 0013 is not applied yet) lists none
   const memberTables = isDemoAccount(account) ? demoTables(catalog.entries, account.nickname) : await readMemberTables(account.id).catch((error) => (console.error("The tables of a member could not be read", error instanceof Error ? error.message : error), []))
+  // What each of their tables was set to (PLT-21): who may join, the speed, the seats. Read per game; the demo account's tables are in no database
+  const settingsOf = new Map<string, TableSettings>()
+  if (!isDemoAccount(account)) {
+    await Promise.all(
+      [...new Set(memberTables.map((table) => table.game))].map(async (game) => {
+        const found = await readTableSettings(game, memberTables.filter((table) => table.game === game).map((table) => table.code))
+        for (const [code, settings] of found) settingsOf.set(`${game}:${code}`, settings)
+      }),
+    )
+  }
   const tableRows = (
     await Promise.all(
       memberTables.map(async (table): Promise<HomeTableRow | null> => {
         const entry = catalog.entries.find((candidate) => candidate.slug === table.game)
         if (!entry) return null
-        const row = tableEntryProps(tableOfMember(table, entry.game.players?.max ?? table.players.length), table.game, undefined, await getExpansions(table.game), table.status === "lobby")
+        const row = tableEntryProps(tableOfMember(table, entry.game.players?.max ?? table.players.length, settingsOf.get(`${table.game}:${table.code}`)), table.game, undefined, await getExpansions(table.game), table.status === "lobby")
         // Which game it is, first; the free seats of a table that is played are no way in, and the row leads to the table: a lobby's page, or the board of a game in progress (`/<slug>/game/<code>` sends a lobby to its page)
         return { id: `${table.game}:${table.code}`, entry: { ...row, facts: [entry.game.name, ...(row.facts ?? [])], hostedByYou: table.hostId === table.seat, to: row.href } }
       }),
     )
   ).filter((row) => row !== null)
+  // Then the tables open to everyone, the newest first: the ones the member sits at are listed already
+  const publicRows = await publicTableRows({ limit: PUBLIC_TABLES_MAX + memberTables.length, exclude: new Set(memberTables.map((table) => `${table.game}:${table.code}`)) })
 
   const announcements = activeAnnouncements(editorial.announcements, new Date())
     .slice(0, ANNOUNCEMENTS_MAX)
@@ -117,7 +135,7 @@ export default async function MemberHome() {
               <HomeCreateTable games={creatable} languages={LANGUAGE_OPTIONS} className="lg:col-span-2 xl:col-span-1" />
             </div>
           </Section>
-          <HomeOpenTables rows={tableRows} />
+          <HomeOpenTables rows={[...tableRows, ...publicRows.slice(0, PUBLIC_TABLES_MAX).map(({ id, entry }) => ({ id, entry }))]} />
           <HomeYourGames account={account} />
           <HomeTournaments />
           <HomeNews lines={news} />
