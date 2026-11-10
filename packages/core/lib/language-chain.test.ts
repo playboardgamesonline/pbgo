@@ -17,7 +17,7 @@ import { toSkin, type SkinDoc } from "./skin-server"
 // Never French (the default before English) and never the first language that has a value.
 
 /**
- * The messages of the platform that exist in English only: the code holds English, and the other languages are added by the language pass (twelve languages, PLT-32), not written
+ * The messages of the platform that exist in English only: the code holds English, and the other languages are added by the language pass (thirteen languages, PLT-32), not written
  * one by one in the code. A visitor reads them in English until then. Translate one in every language of `ERROR_TRANSLATIONS`, then take it out of this list.
  */
 const ENGLISH_ONLY = [

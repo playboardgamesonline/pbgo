@@ -3,7 +3,7 @@ import type { LANGUAGES, PLATFORM_LANGUAGES } from "@pbgo/studio-kit/constants"
 /** `fr` | `en` | `es` | `de`: derived from the single source of the languages. */
 export type Locale = (typeof LANGUAGES)[number]["id"]
 
-/** Any language a visitor can choose (the platform's twelve, the four above among them): the hub's own language picker reports one of them. */
+/** Any language a visitor can choose (the platform's thirteen, the four above among them): the hub's own language picker reports one of them. */
 export type Language = (typeof PLATFORM_LANGUAGES)[number]["id"]
 
 /**

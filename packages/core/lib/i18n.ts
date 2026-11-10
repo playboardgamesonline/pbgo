@@ -2,7 +2,7 @@ import { LANGUAGE_COOKIE, type PlatformLanguage } from "@pbgo/accounts/language"
 import { LANGUAGES } from "@pbgo/studio-kit/constants"
 
 /**
- * Languages a game's site can render: extend `LANGUAGES` (studio-kit), which also feeds the Sanity fields. Not the languages a visitor can choose: those are the platform's twelve
+ * Languages a game's site can render: extend `LANGUAGES` (studio-kit), which also feeds the Sanity fields. Not the languages a visitor can choose: those are the platform's thirteen
  * (`PlatformLanguage`, `PLATFORM_LANGUAGES`), kept on their account and in the cookie, and a visitor whose language a site lacks reads English there (`localeFor`).
  */
 export const LOCALES = LANGUAGES.map((l) => l.id) as unknown as readonly ("fr" | "en" | "es" | "de")[]
@@ -21,13 +21,13 @@ export const DEFAULT_LOCALE = "en" as const satisfies Locale
 /** Name of each language in that language, shown by the language picker. */
 export const LOCALE_NAMES: Record<Locale, string> = Object.fromEntries(LANGUAGES.map((l) => [l.id, l.title])) as Record<Locale, string>
 
-/** The cookie of the visitor's language (`@pbgo/accounts`): it holds any of the platform's twelve languages, the games read the four they have. */
+/** The cookie of the visitor's language (`@pbgo/accounts`): it holds any of the platform's thirteen languages, the games read the four they have. */
 export const LOCALE_COOKIE = LANGUAGE_COOKIE
 
 export const isLocale = (v: unknown): v is Locale => typeof v === "string" && (LOCALES as readonly string[]).includes(v)
 
 /**
- * The language a site renders for a visitor's language: their own when the site has it, else English. A visitor chooses among the platform's twelve languages and the games render
+ * The language a site renders for a visitor's language: their own when the site has it, else English. A visitor chooses among the platform's thirteen languages and the games render
  * four, so one who chose Japanese (or whose account did) reads English there, not the language their browser comes second with.
  */
 export const localeFor = (language: PlatformLanguage): Locale => (isLocale(language) ? language : DEFAULT_LOCALE)

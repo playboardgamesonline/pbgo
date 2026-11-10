@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { cookies, headers } from "next/headers"
-import { LANGUAGE_COOKIE, PLATFORM_LANGUAGES, resolveLanguage, type PlatformLanguage } from "@pbgo/accounts"
+import { LANGUAGE_COOKIE, PLATFORM_LANGUAGES, baseLanguageOf, resolveLanguage, type PlatformLanguage } from "@pbgo/accounts"
 import { isDemoAccount } from "@pbgo/accounts/demo"
 import { requireAccount } from "@pbgo/accounts/server"
 import { LanguagePicker, type LanguageOption } from "@/components/language-picker"
@@ -12,10 +12,17 @@ export const metadata: Metadata = { title: "Language & Time settings" }
 /** The tag to ask for when the language alone names more than one written form: the platform's Chinese is the simplified one. */
 const ENGLISH_NAME_TAGS: Partial<Record<PlatformLanguage, string>> = { zh: "zh-Hans" }
 
-/** The languages of the platform as the picker lists them, in the platform's order (English first): each one's name in that language, and its name in English, which the server finds so that the browser never draws a name of its own. */
+/**
+ * The languages of the platform as the picker lists them, in the platform's order (English (US) first, then English (UK)): each one's name in that language, and its name in English, which the server finds so that the browser never draws a name of its own.
+ * The two Englishes are named in English already, by the brackets that tell them apart, so their name in English is their title and nothing is said beside them.
+ */
 function languageOptions(): LanguageOption[] {
   const english = new Intl.DisplayNames(["en"], { type: "language" })
-  return PLATFORM_LANGUAGES.map((language) => ({ id: language.id, native: language.title, english: english.of(ENGLISH_NAME_TAGS[language.id] ?? language.id) ?? language.title }))
+  return PLATFORM_LANGUAGES.map((language) => ({
+    id: language.id,
+    native: language.title,
+    english: baseLanguageOf(language.id) === "en" ? language.title : (english.of(ENGLISH_NAME_TAGS[language.id] ?? language.id) ?? language.title),
+  }))
 }
 
 /**

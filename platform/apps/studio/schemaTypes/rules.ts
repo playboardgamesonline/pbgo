@@ -100,7 +100,7 @@ export const checkTranslations = (value: unknown): true | Refusal => {
   const filled = rows.filter((row) => isFilled(row.value))
   if (filled.length === 0 || filled.some((row) => row.language === DEFAULT_PLATFORM_LANGUAGE)) return true
   const english = rows.find((row) => row.language === DEFAULT_PLATFORM_LANGUAGE)
-  return { message: "Fill English first: it is what every other language falls back on", paths: [valueAt(english ?? filled[0] ?? {})] }
+  return { message: "Fill English (US) first: it is what every other language falls back on", paths: [valueAt(english ?? filled[0] ?? {})] }
 }
 
 /**
@@ -120,5 +120,5 @@ export const checkNameTranslations = (value: unknown): true | Refusal => {
   const wrong = checkRows(value)
   if (wrong !== true) return wrong
   const english = rowsOf(value).find((row) => row.language === DEFAULT_PLATFORM_LANGUAGE && isFilled(row.value))
-  return english ? { message: "English is the Name above: leave this row empty", paths: [valueAt(english)] } : true
+  return english ? { message: "English (US) is the Name above: leave this row empty", paths: [valueAt(english)] } : true
 }

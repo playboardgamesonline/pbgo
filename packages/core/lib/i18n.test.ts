@@ -28,14 +28,14 @@ describe("language of the cookie banner", () => {
     for (const locale of LOCALES) expect(pickLocale({ cookie: locale })).toBe(locale)
   })
 
-  it("answers a cookie of the visitor's twelve languages the way the games do: its own language when the site has it, English when not", () => {
+  it("answers a cookie of the visitor's thirteen languages the way the games do: its own language when the site has it, English when not", () => {
     for (const { id } of PLATFORM_LANGUAGES) expect(pickLocale({ cookie: id, languages: ["de"] })).toBe(localeFor(id))
   })
 })
 
 describe("the languages of a visitor and the languages of a site", () => {
-  it("make two sets: a visitor chooses among twelve, the games render four, and the four are among the twelve", () => {
-    expect(PLATFORM_LANGUAGES).toHaveLength(12)
+  it("make two sets: a visitor chooses among thirteen, the games render four, and the four are among the thirteen", () => {
+    expect(PLATFORM_LANGUAGES).toHaveLength(13)
     expect([...LOCALES]).toEqual(["fr", "en", "es", "de"])
     expectTypeOf<Locale>().toExtend<PlatformLanguage>()
     expectTypeOf<PlatformLanguage>().not.toExtend<Locale>()
@@ -44,7 +44,7 @@ describe("the languages of a visitor and the languages of a site", () => {
 
   it("render a visitor's language when the site has it, English when it does not", () => {
     for (const language of ["fr", "en", "es", "de"] as const) expect(localeFor(language)).toBe(language)
-    for (const language of ["zh", "ja", "ru", "ar", "bn", "hi", "pt", "ko"] as const) expect(localeFor(language)).toBe("en")
+    for (const language of ["en-GB", "zh", "ja", "ru", "ar", "bn", "hi", "pt", "ko"] as const) expect(localeFor(language)).toBe("en")
   })
 
   it("read the cookie of the language that the accounts write", () => {

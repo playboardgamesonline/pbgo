@@ -27,9 +27,9 @@ describe("getLocale", () => {
     expect(await getLocale()).toBe("de")
   })
 
-  it("is English when the visitor's language is one of the twelve that the games do not have, whatever the browser comes second with", async () => {
+  it("is English when the visitor's language is one of the platform's that the games do not have (English (UK) among them), whatever the browser comes second with", async () => {
     request.acceptLanguage = "ja,fr;q=0.8"
-    for (const language of ["zh", "ja", "ru", "ar", "bn", "hi", "pt", "ko"]) {
+    for (const language of ["en-GB", "zh", "ja", "ru", "ar", "bn", "hi", "pt", "ko"]) {
       request.cookie = language
       expect(await getLocale()).toBe("en")
     }

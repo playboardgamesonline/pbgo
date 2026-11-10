@@ -1,9 +1,9 @@
-import { BD, CN, DE, ES, FR, IN, JP, KR, PT, RU, SA, US } from "country-flag-icons/react/3x2"
+import { BD, CN, DE, ES, FR, GB, IN, JP, KR, PT, RU, SA, US } from "country-flag-icons/react/3x2"
 import { PLATFORM_LANGUAGE_REGIONS, type LanguageRegion, type PlatformLanguage } from "@pbgo/accounts"
 import { cn } from "@pbgo/ui/utils"
 
-/** The flags of the countries that `PLATFORM_LANGUAGE_REGIONS` names, and only those: a language that gets a new country does not compile until its flag is imported here. Each is its own module, so only these twelve are shipped. */
-const FLAGS: Record<LanguageRegion, typeof US> = { BD, CN, DE, ES, FR, IN, JP, KR, PT, RU, SA, US }
+/** The flags of the countries that `PLATFORM_LANGUAGE_REGIONS` names, and only those: a language that gets a new country does not compile until its flag is imported here. Each is its own module, so only these thirteen are shipped. */
+const FLAGS: Record<LanguageRegion, typeof US> = { BD, CN, DE, ES, FR, GB, IN, JP, KR, PT, RU, SA, US }
 
 /**
  * The flag of a language, in the pickers: a small rectangle with a rounded corner, 3 wide for 2 high, and a hairline so that a flag with white in it keeps its edge on the dark. It is only a picture beside the name of the language, which says it,
