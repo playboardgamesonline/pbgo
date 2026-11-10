@@ -85,8 +85,10 @@ type AddableGame = GamePicture & {
 }
 
 type AddGameProps = {
-  /** The games that are not in the search, in the order to list them: with none, the list says that every game is in. */
+  /** The games that are not in the search, in the order to list them: with none, the list says why (`note`). */
   games: readonly AddableGame[]
+  /** What the list says when there is nothing to add: that every game is in, or that the search holds no more games. */
+  note?: string
   /** Whether the list says the visitor's rank in each game. */
   showRank?: boolean
   /** What a press on a game does: puts it in the search. The list stays open, so that several can be added. */
@@ -98,7 +100,7 @@ type AddGameProps = {
  * The tile that adds a game to the search: a dark, translucent rectangle, the frame of a picture, with a plus in it. It opens a list of the games that are not in the search, each with its picture, its name and, in a search for the rank, the visitor's rank in it, and a press
  * on one puts it in. The tile is always there: where every game is already in, the list says so.
  */
-function AddGame({ games, showRank = false, onAdd, className }: AddGameProps) {
+function AddGame({ games, note = "Every game is already in your search.", showRank = false, onAdd, className }: AddGameProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -110,7 +112,7 @@ function AddGame({ games, showRank = false, onAdd, className }: AddGameProps) {
         </button>
       </PopoverTrigger>
       <PopoverContent aria-label="Games to add" className="p-2">
-        {games.length === 0 && <p className="px-2 py-1.5 text-sm text-muted-foreground">Every game is already in your search.</p>}
+        {games.length === 0 && <p className="px-2 py-1.5 text-sm text-muted-foreground">{note}</p>}
         {/* The list scrolls inside the panel, so that fifteen games do not make a panel as high as the page */}
         <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
           {games.map((game) => (

@@ -4,6 +4,7 @@ import { useState } from "react"
 import { PlayIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import type { AgeRefusal } from "@pbgo/accounts"
+import { SEARCH_MAX_GAMES } from "@pbgo/core/lib/quick-play"
 import { Card, CardContent, CardFooter } from "@pbgo/ui/platform/card"
 import { AddGame, PickedGame } from "@pbgo/ui/platform/picked-game"
 import { QueueButton } from "@pbgo/ui/platform/queue"
@@ -35,13 +36,14 @@ const gridOf = (tiles: number) => GRIDS[tiles <= 4 ? "large" : tiles <= 9 ? "med
 /**
  * Find a game, on the signed-in home, the larger of the two cards that open the play zone (two thirds of the row from `xl`, three fifths from `lg`, on a surface a step lighter than the other containers, `--card-bar`, which is what is read first): look for a table
  * among the games the visitor picks, against players they do not know (PLT-21). It has no title: what it is for is its toggle, Normal (the one it starts on) or Ranked, as wide as its two words, the kind of table. Under it are the games of the search, each a tile with a cross that takes it out
- * (`PickedGame`), all of them to begin with, and a black rectangle with a plus that lists the games that are not in it and adds the one that is pressed (`AddGame`); the tiles are sized by how many there are, from one game to the whole catalog. In a ranked search each tile says
+ * (`PickedGame`), the first ten of them to begin with and ten at the most, and a dark, translucent rectangle with a plus that lists the games that are not in it and adds the one that is pressed (`AddGame`); the tiles are sized by how many there are, from one game to the whole catalog. In a ranked search each tile says
  * the member's rank in its game. Only a member who is signed in plays ranked, and the home is theirs. At the foot, at the left, a large button with a play icon starts the search, "Play normal" or "Play ranked" (`QueueButton`). A search is the platform's one queue (`lib/matchmaking.ts`, which the social
  * panel shows too): a press sits the member at a table of each game they picked, and the table that fills first begins by itself. It counts on the button, with a cross that stops it, and the card shows the search that is on, whichever page began it, its games and its kind of table,
  * and cannot be changed until it is stopped.
  */
 export function HomeFindGame({ games, className }: { games: readonly FindableGame[]; className?: string }) {
-  const [picked, setPicked] = useState<readonly string[]>(() => games.map((game) => game.slug))
+  // A search sits the member at a table of each game, so it holds ten at the most (`SEARCH_MAX_GAMES`): the first ten are in to begin with
+  const [picked, setPicked] = useState<readonly string[]>(() => games.slice(0, SEARCH_MAX_GAMES).map((game) => game.slug))
   const [mode, setMode] = useState<QueueMode>("normal")
   const queue = useQueue()
   const { guard, demand, fail, dialog: ageDialog } = useAgeGate()
@@ -79,7 +81,14 @@ export function HomeFindGame({ games, className }: { games: readonly FindableGam
                   loading={index < 6 ? "eager" : "lazy"}
                 />
               ))}
-              {!searching && <AddGame games={games.filter((game) => !chosen.includes(game.slug))} showRank={shownMode === "ranked"} onAdd={(slug) => setPicked([...picked, slug])} />}
+              {!searching && (
+                <AddGame
+                  games={chosen.length < SEARCH_MAX_GAMES ? games.filter((game) => !chosen.includes(game.slug)) : []}
+                  note={chosen.length < SEARCH_MAX_GAMES ? undefined : `A search takes ${SEARCH_MAX_GAMES} games at the most. Take one out to add another.`}
+                  showRank={shownMode === "ranked"}
+                  onAdd={(slug) => setPicked([...picked, slug])}
+                />
+              )}
             </div>
             <p aria-live="polite" className={cn("text-sm text-muted-foreground", chosen.length > 0 && "sr-only")}>
               {chosen.length === 0 ? "Pick at least one game" : `${chosen.length} selected`}
