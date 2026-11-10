@@ -9,7 +9,7 @@ export type HomeTableRow = { id: string; entry: Omit<TableEntryProps, "selected"
 /**
  * The tables on the signed-in home (PLT-21): the member's own, the one written last first, since a member can sit at several lobbies and none of them is a table they are taken to (a game in progress is, from every page of the hub: PLT-120).
  * A row says which game it is, who hosts it, who sits at it and how long ago it was opened or how long it has been played, and leads to its page: the lobby of a table that waits, the board of one that is played. The free seats of a lobby
- * invite a friend. The tables open to everyone on the member's games will be listed with them, theirs first; until there are some, a member who sits at no table sees the empty state. A server component.
+ * invite a friend. The tables open to everyone (PLT-21) follow them, the newest first, each leading to its page, where the member sits down; until there are some, a member who sits at no table sees the empty state. A server component.
  */
 export function HomeOpenTables({ rows }: { rows: readonly HomeTableRow[] }) {
   if (rows.length === 0) {
@@ -20,7 +20,7 @@ export function HomeOpenTables({ rows }: { rows: readonly HomeTableRow[] }) {
         href="/tables"
         action="See all tables"
         heading="No table to join yet"
-        description="The tables open to everyone on your games are listed here, yours first."
+        description="Your tables and the ones their hosts open to everyone are listed here, yours first."
       />
     )
   }

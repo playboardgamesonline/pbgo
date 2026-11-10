@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation"
 import { getAccount } from "@pbgo/accounts/server"
 import { gameJsonLd, playLine, serializeJsonLd } from "@pbgo/catalog/seo"
+import { tierOf, type Viewer } from "@pbgo/core/lib/table-settings"
 import { normalizeCode } from "@pbgo/core/server/code"
+import { visitorLanguage } from "@pbgo/core/server/table-settings"
 import { getPlayableGame } from "@pbgo/games"
 import { GameCard } from "@pbgo/ui/platform/game-card"
 import { ScrollRow } from "@pbgo/ui/platform/scroll-row"
@@ -11,6 +13,7 @@ import { GameLeaderboard } from "@/components/game-leaderboard"
 import { GamePlay } from "@/components/game-play"
 import { GamePlayerBar } from "@/components/game-player-bar"
 import { GameTournaments } from "@/components/game-tournaments"
+import { LiveRefresh } from "@/components/live-refresh"
 import { SiteFooter } from "@/components/site-footer"
 import { ageStatesOfGame, lockedExpansions } from "@/lib/age-state"
 import { getExpansions, getHistory, getPlayerStats, getStandings, getTable, getTables, getTournaments, getViewerTable } from "@/lib/game-activity"
@@ -47,7 +50,7 @@ export async function GamePageView({ slug, code = null }: { slug: string; code?:
   // A table can be opened where the game can be played: a live game, and, outside production, any game that has an engine (the template, a game under construction), as for its API
   const live = game.live || (process.env.VERCEL_ENV !== "production" && (await getPlayableGame(game.slug)) !== null)
   const [tables, viewerTable, standings, stats, history, tournaments, offered, ages] = await Promise.all([
-    getTables(game.slug),
+    getTables(game.slug, seatsMax),
     // Only a game that can be played has tables: the others have none, whoever asks
     live ? getViewerTable(game.slug, seatsMax, table) : null,
     getStandings(game.slug, viewerId),
@@ -62,6 +65,8 @@ export async function GamePageView({ slug, code = null }: { slug: string; code?:
   if (viewerTable?.status === "playing") redirect(boardHref(game.slug, viewerTable.code))
   // An expansion for adults that the visitor cannot choose carries a lock: its card says why
   const expansions = lockedExpansions(offered, ages)
+  // What the public tables may ask of the visitor (PLT-21): their tier in this game (the lowest for a guest and for a player who never played it ranked) and the language they use. A table they do not meet is not one they can join
+  const viewer: Viewer | null = live ? { tier: tierOf(stats?.rank), language: await visitorLanguage() } : null
   // The table of the link, when the visitor does not sit at it: the page shows it picked, with the way to sit down
   const linked = table !== null && viewerTable?.code !== table ? await getTable(game.slug, table, seatsMax) : null
   if (table !== null && viewerTable?.code !== table && !linked) notFound()
@@ -95,7 +100,9 @@ export async function GamePageView({ slug, code = null }: { slug: string; code?:
         {/* Under the head, in this order: the visitor's cards, then the tables and the space to play (the head's "Create a table" leads to the space), then the tournaments and the leaderboard side by side. A game that is not live has the space and the tournaments: there is nothing to play, so no cards and no board. The credits are in the head */}
         <div className="flex flex-col gap-section">
           {live && stats && <GamePlayerBar slug={game.slug} stats={stats} recent={history} expansions={expansions} timeFormat={timeFormat} />}
-          <GamePlay slug={game.slug} name={game.name} live={live} minPlayers={game.minPlayers} maxPlayers={game.maxPlayers} tables={tables} viewerTable={viewerTable} linked={linked} expansions={expansions} helpers={game.helpers} signedIn={account !== null} anchored />
+          <GamePlay slug={game.slug} name={game.name} live={live} minPlayers={game.minPlayers} maxPlayers={game.maxPlayers} tables={tables} viewerTable={viewerTable} linked={linked} expansions={expansions} helpers={game.helpers} signedIn={account !== null} viewer={viewer} anchored />
+          {/* The public tables come and go as hosts open them and people sit down: the page asks for them again now and then, while it is in view */}
+          {live && <LiveRefresh />}
           {live ? (
             <div className="grid gap-x-4 gap-y-section lg:grid-cols-3 lg:items-start">
               <div className="lg:col-span-2">

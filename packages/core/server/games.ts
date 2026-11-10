@@ -3,9 +3,11 @@ import { normalizeOptions, waitingPlayers, type OptionValues } from "@pbgo/engin
 import type { GameEntry, PlayableGame } from "../lib/binding"
 import { type PublicGame, type PublicPlayer, type GameStatus, UPDATE_EVENT, gameChannel } from "../lib/game-types"
 import { DEFAULT_LOCALE, type Locale } from "../lib/i18n"
+import type { TableSettings } from "../lib/table-settings"
 import { sanityClient } from "../sanity/client"
 import { ApiError } from "./api"
 import { validCode, generateCode, normalizeCode } from "./code"
+import { isMissingColumn } from "./db-error"
 import { expirePatch, readyExpired, readyIds, readyLeft } from "./ready"
 import { supabaseAdmin } from "./supabase"
 import { isSeated, seatedPlayers } from "./table-rules"
@@ -30,6 +32,11 @@ export type GameRow = {
   ready_at?: Record<string, string>
   /** When the ready check ends (ISO), null outside `starting` */
   ready_deadline?: string | null
+  /**
+   * What the host set apart from the engine's options (`games.settings`, migration 0014): who may join, how fast it is played, how many seats. Not read with the table (`COLUMNS` does not have it, so that a project where the migration is not
+   * applied yet is not broken): `readTableSettingsOf` reads it, and the route that sets it writes it through `updateGame`.
+   */
+  settings?: TableSettings
   version: number
   updated_at?: string
   created_at?: string
@@ -82,14 +89,17 @@ export async function findPlayerGame(game: GameRef, playerId: string, now = Date
 /**
  * Opens a table. `ranked` opens it to count for the ratings (`games.ranked`, migration 0006): the games it plays are written down as ranked when every seat is a different account, and counted for the ratings of those who played
  * their own moves. Nothing opens one yet; the matchmaking of PLT-21 will. The column is only written for a ranked table, so that a normal one is created as it always was, and a project where the migration is not applied yet keeps opening tables.
+ * `settings` are the host's choices at the top of the lobby (`TableSettings`, migration 0014: who may join, the speed, the seats), written with the table so that it is public from the first moment it is listed. They are kept to what was set, and a project
+ * where the migration is not applied yet opens the table without them (a private table, as every table was) instead of refusing to open one.
  */
 export async function createGame(
   game: PlayableGame,
   host: PublicPlayer,
   options: OptionValues = normalizeOptions(game.binding.GAME.options, {}),
-  { ranked = false }: { ranked?: boolean } = {},
+  { ranked = false, settings }: { ranked?: boolean; settings?: TableSettings } = {},
 ): Promise<GameRow> {
   const db = supabaseAdmin()
+  let withSettings = settings !== undefined && Object.keys(settings).length > 0
   for (let attempt = 0; attempt < 5; attempt++) {
     const row: GameRow = {
       code: generateCode(),
@@ -100,13 +110,19 @@ export async function createGame(
       state: null,
       replay: [],
       takeover_votes: [],
-      seen: {},
+      // The host is at the table just now: a public table is listed while somebody who sits at it was seen lately, and it should be from its first moment, not once the page has asked for it again
+      seen: { [host.id]: new Date().toISOString() },
       ready_at: {},
       ready_deadline: null,
       version: 0,
     }
-    const { error } = await db.from("games").insert({ game: game.slug, ...row, ...(ranked ? { ranked: true } : {}) })
-    if (!error) return row
+    const { error } = await db.from("games").insert({ game: game.slug, ...row, ...(ranked ? { ranked: true } : {}), ...(withSettings ? { settings } : {}) })
+    if (!error) return withSettings ? { ...row, settings } : row
+    if (withSettings && isMissingColumn(error)) {
+      console.error("The settings of a table could not be kept: migration 0014 is not applied", { game: game.slug })
+      withSettings = false
+      continue
+    }
     if (error.code !== "23505") throw error
   }
   throw new ApiError("CODE_UNAVAILABLE", 500)
