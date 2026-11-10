@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { PROFILE_PATH, PROFILE_SOURCES, TAG_MAX, TAG_MIN, checkTag, handleText, ownHandleOf, parseProfileSegment, profilePath, profileSourceOf, profileViewOf, tagOfRequest, tagText } from "./profile"
+import { PROFILE_PATH, PROFILE_SOURCES, TAG_MAX, TAG_MIN, checkTag, handleText, ownHandleOf, parseHandleText, parseProfileSegment, profilePath, profileSourceOf, profileViewOf, tagOfRequest, tagText } from "./profile"
 
 describe("tagText and handleText", () => {
   it("write a tag with its four digits", () => {
@@ -163,5 +163,21 @@ describe("ownHandleOf", () => {
     for (const body of [null, undefined, "Alex#0042", 42, [], { tag: 42 }, { nickname: "", tag: 42 }, { nickname: 7, tag: 42 }, { nickname: "a".repeat(21), tag: 42 }, { nickname: "Alex" }, { nickname: "Alex", tag: 0 }, { nickname: "Alex", tag: 10000 }, { nickname: "Alex", tag: 4.2 }, { nickname: "Alex", tag: "42" }]) {
       expect(ownHandleOf(body), JSON.stringify(body)).toBeNull()
     }
+  })
+})
+
+describe("parseHandleText", () => {
+  it("reads Alex#0042 as the pair it names", () => {
+    expect(parseHandleText("Alex#0042")).toEqual({ nickname: "Alex", tag: 42 })
+    expect(parseHandleText("Marly the Brave#7")).toEqual({ nickname: "Marly the Brave", tag: 7 })
+  })
+
+  it("keeps the nickname as a profile keeps it, and takes a tag with or without its zeros", () => {
+    expect(parseHandleText("  Marly   74 #0042 ")).toEqual({ nickname: "Marly 74", tag: 42 })
+    expect(parseHandleText("Zoé#9999")).toEqual({ nickname: "Zoé", tag: 9999 })
+  })
+
+  it.each(["Alex", "#0042", " #42", "Alex#", "Alex#0", "Alex#00000", "Alex#10000", "Alex#x", "Alex#4 2", "Alex#4#2", "A/B#42", "A\\B#42", "a".repeat(21) + "#42", ""])("is nobody for %j", (text) => {
+    expect(parseHandleText(text)).toBeNull()
   })
 })

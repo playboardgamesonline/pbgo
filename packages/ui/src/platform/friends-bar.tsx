@@ -54,7 +54,7 @@ function BarFriend({ friend, onJoin }: { friend: Friend; onJoin?: (friend: Frien
         <PresenceDot status={friend.status} />
       </Avatar>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm text-foreground">
+        <p className="ph-mask truncate text-sm text-foreground">
           {friend.nickname}
           {friend.tag && <span className="text-muted-foreground">#{friend.tag}</span>}
         </p>

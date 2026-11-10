@@ -17,6 +17,7 @@ import { QUEUE_MODE_LABELS, queueGamesLabel, queueProgress } from "@pbgo/ui/queu
 import { unreadOf, type Conversation, type Message } from "@pbgo/ui/social"
 import { cn } from "@pbgo/ui/utils"
 import { AccountMenu } from "@/components/account-menu"
+import { useFriendActions } from "@/components/friend-actions"
 import { OwnName } from "@/components/own-name"
 import { readFolded, writeFolded } from "@/lib/folded-games"
 import { leaveQueue, useQueue, useQueueSeconds } from "@/lib/matchmaking"
@@ -32,12 +33,15 @@ const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
  * game's friends under the pointer), then, behind a thin line, their picture, with the count of what waits for them on its corner (messages not read, requests to answer), which opens
  * the menu of their account (`AccountMenu`), and the button of the social panel (`SocialPanelToggle`: the icon of a panel on the right, which opens it and, once it is open, closes it).
  * Open, the bar is the header of the panel: the games fold away, the picture glides to the start of the bar and says who they are beside it (`SocialDockIdentity`: their name with its tag and
- * their status), the button stays where it was, and the panel (`SocialPanel`: friends game by game, messages, add a friend) is under it. A press on a friend or a conversation opens the
- * chat with them (`ChatWindow`) next to the panel, where a message sent is kept for as long as the page is open. While the visitor looks for a game (the button of a game's page, `lib/matchmaking.ts`), the closed bar has a small pill for it before the games, and the panel a card at the top, over the tabs. The demo account of development has friends, messages and requests whose
- * buttons do nothing; a real account has none until PLT-23, so its bar is the button that invites a friend, which copies the address of the sign-in, where a friend can come and sign in.
+ * their status), the button stays where it was, and the panel (`SocialPanel`: friends game by game, messages, add a friend) is under it. A real account's friends and requests are the database's (PLT-23: `useSocial`, kept fresh while a tab is in view), and
+ * what the buttons do is `useFriendActions`'s: the form that adds a friend, the answers to a request, and the menu of a friend (their profile, remove, block). A press on a friend opens nothing for a real account: its conversations wait for the messages (PLT-25),
+ * and the card that opens under the pointer says who the friend is and where. The demo account of development has made-up friends and conversations: a press on a friend opens the chat (`ChatWindow`) next to the panel, where a message sent is kept for as long as the page is open.
+ * While the visitor looks for a game (the button of a game's page, `lib/matchmaking.ts`), the closed bar has a small pill for it before the games, and the panel a card at the top, over the tabs. Joining a friend and inviting one are not drawn for a real account (PLT-109);
+ * the demo account has the buttons, and they do nothing. A visitor with no friend at a game has the button that invites a friend in the bar, which copies the address of the sign-in, where a friend can come and sign in.
  */
 export function SiteSocial({ account, game }: { account: Account; /** The rows of a game's screen for the menu of the picture, above the pages of the account: its sound, its language, its setup, the way out (`HudMenu` of core) */ game?: React.ReactNode }) {
   const social = useSocial(account)
+  const friends = useFriendActions()
   const [copied, copy] = useCopied()
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<SocialTab>("friends")
@@ -152,7 +156,10 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
           gameIcon={gameIcon}
           conversations={conversations}
           requests={social.requests}
-          onOpenChat={openChat}
+          onOpenChat={preview ? openChat : undefined}
+          onViewProfile={friends.viewProfile}
+          onRemove={friends.remove}
+          onBlock={friends.block}
           folded={folded}
           onFoldedChange={(next) => {
             setFolded(next)
@@ -161,8 +168,8 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
           onJoin={preview ? nothing : undefined}
           onInvite={preview ? nothing : undefined}
           onNote={preview ? nothing : undefined}
-          onSendRequest={preview ? nothing : undefined}
-          onAnswerRequest={preview ? nothing : undefined}
+          onSendRequest={friends.sendRequest}
+          onAnswerRequest={friends.answer}
           onShareLink={copy}
           shareLabel={copied ? "Link copied" : "Invite a friend"}
         />
@@ -190,6 +197,7 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
           />
         )}
       </PanelPresence>
+      {friends.dialog}
     </>
   )
 }

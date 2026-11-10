@@ -100,6 +100,9 @@ export function DockSpecimen() {
             onJoin={nothing}
             onInvite={nothing}
             onNote={nothing}
+            onViewProfile={nothing}
+            onRemove={nothing}
+            onBlock={nothing}
             onSendRequest={nothing}
             onAnswerRequest={nothing}
             onShareLink={nothing}
@@ -182,6 +185,9 @@ export function SocialSpecimen({ tab = "friends", empty = false }: { tab?: Socia
       onOpenChat={nothing}
       onJoin={nothing}
       onInvite={nothing}
+      onViewProfile={nothing}
+      onRemove={nothing}
+      onBlock={nothing}
       onSendRequest={nothing}
       onAnswerRequest={nothing}
       onShareLink={nothing}

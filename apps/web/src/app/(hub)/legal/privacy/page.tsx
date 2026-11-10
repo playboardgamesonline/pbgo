@@ -2,10 +2,12 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { ConsentLink } from "@pbgo/analytics/client"
 import { ANALYTICS_ENABLED } from "@pbgo/analytics/config"
+import { MAX_BLOCKS, MAX_FRIENDS } from "@pbgo/core/lib/friends"
 import {
   ACCOUNT_DELETION_GRACE_DAYS,
   FEEDBACK_RETENTION_MONTHS,
   FINISHED_STATE_RETENTION_HOURS,
+  FRIEND_REQUEST_RETENTION_DAYS,
   PRESENCE_RETENTION_DAYS,
   TABLE_RETENTION_DAYS,
   UNRANKED_SEAT_RETENTION_MONTHS,
@@ -138,7 +140,7 @@ export default function PrivacyPolicy() {
             },
             {
               name: "Being online",
-              text: `While you are signed in and the site is open in a tab you are looking at, your browser tells our server, about every 45 seconds, that you are there. We keep only the time of the last time, one entry per account. The home page counts the members seen in the last two minutes, with the people sitting at a table, and shows the total as the players online: nobody is shown whether you are online. A clean-up runs every night and deletes that time ${PRESENCE_RETENTION_DAYS} ${PRESENCE_RETENTION_DAYS === 1 ? "day" : "days"} after your last visit, and it goes with your account. A guest who only looks around is not counted.`,
+              text: `While you are signed in and the site is open in a tab you are looking at, your browser tells our server, about every 45 seconds, that you are there. We keep only the time of the last time, one entry per account. The home page counts the members seen in the last two minutes, with the people sitting at a table, and shows the total as the players online, which names nobody. Your friends do see whether you are online (see "Your friends"). A clean-up runs every night and deletes that time ${PRESENCE_RETENTION_DAYS} ${PRESENCE_RETENTION_DAYS === 1 ? "day" : "days"} after your last visit, and it goes with your account. A guest who only looks around is not counted.`,
             },
             {
               name: "Your session",
@@ -151,6 +153,10 @@ export default function PrivacyPolicy() {
             {
               name: "Your profile",
               text: "Every account has a public profile: a page that any visitor can open, signed in or not, at an address made of your username and your tag (as in /player/Alex-0042). It shows your username with its tag, a number of four digits that we give you at random and that you can change in your settings, so that two players with the same name can be told apart; your picture; the month you joined; and, unless you hide them, the games you played, with your rank, how many you won and how many you played in each, and your last ten games with the names of the other players, each leading to their own profile. We keep it in our database, with your account, until the account is deleted: it is made from what we already hold, with no copy anywhere else. Search engines are asked not to list or read these pages. If you change your username or your tag, the old address stops working, and when you delete your account your username and tag are free for someone else. The choice to hide your game history, in your settings, hides your games, your records and your ranks from your profile for the other players: they see your username, your tag, your picture and the month you joined, and nothing else. You always see all of it on your own page.",
+            },
+            {
+              name: "Your friends",
+              text: `You can add other members as friends, by their username and tag or from their profile. For each pair of friends we keep that they are friends and since when; for each request that waits, who sent it to whom and when; and for each member you block, that you blocked them and when. Your friends can see whether you are online, which means that our server saw you in the last two minutes, in a tab of the site or at a table, and the game you are at, and whether you wait in its lobby or are playing. They never see a table or its code, and they see no other time: not when you were last online. Nobody who is not your friend sees any of it. If you block a member, you stop being friends, the requests between you are deleted, they can no longer send you any and they are not told: a request they send seems to go, and nothing is kept. A member who is blocked sees nothing about you, and you are no longer in their list of friends. You can have up to ${MAX_FRIENDS} friends and block up to ${MAX_BLOCKS} members. A request nobody answers is deleted after ${FRIEND_REQUEST_RETENTION_DAYS} days, and one that is answered is not kept: accepting makes you friends, and declining or cancelling leaves nothing. Your friends and the members you block stay until you remove or unblock them, or until one of the accounts is deleted. While your account is closed (see "Deleting your account") you are in nobody's list.`,
             },
             {
               name: "Your games, your totals and your rank",
@@ -166,7 +172,7 @@ export default function PrivacyPolicy() {
                 <>
                   Your account stays until you delete it. When you do, it is closed at once and kept for {ACCOUNT_DELETION_GRACE_DAYS} days, in case you change your mind: you can reopen it with the link we e-mail you, or delete it right away from the page that
                   link opens. When the {ACCOUNT_DELETION_GRACE_DAYS} days are over, the clean-up that runs every night deletes it with what it holds: your sign-in details (e-mail address, name, picture address, password and the services linked to it), your profile (username, tag and picture address), your
-                  language and your settings, your country or region and your date of birth if you gave them, your second step if you turned it on, your totals, your rank points and your rating, and the feedback you sent with your e-mail address, screenshots included. The name, the tag and the picture that a table or a game had copied from your account are erased, and
+                  language and your settings, your country or region and your date of birth if you gave them, your second step if you turned it on, your friends, the requests you sent or got and the members you blocked, your totals, your rank points and your rating, and the feedback you sent with your e-mail address, screenshots included. The name, the tag and the picture that a table or a game had copied from your account are erased, and
                   your games stay as those of a deleted player, without your name or your picture. Your e-mail address can then be used for a new account. An account without an e-mail address cannot be deleted from the site, since it would have no link to be
                   reopened with: write to{" "}
                   <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
@@ -206,7 +212,7 @@ export default function PrivacyPolicy() {
                 },
                 {
                   name: "Counts with no identifier",
-                  text: "A few counts carry no identifier of yours: a new random code is made for each and used once. They are a sign-in (with which provider, and whether it made the account), a sign-out, the steps of an account deletion, feedback sent (its type, never what it says) and a request that a game refused (the error code). This runs whatever you chose in the cookie banner.",
+                  text: "A few counts carry no identifier of yours: a new random code is made for each and used once. They are a sign-in (with which provider, and whether it made the account), a sign-out, the steps of an account deletion, a friend request sent or answered, a friend removed or a member blocked (never who), feedback sent (its type, never what it says) and a request that a game refused (the error code). This runs whatever you chose in the cookie banner.",
                 },
                 {
                   name: "Visits",
@@ -269,6 +275,7 @@ export default function PrivacyPolicy() {
             { name: "Sanity", text: "Stores the texts, pictures and videos of the games. Your browser loads the pictures and videos from its servers." },
             { name: "Google, Discord, Steam and Twitch", text: "Only if you sign in with them or link them to your account (Twitch can only be linked). They learn that you sign in to this site and handle your data under their own policies. For Steam, our server also asks its operator, Valve, to confirm the sign-in and for the name and the picture of your profile." },
             { name: "The other people at your table", text: "See your nickname, or the name and picture of your account, and your chat messages." },
+            { name: "Your friends", text: "See whether you are online and the game you are at, and whether you wait in its lobby or play. Never a table, its code or when you were last online. A member you blocked, and anyone who is not your friend, see none of it." },
             { name: "Every visitor, for a public table", text: "A table that its host made public, or that a search opened, is listed while it waits for players: anyone who opens the site sees the nicknames or account names and pictures of the people who sit at it, and what was asked for (a minimum rank, a language, the speed, the number of seats, whether it counts for the rank). When you press Play, the search sits you at such a table for each game you picked, until a game begins or you stop looking. Chat messages are not shown." },
             { name: "Every visitor of a game's page", text: "See the best players of the game: the name and the picture of their account, their rank and their place. Never a rating, and never the games behind it." },
             { name: "The people who run the site", text: "Can read the database and the feedback." },

@@ -5,9 +5,8 @@ import type { FriendRequest } from "@pbgo/ui/social"
 import { DEMO_FRIENDS, DEMO_REQUESTS } from "./demo-data"
 import { perTimeFormat } from "./time-format"
 
-// What the pages of an account list: the friends and the requests of a visitor. They do not exist yet: they are PLT-23's (the friends), so a real account has none, and its pages say so. The demo account of development
-// (`@pbgo/accounts/demo`) has made-up ones (`demo-data.ts`), to see the pages as they will be; nothing here ever reaches a deployment, where that account does
-// not exist. The friends, conversations and requests of the social panel on every page are `use-social.ts`'s, which reads the same ones. The games a visitor played are `member-games.ts`'s: they are recorded (PLT-13).
+// What the pages of an account list for the demo account of development (`@pbgo/accounts/demo`): its made-up friends and requests (`demo-data.ts`), to see the pages as they will be; nothing here ever reaches a deployment, where that account does
+// not exist. A real account's friends and requests are the database's (PLT-23): the pages read them on the server (`social-state.ts`) and the social panel on every page, in the browser (`use-social.ts`). The games a visitor played are `member-games.ts`'s: they are recorded (PLT-13).
 
 export type { FriendRequest }
 
@@ -17,7 +16,7 @@ const NOBODY: AccountData = { friends: [], requests: [] }
 
 const DEMO: AccountData = { friends: DEMO_FRIENDS, requests: DEMO_REQUESTS }
 
-/** What the pages of an account list for this visitor. */
+/** What the pages of an account list for this visitor: the made-up friends and requests of the demo account, nobody for any other (a real account's are read from the database). */
 export function accountData(account: Account): AccountData {
   return account.id === DEMO_ACCOUNT.id ? DEMO : NOBODY
 }

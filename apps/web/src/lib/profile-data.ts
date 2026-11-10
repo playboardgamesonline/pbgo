@@ -2,6 +2,8 @@ import "server-only"
 import { cache } from "react"
 import { profileViewOf, type Account, type Handle } from "@pbgo/accounts"
 import { DEMO_TAG, isDemoAccount } from "@pbgo/accounts/demo"
+import type { FriendRelation } from "@pbgo/core/lib/friends"
+import { readRelation } from "@pbgo/core/server/friends"
 import { ensureProfile, readProfileByHandle, type ProfileRecord } from "@pbgo/core/server/profiles"
 import { memberGames, type MemberGames } from "./member-games"
 
@@ -47,6 +49,20 @@ export type ProfilePage = {
   own: boolean
   /** Their games, records and ranks; null for the profile of a member who keeps them private, as far as another visitor is concerned. */
   games: MemberGames | null
+  /** What is between the visitor and the member (PLT-23), for the "Add friend" button: null for a visitor who is not signed in and for the member's own profile. A member who blocked the visitor is `none`, as far as the visitor can tell. */
+  relation: FriendRelation | null
+}
+
+/** What is between a signed-in visitor and the member that owns a profile. The demo account is in no database, so it has no friends: `none`. Where the database cannot say, `none` too (the cause is in the log): the button then offers to add, and the server decides. */
+async function relationTo(viewer: Account | null, ownerId: string): Promise<FriendRelation | null> {
+  if (!viewer) return null
+  if (isDemoAccount(viewer)) return "none"
+  try {
+    return await readRelation(viewer.id, ownerId)
+  } catch (error) {
+    console.error("What is between a visitor and a member could not be read", error instanceof Error ? error.message : error)
+    return "none"
+  }
 }
 
 const sameHandle = (a: Handle, b: Handle): boolean => a.nickname.toLowerCase() === b.nickname.toLowerCase() && a.tag === b.tag
@@ -57,10 +73,11 @@ const sameHandle = (a: Handle, b: Handle): boolean => a.nickname.toLowerCase() =
 export async function profilePage(handle: Handle, viewer: Account | null, limit: number): Promise<ProfilePage | null> {
   if (viewer && isDemoAccount(viewer)) {
     const head = await ownProfileHead(viewer)
-    if (head.tag !== null && sameHandle(handle, { nickname: head.nickname, tag: head.tag })) return { head, own: true, games: await memberGames(viewer, limit) }
+    if (head.tag !== null && sameHandle(handle, { nickname: head.nickname, tag: head.tag })) return { head, own: true, games: await memberGames(viewer, limit), relation: null }
   }
   const record = await readProfileByHandle(handle)
   if (!record) return null
   const { own, showGames } = profileViewOf(record, viewer)
-  return { head: headOf(record), own, games: showGames ? await memberGames({ id: record.userId }, limit) : null }
+  const [games, relation] = await Promise.all([showGames ? memberGames({ id: record.userId }, limit) : null, own ? null : relationTo(viewer, record.userId)])
+  return { head: headOf(record), own, games, relation }
 }
