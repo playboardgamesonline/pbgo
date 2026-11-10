@@ -307,6 +307,15 @@ A trick is one card from each player: the leader's sets the suit, the others fol
 | `playOrder(players, leader)` | The players in the order they play, the leader first. `RangeError` for a leader who is not a player. |
 | `TrickPlay`, `TrickCards`, `TrickRules`, `TrickContext` | A play, what a card is to a trick, the rules (`trump`, `beats`, `decide`), and what a rule of the game is told (`led`, `trump`). |
 
+### Drafting (`draft.ts`)
+
+A draft: every player picks a card, the picks are revealed together, the hands go on to the next player (`docs/engine/01-the-game/03-turns.md`). The hands are lists in seat order.
+
+| | |
+| --- | --- |
+| `passAround(hands, steps)` | The hands after they were passed `steps` seats on: seat `i` gives its hand to seat `i + steps`, round the table; a negative number passes the other way. `RangeError` for steps that are not a whole number. |
+| `takePicks(hands, picks)` | The hands without the picked cards and what each player took (`taken[seat]`). `RangeError` for picks that are not as many as the hands or not in their hands. |
+
 ## Putting it together
 
 ```ts

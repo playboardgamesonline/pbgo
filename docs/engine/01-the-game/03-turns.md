@@ -114,6 +114,34 @@ function playCard(state: State, playerId: string, card: string): State {
 }
 ```
 
+## Drafting
+
+In a draft every player picks a card from their hand, the picks are revealed together, and the hands go on to the next player, until the hands are empty (7 Wonders, Sushi Go). A pick made at once is a [simultaneous step](#simultaneous-steps), a `Submissions` of the card that each player picked; what is left to do when the last pick is in is to take each card from its hand and to turn the hands round the table. The helpers are in `packages/engine-kit/src/draft.ts`, and the hands are lists in seat order: `hands[seat]` is the hand of the player in that seat.
+
+| Export | What it does | Errors |
+| --- | --- | --- |
+| `passAround(hands, steps)` | The hands after they were passed `steps` seats on: the hand of seat `i` goes to seat `i + steps`, round the table. One step gives each hand to the next player in seat order, a negative number gives it to the player before (the second age of 7 Wonders), and a whole turn gives the hands back as they were | `RangeError` for steps that are not a whole number |
+| `takePicks(hands, picks)` | Each player takes the card they picked: the hands without the picked cards, and `taken[seat]`, the card of the player in that seat. A card that is twice in a hand leaves it once | `RangeError` for picks that are not as many as the hands, or a pick that is not in its hand |
+
+- A pick is checked when it is made, in `apply`: the card is in the player's hand (`UNKNOWN_CARD`). A player may change their pick until everybody has picked, since answering again replaces it.
+- When the last pick is in, `revealSubmissions` gives the picks in seat order, `takePicks` the hands and the cards taken, and `passAround` the hands for the next round. The direction is the game's: in 7 Wonders it changes with the age.
+- The view says who has picked and never what, until the picks are revealed. Each player reads their own hand and the cards they have taken.
+- A draft that picks from a row on the table (the factories of Azul, a market) is no pass: the row is a list in the state, and a pick takes a card out of it in turn, with the cards a `Zone` lays out ([Where cards are](../02-components/07-zones.md)).
+
+```ts
+// Everybody has picked: the cards leave their hands and join the tableaux, and the hands go on to the next player
+function reveal(state: State): State {
+  const { hands, taken } = takePicks(state.hands, revealSubmissions(state.picks, state.players))
+  const empty = hands.every((hand) => hand.length === 0)
+  return {
+    ...state,
+    hands: empty ? hands : passAround(hands, state.age === 2 ? -1 : 1),
+    tableaux: state.tableaux.map((cards, seat) => [...cards, taken[seat]!]),
+    picks: openSubmissions(state.players),
+  }
+}
+```
+
 ## Absent players
 
 When the others vote to play for a player who left, the server calls the engine's `autoPlayFor` and stores the result. The engine writes that one hook; the vote, the delay and the presence are core's (the pure rules are in `packages/core/server/takeover.ts`).
