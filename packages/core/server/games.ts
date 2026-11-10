@@ -184,7 +184,31 @@ async function notify(slug: string, code: string, version: number) {
  */
 export async function settleReadyCheck(game: GameRef, row: GameRow, now = Date.now()): Promise<GameRow> {
   if (!readyExpired(row, now)) return row
-  return updateGame(game, row.code, (current) => (readyExpired(current, now) ? expirePatch(current) : null))
+  const settled = await updateGame(game, row.code, (current) => (readyExpired(current, now) ? expirePatch(current) : null))
+  // A check that ended with nobody ready left a lobby that holds no one: it goes (PLT-21)
+  await deleteEmptyTable(game, settled)
+  return settled
+}
+
+/**
+ * Deletes a table that nobody sits at any more (the owner's rule, PLT-21): the last player who leaves a lobby, a ready check or a game in progress, and a ready check that ends with nobody ready, leave a row that holds no one and that
+ * nobody can come back to (a player who left does not return), so it goes at once instead of waiting for the nightly clean-up. `row` is the table as the write that emptied it left it, and the delete is guarded by its `version`: a player who
+ * sat down since keeps the table. A table that is over is never deleted here, since its game is written down after the response from its row (`recordGameResult`), and the nightly job takes it. Never throws, a failure being
+ * logged and the nightly job taking the table in the end. Says whether it was deleted.
+ */
+export async function deleteEmptyTable(game: GameRef, row: Pick<GameRow, "code" | "status" | "players" | "version">): Promise<boolean> {
+  if (row.status === "over" || seatedPlayers(row.players).length > 0) return false
+  try {
+    const { data, error } = await supabaseAdmin().from("games").delete().eq("game", game.slug).eq("code", row.code).eq("version", row.version).select("code")
+    if (error) {
+      console.error("An empty table could not be deleted", { game: game.slug }, error.code, error.message)
+      return false
+    }
+    return (data ?? []).length === 1
+  } catch (error) {
+    console.error("An empty table could not be deleted", { game: game.slug }, error instanceof Error ? error.message : error)
+    return false
+  }
 }
 
 /** Data loaded on the server before `GAME.setup` (e.g. Courtisans' missions from Sanity): the game's optional `loadSetupData`. */

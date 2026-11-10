@@ -54,6 +54,10 @@ const h = vi.hoisted(() => ({
   rows: new Map<string, StoredRow>(),
   /** Runs once, right before the next conditional update compares versions: a concurrent request that wins the race */
   beforeUpdate: null as (() => void) | null,
+  /** The same for the next conditional delete (an empty table): a player who sits down between the write that emptied it and the delete */
+  beforeDelete: null as (() => void) | null,
+  /** What the next delete answers instead of deleting, when the database cannot */
+  deleteError: null as { code?: string; message: string } | null,
   scheduled: [] as Array<() => unknown>,
   track: vi.fn<(event: string, distinctId: string, properties: object) => Promise<void>>(async () => {}),
   playerId: null as string | null,
@@ -111,10 +115,24 @@ vi.mock("./supabase", () => {
       return { data: [{ code: row.code }], error: null }
     }
   }
+  class Delete extends Filters {
+    async select() {
+      const hook = h.beforeDelete
+      h.beforeDelete = null
+      hook?.()
+      if (h.deleteError) return { data: null, error: h.deleteError }
+      const key = `${this.filters.game}:${this.filters.code}`
+      const row = h.rows.get(key)
+      if (!row || row.version !== this.filters.version) return { data: [] as Array<{ code: string }>, error: null }
+      h.rows.delete(key)
+      return { data: [{ code: row.code }], error: null }
+    }
+  }
   const db = {
     from: () => ({
       select: () => new Select(),
       update: (patch: Partial<StoredRow>) => new Update(patch),
+      delete: () => new Delete(),
       insert: async (row: Record<string, unknown>) => {
         const key = `${row.game}:${row.code}`
         if (h.rows.has(key)) return { error: { code: "23505" } }
@@ -287,6 +305,8 @@ beforeEach(() => {
   h.rows.clear()
   h.scheduled.length = 0
   h.beforeUpdate = null
+  h.beforeDelete = null
+  h.deleteError = null
   h.track.mockReset()
   h.seatMember.mockClear()
   h.record.mockClear()
@@ -627,11 +647,14 @@ describe("the ready check", () => {
     expect(stored()).toMatchObject({ status: "starting", options: { rounds: 3 } })
   })
 
-  it("makes whoever sits down at a lobby that its ready check emptied the host", async () => {
+  it("makes whoever sits down at a lobby that its ready check emptied the host, when the table could not be deleted (it is deleted otherwise: PLT-21)", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    h.deleteError = { code: "57P01", message: "terminating connection" }
     starting(["p1", "p2"], [], -1000)
     h.playerId = "p1"
     await call(read)
     expect(stored().players).toEqual([])
+    h.deleteError = null
     h.playerId = "p3"
     expect((await call(join, { nickname: "Cy" })).status).toBe(200)
     expect(stored()).toMatchObject({ host_id: "p3", players: [cy] })
@@ -933,6 +956,86 @@ describe("chat_message_sent", () => {
   })
 })
 
+describe("a table that nobody sits at any more is deleted (PLT-21)", () => {
+  it("is what happens to a lobby when its last player leaves it", async () => {
+    seed({ players: [ann], version: 4 })
+    h.playerId = "p1"
+    const answer = await call(leave)
+    expect(answer.status).toBe(200)
+    expect(h.rows.has(KEY)).toBe(false)
+    // The table is gone for whoever comes with its link
+    h.playerId = "p3"
+    expect((await call(join, { nickname: "Cy" })).status).toBe(404)
+    expect((await call(read)).status).toBe(404)
+  })
+
+  it("is what happens to a ready check when its last player leaves it", async () => {
+    starting(["p1"], [])
+    h.playerId = "p1"
+    expect((await call(leave)).status).toBe(200)
+    expect(h.rows.has(KEY)).toBe(false)
+  })
+
+  it("is not what happens while somebody still sits at it: the host goes and the table goes on, and a seat that left leaves the others their table", async () => {
+    seed({ players: [ann, bob] })
+    h.playerId = "p1"
+    await call(leave)
+    expect(stored()).toMatchObject({ host_id: "p2" })
+    expect(stored().players.map((player) => player.id)).toEqual(["p2"])
+    // A game in progress where one player is left keeps its table, whoever left
+    playing(["p1", "p2"], 0)
+    h.playerId = "p1"
+    await call(leave)
+    expect(stored().players.map((player) => player.left)).toEqual([true, undefined])
+  })
+
+  it("is what happens to a ready check that ends with nobody ready, the first time somebody looks at it", async () => {
+    starting(["p1", "p2"], [], -1000)
+    h.playerId = "p1"
+    const answer = await call(read)
+    // The look that ended the check saw the lobby it left, which is empty; the next finds no table
+    expect(answer.status).toBe(200)
+    expect(h.rows.has(KEY)).toBe(false)
+    expect((await call(read)).status).toBe(404)
+  })
+
+  it("is not what happens to a ready check that ends with somebody ready: the lobby is theirs", async () => {
+    starting(["p1", "p2"], ["p2"], -1000)
+    h.playerId = "p1"
+    await call(read)
+    expect(stored()).toMatchObject({ status: "lobby", host_id: "p2" })
+    expect(stored().players.map((player) => player.id)).toEqual(["p2"])
+  })
+
+  it("keeps the table of a player who sat down between the write that emptied it and the delete", async () => {
+    seed({ players: [ann], version: 4 })
+    h.playerId = "p1"
+    h.beforeDelete = () => {
+      const row = stored()
+      h.rows.set(KEY, { ...row, players: [bob], host_id: "p2", version: row.version + 1 })
+    }
+    expect((await call(leave)).status).toBe(200)
+    expect(stored().players.map((player) => player.id)).toEqual(["p2"])
+  })
+
+  it("leaves the table to the nightly clean-up, and the leave stands, when the database cannot delete it", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    seed({ players: [ann], version: 4 })
+    h.playerId = "p1"
+    h.deleteError = { code: "57P01", message: "terminating connection" }
+    expect((await call(leave)).status).toBe(200)
+    expect(stored().players).toEqual([])
+    expect(console.error).toHaveBeenCalled()
+  })
+
+  it("is never what a request that changes nothing does: a stranger asking to leave an empty table does not delete it", async () => {
+    seed({ players: [], host_id: "p1", version: 4 })
+    h.playerId = "stranger"
+    await call(leave)
+    expect(stored()).toMatchObject({ version: 4, players: [] })
+  })
+})
+
 describe("leaving a game in progress", () => {
   const table = async (response: Response) => (await response.json()) as { status: string; meId: string | null; players: Array<{ id: string; nickname: string; left?: boolean }>; view: { me: unknown; turn: number } | null; error?: string }
   const turn = () => (stored().state as TestState).turn
@@ -991,13 +1094,18 @@ describe("leaving a game in progress", () => {
     expect(h.takenOver.mock.invocationCallOrder[0]).toBeLessThan(h.record.mock.invocationCallOrder[0]!)
   })
 
-  it("does not play a game out alone when the last player who is there leaves", async () => {
+  it("does not play a game out alone when the last player who is there leaves: the table is abandoned, and goes", async () => {
     withLeft(["p1", "p2"], 1, ["p1"])
     h.playerId = "p2"
-    await call(leave)
-    expect(stored().players.map((player) => player.left)).toEqual([true, true])
-    expect(turn()).toBe(1)
-    expect(stored().status).toBe("playing")
+    const answer = await table(await call(leave))
+    // What the leave answered: nobody was left to play for, the game stays where it was
+    expect(answer.players.map((player) => player.left)).toEqual([true, true])
+    expect(answer.status).toBe("playing")
+    expect(answer.view?.turn).toBe(1)
+    // Nobody sits at it and nobody can come back: the table is deleted (PLT-21)
+    expect(h.rows.has(KEY)).toBe(false)
+    await afterResponse()
+    expect(h.record).not.toHaveBeenCalled()
   })
 
   it("changes nothing for a player who leaves twice, a stranger, or a table that is over", async () => {
