@@ -49,6 +49,8 @@ type StoredRow = {
   version: number
   updated_at: string
   created_at: string
+  /** What the host set for the table (`games.settings`): who may join, the speed, the seats */
+  settings?: Record<string, unknown>
 }
 
 const h = vi.hoisted(() => ({
@@ -328,7 +330,7 @@ describe("game_created", () => {
     const response = await call(create, { nickname: "Ann" }, null)
     expect(response.status).toBe(200)
     expect(h.track).not.toHaveBeenCalled()
-    expect(tracked()).toEqual([{ event: "game_created", distinctId: "p1", properties: { game: SLUG, options: { rounds: 3 }, max_players: 3, locale: "en" } }])
+    expect(tracked()).toEqual([{ event: "game_created", distinctId: "p1", properties: { game: SLUG, options: { rounds: 3 }, max_players: 3, locale: "en", visibility: "private" } }])
   })
 
   it("is not sent when the nickname is refused", async () => {
@@ -343,7 +345,7 @@ describe("player_joined", () => {
     seed()
     h.playerId = "p2"
     expect((await call(join, { nickname: "Bob" })).status).toBe(200)
-    expect(tracked()).toEqual([{ event: "player_joined", distinctId: "p2", properties: { game: SLUG, seat: 1, players: 2 } }])
+    expect(tracked()).toEqual([{ event: "player_joined", distinctId: "p2", properties: { game: SLUG, seat: 1, players: 2, visibility: "private" } }])
   })
 
   it("is sent once, for the seat really taken, when the write lost a race", async () => {
@@ -351,7 +353,7 @@ describe("player_joined", () => {
     h.playerId = "p2"
     race((row) => ({ players: [...row.players, cy] }))
     expect((await call(join, { nickname: "Bob" })).status).toBe(200)
-    expect(tracked()).toEqual([{ event: "player_joined", distinctId: "p2", properties: { game: SLUG, seat: 2, players: 3 } }])
+    expect(tracked()).toEqual([{ event: "player_joined", distinctId: "p2", properties: { game: SLUG, seat: 2, players: 3, visibility: "private" } }])
     expect(stored().players.map((player) => player.id)).toEqual(["p1", "p3", "p2"])
   })
 
@@ -473,7 +475,7 @@ describe("game_started", () => {
     expect(names()).toEqual([])
     h.playerId = "p2"
     expect((await call(ready)).status).toBe(200)
-    expect(tracked()).toEqual([{ event: "game_started", distinctId: "p1", properties: { game: SLUG, players: 2, options: { rounds: 3 } } }])
+    expect(tracked()).toEqual([{ event: "game_started", distinctId: "p1", properties: { game: SLUG, players: 2, options: { rounds: 3 }, visibility: "private" } }])
     expect(stored().status).toBe("playing")
   })
 
@@ -500,7 +502,7 @@ describe("game_started", () => {
     // p3's request wins the race for the next write, so p2's runs again on the table as it is then, and p2 is the last
     race((row) => ({ ready_at: { ...row.ready_at, p3: new Date().toISOString() } }))
     expect((await call(ready)).status).toBe(200)
-    expect(tracked()).toEqual([{ event: "game_started", distinctId: "p1", properties: { game: SLUG, players: 3, options: { rounds: 3 } } }])
+    expect(tracked()).toEqual([{ event: "game_started", distinctId: "p1", properties: { game: SLUG, players: 3, options: { rounds: 3 }, visibility: "private" } }])
     expect(stored().status).toBe("playing")
   })
 
@@ -511,6 +513,54 @@ describe("game_started", () => {
     expect((await call(ready)).status).toBe(200)
     expect(names()).toEqual([])
     expect(stored().status).toBe("playing")
+  })
+})
+
+describe("who may find the table, in the counts", () => {
+  const PUBLIC = { visibility: "public", minRank: null, language: null, pace: "normal", seats: 3 }
+  const visibilities = () => tracked().map((entry) => [entry.event, (entry.properties as { visibility?: unknown }).visibility])
+
+  it("is told when a table opens: public for one opened to everyone, private for one that sets nothing", async () => {
+    h.playerId = "p1"
+    await call(create, { nickname: "Ann", settings: PUBLIC }, null)
+    await call(create, { nickname: "Ann" }, null)
+    await call(create, { nickname: "Ann", settings: { ...PUBLIC, visibility: "private" } }, null)
+    expect(visibilities()).toEqual([
+      ["game_created", "public"],
+      ["game_created", "private"],
+      ["game_created", "private"],
+    ])
+  })
+
+  it("is told when somebody sits down, from what the host set for the table", async () => {
+    seed({ settings: PUBLIC })
+    h.playerId = "p2"
+    await call(join, { nickname: "Bob" })
+    expect(visibilities()).toEqual([["player_joined", "public"]])
+  })
+
+  it("is told when the game begins, from what the host set for the table", async () => {
+    starting(["p1", "p2"], ["p1"], 30_000, { settings: PUBLIC })
+    h.playerId = "p2"
+    expect((await call(ready)).status).toBe(200)
+    expect(visibilities()).toEqual([["game_started", "public"]])
+  })
+
+  it("is private for a table that kept no setting: a table of before", async () => {
+    starting(["p1", "p2"], ["p1"])
+    h.playerId = "p2"
+    await call(ready)
+    expect(visibilities()).toEqual([["game_started", "private"]])
+  })
+
+  it("is nothing but the word, and the settings of the table do not go with it", async () => {
+    seed({ settings: { ...PUBLIC, minRank: "Silver", language: "fr" } })
+    h.playerId = "p2"
+    await call(join, { nickname: "Bob" })
+    for (const entry of tracked()) {
+      assertNoPersonalData(entry.properties)
+      expect(Object.keys(entry.properties).sort()).toEqual(["game", "players", "seat", "visibility"])
+    }
   })
 })
 

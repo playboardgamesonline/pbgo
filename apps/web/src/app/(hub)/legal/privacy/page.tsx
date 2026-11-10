@@ -202,7 +202,7 @@ export default function PrivacyPolicy() {
               items={[
                 {
                   name: "Counts at tables",
-                  text: "When a table is created, joined, started or finished, or goes because nobody sits at it any more, our server counts it, with the game, the number of players, the options and how long it lasted. Each count carries your player identifier, never a nickname, a chat message or a table code. This runs whatever you chose in the cookie banner.",
+                  text: "When a table is created, joined, started or finished, or goes because nobody sits at it any more, our server counts it, with the game, the number of players, the options, whether it is open to everyone and how long it lasted. Each count carries your player identifier, never a nickname, a chat message or a table code. This runs whatever you chose in the cookie banner.",
                 },
                 {
                   name: "Counts with no identifier",

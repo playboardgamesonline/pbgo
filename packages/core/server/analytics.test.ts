@@ -27,11 +27,11 @@ afterEach(() => {
 
 describe("trackAfter", () => {
   it("sends the event once the response has left, not while the request is served", () => {
-    trackAfter("player_joined", "player-1", { game: "courtisans", seat: 1, players: 2 })
+    trackAfter("player_joined", "player-1", { game: "courtisans", seat: 1, players: 2, visibility: "private" })
     expect(mocks.track).not.toHaveBeenCalled()
     runScheduled()
     expect(mocks.track).toHaveBeenCalledTimes(1)
-    expect(mocks.track).toHaveBeenCalledWith("player_joined", "player-1", { game: "courtisans", seat: 1, players: 2 })
+    expect(mocks.track).toHaveBeenCalledWith("player_joined", "player-1", { game: "courtisans", seat: 1, players: 2, visibility: "private" })
   })
 
   it("sends nothing for a request without a player", () => {
