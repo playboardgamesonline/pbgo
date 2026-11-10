@@ -46,7 +46,7 @@ async function reasonOf(response: Response): Promise<string> {
 }
 
 /** The calls of the dataset's HTTP API with the token in a header: what both stores below are made of. */
-function connect({ projectId, dataset, token, fetch: send = fetch }: HttpStoreOptions) {
+export function connect({ projectId, dataset, token, fetch: send = fetch }: HttpStoreOptions) {
   const base = `https://${projectId}.api.sanity.io/v${API_VERSION}/data`
 
   async function call(url: string, init: RequestInit = {}): Promise<unknown> {
