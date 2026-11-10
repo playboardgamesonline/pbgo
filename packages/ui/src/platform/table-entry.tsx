@@ -4,13 +4,15 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "../utils"
 import { hostOf, seatCount, type TableAction, type TableSeat, type TableState } from "../tables"
 import { OpenSeat } from "./open-seat"
+import { OverLink } from "./over-link"
 import { SeatAvatar } from "./table-card"
 
 // A table in the list of the open tables of a game, as a block of three lines. On the first, how many sit at it of how many it has (a small picture of people, then "3/5"), who opened it ("Hosted by Marly") and how old it is. On the second, what to know before sitting down
 // ("Fast turns · First expansion"): the speed when it is not the usual one, then the expansions, and no line at all when there is nothing to say. On the third, a circle for each seat of the table, all of them, none over another, so that the room that is left is seen at once: a picture and
 // the nickname under it for a person, a crown on the one who opened it, and for a seat nobody has taken a dashed circle with a plus in it, which does what the seat is for (`OpenSeat`: it joins the table, or, at the table the visitor sits at, opens a menu to invite a friend or copy the
-// link). The pictures are large and close together (48px, eight apart). The pointer finds a player's card on their picture, and a press on the row picks it, which the page shows by the panel beside the list (`LobbyDetail`). Like `TableCard` it draws what it is given and decides nothing: the
-// page keeps which row is picked. It is not a client component: a row with no `onSelect` (a list that is only read) is drawn on the server, and then has no handler at all.
+// link). The pictures are large and close together (48px, eight apart). The pointer finds a player's card on their picture, and a press on the row picks it, which the page shows by the panel beside the list (`LobbyDetail`). In a list that has no panel (`to`), the row is a link as a whole: its first line is the link, stretched over the row, so that a press
+// anywhere on it leads to the table, the padding, the names and the pictures included. What the pointer must find above the link (a player's card, a free seat's button or link, its menu) is raised over it, and a press on a picture goes on where the link leads (`OverLink`). Like `TableCard`
+// it draws what it is given and decides nothing: the page keeps which row is picked. It is not a client component: a row with no `onSelect` (a list that is only read) is drawn on the server, and then has no handler at all.
 
 type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   /** `waiting`: it waits for players. `playing`: it is being played. */
@@ -39,7 +41,7 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   onSelect?: () => void
   /** The id of what the row controls, the panel that shows the details. */
   controls?: string
-  /** Where a press on the row's first line leads, for a list that has no panel to show details in (the member's own tables on the home): the line is then a link, and `onSelect`, `selected` and `controls` have no part in it. */
+  /** Where a press on the row leads, for a list that has no panel to show details in (the member's own tables on the home, the Tables tab): the first line is then a link, stretched over the whole row, and `onSelect`, `selected` and `controls` have no part in it. */
   to?: string
 }
 
@@ -51,8 +53,11 @@ function TableEntry({ className, state, seats, age, facts = [], action, href, on
   const join = !mine && (href || onJoin) && action === "join" ? { href, onJoin } : undefined
   const invite = mine && href ? { link: href, onCopy: onCopyInvite } : undefined
   const word = mine ? "Invite" : join ? "Join" : "Open"
-  // The first line is what a press picks (a button), or, in a list with nothing to pick it for, where the row leads (a link)
-  const firstLine = "flex w-full min-w-0 flex-col gap-1 rounded-t-[inherit] px-4 pt-4 text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:ring-inset"
+  // The first line is what a press picks (a button, which has its own focus ring), or, in a list with nothing to pick it for, where the row leads (a link). The link is stretched over the whole row by its `::after`, which is also what shows the focus ring, so that
+  // the keyboard has one stop and the ring is round the row; the row is `relative` for that and `isolate`, so that what is raised over the link (`z-10`) stays inside the row's own layer
+  const firstLine = "flex w-full min-w-0 flex-col gap-1 px-4 pt-4 text-left outline-none"
+  const asButton = "rounded-t-[inherit] focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:ring-inset"
+  const asLink = "rounded-[inherit] after:absolute after:inset-0 after:rounded-[inherit] focus-visible:after:ring-3 focus-visible:after:ring-ring/30 focus-visible:after:ring-inset"
   const summary = (
     <>
       {/* What the row says, once, for screen readers: the seats under it name everybody and are read as they are */}
@@ -94,28 +99,35 @@ function TableEntry({ className, state, seats, age, facts = [], action, href, on
           if (event.currentTarget.contains(target) && !target.closest("a, button")) onSelect()
         })
       }
-      className={cn("group/entry rounded-2xl transition-colors duration-fast hover:bg-muted/50 data-[selected]:bg-muted", className)}
+      className={cn("group/entry rounded-2xl transition-colors duration-fast hover:bg-muted/50 data-[selected]:bg-muted", to && "relative isolate", className)}
     >
       {to ? (
-        <a href={to} className={firstLine}>
+        <a href={to} data-slot="table-entry-link" className={cn(firstLine, asLink)}>
           {summary}
         </a>
       ) : (
-        <button type="button" aria-pressed={selected} aria-controls={controls} onClick={onSelect} className={firstLine}>
+        <button type="button" aria-pressed={selected} aria-controls={controls} onClick={onSelect} className={cn(firstLine, asButton)}>
           {summary}
         </button>
       )}
       {/* A seat is a column 56px wide round a picture of 48px and a name of 52px: no room between the columns, so that the pictures are 8px apart and the names under them 4px, as the comment above says */}
       <ul data-slot="table-entry-seats" aria-label="Seats" className="flex flex-wrap gap-y-4 px-4 pt-7 pb-4">
-        {seats.map((seat, index) => (
-          <li key={index} data-slot="table-entry-seat" data-free={seat ? undefined : ""} className="flex w-14 flex-col items-center gap-1.5">
-            <span className="relative">
+        {seats.map((seat, index) => {
+          const picture = (
+            <>
               {seat?.host && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3 left-1/2 z-10 size-4 -translate-x-1/2" />}
               {seat ? <SeatAvatar seat={seat} className="size-12" /> : <OpenSeat join={join} invite={invite} tabbable={index === firstFree} className="size-12" />}
-            </span>
-            <span className={cn("w-13 truncate text-center text-xs", seat ? "ph-mask" : "text-muted-foreground")}>{seat ? seat.name : word}</span>
-          </li>
-        ))}
+            </>
+          )
+          // In a row that is a link what the pointer must find is raised over the link: a player's card, a free seat's button or link. A free seat with no way in is only a place, and the link runs under it
+          const raised = to && (seat || join || invite)
+          return (
+            <li key={index} data-slot="table-entry-seat" data-free={seat ? undefined : ""} className="flex w-14 flex-col items-center gap-1.5">
+              {raised ? <OverLink className="relative z-10">{picture}</OverLink> : <span className="relative">{picture}</span>}
+              <span className={cn("w-13 truncate text-center text-xs", seat ? "ph-mask" : "text-muted-foreground")}>{seat ? seat.name : word}</span>
+            </li>
+          )
+        })}
       </ul>
     </li>
   )
