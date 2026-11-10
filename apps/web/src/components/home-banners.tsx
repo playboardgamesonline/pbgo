@@ -4,22 +4,30 @@ import { Section } from "@pbgo/ui/platform/section"
 /** A banner as the home draws it: the picture, what it announces and where it leads. */
 export type HomeBanner = { id: string; image: string; kind: string; title: string; href: string }
 
+/** A row that scrolls sideways from the left margin to the edge of the window, so that the next card shows at its edge. */
+const ROW = "max-xl:snap-x max-xl:snap-mandatory max-xl:scroll-px-gutter max-xl:overflow-x-auto max-xl:px-gutter max-xl:[scrollbar-width:none] max-xl:-mx-gutter max-xl:flex"
+
 /**
- * The banners at the top of the signed-in home: a new game, a new feature, each leading to its game or to what's new. Up to three in a row from `lg` (two columns when there are one or two), one under the other
- * before, and nothing at all when there is none: a zone without data is not drawn. The first picture is the one the page opens on, so it loads at once.
+ * The banners at the foot of the signed-in home, over the news: a new game, a new feature, each leading to its game or to what's new. Slim cards. Three are a row of three from `xl` and a row that scrolls sideways before it, since two columns would leave the third
+ * alone on a second line; two are two columns from `md` and a row that scrolls on a phone; a single one is as wide as a long line of text. Nothing is drawn when there is none: a zone without data is not drawn.
  */
-export function HomeBanners({ banners }: { banners: readonly HomeBanner[] }) {
+export function HomeBanners({ banners, className }: { banners: readonly HomeBanner[]; className?: string }) {
   if (banners.length === 0) return null
-  // Two columns from `md`, and a third from `lg` only when there are three banners: a row of two never leaves a hole
-  const columns = banners.length >= 3 ? "md:grid-cols-2 lg:grid-cols-3" : "md:grid-cols-2"
+  const three = banners.length >= 3
+  const layout = three
+    ? `gap-3 ${ROW} xl:grid xl:grid-cols-3`
+    : banners.length === 2
+      ? "gap-3 max-md:snap-x max-md:snap-mandatory max-md:scroll-px-gutter max-md:overflow-x-auto max-md:px-gutter max-md:[scrollbar-width:none] max-md:-mx-gutter max-md:flex md:grid md:grid-cols-2"
+      : "md:max-w-2xl"
+  const card = three ? "max-md:w-[88%] max-xl:shrink-0 max-xl:snap-start md:max-xl:w-96" : banners.length === 2 ? "max-md:w-[88%] max-md:shrink-0 max-md:snap-start" : undefined
   return (
-    <Section aria-labelledby="home-banners">
+    <Section aria-labelledby="home-banners" className={className}>
       <h2 id="home-banners" className="sr-only">
         New on the platform
       </h2>
-      <div className={`grid gap-4 ${columns}`}>
-        {banners.map((banner, index) => (
-          <Banner key={banner.id} href={banner.href} image={banner.image} kind={banner.kind} title={banner.title} loading={index === 0 ? "eager" : "lazy"} />
+      <div className={layout}>
+        {banners.map((banner) => (
+          <Banner key={banner.id} href={banner.href} image={banner.image} kind={banner.kind} title={banner.title} loading="lazy" className={card} />
         ))}
       </div>
     </Section>

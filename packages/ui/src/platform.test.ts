@@ -57,11 +57,11 @@ describe("platform components", () => {
  */
 /**
  * Rounded, never round: the largest step is the surfaces' (`rounded-4xl`) and nothing is a capsule. `rounded-full` stays where a shape is a circle by nature, the picture of a
- * person with its dot, the place of a seat nobody has taken (a circle like the picture it waits for, which its focus ring follows), the track and thumb of a switch, a slider and a progress bar, the mark of a radio (a choice among a few is drawn as a circle everywhere, and a square would read as a checkbox), and the round background that comes
- * under the pointer behind the "+5" of the achievements, the one place the owner asked for a circle that is no picture.
+ * person with its dot, the place of a seat nobody has taken (a circle like the picture it waits for, which its focus ring follows), the track and thumb of a switch, a slider and a progress bar, the mark of a radio (a choice among a few is drawn as a circle everywhere, and a square would read as a checkbox), the round background that comes
+ * under the pointer behind the "+5" of the achievements, and the cross that takes a game out of a search, a black circle at the corner of its picture: the two places where a circle is asked for that is no picture.
  */
 describe("radius", () => {
-  const CIRCLES = new Set(["achievements-card.tsx", "avatar.tsx", "open-seat.tsx", "progress.tsx", "radio-group.tsx", "slider.tsx", "switch.tsx"])
+  const CIRCLES = new Set(["achievements-card.tsx", "avatar.tsx", "open-seat.tsx", "picked-game.tsx", "progress.tsx", "radio-group.tsx", "slider.tsx", "switch.tsx"])
   const hitsOf = (files: readonly string[], pattern: RegExp) =>
     files.flatMap((file) =>
       readFileSync(new URL(file, DIRECTORY), "utf8")

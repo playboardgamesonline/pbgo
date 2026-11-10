@@ -17,7 +17,7 @@ import { HomeTournaments } from "@/components/home-empty-zones"
 import { HomeFindGame } from "@/components/home-find-game"
 import { HomeNews } from "@/components/home-news"
 import { HomeOpenTables, type HomeTableRow } from "@/components/home-open-tables"
-import { HomeYourGames } from "@/components/home-your-games"
+import { HomeYourGames, RECENT_GAMES } from "@/components/home-your-games"
 import { SiteFooter } from "@/components/site-footer"
 import { ageStatesOf, lockedExpansions } from "@/lib/age-state"
 import { demoEditorial } from "@/lib/demo-editorial"
@@ -25,6 +25,7 @@ import { demoTables } from "@/lib/demo-tables"
 import { getExpansions, tableOfMember } from "@/lib/game-activity"
 import { expansionOption, LANGUAGE_OPTIONS, tableEntryProps } from "@/lib/game-activity-props"
 import { gamePicture } from "@/lib/game-card-props"
+import { memberGames } from "@/lib/member-games"
 import { publicTableRows } from "@/lib/public-table-rows"
 
 // The home of a signed-in member. The proxy sends a visitor who has a session from `/` to it, instead of leaving them on the public home (`apps/web/src/proxy.ts`), and a visitor
@@ -40,9 +41,9 @@ const ANNOUNCEMENTS_MAX = 2
 const PUBLIC_TABLES_MAX = 6
 
 /**
- * What a member opens the hub on: what is new and what to do now. From the top: the announcements (a message bar each), the banners (a new game, a new feature, each leading to its game or to what's new), the play zone, Find a game on two thirds of the row
+ * What a member opens the hub on: what to play now, then what is new. From the top: the announcements (a message bar each), the play zone, Find a game on two thirds of the row
  * and Create a table on the third beside it (from `xl`: two fifths for it from `lg`, the whole row for each below) (the games that can be played, each with the picture of its tile and, for a table, how many may play, its expansions and its helpers, which the game's page offers the same way), the tables the member sits at
- * and, after them, the ones open to everyone (PLT-21, six at the most: the Tables tab has the rest), their history, stats and ranks (the games that were recorded, PLT-13), their tournaments, and the news, like the public home's. The zones that come from the platform's Sanity project (announcements, banners, news) are drawn only when it holds something, and it holds nothing yet.
+ * and, after them, the ones open to everyone (PLT-21, six at the most: the Tables tab has the rest), their history, stats and ranks (the games that were recorded, PLT-13), their tournaments, and, at the foot, the banners (a new game, a new feature, slim cards, each leading to its game or to what's new) and the news, like the public home's. The zones that come from the platform's Sanity project (announcements, banners, news) are drawn only when it holds something.
  * The others are drawn whole: the play zone works as far as the platform does, and the lists have their empty state, so the shape of the home is there to see (docs/accounts.md, PLT-21). It has no title and no search bar: the title and the figures are the public home's.
  */
 export default async function MemberHome() {
@@ -60,7 +61,10 @@ export default async function MemberHome() {
     account,
   )
   const playable = live.filter((entry) => ages.get(entry.slug)?.game?.refusal !== "too-young")
-  const findable = playable.map((entry) => ({ slug: entry.slug, name: entry.game.name, ...gamePicture(entry.game), refusal: ages.get(entry.slug)?.game?.refusal ?? null }))
+  // What they played and the rank they have in each game they rated: the history and the ranks below, and the rank on the tile of a game in a ranked search
+  const member = await memberGames(account, RECENT_GAMES)
+  const rankOf = new Map(member.ranks.map((entry) => [entry.slug, entry.rank]))
+  const findable = playable.map((entry) => ({ slug: entry.slug, name: entry.game.name, ...gamePicture(entry.game), rank: rankOf.get(entry.slug) ?? null, refusal: ages.get(entry.slug)?.game?.refusal ?? null }))
   // What the settings of a table offer is per game, and the catalog (read once, cached) has all of it: the number of players, the helpers, and the expansions of the platform's Sanity project
   const creatable = await Promise.all(
     playable.map(async (entry) => ({
@@ -117,6 +121,21 @@ export default async function MemberHome() {
   )
   const news = newsOf(editorial.entries).map((entry) => ({ id: entry.id, kind: KIND_LABELS[entry.kind], date: entry.date, title: entry.title, text: entry.text, href: entryHref(entry, known) }))
 
+  const bannersZone = <HomeBanners banners={banners} className="pb-6" />
+  const playZone = (
+    <Section aria-labelledby="home-play">
+      <h2 id="home-play" className="sr-only">
+        Play
+      </h2>
+      {/* Two thirds and a third from `xl`; between `lg` and `xl` the third is too narrow for the settings of a table (the speed's four chips), so Create a table has two fifths of the row there */}
+      <div className="grid gap-4 lg:grid-cols-5 xl:grid-cols-3">
+        <HomeFindGame games={findable} className="lg:col-span-3 xl:col-span-2" />
+        <HomeCreateTable games={creatable} languages={LANGUAGE_OPTIONS} host={{ name: account.nickname, avatarUrl: account.avatarUrl }} className="lg:col-span-2 xl:col-span-1" />
+      </div>
+    </Section>
+  )
+  const tablesZone = <HomeOpenTables rows={[...tableRows, ...publicRows.slice(0, PUBLIC_TABLES_MAX).map(({ id, entry }) => ({ id, entry }))]} />
+
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner), and starts under the fixed navbar (`pt-navbar`)
   return (
     <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
@@ -124,20 +143,11 @@ export default async function MemberHome() {
         <h1 className="sr-only">Home</h1>
         <div className="pt-10">
           <HomeAnnouncements items={announcements} />
-          <HomeBanners banners={banners} />
-          <Section aria-labelledby="home-play">
-            <h2 id="home-play" className="sr-only">
-              Play
-            </h2>
-            {/* Two thirds and a third from `xl`; between `lg` and `xl` the third is too narrow for the settings of a table (the speed's four chips), so Create a table has two fifths of the row there */}
-            <div className="grid gap-4 lg:grid-cols-5 xl:grid-cols-3">
-              <HomeFindGame games={findable} className="lg:col-span-3 xl:col-span-2" />
-              <HomeCreateTable games={creatable} languages={LANGUAGE_OPTIONS} className="lg:col-span-2 xl:col-span-1" />
-            </div>
-          </Section>
-          <HomeOpenTables rows={[...tableRows, ...publicRows.slice(0, PUBLIC_TABLES_MAX).map(({ id, entry }) => ({ id, entry }))]} />
-          <HomeYourGames account={account} />
+          {playZone}
+          {tablesZone}
+          <HomeYourGames member={member} timeFormat={account.preferences.timeFormat} />
           <HomeTournaments />
+          {bannersZone}
           <HomeNews lines={news} />
         </div>
       </main>

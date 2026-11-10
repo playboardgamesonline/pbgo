@@ -1,21 +1,21 @@
 import Link from "next/link"
-import type { Account } from "@pbgo/accounts"
+import type { TimeFormat } from "@pbgo/accounts"
+import type { MemberGames } from "@pbgo/core/lib/member-games"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@pbgo/ui/platform/item"
 import { RankBadge } from "@pbgo/ui/platform/rank-badge"
 import { Section } from "@pbgo/ui/platform/section"
 import { recordOf } from "@pbgo/ui/results"
 import { GameRecord, GameThumb } from "@/components/game-record"
-import { memberGames } from "@/lib/member-games"
 
 // The member's history and stats, and their rank on each game, on the signed-in home (PLT-13): two blocks side by side, one above the other on a phone. They are the games that were recorded (`memberGames`), the last three with the member's
 // record over all of them on the left and the rank they have in each game they rated on the right; a block with nothing to list keeps its empty state, so that the shape of the home is there to see. A server component.
 
 /** How many of the latest games the home lists: the rest are the member's games (`/me/games`). */
-const RECENT_GAMES = 3
+export const RECENT_GAMES = 3
 
-export async function HomeYourGames({ account }: { account: Account }) {
-  const { games, stats, ranks } = await memberGames(account, RECENT_GAMES)
+export function HomeYourGames({ member, timeFormat }: { member: MemberGames; timeFormat: TimeFormat }) {
+  const { games, stats, ranks } = member
   const recent = games.filter((game) => game.state === "finished").slice(0, RECENT_GAMES)
 
   return (
@@ -38,7 +38,7 @@ export async function HomeYourGames({ account }: { account: Account }) {
             </p>
             <div className="flex flex-col gap-2">
               {recent.map((game) => (
-                <GameRecord key={game.id} game={game} timeFormat={account.preferences.timeFormat} />
+                <GameRecord key={game.id} game={game} timeFormat={timeFormat} />
               ))}
             </div>
           </div>

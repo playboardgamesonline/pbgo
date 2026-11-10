@@ -7,7 +7,7 @@ import { queueTime } from "../queue"
 import { cn } from "../utils"
 import { Button } from "./button"
 
-// What a visitor sees while they look for a table, the same wait in three places: the button that starts the search (the main one of a game's page, the smaller one of the signed-in home), which becomes a counter with a cross that stops the search (`QueueButton`), the card at the top of the social panel
+// What a visitor sees while they look for a table, the same wait in three places: the button that starts the search (the main one of a game's page and of the signed-in home), which becomes a counter with a cross that stops the search (`QueueButton`), the card at the top of the social panel
 // (`QueueCard`, which also says how full the nearest table is) and, while the panel is closed, a small pill in the bar of the dock (`QueuePill`). Each is drawn from what it is given, the time waited in whole seconds, and decides nothing: where the queue is kept and what
 // stopping it does are the page's (`apps/web/src/lib/matchmaking.ts`). The counter is a `timer`, which a screen reader reads when asked and never announces each second; what is announced is that a search began or stopped.
 
@@ -37,7 +37,7 @@ const SEARCH_SIZES = {
 }
 
 type QueueButtonProps = Omit<React.ComponentProps<typeof Button>, "variant" | "size" | "asChild" | "onClick"> & {
-  /** `xl` (the default) is the main button of a game's page; `lg` is the smaller one of the signed-in home. */
+  /** `xl` (the default) is the main button of a game's page and of the signed-in home; `lg` is a smaller one. */
   size?: keyof typeof SEARCH_SIZES
   /** For a button that opens a menu of what to look for: the page puts the idle button in the trigger of its menu (`DropdownMenuTrigger asChild`), and the menu's items start the search. The counter that the button becomes is not put in it. */
   around?: (button: React.ReactElement) => React.ReactElement

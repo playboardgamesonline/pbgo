@@ -25,7 +25,7 @@ Pick the step by the height of the box: the taller it is, the rounder its corner
 | Small control | `rounded-lg` | Small button, toggle, a tab in a tab bar, the buttons and tabs inside a navbar island |
 | Chip | `rounded-md` | Extra small button, key cap, a small game icon |
 | Tag | `rounded-sm` | Badge, checkbox |
-| Circle | `rounded-full` | The picture of a person (`Avatar`) and its dot; the track and the thumb of a switch, a slider and a progress bar |
+| Circle | `rounded-full` | The picture of a person (`Avatar`) and its dot; the track and the thumb of a switch, a slider and a progress bar; the cross that takes a game out of a search |
 
 - `rounded-4xl` is the largest step and nothing is rounder. A bar, the home's search bar, is `rounded-3xl`, since at `rounded-4xl` it would be a capsule.
 - The one exception to "never half" is the highlight of a menu row, which shows under the pointer only and keeps `rounded-2xl`.
