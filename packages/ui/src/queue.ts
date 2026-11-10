@@ -11,6 +11,9 @@ export const QUEUE_MODES: readonly QueueMode[] = ["ranked", "normal"]
 /** What each mode is called on a screen. */
 export const QUEUE_MODE_LABELS: Record<QueueMode, string> = { ranked: "Ranked", normal: "Normal" }
 
+/** What each mode is, in a line: a ranked table counts for the rank and has no helpers, a normal one does not change it. */
+export const QUEUE_MODE_HINTS: Record<QueueMode, string> = { ranked: "Counts for your rank. No helpers.", normal: "Doesn't change your rank." }
+
 /** A game a visitor looks for a table of. */
 export type QueueGame = { slug: string; name: string }
 

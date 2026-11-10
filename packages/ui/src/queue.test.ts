@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { QUEUE_MAX_AGE_MS, QUEUE_MAX_GAMES, QUEUE_MAX_TABLES, QUEUE_MODE_LABELS, QUEUE_MODES, parseQueue, queueGamesLabel, queueProgress, queueSeconds, queueTime } from "./queue"
+import { QUEUE_MAX_AGE_MS, QUEUE_MAX_GAMES, QUEUE_MAX_TABLES, QUEUE_MODE_HINTS, QUEUE_MODE_LABELS, QUEUE_MODES, parseQueue, queueGamesLabel, queueProgress, queueSeconds, queueTime } from "./queue"
 
 const NOW = Date.parse("2026-11-02T18:00:00Z")
 
@@ -41,6 +41,10 @@ describe("modes", () => {
   it("are ranked, then normal, each with a name", () => {
     expect(QUEUE_MODES).toEqual(["ranked", "normal"])
     expect(QUEUE_MODES.map((mode) => QUEUE_MODE_LABELS[mode])).toEqual(["Ranked", "Normal"])
+  })
+
+  it("each say what they are in a line: ranked counts for the rank and has no helpers", () => {
+    expect(QUEUE_MODES.map((mode) => QUEUE_MODE_HINTS[mode])).toEqual(["Counts for your rank. No helpers.", "Doesn't change your rank."])
   })
 })
 
