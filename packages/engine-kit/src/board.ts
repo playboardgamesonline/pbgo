@@ -4,11 +4,14 @@
  * which cells are linked together; it works the rest out from its own state.
  *
  * Two grids are built: `squareBoard`, with the squares next to a cell by their sides and, when the game says so, by their corners, and `hexBoard`, whose hexagons are six to a cell. A board that is not a grid (the map of Ticket to Ride, the
- * territories of Risk) is not built: its places and the roads between them are the game's own data.
+ * territories of Risk) is a `graph` of places and roads, and the corners of a board's cells, where Catan builds, are a `cornerGraph` (`graph.ts`): the searches below work on them too.
  */
 
 /** A cell has two numbers: its column and its row on a square board, its `q` and its `r` (axial coordinates) on a hexagonal one */
 export type Coord = readonly [number, number]
+
+/** What a search needs of a board: how many cells it has, and which are next to which. A `Board` is one; so is a `Graph` of places and roads, and so are the corners of a board (`graph.ts`) */
+export type Network = Pick<Board, "size" | "neighbours">
 
 export type Board = {
   /** The kind of grid */
@@ -30,7 +33,7 @@ export type Board = {
 }
 
 /** The number of the cell must be a cell of the board: anything else is a bug of the game */
-function assertCell(board: Board, cell: number, name = "cell"): void {
+function assertCell(board: Pick<Board, "size">, cell: number, name = "cell"): void {
   if (!Number.isInteger(cell) || cell < 0 || cell >= board.size) throw new RangeError(`There is no ${name} ${String(cell)} on a board of ${board.size} cells`)
 }
 
@@ -135,7 +138,7 @@ export type Reached = { cell: number; distance: number }
  * The cells that can be reached from `from` in `range` steps at the most, going from one cell to the next and never into a blocked one, the start included at distance 0. The cells come nearest first, and in the order of their number for the same
  * distance. A piece that moves up to three cells, an area of effect that does not go through walls.
  */
-export function reachable(board: Board, from: number, range: number, { blocked = () => false }: BoardRules = {}): Reached[] {
+export function reachable(board: Network, from: number, range: number, { blocked = () => false }: BoardRules = {}): Reached[] {
   assertCell(board, from, "start")
   if (!Number.isInteger(range) || range < 0) throw new RangeError(`A range is a whole number of steps, none at the least, got ${String(range)}`)
   const distances = new Map<number, number>([[from, 0]])
@@ -157,7 +160,7 @@ export function reachable(board: Board, from: number, range: number, { blocked =
  * The way from `from` to `to`, the fewest steps, never into a blocked cell (`to` included): the cells to go through, one after the other, the last being `to`. Empty when the two are the same cell, `null` when there is no way. Between two ways of
  * the same length it takes the one that tries the directions in their order, so the same board gives the same way. It is what a piece walks along: give it to the board as the route of the piece.
  */
-export function shortestPath(board: Board, from: number, to: number, { blocked = () => false }: BoardRules = {}): number[] | null {
+export function shortestPath(board: Network, from: number, to: number, { blocked = () => false }: BoardRules = {}): number[] | null {
   assertCell(board, from, "start")
   assertCell(board, to, "goal")
   if (from === to) return []
@@ -182,7 +185,7 @@ export function shortestPath(board: Board, from: number, to: number, { blocked =
 /**
  * The cells linked to `start` by cells that are `same` as it, the start included, in the order of their number: the group of stones of Go, the lake, the region a flood fills. `same` says whether a cell belongs. Empty when the start does not.
  */
-export function regionOf(board: Board, start: number, same: (cell: number) => boolean): number[] {
+export function regionOf(board: Network, start: number, same: (cell: number) => boolean): number[] {
   assertCell(board, start, "start")
   if (!same(start)) return []
   const seen = new Set([start])

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { type ReactNode, useState } from "react"
-import { addStrokes, bagSize, createSaveableRng, drawFromBag, drawingPoints, emptyDrawing, EngineError, restoreRng, undoStroke } from "@pbgo/engine-kit"
+import { addStrokes, bagSize, createSaveableRng, drawFromBag, drawingPoints, emptyDrawing, EngineError, graph, longestTrail, restoreRng, undoStroke } from "@pbgo/engine-kit"
 import { askChoice, askNumber, askText } from "@pbgo/core/components/game/prompt"
 import { PromptHost } from "@pbgo/core/components/game/prompt-host"
 import { Button } from "@pbgo/ui/platform/button"
@@ -25,6 +25,7 @@ import {
   PLAY_DECK,
   PLAY_GLOWS,
   PLAY_LIMITS,
+  PLAY_MAP,
   PLAY_NAMES,
   PLAY_NUMBERS,
   PLAY_PART_NAMES,
@@ -55,7 +56,7 @@ const rollFor = (shape: DiceShape) => Array.from({ length: PLAY_LIMITS.dice }, (
 /** What the playground's sheet is kept under: the engine's own limits, for a palette and brushes of the specimens' sizes */
 const SHEET_RULES = { colors: SKETCH_COLORS.length, widths: SKETCH_BRUSHES.length }
 /** The parts that lie beyond the rest of the table: the camera backs off to at least this distance when one is switched on */
-const BACK_OFF: Partial<Record<PlayPart, number>> = { seats: 28, sketch: PLAY_SKETCH.zoom, hand: 28, piles: 28, stack: 28, paper: 28 }
+const BACK_OFF: Partial<Record<PlayPart, number>> = { seats: 28, sketch: PLAY_SKETCH.zoom, hand: 28, piles: 28, stack: 28, paper: 28, map: 32 }
 
 const freshBag = () => ({ counts: [...BAG_START], rng: createSaveableRng(BAG_SEED).save(), drawn: 0 })
 
@@ -117,7 +118,7 @@ const START: PlayState = {
   ],
   nextId: 12,
   selected: null,
-  parts: { board: true, track: true, counter: true, stepper: true, slider: true, timer: true, bag: true, cup: true, dice: true, fields: true, sketch: false, hand: false, piles: false, stack: false, paper: false, seats: false },
+  parts: { board: true, track: true, counter: true, stepper: true, slider: true, timer: true, bag: true, cup: true, dice: true, fields: true, sketch: false, hand: false, piles: false, stack: false, paper: false, map: false, seats: false },
   counter: 12,
   stepper: PLAY_NUMBERS.stepper.start,
   slider: PLAY_NUMBERS.slider.start,
@@ -145,6 +146,7 @@ const START: PlayState = {
   stack: PLAY_STACK.start,
   presses: 0,
   seat: null,
+  map: { claimed: PLAY_MAP.roads.map(() => false), city: null },
   players: 4,
   above: false,
   zoom: PLAY_LIMITS.zoom.start,
@@ -200,6 +202,8 @@ export function Playground() {
     take: () => setState(take),
     press: () => setState((now) => ({ ...now, presses: now.presses + 1 })),
     pickSeat: (seat) => set({ seat }),
+    claim: (road) => setState((now) => ({ ...now, map: { ...now.map, claimed: now.map.claimed.map((held, i) => (i === road ? !held : held)) } })),
+    visit: (city) => setState((now) => ({ ...now, map: { ...now.map, city } })),
     // The sheet keeps what the engine keeps: strokes that do not fit are let go, as a board that was told no would
     ink: (incoming) =>
       setState((now) => {
@@ -240,7 +244,7 @@ export function Playground() {
         <main className="min-h-0 flex-1 max-lg:min-h-[45svh]">
           <SceneFrame
             fill
-            label="A card table with every component of the package on it: a board of squares, a track with a marker, a counter, a stepper, a slider, an hourglass, a bag, a cup, a tray of dice, three fields to write and choose in, a sheet of paper to draw on, a hand of cards, a draw pile and a discard pile, a stack of coins, a paper button, and cards and pieces that can be dragged anywhere, onto a cell of the board or into the bin"
+            label="A card table with every component of the package on it: a board of squares, a track with a marker, a counter, a stepper, a slider, an hourglass, a bag, a cup, a tray of dice, three fields to write and choose in, a sheet of paper to draw on, a hand of cards, a draw pile and a discard pile, a stack of coins, a paper button, a map of cities and roads, and cards and pieces that can be dragged anywhere, onto a cell of the board or into the bin"
           >
             <PlaygroundScene state={state} actions={actions} />
           </SceneFrame>
@@ -436,6 +440,15 @@ export function Playground() {
                   </Button>
                   <span className="text-sm text-muted-foreground" aria-live="polite">
                     Pressed <span className="text-foreground tabular-nums">{state.presses}</span> {state.presses === 1 ? "time" : "times"}
+                  </span>
+                </Part>
+                <Part part="map" on={parts.map} onChange={(on) => showPart("map", on)}>
+                  <Button variant="ghost" size="sm" disabled={state.map.city === null && !state.map.claimed.some(Boolean)} onClick={() => set({ map: { claimed: PLAY_MAP.roads.map(() => false), city: null } })}>
+                    Clear the map
+                  </Button>
+                  <span className="text-sm text-muted-foreground" aria-live="polite">
+                    {state.map.city === null ? "No city picked" : <>City: <span className="text-foreground">{PLAY_MAP.names[state.map.city]}</span></>}. Longest route:{" "}
+                    <span className="text-foreground tabular-nums">{longestTrail(graph(PLAY_MAP.names.length, PLAY_MAP.roads), state.map.claimed.flatMap((held, road) => (held ? [road] : [])))}</span>
                   </span>
                 </Part>
                 <Part part="seats" on={parts.seats} onChange={(on) => showPart("seats", on)}>

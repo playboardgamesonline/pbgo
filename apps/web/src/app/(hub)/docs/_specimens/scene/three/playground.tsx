@@ -32,6 +32,7 @@ import {
   Pile,
   type Pose,
   rectShape,
+  RoadMap,
   row,
   Seat,
   seats,
@@ -50,7 +51,7 @@ import {
   Zone,
 } from "@pbgo/table"
 import { useMemo } from "react"
-import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_NAMES, SKETCH_BRUSHES } from "../defaults"
+import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_NAMES, SKETCH_BRUSHES } from "../defaults"
 import { back, CARD_SIZE, face, inks, palette } from "./art"
 import { Stage, TableLabel } from "./parts"
 
@@ -83,6 +84,8 @@ const PILE_LOOK = { lean: "draw", leanAmplitude: 0.06 } as const
 const STACK_AT = { x: 8.4, z: 7.8 }
 const STACK_SIZE = 0.8
 const PAPER_AT = { x: -10.4, z: 8.6, width: 3, height: 1.2 }
+/** The cities of the map stand on a ring round the middle of the map. */
+const CITIES = PLAY_MAP.names.map((_, i) => ({ x: PLAY_MAP.at.x + PLAY_MAP.radius * Math.cos((i * 2 * Math.PI) / PLAY_MAP.names.length - Math.PI / 2), z: PLAY_MAP.at.z + PLAY_MAP.radius * Math.sin((i * 2 * Math.PI) / PLAY_MAP.names.length - Math.PI / 2) }))
 
 /** The glows a picked card can wear: one part each, and all four. */
 const GLOWS = defineGlows({
@@ -361,6 +364,20 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
         <>
           <Paper text="End the turn" at={{ x: PAPER_AT.x, z: PAPER_AT.z }} width={PAPER_AT.width} height={PAPER_AT.height} onPress={actions.press} />
           <TableText text={`Turn ${state.presses + 1}`} style={{ color: colors.text }} height={0.6} position={[PAPER_AT.x, 0.02, PAPER_AT.z - 1.2]} />
+        </>
+      )}
+      {parts.map && (
+        <>
+          <RoadMap
+            places={CITIES}
+            roads={PLAY_MAP.roads}
+            placeLook={(city) => ({ label: PLAY_MAP.names[city]!.slice(0, 1), color: state.map.city === city ? colors.marks[2] : colors.ivory, ink: colors.ink })}
+            roadLook={(road) => (state.map.claimed[road] ? { color: colors.marks[0] } : {})}
+            placeSize={0.7}
+            onPlace={(city) => actions.visit(state.map.city === city ? null : city)}
+            onRoad={actions.claim}
+          />
+          <TableLabel text="Map" x={PLAY_MAP.at.x} z={PLAY_MAP.at.z + PLAY_MAP.radius + 1.3} height={0.45} tone="muted" />
         </>
       )}
       {parts.seats &&

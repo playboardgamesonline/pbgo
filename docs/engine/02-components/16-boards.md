@@ -48,6 +48,7 @@ const to = cleanChoice(action.to, options)
 events.push({ type: "walked", unit: id, from: state.unit[id], to, path: shortestPath(BOARD, state.unit[id], to, { blocked }) })
 ```
 
+- The corners and the sides of a board, where the settlements and the roads of Catan stand and the stones of Go, are another graph, `cornerGraph(board)` ([Maps](22-maps.md)): the same searches go along it.
 - The searches take the same rules, `BoardRules`: `blocked`, the cells that cannot be entered. A cell has two numbers, a `Coord`: `[col, row]` on a square board and `[q, r]` on a hexagonal one.
 - The cells are numbered row by row from the top, the first row being the farthest from the viewer, so a number means the same cell for the engine and for the table: the table makes its cells from the same `coords`.
 - The steps go clockwise seen from above, from the right: east, south, west, north for squares (and east, south-east, south and so on with `diagonals`, where an even direction is a side and an odd one a corner), and east, south-east, south-west, west, north-west, north-east for hexagons.

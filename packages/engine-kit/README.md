@@ -283,6 +283,17 @@ const amounts = revealSubmissions(bids, state.seats) // amounts[seat]
 // …resolve the step with `amounts`, then open the next one with openSubmissions(state.seats)
 ```
 
+### Maps (`graph.ts`)
+
+Places joined by roads, numbered from 0, and the corners of a board (`docs/engine/02-components/22-maps.md`). The searches of `board.ts` (`reachable`, `shortestPath`, `regionOf`) take any `Network`, a `Board` or a graph.
+
+| | |
+| --- | --- |
+| `graph(size, edges)` | A graph of `size` places joined by `edges` (`[a, b]` pairs): `neighbours(place)`, `edgesAt(place)`, `edgeBetween(a, b)`, `edgesBetween(a, b)`. Double routes are two roads. `RangeError` for a place the graph does not have or a road from a place to itself. |
+| `cornerGraph(board)` | The corners of a square or hexagonal board: its points (where cells meet) as places and its sides as roads. 54 points and 72 sides for the 19 hexagons of Catan. Also `cellsAt(point)`, `pointsOf(cell)`, `sidesOf(cell)`, `cellsOfSide(side)` and `place(point)`. |
+| `longestTrail(graph, roads, { blocked?, weight? })` | The most a trail along the given roads is worth, a road used once and a place visited again: the longest road of Catan, the longest route of Ticket to Ride. `blocked` places can be started or ended at but not passed through. |
+| `Network`, `Graph`, `Edge`, `Corners`, `TrailRules` | A search's view of a board (`size`, `neighbours`), a graph, a road, the corners of a board, and the rules of a trail. |
+
 ### Tricks (`tricks.ts`)
 
 A trick is one card from each player: the leader's sets the suit, the others follow it when they can, the best card takes it (`docs/engine/01-the-game/03-turns.md`). The helpers keep no state, and read the cards through `suitOf` and `rankOf` of the game's catalogue.
