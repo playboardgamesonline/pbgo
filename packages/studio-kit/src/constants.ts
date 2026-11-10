@@ -6,11 +6,13 @@ export const LANGUAGES = [
 ] as const
 
 /**
- * Languages of the platform's content (the catalog), English first: it is the default and the fallback of every text.
+ * Languages of the platform's content (the catalog), English (US) first: it is the default and the fallback of every text. English (UK) comes second and has a text only where the UK writes it
+ * otherwise; every other text of it is the one of English (US). A regional form of a language has the id of the language and its region (`en-GB`).
  * `LANGUAGES` stays the four languages of the games until their Studios move to the same system.
  */
 export const PLATFORM_LANGUAGES = [
-  { id: "en", title: "English" },
+  { id: "en", title: "English (US)" },
+  { id: "en-GB", title: "English (UK)" },
   { id: "fr", title: "Français" },
   { id: "es", title: "Español" },
   { id: "de", title: "Deutsch" },
@@ -47,7 +49,7 @@ export const FONT_CHOICES = [
 ] as const
 
 /**
- * The labels that exist in English only: the code holds English, and the other languages come with the language pass (twelve languages, PLT-32), not typed one by one here.
+ * The labels that exist in English only: the code holds English, and the other languages come with the language pass (thirteen languages, PLT-32), not typed one by one here.
  * Their entries of `UI_TEXTS` carry this English text where `fr` goes and `translations.ts` gives it to every language, so a visitor reads English until the pass.
  * To translate one: write it in each language of `UI_TRANSLATIONS`, give its entry a French `fr` and take it out of this list.
  */

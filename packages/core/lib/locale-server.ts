@@ -5,7 +5,7 @@ import { cache } from "react"
 import { DEFAULT_LOCALE, fromAcceptLanguage, LOCALE_COOKIE, localeFor, type Locale } from "./i18n"
 
 /**
- * Language of the visitor: remembered choice (cookie: any of the platform's twelve languages, English if the games do not have it), else the browser's language
+ * Language of the visitor: remembered choice (cookie: any of the platform's thirteen languages, English if the games do not have it), else the browser's language
  * (Accept-Language: one the games lack gives English), else English (no header: a crawler). Same URL for everyone: the page is rendered in the language of the request. The
  * cookie follows the visitor's account when they have one (`@pbgo/accounts`), the server never reads the account itself.
  */

@@ -165,6 +165,7 @@ describe("checkRows", () => {
     expect(checkRows(undefined)).toBe(true)
     expect(checkRows([])).toBe(true)
     expect(checkRows([row("en", "A"), row("fr", "B"), row("ko", "C")])).toBe(true)
+    expect(checkRows([row("en", "A"), row("en-GB", "B"), row("fr", "C")])).toBe(true)
   })
 
   it("refuses a language the platform does not have, and says which row it is", () => {
@@ -193,8 +194,13 @@ describe("checkTranslations", () => {
   })
 
   it("refuses a language that has a value when English has none, and points at the value of English", () => {
-    expect(checkTranslations([row("en"), row("fr", "Un jeu")])).toEqual({ message: "Fill English first: it is what every other language falls back on", paths: [[{ _key: "en" }, "value"]] })
+    expect(checkTranslations([row("en"), row("fr", "Un jeu")])).toEqual({ message: "Fill English (US) first: it is what every other language falls back on", paths: [[{ _key: "en" }, "value"]] })
     expect(checkTranslations([row("en", "   "), row("fr", "Un jeu")])).toMatchObject({ paths: [[{ _key: "en" }, "value"]] })
+  })
+
+  it("treats English (UK) as any other language: it may have a value once English (US) has one, and not before", () => {
+    expect(checkTranslations([row("en", "Color"), row("en-GB", "Colour")])).toBe(true)
+    expect(checkTranslations([row("en"), row("en-GB", "Colour")])).toEqual({ message: "Fill English (US) first: it is what every other language falls back on", paths: [[{ _key: "en" }, "value"]] })
   })
 
   it("points at the first value when there is no row of English at all", () => {
@@ -208,7 +214,7 @@ describe("checkTranslations", () => {
 
   it("holds for pictures as for texts: a file in French needs one in English", () => {
     expect(checkTranslations([row("en", picture()), row("fr", picture("image-def-20x20-png"))])).toBe(true)
-    expect(checkTranslations([row("en", { _type: "image" }), row("fr", picture())])).toMatchObject({ message: expect.stringContaining("Fill English first") })
+    expect(checkTranslations([row("en", { _type: "image" }), row("fr", picture())])).toMatchObject({ message: expect.stringContaining("Fill English (US) first") })
   })
 
   it("keeps the rules of the rows: a language that is not one, a language twice", () => {
@@ -237,7 +243,7 @@ describe("checkDescriptions", () => {
   })
 
   it("keeps the rules of the translations: English first, one row per language", () => {
-    expect(checkDescriptions([row("en"), row("fr", "Un jeu")])).toMatchObject({ message: expect.stringContaining("Fill English first") })
+    expect(checkDescriptions([row("en"), row("fr", "Un jeu")])).toMatchObject({ message: expect.stringContaining("Fill English (US) first") })
     expect(checkDescriptions([row("en", "A"), { ...row("en", "B"), _key: "again" }])).toMatchObject({ message: "There can only be one row per language" })
   })
 })
@@ -250,7 +256,11 @@ describe("checkNameTranslations", () => {
   })
 
   it("refuses a name in English: the English name is the Name of the document", () => {
-    expect(checkNameTranslations([row("en", "Werewolves")])).toEqual({ message: "English is the Name above: leave this row empty", paths: [[{ _key: "en" }, "value"]] })
+    expect(checkNameTranslations([row("en", "Werewolves")])).toEqual({ message: "English (US) is the Name above: leave this row empty", paths: [[{ _key: "en" }, "value"]] })
+  })
+
+  it("accepts a name in English (UK), for a game that is called otherwise there", () => {
+    expect(checkNameTranslations([row("en"), row("en-GB", "Catan")])).toBe(true)
   })
 
   it("keeps the rules of the rows", () => {

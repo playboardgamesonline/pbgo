@@ -1,6 +1,6 @@
 import { Brain02Icon, ChildIcon, HourglassIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { ordinal, type TimeFormat } from "@pbgo/accounts"
-import { PLATFORM_LANGUAGES } from "@pbgo/accounts/language"
+import { SPOKEN_LANGUAGES } from "@pbgo/accounts/language"
 import type { LeaderboardRow } from "@pbgo/ui/leaderboard"
 import type { LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import type { ExpansionFact, ExpansionOption, HelperOption } from "@pbgo/ui/platform/lobby-settings"
@@ -15,8 +15,8 @@ import { durationLabel, playersLabel } from "./game-card-props"
 // What the blocks of a game's page draw, made of the rows of `game-activity.ts`: the one place that words a table (its name, its age, what to know before sitting down, what a visitor may do at it), a visitor's figures and games, and
 // that picks what a leaderboard row shows of a standing. The components of `@pbgo/ui` draw what they are given; the docs' specimens run their demo rows through these functions too, so that they show what the page will.
 
-/** The languages a lobby may ask its players to speak: the platform's twelve, each as its own name (the button that says who may join offers them, `LobbyAccess`). */
-export const LANGUAGE_OPTIONS = PLATFORM_LANGUAGES.map(({ id, title }) => ({ value: id, label: title }))
+/** The languages a lobby may ask its players to speak: one for each language people speak, so English once (a table is not played in "English (UK)"), each as its own name (the button that says who may join offers them, `LobbyAccess`). */
+export const LANGUAGE_OPTIONS = SPOKEN_LANGUAGES.map(({ id, name }) => ({ value: id, label: name }))
 
 /** The pace of a table, when it is worth saying: a table with no clock, one that leaves days to play, or a clock that is not the usual one. The usual pace (`normal`) is not said. */
 const PACE: Partial<Record<TurnTimer, string>> = { none: "No timer", slow: "Slow turns", fast: "Fast turns", async: "Async" }

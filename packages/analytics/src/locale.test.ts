@@ -36,11 +36,13 @@ describe("pickLocale", () => {
     expect(pickLocale({ cookie: "ja", languages: ["fr-FR"] })).toBe("en")
     expect(pickLocale({ cookie: "pt", languages: ["de"] })).toBe("en")
     expect(pickLocale({ cookie: "zh" })).toBe("en")
+    expect(pickLocale({ cookie: "en-GB", languages: ["fr-FR"] })).toBe("en")
   })
 
   it("takes the first language of the browser that the site speaks", () => {
     expect(pickLocale({ languages: ["pt-BR", "de-AT", "fr"] })).toBe("de")
     expect(pickLocale({ languages: ["FR-ca"] })).toBe("fr")
+    expect(pickLocale({ languages: ["en-GB", "fr"] })).toBe("en")
   })
 
   it("is English when none is supported, and when the browser says nothing: English is the site's default", () => {

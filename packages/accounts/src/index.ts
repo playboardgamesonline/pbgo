@@ -68,6 +68,8 @@ export {
   PLATFORM_LANGUAGES,
   PLATFORM_LANGUAGE_NAMES,
   PLATFORM_LANGUAGE_REGIONS,
+  SPOKEN_LANGUAGES,
+  baseLanguageOf,
   hasSessionCookie,
   isPlatformLanguage,
   languageCookie,
