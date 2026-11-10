@@ -21,7 +21,16 @@ import { Button } from "@pbgo/ui/game/button"
 const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
 
 /** `held` and `onLoaded` are the start screen's (PLT-107): behind it the board is drawn and loads, says so, and holds its opening (the camera's entrance, the start announcement) until the screen goes */
-type Props = { game: PublicGame<PlayerView>; data?: unknown; onUpdate: (p: PublicGame) => void; onLeave: () => void; held?: boolean; onLoaded?: () => void }
+type Props = {
+  game: PublicGame<PlayerView>
+  data?: unknown
+  onUpdate: (p: PublicGame) => void
+  onLeave: () => void
+  held?: boolean
+  onLoaded?: () => void
+  /** Where the clock of the step ends, on the page's clock: the platform counts it, the board draws it (`BoardProps.deadlineAt`) */
+  deadlineAt?: number | null
+}
 
 export function Game(props: Props) {
   const view = props.game.view
@@ -43,23 +52,28 @@ function eventText(e: GameEvent) {
  * The simultaneous step: everybody announces their number of tricks at the same time, in any order. A player who has bid
  * can still change their mind until the last one has, so the buttons stay on. Who has bid and who is still to is not shown here:
  * the ticker lists every seat for a step the game waits several players for (`game.waitingFor`).
+ *
+ * The bid is asked on the table, with the bid cards (`board/bids.tsx`), which is the way for a pointer. This panel is the way with the keyboard and a screen reader, which cannot press a card of a canvas: it stays out of
+ * sight until it is reached with the Tab key, and then it is drawn over the table as it always was.
  */
 function BidPanel({ sending, onBid }: { sending: boolean; onBid: (amount: number) => void }) {
   const { view } = useGame<PlayerView>()
   const me = view.me
   if (view.phase !== "bidding" || !me) return null
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-[32%] z-30 flex justify-center px-4">
-      <div className="pointer-events-auto flex max-w-full flex-col items-center gap-3 rounded-2xl bg-black/60 px-6 py-4 text-center text-foreground shadow-lg backdrop-blur">
-        <p className="font-display text-lg tracking-[0.14em] uppercase">Combien de plis allez-vous remporter ?</p>
-        <div className="flex flex-wrap justify-center gap-2">
-          {Array.from({ length: me.hand.length + 1 }, (_, amount) => (
-            <Button key={amount} size="icon-lg" variant={me.bid === amount ? "default" : "secondary"} aria-pressed={me.bid === amount} disabled={sending} onClick={() => onBid(amount)}>
-              {amount}
-            </Button>
-          ))}
+    <div className="sr-only focus-within:not-sr-only">
+      <div className="pointer-events-none absolute inset-x-0 top-[32%] z-30 flex justify-center px-4">
+        <div className="pointer-events-auto flex max-w-full flex-col items-center gap-3 rounded-2xl bg-black/60 px-6 py-4 text-center text-foreground shadow-lg backdrop-blur">
+          <p className="font-display text-lg tracking-[0.14em] uppercase">Combien de plis allez-vous remporter ?</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {Array.from({ length: me.hand.length + 1 }, (_, amount) => (
+              <Button key={amount} size="icon-lg" variant={me.bid === amount ? "default" : "secondary"} aria-pressed={me.bid === amount} disabled={sending} onClick={() => onBid(amount)}>
+                {amount}
+              </Button>
+            ))}
+          </div>
+          {me.bid !== null && <p className="text-xs text-foreground/60">Vous pouvez encore changer votre annonce.</p>}
         </div>
-        {me.bid !== null && <p className="text-xs text-foreground/60">Vous pouvez encore changer votre annonce.</p>}
       </div>
     </div>
   )
@@ -89,7 +103,7 @@ function RoundStatus() {
   )
 }
 
-function Table({ onUpdate, onLeave, held = false, onLoaded }: Props) {
+function Table({ onUpdate, onLeave, held = false, onLoaded, deadlineAt = null }: Props) {
   const t = useText()
   const api = useApi()
   const { victoryPhrases, playerColors } = useSkin()
@@ -217,7 +231,7 @@ function Table({ onUpdate, onLeave, held = false, onLoaded }: Props) {
         </>
       }
     >
-      <Scene view={view} pointsText={(points) => t("pointsShort", { points })} myTurn={myTurn && !sending} onPlay={play} held={held} onLoaded={onLoaded} />
+      <Scene view={view} pointsText={(points) => t("pointsShort", { points })} myTurn={myTurn && !sending} onPlay={play} canBid={view.phase === "bidding" && !!meId && !sending} onBid={bid} deadlineAt={deadlineAt} held={held} onLoaded={onLoaded} />
     </GameHud>
   )
 }

@@ -6,12 +6,22 @@ import { copyButton } from "@pbgo/core/components/game/debug-controls"
 import { useDebugFolder } from "@pbgo/core/components/game/debug-folders"
 import { captureGamePhoto } from "@pbgo/core/lib/photo"
 import { definedGlows, type Glow } from "../card/glows"
+import { BAG_FIELDS, BAG_SETTINGS } from "../bag/settings"
 import { CARD_FIELDS, CARD_SETTINGS } from "../card/settings"
+import { COUNTER_FIELDS, COUNTER_SETTINGS } from "../counter/settings"
+import { CUP_FIELDS, CUP_SETTINGS } from "../cup/settings"
+import { DIE_DEBUG, DIE_FIELDS, DIE_SETTINGS } from "../die/settings"
+import { DRAG_FIELDS, DRAG_SETTINGS } from "../drag/settings"
+import { PIECE_FIELDS, PIECE_SETTINGS } from "../piece/settings"
 import { SEAT_FIELDS, SEAT_SETTINGS } from "../seat/placement"
 import { CAMERA_FIELDS, CAMERA_INTRO, type CameraIntro, type CameraSettings, INTRO_FIELDS } from "../table/camera"
 import { DEFAULT_LIGHTS, type LightsProps } from "../table/lights"
 import { SURFACE_TILE } from "../table/surface"
 import type { TableProps } from "../table/table"
+import { SLIDER_FIELDS, SLIDER_SETTINGS } from "../slider/settings"
+import { STEPPER_FIELDS, STEPPER_SETTINGS } from "../stepper/settings"
+import { TIMER_FIELDS, TIMER_SETTINGS } from "../timer/settings"
+import { TRACK_FIELDS, TRACK_SETTINGS } from "../track/settings"
 import { AxesGizmo } from "./gizmos"
 import { describeCard, inspector } from "./inspector"
 import { ENTRANCE, FLOOR_OVERRIDE, LIGHTS_OVERRIDE } from "./overrides"
@@ -174,9 +184,29 @@ function GlowFolder({ name, glow }: { name: string; glow: Glow }) {
   return null
 }
 
-/** What the table owns and a frame reads: the cards, the seats, and the glows the game defined (those with no part at all have nothing to tune) */
+/** What the table owns and a frame reads: the cards, the dice, the pieces, the counters, the cups, the bags, the tracks, the steppers, the sliders, the timers, the drag, the seats, and the glows the game defined (those with no part at all have nothing to tune) */
 function PieceFolders() {
   useSettings("Card", CARD_SETTINGS, CARD_FIELDS, { order: 2 })
+  useDebugFolder({
+    folder: "Die",
+    tab: "SCENE",
+    order: 2,
+    schema: ({ button }) => ({
+      ...settingsSchema("Die", "SCENE", DIE_SETTINGS, DIE_FIELDS),
+      "Roll again": button(() => {
+        DIE_DEBUG.replays++
+      }),
+    }),
+  })
+  useSettings("Piece", PIECE_SETTINGS, PIECE_FIELDS, { order: 2 })
+  useSettings("Counter", COUNTER_SETTINGS, COUNTER_FIELDS, { order: 2 })
+  useSettings("Cup", CUP_SETTINGS, CUP_FIELDS, { order: 2 })
+  useSettings("Bag", BAG_SETTINGS, BAG_FIELDS, { order: 2 })
+  useSettings("Track", TRACK_SETTINGS, TRACK_FIELDS, { order: 2 })
+  useSettings("Stepper", STEPPER_SETTINGS, STEPPER_FIELDS, { order: 2 })
+  useSettings("Slider", SLIDER_SETTINGS, SLIDER_FIELDS, { order: 2 })
+  useSettings("Timer", TIMER_SETTINGS, TIMER_FIELDS, { order: 2 })
+  useSettings("Drag", DRAG_SETTINGS, DRAG_FIELDS, { order: 2 })
   useSettings("Seat", SEAT_SETTINGS, SEAT_FIELDS, { order: 3 })
   return (
     <>

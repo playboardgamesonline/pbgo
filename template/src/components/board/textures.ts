@@ -85,6 +85,35 @@ export function backTexture(accent = "#e8b43a", bg = "#1b2c4a"): Texture {
   })
 }
 
+/** The bid cards: a numeral in gold on a dark panel, a vermilion back. They are of the game's own look, drawn like the rest of its cards */
+export function bidFaceTexture(amount: number): Texture {
+  return paintFace(`bid:${amount}`, CARD_SIZE, (ctx, w, h) => {
+    ctx.fillStyle = "#fbf8f1"
+    ctx.fillRect(0, 0, w, h)
+    rounded(ctx, 18, 18, w - 36, h - 36, 22)
+    ctx.fillStyle = "#2b1d1a"
+    ctx.fill()
+    ctx.strokeStyle = "#e0613a"
+    ctx.lineWidth = 6
+    rounded(ctx, 40, 40, w - 80, h - 80, 14)
+    ctx.stroke()
+    ctx.fillStyle = "#f2c14e"
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.font = `900 ${amount > 9 ? 170 : 230}px ${FONT}`
+    ctx.fillText(String(amount), w / 2, h / 2 + 8)
+    ctx.font = `700 46px ${FONT}`
+    ctx.fillText(String(amount), 78, 92)
+    ctx.save()
+    ctx.translate(w - 78, h - 92)
+    ctx.rotate(Math.PI)
+    ctx.fillText(String(amount), 0, 0)
+    ctx.restore()
+  })
+}
+
+export const bidBackTexture = (): Texture => backTexture("#e0613a", "#2b1d1a")
+
 /** The colour of the table: the average of its felt, which the table fades into with distance */
 export const MAT_COLOR = "#1f5a4a"
 

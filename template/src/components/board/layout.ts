@@ -56,5 +56,25 @@ export function collectedPose(seat: SeatSpot): Pose {
   return onTable(seat.x * 1.05, seat.z * 1.05, { y: 0.04, yaw: seat.yaw, scale: 0.35 })
 }
 
+/** The hourglass of the clock: where it stands, in the corner by the viewer's hand where no seat is (the seats keep to the far half of the ring) and past the end of the row of bid cards, and how tall it is */
+export const CLOCK = { at: { x: 7.4, z: 2.4 }, size: 2 }
+
+/**
+ * The bid cards. While the players bid, the viewer has a row of them across the middle of the table, one for each bid they may make (from none to one for each card of their hand): they are smaller than the cards of the hand, since a row of up to eleven
+ * must fit. `toward` is how far along the line from a seat to the middle of the table a bid lies once it is made.
+ */
+export const BID = { scale: 0.7, gap: 1.05, z: 0.9, hover: 0.3, toward: 0.7 }
+
+/** Where bid card `k` of `count` lies while it waits to be chosen: in the row across the middle, the lowest on the left. Raised, and nearer the viewer, when the pointer is over it */
+export function bidRowPose(k: number, count: number, raised = false): Pose {
+  const pose = onTable((k - (count - 1) / 2) * BID.gap, BID.z, { scale: BID.scale })
+  return raised ? shifted(pose, { y: BID.hover, z: 0.2 }) : pose
+}
+
+/** Where the bid of a player lies once it is made: on the line from their seat to the middle of the table, turned as the seat is, face up when it can be read and face down while it is secret */
+export function bidPose(seat: SeatSpot, up: boolean): Pose {
+  return onTable(seat.x * BID.toward, seat.z * BID.toward, { face: up ? "up" : "down", yaw: seat.yaw, scale: BID.scale })
+}
+
 /** Where the cards are dealt from: above the middle of the table, face down */
 export const DECK_POSE = onTable(0, -0.5, { y: 3.2, face: "down", scale: 0.9 })
