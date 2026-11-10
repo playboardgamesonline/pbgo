@@ -1,3 +1,4 @@
+import { readSync, syncMutations } from "./sync.ts"
 import type { BggThing } from "./xml.ts"
 
 // PLT-78: the figures of the games that BoardGameGeek has and the Studio does not, as drafts for the owner to publish. `planFigures` decides what is proposed and what is only
@@ -11,7 +12,7 @@ export type Mutation = { createIfNotExists: Doc } | { patch: { id: string; ifRev
 
 /** What the pipeline asks of a dataset. The real one is `store.ts`; the tests have an in-memory one. */
 export interface FiguresStore {
-  /** Every document of type `game`, whatever its state (published, draft, version). */
+  /** Every document of type `game`, whatever its state (published, draft, version), and the record of BGG's weights (`sync.ts`) when there is one. */
   documents(): Promise<Doc[]>
   /** All the mutations in one transaction: every one is applied or none is. */
   commit(mutations: Mutation[]): Promise<void>
@@ -56,13 +57,13 @@ const sameName = (a: string, b: string): boolean => {
 }
 
 /** The name of a game as the Studio holds it (a text; a value that is not one has no name). */
-const nameOf = (doc: Doc): string => (typeof doc.name === "string" ? doc.name : "")
+export const nameOf = (doc: Doc): string => (typeof doc.name === "string" ? doc.name : "")
 
 /** A game of the Studio: its published document and its draft, either of which may be missing. The draft is what the owner works on. */
-type Entry = { id: string; published?: Doc; draft?: Doc }
+export type Entry = { id: string; published?: Doc; draft?: Doc }
 
 /** The games of a set of documents, by id, in the order of their ids. The versions of a release are not touched. */
-function entries(docs: readonly Doc[]): Entry[] {
+export function entries(docs: readonly Doc[]): Entry[] {
   const byId = new Map<string, Entry>()
   for (const doc of docs) {
     if (doc._type !== "game" || doc._id.startsWith("versions.")) continue
@@ -76,10 +77,10 @@ function entries(docs: readonly Doc[]): Entry[] {
 }
 
 /** The document the owner sees: the draft when there is one. */
-const stateOf = (entry: Entry): Doc => (entry.draft ?? entry.published) as Doc
+export const stateOf = (entry: Entry): Doc => (entry.draft ?? entry.published) as Doc
 
 /** The BGG id of a game, null when it has none (or a value that is not one). */
-function bggIdOf(doc: Doc): number | null {
+export function bggIdOf(doc: Doc): number | null {
   const id = doc.bggId
   return typeof id === "number" && Number.isInteger(id) && id > 0 ? id : null
 }
@@ -117,7 +118,7 @@ export type GameFigures = {
 
 export type Plan = { games: GameFigures[]; mutations: Mutation[] }
 
-const round2 = (value: number): number => Math.round(value * 100) / 100
+export const round2 = (value: number): number => Math.round(value * 100) / 100
 
 /** The figures of `thing` that the game lacks, and the notes on the way. */
 function propose(state: Doc, thing: BggThing, notes: string[]): Figures {
@@ -158,10 +159,18 @@ function draftOf(published: Doc): Doc {
 }
 
 /** The slug of a game: its field, else its id without the `game-` the seed gives it. */
-function slugOf(doc: Doc, id: string): string {
+export function slugOf(doc: Doc, id: string): string {
   const slug = doc.slug
   const current = typeof slug === "object" && slug !== null && "current" in slug ? (slug as { current: unknown }).current : undefined
   return typeof current === "string" && current !== "" ? current : id.replace(/^game-/, "")
+}
+
+/** Why a BGG item is not the game, null when it is: it is not a board game, or none of the names BGG knows it by is the game's. */
+export function mismatchOf(bggId: number, name: string, thing: BggThing): string | null {
+  const called = `"${thing.name ?? "no name"}"${thing.year ? ` (${thing.year})` : ""}`
+  if (thing.type !== "boardgame" && thing.type !== "boardgameexpansion") return `BGG id ${bggId} is not a board game (it is a ${thing.type}: ${called})`
+  if (name !== "" && thing.names.length > 0 && !thing.names.some((candidate) => sameName(candidate, name))) return `BGG id ${bggId} is ${called}, not "${name}"`
+  return null
 }
 
 /**
@@ -197,13 +206,9 @@ export function planFigures(docs: readonly Doc[], things: ReadonlyMap<number, Bg
       continue
     }
     const bgg = { name: thing.name, year: thing.year, rating: thing.rating, ratings: thing.ratings, rank: thing.rank }
-    const called = `"${thing.name ?? "no name"}"${thing.year ? ` (${thing.year})` : ""}`
-    if (thing.type !== "boardgame" && thing.type !== "boardgameexpansion") {
-      games.push({ ...base, bgg, status: "mismatch", notes: [`BGG id ${bggId} is not a board game (it is a ${thing.type}: ${called}): nothing proposed, fix the BGG ID`] })
-      continue
-    }
-    if (name !== "" && thing.names.length > 0 && !thing.names.some((candidate) => sameName(candidate, name))) {
-      games.push({ ...base, bgg, status: "mismatch", notes: [`BGG id ${bggId} is ${called}, not "${name}": nothing proposed, fix the BGG ID`] })
+    const mismatch = mismatchOf(bggId, name, thing)
+    if (mismatch !== null) {
+      games.push({ ...base, bgg, status: "mismatch", notes: [`${mismatch}: nothing proposed, fix the BGG ID`] })
       continue
     }
 
@@ -288,7 +293,7 @@ export type Outcome = { plan: Plan; mode: Words["mode"]; afterProblems: string[]
 export async function run(
   store: FiguresStore,
   readThings: (ids: number[]) => Promise<ReadonlyMap<number, BggThing>>,
-  { apply, chooseIds }: { apply: boolean; chooseIds?: (plan: Plan) => Promise<ProposedIds> },
+  { apply, chooseIds, at = new Date().toISOString().slice(0, 10) }: { apply: boolean; chooseIds?: (plan: Plan) => Promise<ProposedIds>; at?: string },
 ): Promise<Outcome> {
   const docs = await store.documents()
   const first = idsToRead(docs)
@@ -304,6 +309,8 @@ export async function run(
   }
   if (!apply) return { plan, mode: "dry-run", afterProblems: [] }
   if (plan.mutations.length === 0) return { plan, mode: "applied", afterProblems: [] }
-  await store.commit(plan.mutations)
+  // The complexity written here is BGG's: it is recorded as such (`sync.ts`), so that `--refresh` can tell it from one the owner sets by hand
+  const recorded = Object.fromEntries(plan.games.flatMap((game) => (game.set.complexity === undefined ? [] : [[game.id, { weight: game.set.complexity, at }]])))
+  await store.commit([...plan.mutations, ...syncMutations(readSync(docs), recorded)])
   return { plan, mode: "applied", afterProblems: problemsAfter(await store.documents(), plan) }
 }

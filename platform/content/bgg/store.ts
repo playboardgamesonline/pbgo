@@ -1,11 +1,11 @@
 import { connect, DatasetError, type HttpStoreOptions } from "../migration/http-store.ts"
 import type { Doc, FiguresStore, Mutation } from "./figures.ts"
 
-// The dataset as the figures from BoardGameGeek (PLT-78) see it: the games in every state, and mutations in one transaction. The same HTTP API with the write token as the
+// The dataset as the figures from BoardGameGeek (PLT-78) see it: the games in every state and the record of BGG's weights, and mutations in one transaction. The same HTTP API with the write token as the
 // migrations (`migration/http-store.ts`): the token is in a header only, in no address and no message.
 
-/** The games of the catalog in every state: the `raw` perspective shows the drafts and the versions of a release next to the published ones. */
-export const GAMES_QUERY = '*[_type == "game"]'
+/** The games of the catalog in every state (the `raw` perspective shows the drafts and the versions of a release next to the published ones), and the record of the weights BGG gave (`sync.ts`). */
+export const GAMES_QUERY = '*[_type == "game" || _id == "bgg-sync"]'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value)
 

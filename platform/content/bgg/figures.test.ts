@@ -1,38 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { ADULT_AGE, MIN_WEIGHTS, describeFigures, idsToRead, planFigures, problemsAfter, run, type Doc, type FiguresStore, type Mutation } from "./figures.ts"
+import { ADULT_AGE, MIN_WEIGHTS, describeFigures, idsToRead, planFigures, problemsAfter, run, type Doc, type Mutation } from "./figures.ts"
+import { SYNC_ID, SYNC_TYPE } from "./sync.ts"
+import { game, memoryStore, thing, things } from "./test-fixtures.ts"
 import type { BggThing } from "./xml.ts"
-
-const thing = (id: number, over: Partial<BggThing> = {}): BggThing => ({
-  id,
-  type: "boardgame",
-  name: "Azul",
-  names: ["Azul"],
-  year: 2017,
-  minPlayers: 2,
-  maxPlayers: 4,
-  playingTime: 45,
-  minAge: 8,
-  weight: 1.7692,
-  weights: 500,
-  rating: 7.7,
-  ratings: 1000,
-  rank: 99,
-  ...over,
-})
-
-/** A game of the Studio, published (`game-azul`) or a draft (`drafts.game-azul`). */
-const game = (slug: string, fields: Record<string, unknown> = {}, { draft = false }: { draft?: boolean } = {}): Doc => ({
-  _id: `${draft ? "drafts." : ""}game-${slug}`,
-  _type: "game",
-  _rev: `rev-${slug}${draft ? "-draft" : ""}`,
-  _createdAt: "2026-10-01T00:00:00Z",
-  _updatedAt: "2026-11-01T00:00:00Z",
-  name: slug === "azul" ? "Azul" : slug.replace(/-/g, " "),
-  slug: { _type: "slug", current: slug },
-  ...fields,
-})
-
-const things = (...list: BggThing[]) => new Map(list.map((one) => [one.id, one]))
 
 describe("what is proposed", () => {
   it("is every figure the game lacks and BGG has, the weight to two decimals", () => {
@@ -224,32 +194,6 @@ describe("the report", () => {
   })
 })
 
-/** A dataset in memory: it applies createIfNotExists and patches the way the real one does, in one go. */
-function memoryStore(initial: Doc[], { lose = false }: { lose?: boolean } = {}): FiguresStore & { docs: Map<string, Doc>; commits: Mutation[][] } {
-  const docs = new Map(initial.map((doc) => [doc._id, structuredClone(doc)]))
-  const commits: Mutation[][] = []
-  return {
-    docs,
-    commits,
-    async documents() {
-      return [...docs.values()].map((doc) => structuredClone(doc))
-    },
-    async commit(mutations) {
-      commits.push(mutations)
-      if (lose) return
-      for (const mutation of mutations) {
-        if ("createIfNotExists" in mutation) {
-          if (!docs.has(mutation.createIfNotExists._id)) docs.set(mutation.createIfNotExists._id, structuredClone(mutation.createIfNotExists))
-        } else {
-          const target = docs.get(mutation.patch.id)
-          if (!target) throw new Error(`No document ${mutation.patch.id}`)
-          Object.assign(target, mutation.patch.set)
-        }
-      }
-    },
-  }
-}
-
 describe("run", () => {
   const read = (...list: BggThing[]) => async (ids: number[]) => things(...list.filter((one) => ids.includes(one.id)))
 
@@ -303,6 +247,20 @@ describe("run", () => {
     expect(asked).toEqual([[230802]])
     expect(outcome.afterProblems).toEqual([])
     expect(store.docs.get("drafts.game-azul")).toMatchObject({ bggId: 230802, complexity: 1.77 })
+  })
+
+  it("records the complexity it writes as BGG's, so that it can be refreshed, and writes no record for the other figures", async () => {
+    const store = memoryStore([game("azul", { bggId: 1 }), game("two", { bggId: 2, name: "Two", complexity: 3 })])
+    const outcome = await run(store, read(thing(1), thing(2, { name: "Two", names: ["Two"] })), { apply: true, at: "2026-11-10" })
+    expect(outcome.afterProblems).toEqual([])
+    expect(store.docs.get(SYNC_ID)).toMatchObject({ _type: SYNC_TYPE, games: { "game-azul": { weight: 1.77, at: "2026-11-10" } } })
+    expect(Object.keys((store.docs.get(SYNC_ID)?.games ?? {}) as object)).toEqual(["game-azul"])
+  })
+
+  it("does not touch the record when no complexity is written", async () => {
+    const store = memoryStore([game("azul", { bggId: 1, complexity: 3 })])
+    await run(store, read(thing(1)), { apply: true })
+    expect(store.docs.has(SYNC_ID)).toBe(false)
   })
 
   it("keeps the first plan when nothing is chosen", async () => {
