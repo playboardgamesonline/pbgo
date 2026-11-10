@@ -9,7 +9,7 @@ import { BggButton } from "./bgg-button"
 
 // The credits of a game, in the head of its page under the buttons, small and quiet (14px, the muted text): the people and the publishers, then the year the game came out, packed in one line that wraps, with no label and a "·" after each term but the last. The labels (Designer, Artist, Publisher, each in the plural when there are
 // several, and Released) are not drawn: a screen reader still has them, before each term, and does not read the dots. At the end of the line come the buttons that belong to them, as small and as quiet: a link to buy the game in a shop, there only when the Studio has a shop's page for the game, and BoardGameGeek's icon, a small button that
-// leads to the game's page there (`BggButton`), there only when the Studio has the game's id. A publisher is a link to its website, with the icon of that site before its name, the two being one link. Nothing is drawn when the Studio has none of it: nothing stands in for what is missing.
+// leads to the game's page there (`BggButton`: its icon and "Powered by BGG", the credit BoardGameGeek asks for the figures it gives the catalog), there only when the Studio has the game's id. A publisher is a link to its website, with the icon of that site before its name, the two being one link. Nothing is drawn when the Studio has none of it: nothing stands in for what is missing.
 
 export type GameCreditsProps = Pick<GamePage, "facts" | "bgg" | "shop"> & { className?: string }
 

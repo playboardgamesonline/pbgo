@@ -9,6 +9,7 @@
     "test": "vitest run",
     "content:seed": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../apps/web/.env.local content/seed.ts",
     "content:art": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../apps/web/.env.local content/fetch-art.ts",
+    "content:bgg": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../apps/web/.env.local content/bgg-figures.ts",
     "content:migrate-expansions": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../apps/web/.env.local content/migrate-expansions.ts",
     "content:migrate-translations": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../apps/web/.env.local content/migrate-translations.ts",
     "dev:studio": "pnpm --filter platform-studio dev",
