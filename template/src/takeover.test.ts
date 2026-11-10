@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { GAME, playFor, waitingPlayers, type Action, type DemoOptions, type State } from "@template/engine"
+import { GAME, playStepFor, setupOf, stepOf, waitingPlayers, type Action, type DemoOptions, type GameEvent, type LogEntry, type State } from "@template/engine"
 import { castVotes, isStalled, presentPlayers } from "@pbgo/core/server/takeover"
 
 /**
@@ -29,6 +29,8 @@ const PLAYERS = [
 /** What the server keeps of a table (the columns of `games`), and the clock of the test */
 type Table = {
   state: State
+  /** The log of the table (`game_log`): what each move said, in order. The state keeps none */
+  log: LogEntry<GameEvent>[]
   /** `takeover_votes` */
   votes: string[]
   /** `seen`: when the server last saw each player */
@@ -61,8 +63,10 @@ function stamp(state: State): string {
 
 /** A table that has just started: Alice and Bob left two minutes ago, Charlie is here. */
 function openTable(options: Partial<DemoOptions>, seed = 11): Table {
+  const opened = setupOf(GAME, { players: PLAYERS, options, seed })
   return {
-    state: jsonb(GAME.setup({ players: PLAYERS, options, seed })),
+    state: jsonb(opened.state),
+    log: [...opened.events],
     votes: [],
     seen: { alice: iso(START - 2 * MINUTE), bob: iso(START - 2 * MINUTE), charlie: iso(START) },
     updatedAt: iso(START),
@@ -81,8 +85,8 @@ function humanMove(state: State, playerId: string): Action {
 
 /** A player's own move (`POST .../action`): the server writes it and notes that the player is here. The votes of the previous state stay, and are ignored. */
 function act(table: Table, playerId: string): Table {
-  const state = jsonb(GAME.apply(table.state, humanMove(table.state, playerId)))
-  return { ...table, state, updatedAt: iso(table.now), seen: { ...table.seen, [playerId]: iso(table.now) } }
+  const played = stepOf(GAME, table.state, humanMove(table.state, playerId))
+  return { ...table, state: jsonb(played.state), log: [...table.log, ...played.events], updatedAt: iso(table.now), seen: { ...table.seen, [playerId]: iso(table.now) } }
 }
 
 /**
@@ -104,11 +108,16 @@ function takeover(table: Table, voter: string, targets?: string[]): { table: Tab
   const seen = { ...table.seen, [voter]: iso(table.now) }
   if (!play.length) return { table: { ...table, votes: entries, seen }, play }
   let state = table.state
+  const log = [...table.log]
   for (const target of play) {
     if (GAME.isOver(state)) break
-    if (waitingPlayers(GAME, state).includes(target)) state = playFor(GAME, state, target)
+    if (waitingPlayers(GAME, state).includes(target)) {
+      const played = playStepFor(GAME, state, target)
+      state = played.state
+      log.push(...played.events)
+    }
   }
-  return { table: { ...table, state: jsonb(state), votes: [], seen, updatedAt: iso(table.now) }, play }
+  return { table: { ...table, state: jsonb(state), log, votes: [], seen, updatedAt: iso(table.now) }, play }
 }
 
 /**
@@ -131,7 +140,7 @@ function finishAlone(start: Table): { table: Table; takeovers: Record<string, nu
   return { table, takeovers }
 }
 
-const cardsPlayedBy = (state: State, playerId: string) => state.log.filter((e) => e.type === "cardPlayed" && e.playerId === playerId).length
+const cardsPlayedBy = (log: LogEntry<GameEvent>[], playerId: string) => log.filter(({ event }) => event.type === "cardPlayed" && event.playerId === playerId).length
 
 describe("absent players", () => {
   it("lets the third player finish a game where the other two never came back", () => {
@@ -157,7 +166,7 @@ describe("absent players", () => {
     expect(end.state.phase).toBe("over")
     expect(end.state.players.every((player) => player.pointsPerRound.length === rounds)).toBe(true)
     // everybody played every card of every round, the absent players through the takeover
-    expect(PLAYERS.map((player) => cardsPlayedBy(end.state, player.id))).toEqual([rounds * handSize, rounds * handSize, rounds * handSize])
+    expect(PLAYERS.map((player) => cardsPlayedBy(end.log, player.id))).toEqual([rounds * handSize, rounds * handSize, rounds * handSize])
     // ...and bid in every round after the first one the same way
     expect(takeovers).toEqual({ alice: rounds * handSize + rounds - 1, bob: rounds * handSize + rounds - 1 })
     const results = GAME.view(end.state, "charlie").results

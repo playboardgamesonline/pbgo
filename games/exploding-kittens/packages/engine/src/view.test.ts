@@ -23,7 +23,7 @@ import {
   trace,
   viewOf,
 } from "./test-utils"
-import type { Face, PlayerView, State, Step } from "./types"
+import type { Face, PlayerView, State, EkStep } from "./types"
 
 /**
  * What each viewer is shown: their own cards and what is public, nothing else. The first half pins the view of small tables built
@@ -423,7 +423,7 @@ describe("on random games", () => {
       const positions = Array.from({ length: state.deck.length + 1 }, (_, position) => position)
       const outcomes = positions.map((position) => trace(state, defuse(by, position)))
       for (const viewer of viewersOf(state)) {
-        const read = ({ state: next, events }: Step): string => {
+        const read = ({ state: next, events }: EkStep): string => {
           const view = viewOf(next, viewer)
           // The player who chose may know the cards above it: that is the one thing their view says of it
           if (viewer === by) return JSON.stringify({ ...view, me: view.me && { ...view.me, top: [] } })

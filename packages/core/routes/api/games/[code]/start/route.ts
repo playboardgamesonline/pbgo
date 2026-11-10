@@ -1,7 +1,7 @@
 import type { AgeRulesSource } from "../../../../../lib/age-rules"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { handle } from "../../../../../server/api"
-import { publicGame } from "../../../../../server/games"
+import { servedGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { resolveActor } from "../../../../../server/profile"
 import { rateLimit } from "../../../../../server/rate-limit"
@@ -19,5 +19,5 @@ export const postStart = (ageRules: AgeRulesSource) =>
     await rateLimit(game.slug, request, "start")
     const id = await getPlayerId(game.slug)
     const row = await beginTable(game, params.code ?? "", { ageRules, actor: await resolveActor(), self: id, byHost: true })
-    return publicGame(game, row, id)
+    return servedGame(game, row, id)
   })

@@ -4,7 +4,7 @@ import { loadSettings } from "../../../../../lib/settings-server"
 import { ApiError, handle, readJson } from "../../../../../server/api"
 import { normalizeCode } from "../../../../../server/code"
 import { isMissingColumn } from "../../../../../server/db-error"
-import { publicGame, updateGame } from "../../../../../server/games"
+import { servedGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { seatedPlayers } from "../../../../../server/table-rules"
@@ -32,7 +32,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
       if (!checked.ok) throw new ApiError(checked.code)
       return { settings: checked.settings }
     })
-    return publicGame(game, row, id)
+    return servedGame(game, row, id)
   } catch (error) {
     // The write is the first thing that needs the column: a project where the migration is not applied says so
     if (isMissingColumn(error as { code?: string })) throw new ApiError("SETTINGS_UNAVAILABLE", 503)

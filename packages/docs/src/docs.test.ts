@@ -281,6 +281,16 @@ describe("resolveLink", () => {
     expect(resolveLink("index.md", group)).toEqual({ kind: "page", href: "/docs/design/components" })
   })
 
+  it("leads a full address under /docs, such as the playground's, to that address", () => {
+    expect(resolveLink("/docs/playground", from)).toEqual({ kind: "route", href: "/docs/playground" })
+    expect(resolveLink("/docs", from)).toEqual({ kind: "route", href: "/docs" })
+    expect(resolveLink("/docs/engine/components#a", from)).toEqual({ kind: "route", href: "/docs/engine/components#a" })
+  })
+
+  it("does not take any other address of the site for a route", () => {
+    for (const href of ["/gamemaster", "/docs/../gamemaster", "/docs/a b", "/docsx", "/docs/Play"]) expect(resolveLink(href, from).kind, href).not.toBe("route")
+  })
+
   it("shows a file of the repo that has no page as a name", () => {
     expect(resolveLink("../../packages/ui/README.md", from)).toEqual({ kind: "file", path: "../../packages/ui/README.md" })
     expect(resolveLink("../catalog.md", from)).toEqual({ kind: "file", path: "../catalog.md" })

@@ -159,6 +159,78 @@ export function back(): Texture {
   })
 }
 
+/** The face of a bid card: a numeral in gold on a dark panel with a red edge, on ivory. The same `n` gives the same texture. */
+export function bidFace(n: number): Texture {
+  return paintFace(`bid:${n}`, CARD_SIZE, (g, w, h) => {
+    const p = palette()
+    g.fillStyle = p.ivory
+    g.fillRect(0, 0, w, h)
+    roundedRect(g, 18, 18, w - 36, h - 36, 22)
+    g.fillStyle = p.ink
+    g.fill()
+    g.strokeStyle = p.marks[0]
+    g.lineWidth = 5
+    roundedRect(g, 40, 40, w - 80, h - 80, 14)
+    g.stroke()
+    g.fillStyle = p.marks[2]
+    g.textAlign = "center"
+    g.textBaseline = "middle"
+    g.font = `900 ${w * (n > 9 ? 0.46 : 0.62)}px ${pageFont()}`
+    g.fillText(String(n), w / 2, h / 2 + 8)
+    g.font = `800 ${w * 0.13}px ${pageFont()}`
+    g.fillText(String(n), 76, 90)
+    g.save()
+    g.translate(w - 76, h - 90)
+    g.rotate(Math.PI)
+    g.fillText(String(n), 0, 0)
+    g.restore()
+  })
+}
+
+/** The back of a bid card: the dark panel with a red lattice, so that a sealed bid is not taken for a card of the deck. */
+export function bidBack(): Texture {
+  return paintFace("bid-back", CARD_SIZE, (g, w, h) => {
+    const p = palette()
+    g.fillStyle = p.ivory
+    g.fillRect(0, 0, w, h)
+    roundedRect(g, 18, 18, w - 36, h - 36, 22)
+    g.fillStyle = p.ink
+    g.fill()
+    g.save()
+    g.clip()
+    g.strokeStyle = p.marks[0]
+    g.globalAlpha = 0.4
+    g.lineWidth = 3
+    for (let d = -h; d < w + h; d += 28) {
+      g.beginPath()
+      g.moveTo(d, 0)
+      g.lineTo(d + h, h)
+      g.moveTo(d, h)
+      g.lineTo(d + h, 0)
+      g.stroke()
+    }
+    g.restore()
+    g.globalAlpha = 1
+    g.strokeStyle = p.marks[2]
+    g.lineWidth = 5
+    roundedRect(g, 42, 42, w - 84, h - 84, 14)
+    g.stroke()
+  })
+}
+
+/** The top of a token with a number on it, for a `Piece` of the specimens: the numeral in ink on the colour of the token. */
+export function tokenFace(n: number, color: string): Texture {
+  return paintFace(`token:${n}:${color}`, { width: 1, height: 1 }, (g, w, h) => {
+    g.fillStyle = color
+    g.fillRect(0, 0, w, h)
+    g.fillStyle = palette().ink
+    g.textAlign = "center"
+    g.textBaseline = "middle"
+    g.font = `900 ${w * 0.62}px ${pageFont()}`
+    g.fillText(String(n), w / 2, h / 2 + h * 0.03)
+  })
+}
+
 let cloth: Texture | undefined
 
 /** The felt of the table: its colour with a grain, seamless so that the table can repeat it. */

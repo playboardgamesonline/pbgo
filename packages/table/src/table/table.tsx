@@ -6,6 +6,8 @@ import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Canvas } from "@react-three/fiber"
 import { lazy, type ReactNode, Suspense, useEffect, useMemo, useRef } from "react"
 import type { CameraIntro, CameraSettings } from "./camera"
+import { DragContext } from "../drag/context"
+import { createDragStore } from "../drag/store"
 import { CameraRig } from "./camera-rig"
 import { Lights, type LightsProps } from "./lights"
 import { createPoseMemory } from "./memory"
@@ -55,12 +57,14 @@ function Loaded({ onLoaded }: { onLoaded?: () => void }) {
 }
 
 /**
- * The table every game plays on: a canvas with the camera, an endless surface, the lights and the share photo, and the memory that lets a card which changes place fly from where it was. Cards and everything else go inside.
+ * The table every game plays on: a canvas with the camera, an endless surface, the lights and the share photo, the memory that lets a card which changes place fly from where it was, and the zones that what is dragged is let go on. Cards and everything else go inside.
  * While the debug panel is open it also holds the tools of the table (`debug/table-debug.tsx`): the folders for what it owns, helpers drawn over it, an inspector and a slow motion.
  */
 export function Table({ id = TABLE_CANVAS_ID, camera, intro, playIntro, surface, lights, photo, near = 0.1, far = 300, held = false, onLoaded, children }: TableProps) {
   // Made out here: React context does not cross into the canvas, so the provider sits inside it
   const memory = useMemo(() => createPoseMemory(), [])
+  // The zones the things of this table are let go on, and the drag that is going on over them
+  const drag = useMemo(() => createDragStore(), [])
   // The entrance zooms and turns the whole view, so reduced motion always wins over the game
   const reduced = usePrefersReducedMotion()
   // Loads the panel's tools when they are asked for (and listens to Shift+D); the panel itself is the board's `DebugSlot`. Both do nothing on the production deployment
@@ -72,18 +76,20 @@ export function Table({ id = TABLE_CANVAS_ID, camera, intro, playIntro, surface,
       {/* Outside the Suspense: the table is there from the first frame, before any texture has loaded */}
       <Surface {...surface} />
       <PoseMemoryContext.Provider value={memory}>
-        <Suspense fallback={null}>
-          <CameraRig settings={camera} intro={intro} playIntro={(playIntro ?? true) && !reduced} held={held} />
-          {lights && <Lights {...(lights === true ? {} : lights)} />}
-          {photo && <SharePhoto settings={photo} />}
-          {children}
-          {debugging && (
-            <Suspense fallback={null}>
-              <TableDebug camera={camera} intro={intro} photo={photo} lights={lights} surface={surface} />
-            </Suspense>
-          )}
-          <Loaded onLoaded={onLoaded} />
-        </Suspense>
+        <DragContext.Provider value={drag}>
+          <Suspense fallback={null}>
+            <CameraRig settings={camera} intro={intro} playIntro={(playIntro ?? true) && !reduced} held={held} />
+            {lights && <Lights {...(lights === true ? {} : lights)} />}
+            {photo && <SharePhoto settings={photo} />}
+            {children}
+            {debugging && (
+              <Suspense fallback={null}>
+                <TableDebug camera={camera} intro={intro} photo={photo} lights={lights} surface={surface} />
+              </Suspense>
+            )}
+            <Loaded onLoaded={onLoaded} />
+          </Suspense>
+        </DragContext.Provider>
       </PoseMemoryContext.Provider>
     </Canvas>
   )

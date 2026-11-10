@@ -23,7 +23,7 @@ Exploding Kittens, served by `apps/web` at `/exploding-kittens`. The engine of t
 - `test-utils.ts` — helpers of the tests, not exported
 
 ### How a game goes
-- `step(rules, state, action)` gives `{ state, events }`; `GAME.apply` keeps the state. The events (`EkLogEntry`: an `EkEvent`, plus `to` and `masked` when only some players may see it) are for the platform to store: the state holds no log and the view none either (PLT-45)
+- `step(rules, state, action)` gives `{ state, events }`; `GAME.apply` keeps the state. The events (`EkLogEntry`: an `EkEvent`, plus `to` and `masked` when only some players may see it) are handed to the platform by `GAME.step` and `GAME.autoPlayStep`, which keeps them in the log of the table and sends each player the lines they may read (`PublicGame.log`, PLT-45): the state holds no log and the view none either
 - A step is `open` (a private copy of the state, the streams picked up where the last step left them), a few mutations, `close`. Nothing mutates its input, and there is no `Math.random` nor `Date.now`
 - Lean state: ids and numbers only. A card is the opaque id it holds now (`ids` of the engine-kit); what it is comes from the catalogue, rebuilt from the options and never stored. `deck` and `discard` are top first (the card played last is `discard[0]`), and every order comes from an array (`seats`, `out`), never from the keys of an object (`jsonb`)
 - `state.phase`: `turn` (play cards, then draw), `reaction` (a Nope window), `defuse` (the Exploding Kitten just drawn is in the air; its owner chooses where it goes back), `give` (a Favor: the target chooses the card to give), `pick` (five different cards: the player takes a card from the discard), `over`

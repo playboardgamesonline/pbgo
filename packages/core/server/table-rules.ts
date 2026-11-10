@@ -1,4 +1,4 @@
-import { canPlayFor, isEngineError, playFor, waitingPlayers, type AnyGameDefinition } from "@pbgo/engine-kit"
+import { canPlayFor, isEngineError, type LogEntry, playStepFor, waitingPlayers, type AnyGameDefinition } from "@pbgo/engine-kit"
 import type { PublicPlayer } from "../lib/game-types"
 import type { GameRow } from "./games"
 import { withdrawPatch } from "./ready"
@@ -58,25 +58,29 @@ export const MAX_SETTLE_STEPS = 200
 /**
  * Plays the steps that the game waits for from players who left, one after the other, until it waits for someone who is still there, or is over (`GAME.autoPlayFor`, as the takeover does for an absent player: the move is the
  * engine's own, never the server's). Nothing is played when everybody left (the table is abandoned and the game is not played out alone), when the game cannot be played for a player, or when the engine refuses: the others
- * can then vote to play for them as usual. Returns the state and the players it played for, in the order it first did.
+ * can then vote to play for them as usual. Returns the state and the players it played for, in the order it first did, and what the plays said happened when the game says it (`events`, for the log of the table). `at` is the time the
+ * server plays them at, for a game with a clock.
  */
-export function settleLeavers<State>(GAME: AnyGameDefinition, state: State, players: readonly Pick<PublicPlayer, "id" | "left">[]): { state: State; played: string[] } {
+export function settleLeavers<State>(GAME: AnyGameDefinition, state: State, players: readonly Pick<PublicPlayer, "id" | "left">[], at?: number): { state: State; played: string[]; events?: readonly LogEntry<unknown>[] } {
   const left = new Set(players.filter(hasLeft).map((player) => player.id))
   const played: string[] = []
   if (left.size === 0 || left.size >= players.length || !canPlayFor(GAME)) return { state, played }
   let current = state
+  const events: LogEntry<unknown>[] = []
   for (let step = 0; step < MAX_SETTLE_STEPS; step++) {
     const target = waitingPlayers(GAME, current).find((id) => left.has(id))
     if (target === undefined) break
     try {
-      current = playFor(GAME, current, target) as State
+      const done = playStepFor(GAME, current, target, at)
+      current = done.state as State
+      events.push(...done.events)
     } catch (error) {
       if (isEngineError(error)) break
       throw error
     }
     if (!played.includes(target)) played.push(target)
   }
-  return { state: current, played }
+  return { state: current, played, ...(events.length ? { events } : {}) }
 }
 
 /** Where a player left a table from, for the event that says so; null for a lobby or a table that is over. */

@@ -158,6 +158,11 @@ export type BoardProps = {
    * Call it once, when the board is drawn and everything it needs is in (its pictures, its chunks): the player is then ready, and the game begins when every player is. A board that never calls it is waited for `READY_LOAD_GRACE_MS`, no longer.
    */
   onLoaded?: () => void
+  /**
+   * Where the deadline of the game ends, on the page's own clock (`performance.now()`), for a game that has a clock (`GAME.nextDeadline`); null when it has none, or none is running. The platform counts it down and asks the server to play the deadline when
+   * it ends: the board only draws the time left, with a `Timer`, which reads this and the length of the step from the game's view.
+   */
+  deadlineAt?: number | null
   /** Call it as the board loads, with how far it is, 0 to 1 (never back): the collective bar of the start screen is made of the boards' progress. A board that never calls it shows no progress until it is loaded. */
   onProgress?: (progress: number) => void
 }

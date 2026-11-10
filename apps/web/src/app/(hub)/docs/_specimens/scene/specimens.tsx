@@ -1,12 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { allSubmitted, bagSize, createSaveableRng, drawFromBag, hexBoard, openSubmissions, reachable, restoreRng, revealSubmissions, shortestPath, squareBoard, submit, submittedFlags, type Submissions } from "@pbgo/engine-kit"
+import { ask, askChoice, askNumber, askText } from "@pbgo/core/components/game/prompt"
+import { PromptHost } from "@pbgo/core/components/game/prompt-host"
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Button } from "@pbgo/ui/platform/button"
 import { Choice, Knob, Option } from "./controls"
-import { BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, type Drawn, type FlightKnobs, LAYOUT_CARDS, LAYOUTS, type LayoutName, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START } from "./defaults"
+import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
+import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
 import { SceneFrame } from "./frame"
-import { BoardScene, CameraScene, CardScene, FlightScene, GlowsScene, LayoutsScene, PileScene, PoseMemoryScene, SeatScene, SeatsScene, TableScene, ZonesScene } from "./lazy"
+import { BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, SeatScene, SeatsScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
 
 // The light half of the 3D specimens of the engine docs: each is the state and the controls of one scene, laid out in a `SceneFrame`, and the scene itself (`lazy.tsx`), which is drawn only when the frame is near the window. The controls
 // are the platform's own and hold every value the scene is given, so they are there, and still, before the scene is and after it is let go; the scene is a function of them and sends back what the pointer did in it.
@@ -283,6 +287,662 @@ export function SceneSeatSpecimen() {
       }
     >
       <SeatScene turn={turn} expected={expected} winner={winner} away={away} out={out} pick={pick} points={points} onPick={setTurn} />
+    </SceneFrame>
+  )
+}
+
+export function SceneDiceSpecimen() {
+  const [shape, setShape] = useState<DiceShape>("d6")
+  const [count, setCount] = useState(DICE_COUNT.start)
+  const [above, setAbove] = useState(false)
+  // What the engine rolled, a face for every die the slider can reach, and how many rolls there have been: a roll changes the number, which is what throws the dice
+  const [values, setValues] = useState<readonly number[]>(DICE_START)
+  const [rolls, setRolls] = useState(0)
+  // Null until the scene has said what `DIE_SETTINGS` holds
+  const [knobs, setKnobs] = useState<DiceKnobs | null>(null)
+  const set = (field: keyof DiceKnobs) => (value: number) => setKnobs((current) => (current ? { ...current, [field]: value } : current))
+  const sides = DICE_SIDES[shape]
+  const roll = () => {
+    setValues(Array.from({ length: DICE_COUNT.max }, () => 1 + Math.floor(Math.random() * sides)))
+    setRolls((current) => current + 1)
+  }
+  // A die with fewer faces than the number it was left on shows the nearest it has
+  const shown = values.slice(0, count).map((value) => Math.min(value, sides))
+  return (
+    <SceneFrame
+      label="Dice thrown onto a table inside a marked area: they bounce, tumble, knock one another and settle on the number they were given, which is also written under the scene"
+      controls={
+        <>
+          <Button variant="outline" size="sm" onClick={roll}>
+            Roll the dice
+          </Button>
+          <Choice label="Shape" value={shape} options={DICE_SHAPES.map((name) => ({ value: name, label: name, description: `${DICE_SIDES[name]} faces` }))} onChange={setShape} />
+          <Knob label="Dice" value={count} min={DICE_COUNT.min} max={DICE_COUNT.max} step={1} onChange={setCount} />
+          <Option label="Seen from above" checked={above} onChange={setAbove} />
+          <Knob label="Bounce" value={knobs?.restitution ?? null} min={0} max={0.95} step={0.01} onChange={set("restitution")} format={(value) => value.toFixed(2)} />
+          <Knob label="Throw speed" value={knobs?.throwSpeed ?? null} min={1} max={30} step={0.1} onChange={set("throwSpeed")} format={(value) => value.toFixed(1)} />
+          <Knob label="Playback speed" value={knobs?.speed ?? null} min={0.1} max={2} step={0.05} onChange={set("speed")} format={(value) => `×${value.toFixed(2)}`} />
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            {rolls === 0 ? "The dice lie as the engine left them: " : "The engine rolled: "}
+            <span className="text-foreground tabular-nums">{shown.join(", ")}</span>
+          </p>
+        </>
+      }
+    >
+      <DiceScene shape={shape} count={count} above={above} values={shown} rolls={rolls} knobs={knobs} onDefaults={setKnobs} />
+    </SceneFrame>
+  )
+}
+
+export function SceneTextFieldSpecimen() {
+  // What the player confirmed, which is also what was posted to the engine and what the others read
+  const [sent, setSent] = useState<string | null>(null)
+  const [max, setMax] = useState(FIELD_LENGTH.start)
+  const [several, setSeveral] = useState(false)
+  const write = (text: string) => setSent(text)
+  const lines = several ? 3 : 1
+  return (
+    <SceneFrame
+      label="Two fields of text on a table: pressing the left one opens a window where the player writes a clue, and the text they confirm appears on it and on the right one, as another player reads it"
+      controls={
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void askText({ title: "Your clue", description: "One word that the others will guess from.", value: sent ?? "", placeholder: "Press to write a clue", rules: { max, lines } }).then((text) => text !== null && write(text))}
+          >
+            Write a clue
+          </Button>
+          <Knob label="Longest text" value={max} min={FIELD_LENGTH.min} max={FIELD_LENGTH.max} step={1} onChange={setMax} />
+          <Option label="Three lines" checked={several} onChange={setSeveral} />
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            {sent === null ? "Nothing has been sent to the engine." : "Sent to the engine: "}
+            {sent !== null && <span className="whitespace-pre-line text-foreground">{sent}</span>}
+          </p>
+          <PromptHost />
+        </>
+      }
+    >
+      <TextFieldScene text={sent ?? ""} sent={sent} max={max} lines={lines} onWrite={write} />
+    </SceneFrame>
+  )
+}
+
+export function SceneBetsSpecimen() {
+  // What each window gave back, which is what the board posts to the engine
+  const [bet, setBet] = useState<number | null>(null)
+  const [face, setFace] = useState<number | null>(null)
+  const [bid, setBid] = useState<Bid | null>(null)
+  const askBet = () => askNumber({ title: "Your bet", description: "How many tricks you think you will win.", value: bet ?? undefined, min: 0, max: BET_MOST }).then((value) => value !== null && setBet(value))
+  const askFace = () => askChoice({ title: "Your face", description: "The face of the die you bet on.", options: BID_FACES, value: face ?? undefined, instant: true }).then((value) => value !== null && setFace(value))
+  const askBid = () =>
+    ask({
+      title: "Your bid",
+      description: "At least how many dice show which face, on the whole table.",
+      fields: [
+        { id: "count", kind: "number", label: "How many", min: 1, max: 30, value: bid?.count },
+        { id: "face", kind: "choice", label: "Of which face", options: BID_FACES, value: bid?.face },
+      ],
+    }).then((answers) => answers && setBid({ count: answers.count as number, face: answers.face as number }))
+  const posted = [bet !== null ? `bet ${bet}` : null, face !== null ? `face ${face}` : null, bid ? `bid ${bid.count} × ${bid.face}` : null].filter(Boolean)
+  return (
+    <SceneFrame
+      label="Three papers on a table, each opening a window: a bet of tricks with a stepper, a face to pick among six, and a bid with two fields at once, how many dice and of which face; what each window gives back is written under the scene"
+      controls={
+        <>
+          <Button variant="outline" size="sm" onClick={() => void askBet()}>
+            Bet tricks
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => void askFace()}>
+            Pick a face
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => void askBid()}>
+            Place a bid
+          </Button>
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            {posted.length === 0 ? "Nothing has been sent to the engine." : "Sent to the engine: "}
+            {posted.length > 0 && <span className="text-foreground tabular-nums">{posted.join(" · ")}</span>}
+          </p>
+          <PromptHost />
+        </>
+      }
+    >
+      <BetsScene bet={bet} face={face} bid={bid} onBet={setBet} onFace={setFace} onAskBid={() => void askBid()} />
+    </SceneFrame>
+  )
+}
+
+export function ScenePiecesSpecimen() {
+  const [picked, setPicked] = useState<string | null>(null)
+  const [ringed, setRinged] = useState(false)
+  const [stack, setStack] = useState(PIECE_STACK.start)
+  const [over, setOver] = useState(false)
+  const [across, setAcross] = useState(false)
+  const pick = (id: string) => setPicked((current) => (current === id ? null : id))
+  return (
+    <SceneFrame
+      label="Pieces on a table: one of each shape in a row, which rises with a ring round it when it is pressed, then a stack of discs whose count is set by a slider, a hexagonal tile with a picture on each face that hops over, and a pawn that flies from one place to another"
+      controls={
+        <>
+          <Button variant="outline" size="sm" onClick={() => setOver((current) => !current)}>
+            Turn the tile over
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setAcross((current) => !current)}>
+            Send the pawn across
+          </Button>
+          <Knob label="Pieces in the stack" value={stack} min={0} max={PIECE_STACK.max} step={1} onChange={setStack} />
+          <Option label="Ring every piece" checked={ringed} onChange={setRinged} />
+          <div className="flex flex-col gap-2">
+            <span className="text-sm text-muted-foreground">Picked</span>
+            <ToggleGroup type="single" value={picked ?? ""} aria-label="Picked piece" onValueChange={(value) => setPicked(value === "" ? null : value)}>
+              {["disc", "square", "hex", "cube", "sphere", "pawn"].map((name) => (
+                <ToggleGroupItem key={name} value={name}>
+                  {name}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+        </>
+      }
+    >
+      <PiecesScene picked={picked} ringed={ringed} stack={stack} over={over} across={across} onPick={pick} />
+    </SceneFrame>
+  )
+}
+
+export function SceneCounterSpecimen() {
+  // What the engine holds: the number
+  const [value, setValue] = useState(COUNTER_RANGE.start)
+  const [change, setChange] = useState(true)
+  const [seconds, setSeconds] = useState(COUNTER_TIME.start)
+  const add = (amount: number) => setValue((current) => Math.max(0, Math.min(COUNTER_RANGE.max, current + amount)))
+  return (
+    <SceneFrame
+      label="One number shown three ways on a table, on its own, written on a piece and as a stack of coins: when the number changes the first two count up or down to it, number by number, and what changed floats up beside them"
+      controls={
+        <>
+          <Button variant="outline" size="sm" onClick={() => add(1)}>
+            Gain 1
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => add(5)}>
+            Gain 5
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => add(-3)}>
+            Lose 3
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => add(37)}>
+            Win big
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setValue(COUNTER_RANGE.start)}>
+            Start again
+          </Button>
+          <Knob label="Number" value={value} min={0} max={COUNTER_RANGE.max} step={1} onChange={setValue} />
+          <Knob label="Counting time" value={seconds} min={COUNTER_TIME.min} max={COUNTER_TIME.max} step={0.05} onChange={setSeconds} format={(amount) => `${amount.toFixed(2)} s`} />
+          <Option label="Show the change" checked={change} onChange={setChange} />
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            The engine says: <span className="text-foreground tabular-nums">{value}</span>
+          </p>
+        </>
+      }
+    >
+      <CounterScene value={value} change={change} seconds={seconds} />
+    </SceneFrame>
+  )
+}
+
+export function SceneTrackSpecimen() {
+  // What the engine holds: where each marker is, as a number
+  const [red, setRed] = useState(TRACK_START.red)
+  const [blue, setBlue] = useState(TRACK_START.blue)
+  const [points, setPoints] = useState(TRACK_START.points)
+  const [reach, setReach] = useState(false)
+  const [above, setAbove] = useState(false)
+  // A space of the loop `steps` on from `space`, round the end of the track
+  const around = (space: number, steps: number) => (((space + steps) % TRACK_LOOP) + TRACK_LOOP) % TRACK_LOOP
+  return (
+    <SceneFrame
+      label="Two tracks on a table: twenty spaces round an oval with a red pawn and a blue pawn that walk along it space by space and stand side by side when they meet, and eleven spaces in a line with a cube that climbs it one point at a time and walks back when the score is reset"
+      controls={
+        <>
+          <Button variant="outline" size="sm" onClick={() => setRed((space) => around(space, 3))}>
+            Move red 3 spaces
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setRed((space) => around(space, -2))}>
+            Move red back 2
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setBlue(0)}>
+            Send blue to the start
+          </Button>
+          <Button variant="outline" size="sm" disabled={points >= TRACK_LINE - 1} onClick={() => setPoints((current) => Math.min(TRACK_LINE - 1, current + 1))}>
+            Score a point
+          </Button>
+          <Button variant="ghost" size="sm" disabled={points === 0} onClick={() => setPoints(0)}>
+            Reset the score
+          </Button>
+          <Option label="Show where red can go" checked={reach} onChange={setReach} />
+          <Option label="Seen from above" checked={above} onChange={setAbove} />
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            The engine says: red on space <span className="text-foreground tabular-nums">{red}</span>, blue on <span className="text-foreground tabular-nums">{blue}</span>, score <span className="text-foreground tabular-nums">{points}</span>
+          </p>
+        </>
+      }
+    >
+      <TrackScene red={red} blue={blue} points={points} reach={reach} above={above} onRed={setRed} />
+    </SceneFrame>
+  )
+}
+
+export function SceneBidSpecimen() {
+  // What the engine holds: who has bid and what, secret until everybody has (the `Submissions` of a simultaneous step)
+  const [bids, setBids] = useState<Submissions<number>>(() => openSubmissions([...BID_PLAYERS]))
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+  useEffect(() => {
+    const pending = timers.current
+    return () => pending.forEach(clearTimeout)
+  }, [])
+  const flags = submittedFlags(bids)
+  const done = allSubmitted(bids)
+  // A player may change their bid until the last has bid; the step is over after that
+  const place = (who: BidPlayer, amount: number) => setBids((now) => (allSubmitted(now) ? now : submit(now, who, amount)))
+  // The others bid one after the other, so that their cards are seen coming to their seats
+  const othersBid = () =>
+    BID_PLAYERS.slice(1).forEach((who, i) => {
+      if (flags[who]) return
+      timers.current.push(setTimeout(() => setBids((now) => (now[who] !== null ? now : submit(now, who, Math.floor(Math.random() * BID.count)))), 400 + i * 900))
+    })
+  const reset = () => {
+    timers.current.forEach(clearTimeout)
+    timers.current = []
+    setBids(openSubmissions([...BID_PLAYERS]))
+  }
+  const known = done ? revealSubmissions(bids, [...BID_PLAYERS]) : null
+  // What the view gives the board: the viewer's own bid, who else has bid, and what they bid only once everybody has
+  const view: BidView = { mine: bids.you ?? null, others: [{ hasBid: flags.basile ?? false, bid: known ? known[1]! : null }, { hasBid: flags.camille ?? false, bid: known ? known[2]! : null }] }
+  const said = (who: BidPlayer, name: string) => `${name} ${flags[who] ? "has" : "has not"} bid`
+  return (
+    <SceneFrame
+      label="A card table with three seats: you in front with a row of six bid cards across the middle of the table, and two other players. Pressing a bid card sends it to your seat face up, and pressing another takes its place; the others' bids lie face down at their seats as soon as they are made, and turn over together when the last player has bid"
+      controls={
+        <>
+          <Choice label="Your bid" value={view.mine === null ? "none" : String(view.mine)} options={Array.from({ length: BID.count }, (_, k) => ({ value: String(k), label: String(k), description: `Bid ${k}` }))} onChange={(value) => place("you", Number(value))} />
+          <Button variant="outline" size="sm" disabled={done || (flags.basile && flags.camille)} onClick={othersBid}>
+            Let the others bid
+          </Button>
+          <Button variant="ghost" size="sm" disabled={!flags.you && !flags.basile && !flags.camille} onClick={reset}>
+            New round
+          </Button>
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            The view says: you bid <span className="text-foreground tabular-nums">{view.mine ?? "nothing yet"}</span>; {said("basile", "Basile")} and {said("camille", "Camille")}
+            {known ? (
+              <>
+                . Everybody has bid, so it gives every bid: <span className="text-foreground tabular-nums">{known.join(", ")}</span>.
+              </>
+            ) : (
+              ", and it does not say what they bid until everybody has."
+            )}
+          </p>
+        </>
+      }
+    >
+      <BidScene view={view} onBid={(amount) => place("you", amount)} />
+    </SceneFrame>
+  )
+}
+
+export function SceneNumbersSpecimen() {
+  // What the board holds: the count, the face chosen, the bet, and the bet the player last settled on
+  const [count, setCount] = useState(NUMBERS.count.start)
+  const [face, setFace] = useState<number | null>(null)
+  const [bet, setBet] = useState(NUMBERS.bet.start)
+  const [settled, setSettled] = useState<number | null>(null)
+  return (
+    <SceneFrame
+      label="Three ways to ask for a number on a table, in pieces and not in a window: a stepper, a number between two arrows that repeat when they are held; a row of six tokens, one of which rises and is ringed when it is pressed; and a slider, a knob that is dragged along a rail marked from 0 to 100"
+      controls={
+        <>
+          <Knob label="How many" value={count} min={NUMBERS.count.min} max={NUMBERS.count.max} step={1} onChange={setCount} />
+          <Choice label="Which face" value={face === null ? "none" : String(face)} options={Array.from({ length: NUMBERS.faces }, (_, k) => ({ value: String(k + 1), label: String(k + 1), description: `Face ${k + 1}` }))} onChange={(value) => setFace(Number(value))} />
+          <Knob label="Bet" value={bet} min={NUMBERS.bet.min} max={NUMBERS.bet.max} step={NUMBERS.bet.step} onChange={setBet} />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setCount(NUMBERS.count.start)
+              setFace(null)
+              setBet(NUMBERS.bet.start)
+              setSettled(null)
+            }}
+          >
+            Start again
+          </Button>
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            The board holds: <span className="text-foreground tabular-nums">{count}</span> of face <span className="text-foreground tabular-nums">{face ?? "none yet"}</span>, a bet of <span className="text-foreground tabular-nums">{bet}</span>
+            {settled === null ? "." : <>, and the player settled on <span className="text-foreground tabular-nums">{settled}</span> when they let go of the knob.</>}
+          </p>
+        </>
+      }
+    >
+      <NumbersScene count={count} face={face} bet={bet} onCount={setCount} onFace={setFace} onBet={setBet} onSettle={setSettled} />
+    </SceneFrame>
+  )
+}
+
+export function SceneTimerSpecimen() {
+  // What the game says: how long a step lasts. What the platform says: when the time ends, on the page's own clock, and null when no clock runs. What is left when the clock stops
+  const [seconds, setSeconds] = useState(TIMER_SECONDS.start)
+  const [endsAt, setEndsAt] = useState<number | null>(null)
+  const [rest, setRest] = useState(1)
+  const [digits, setDigits] = useState(true)
+  const [outs, setOuts] = useState(0)
+  const begin = (inSeconds: number) => setEndsAt(performance.now() + inSeconds * 1000)
+  const stop = () => {
+    if (endsAt !== null) setRest(Math.min(1, Math.max(0, (endsAt - performance.now()) / (seconds * 1000))))
+    setEndsAt(null)
+  }
+  return (
+    <SceneFrame
+      label="Four hourglasses on a table: a big one whose sand runs as the time of a step goes and which turns over when a new step starts its clock, trembles and reddens in the last seconds and writes the seconds that are left, and three small ones with no clock that show a share of the time and wait"
+      controls={
+        <>
+          <Button variant="outline" size="sm" onClick={() => begin(seconds)}>
+            {endsAt === null ? "Start the clock" : "Start a new step"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => begin(4)}>
+            Run out in 4 seconds
+          </Button>
+          <Button variant="outline" size="sm" disabled={endsAt === null} onClick={stop}>
+            Stop the clock
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setEndsAt(null)
+              setRest(1)
+              setOuts(0)
+            }}
+          >
+            Fill it again
+          </Button>
+          <Knob label="Length of a step" value={seconds} min={TIMER_SECONDS.min} max={TIMER_SECONDS.max} step={1} onChange={setSeconds} format={(value) => `${value} s`} />
+          <Option label="Write the seconds" checked={digits} onChange={setDigits} />
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            The game says the step lasts <span className="text-foreground tabular-nums">{seconds}</span> seconds, and the platform says when they end. The hourglass told the board that time was out{" "}
+            <span className="text-foreground tabular-nums">{outs}</span> {outs === 1 ? "time" : "times"}; it is the server that plays the move then, not the board.
+          </p>
+        </>
+      }
+    >
+      <TimerScene endsAt={endsAt} seconds={seconds} rest={rest} digits={digits} onEnd={() => setOuts((count) => count + 1)} />
+    </SceneFrame>
+  )
+}
+
+export function SceneGridSpecimen() {
+  // What the engine holds: the cell each pawn stands on, and the way it walked there
+  const [pawns, setPawns] = useState<Record<GridKind, { cell: number; route: number[] }>>({ square: { cell: GRID_START.square, route: [] }, hex: { cell: GRID_START.hex, route: [] } })
+  const [picked, setPicked] = useState<GridKind | null>(null)
+  const [corners, setCorners] = useState(false)
+  const [above, setAbove] = useState(false)
+  // The boards the engine asks: the squares touch by their corners too when the switch says so
+  const boards = useMemo(() => ({ square: squareBoard({ columns: GRID.columns, rows: GRID.rows, diagonals: corners }), hex: hexBoard({ radius: GRID.radius }) }), [corners])
+  const rules = (kind: GridKind) => ({ blocked: (cell: number) => GRID_WALLS[kind].includes(cell) })
+  // The cells each pawn can reach, which the pawn that is picked up or dragged may be let go on
+  const reachOf = (kind: GridKind) => reachable(boards[kind], pawns[kind].cell, GRID.range, rules(kind)).filter((reached) => reached.cell !== pawns[kind].cell).map((reached) => reached.cell)
+  const reach = { square: reachOf("square"), hex: reachOf("hex") }
+  const move = (kind: GridKind, cell: number) => {
+    const route = shortestPath(boards[kind], pawns[kind].cell, cell, rules(kind))
+    if (route) setPawns((current) => ({ ...current, [kind]: { cell, route } }))
+    setPicked(null)
+  }
+  // A pawn that is dragged is carried to the cell: it walks no route, the way it would not if somebody lifted it
+  const carry = (kind: GridKind, cell: number) => {
+    setPawns((current) => ({ ...current, [kind]: { cell, route: [] } }))
+    setPicked(null)
+  }
+  const pick = (kind: GridKind) => setPicked((current) => (current === kind ? null : kind))
+  return (
+    <SceneFrame
+      label="Two boards on a table, thirty-six squares with a wall of three cells and nineteen hexagons with a wall of their own, a pawn on each: pressing a pawn rings the cells it can reach in four steps going round the walls, and pressing a ringed cell sends the pawn there across the cells; or the pawn is picked up and let go on one of them"
+      controls={
+        <>
+          <Button variant="outline" size="sm" onClick={() => setPicked(null)} disabled={picked === null}>
+            Put the pawn down
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setPawns({ square: { cell: GRID_START.square, route: [] }, hex: { cell: GRID_START.hex, route: [] } })
+              setPicked(null)
+            }}
+          >
+            Put the pawns back
+          </Button>
+          <Option label="Squares touch by their corners" checked={corners} onChange={setCorners} />
+          <Option label="Seen from above" checked={above} onChange={setAbove} />
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            The engine says: the pawn on the squares is on cell <span className="text-foreground tabular-nums">{pawns.square.cell}</span>, the one on the hexagons on cell <span className="text-foreground tabular-nums">{pawns.hex.cell}</span>
+            {picked !== null && (
+              <>
+                , and the <span className="text-foreground">{picked === "square" ? "squares" : "hexagons"}</span> pawn can reach <span className="text-foreground tabular-nums">{reach[picked].length}</span> cells
+              </>
+            )}
+          </p>
+        </>
+      }
+    >
+      <GridScene squareAt={pawns.square.cell} squareRoute={pawns.square.route} hexAt={pawns.hex.cell} hexRoute={pawns.hex.route} picked={picked} reach={reach} above={above} onPick={pick} onCell={move} onDrop={carry} />
+    </SceneFrame>
+  )
+}
+
+/** What the engine rolls for a hand: five dice, each from one to six */
+const rollHand = () => Array.from({ length: CUP_DICE }, () => 1 + Math.floor(Math.random() * 6))
+const START_HANDS = { you: [3, 5, 1, 6, 2], left: [4, 4, 2, 1, 6], right: [5, 3, 3, 6, 1] }
+
+export function SceneCupSpecimen() {
+  // What the engine holds: every player's dice. What the view gives the board: yours always, the others' only when they are shown
+  const [hands, setHands] = useState(START_HANDS)
+  const [shaking, setShaking] = useState(false)
+  const [revealed, setRevealed] = useState(false)
+  const [peek, setPeek] = useState(false)
+  // The dice are on the table under the cups; while the cups are shaken they are in them
+  const [dice, setDice] = useState(true)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => () => clearTimeout(timer.current), [])
+  const roll = () => {
+    if (shaking) return
+    setRevealed(false)
+    setPeek(false)
+    setDice(false)
+    setShaking(true)
+    // The cups come down when the shake is over, with the new dice under them
+    timer.current = setTimeout(() => {
+      setHands({ you: rollHand(), left: rollHand(), right: rollHand() })
+      setShaking(false)
+    }, CUP_TIMES.shake)
+  }
+  const mine = hands.you.join(", ")
+  return (
+    <SceneFrame
+      label="Three cups on a table, yours in front and one at each side, each over five dice: they shake and come down in a slam, your cup tilts when you press it to let you look under, and when the dice are shown the cups lift away; the board is never given the dice of the other two until they are shown"
+      controls={
+        <>
+          <Button variant="outline" size="sm" disabled={shaking} onClick={roll}>
+            Shake and roll
+          </Button>
+          <Button variant="outline" size="sm" disabled={shaking} onClick={() => setRevealed((current) => !current)}>
+            {revealed ? "Cover the dice again" : "Show all the dice"}
+          </Button>
+          <Option label="Peek under your cup" checked={peek && !revealed} onChange={setPeek} />
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            The view says: you hold <span className="text-foreground tabular-nums">{mine}</span>;{" "}
+            {revealed ? (
+              <>
+                the left seat holds <span className="text-foreground tabular-nums">{hands.left.join(", ")}</span> and the right seat <span className="text-foreground tabular-nums">{hands.right.join(", ")}</span>.
+              </>
+            ) : (
+              <>the other two seats hold {CUP_DICE} dice each, and the view does not say which.</>
+            )}
+          </p>
+        </>
+      }
+    >
+      <CupScene
+        yours={hands.you}
+        left={revealed ? hands.left : null}
+        right={revealed ? hands.right : null}
+        shaking={shaking}
+        revealed={revealed}
+        peek={peek}
+        dice={dice}
+        onPeek={() => setPeek((current) => !current)}
+        onSlam={() => setDice(true)}
+      />
+    </SceneFrame>
+  )
+}
+
+export function ScenePourSpecimen() {
+  // What the engine rolled, how many rolls there have been (a roll throws the dice), and what the cup is doing
+  const [values, setValues] = useState<readonly number[]>([2, 4, 6, 1, 3])
+  const [rolls, setRolls] = useState(0)
+  const [pose, setPose] = useState<PourPose>("rest")
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+  useEffect(() => {
+    const pending = timers.current
+    return () => pending.forEach(clearTimeout)
+  }, [])
+  const pour = () => {
+    if (pose !== "rest") return
+    setPose("shaking")
+    timers.current.push(setTimeout(() => setPose("pouring"), CUP_TIMES.shake))
+  }
+  // The cup is tipped over: the dice are thrown from its mouth, and the cup is put back when they have come to rest
+  const poured = () => {
+    setValues(rollHand())
+    setRolls((current) => current + 1)
+    timers.current.push(setTimeout(() => setPose("rest"), CUP_TIMES.pour))
+  }
+  return (
+    <SceneFrame
+      label="A cup on a table with a tray of five dice in front of it: it is taken up and shaken, tipped over, the dice fly out of its mouth and roll onto the tray, and the cup is put back on its base"
+      controls={
+        <>
+          <Button variant="outline" size="sm" disabled={pose !== "rest"} onClick={pour}>
+            Shake and pour
+          </Button>
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            {rolls === 0 ? "The dice lie as the engine left them: " : "The engine rolled: "}
+            <span className="text-foreground tabular-nums">{values.join(", ")}</span>
+          </p>
+        </>
+      }
+    >
+      <PourScene values={values} rolls={rolls} pose={pose} onPoured={poured} />
+    </SceneFrame>
+  )
+}
+
+export function SceneBagSpecimen() {
+  // What the engine holds: how many tokens of each kind are in the bag, where its stream is, and the kinds drawn so far, in order
+  const [bag, setBag] = useState<{ counts: number[]; rng: number; drawn: number[] }>(() => ({ counts: [...BAG_START], rng: createSaveableRng(BAG_SEED).save(), drawn: [] }))
+  const left = bagSize(bag.counts)
+  const draw = (count: number) =>
+    setBag((current) => {
+      const rng = restoreRng(current.rng)
+      const { drawn, bag: counts } = drawFromBag(rng, current.counts, count)
+      return drawn.length === 0 ? current : { counts, rng: rng.save(), drawn: [...current.drawn, ...drawn] }
+    })
+  return (
+    <SceneFrame
+      label="A cloth bag of tokens in four colours: pressing it draws a token, which comes out of its mouth and flies into a row, the bag rocks and slumps as it empties, and a counter says how many tokens are left"
+      controls={
+        <>
+          <Button variant="outline" size="sm" disabled={left === 0} onClick={() => draw(1)}>
+            Draw a token
+          </Button>
+          <Button variant="outline" size="sm" disabled={left === 0} onClick={() => draw(3)}>
+            Draw three
+          </Button>
+          <Button variant="ghost" size="sm" disabled={bag.drawn.length === 0} onClick={() => setBag({ counts: [...BAG_START], rng: createSaveableRng(BAG_SEED).save(), drawn: [] })}>
+            Put them back
+          </Button>
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            {bag.drawn.length === 0 ? "Nothing has been drawn: " : "The engine drew the kinds "}
+            <span className="text-foreground tabular-nums">{bag.drawn.length === 0 ? "" : bag.drawn.join(", ")}</span>
+            {bag.drawn.length === 0 ? "" : ", "}
+            <span className="text-foreground tabular-nums">{left}</span> of {bagSize(BAG_START)} are left.
+          </p>
+        </>
+      }
+    >
+      <BagScene drawn={bag.drawn} left={left} total={bagSize(BAG_START)} pressable={left > 0} onDraw={() => draw(1)} />
+    </SceneFrame>
+  )
+}
+
+export function SceneDragSpecimen() {
+  // What the engine holds: where each card is. A card is in the hand, in the play zone, in the discard zone, or lying where it was let go
+  const [cards, setCards] = useState<DragCards>(DRAG_START)
+  const [picked, setPicked] = useState<number | null>(null)
+  const [keep, setKeep] = useState(false)
+  const [above, setAbove] = useState(false)
+  const [said, setSaid] = useState("")
+  const mayPlay = (card: number) => DRAG_HAND.find((entry) => entry.card === card)?.plays ?? false
+  // The engine's move: the card leaves where it was and goes where it is sent. A zone it may not go on is refused there, as the engine would
+  const send = (card: number, to: DragZone | { x: number; z: number }) =>
+    setCards((now) => {
+      const without: DragCards = { hand: now.hand.filter((c) => c !== card), play: now.play.filter((c) => c !== card), discard: now.discard.filter((c) => c !== card), loose: now.loose.filter((l) => l.card !== card) }
+      return typeof to === "string" ? { ...without, [to]: [...without[to], card] } : { ...without, loose: [...without.loose, { card, ...to }] }
+    })
+  const drop = (card: number, { target, position }: { target: string | number | null; position: { x: number; z: number } }) => {
+    if (target === "play" || target === "discard") {
+      if (target === "play" && !mayPlay(card)) return setSaid(`Card ${card} cannot be played, so it went back.`)
+      send(card, target)
+      return setSaid(`Card ${card} was let go on ${target}.`)
+    }
+    if (keep) {
+      send(card, { x: position.x, z: position.z })
+      return setSaid(`Card ${card} was let go on nothing, so it lies where it was let go.`)
+    }
+    setSaid(`Card ${card} was let go on nothing, so it went back.`)
+  }
+  const zone = (name: DragZone) => {
+    if (picked === null) return
+    if (name === "play" && !mayPlay(picked)) return setSaid(`Card ${picked} cannot be played.`)
+    send(picked, name)
+    setSaid(`Card ${picked} was sent to ${name} with a click.`)
+    setPicked(null)
+  }
+  return (
+    <SceneFrame
+      label="A card table with a hand of five cards, a Play zone and a Discard zone: picking a card up lights the zones it may go on, letting it go on one sends it there, and letting it go on nothing puts it back; the same cards can be sent with a click on the card and a click on the zone"
+      controls={
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setCards(DRAG_START)
+              setPicked(null)
+              setSaid("")
+            }}
+          >
+            Put the cards back
+          </Button>
+          <Option label="Cards lie where they are let go" checked={keep} onChange={setKeep} />
+          <Option label="Seen from above" checked={above} onChange={setAbove} />
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            {said === "" ? "Two of the cards cannot be played, only discarded: the Play zone stays dark when you hold one of them." : said}{" "}
+            <span className="text-foreground tabular-nums">{cards.hand.length}</span> in the hand, <span className="text-foreground tabular-nums">{cards.play.length}</span> played,{" "}
+            <span className="text-foreground tabular-nums">{cards.discard.length}</span> discarded.
+          </p>
+        </>
+      }
+    >
+      <DragScene cards={cards} picked={picked} above={above} mayPlay={mayPlay} onDrop={drop} onPick={(card) => setPicked((now) => (now === card ? null : card))} onZone={zone} />
     </SceneFrame>
   )
 }

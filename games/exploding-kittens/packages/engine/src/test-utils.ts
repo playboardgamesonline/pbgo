@@ -7,7 +7,7 @@ import { GAME } from "./game"
 import { close, open } from "./machine"
 import { ORIGINAL_RULES } from "./rules"
 import { setupGame } from "./setup"
-import { type Action, type ActionOf, EK_ERROR_CODES, type EkErrorCode, type EkEvent, type EkLogEntry, type PlayerView, type State, type Step } from "./types"
+import { type Action, type ActionOf, EK_ERROR_CODES, type EkErrorCode, type EkEvent, type EkLogEntry, type PlayerView, type State, type EkStep } from "./types"
 import { playerView } from "./view"
 
 /**
@@ -262,7 +262,7 @@ export function pick(playerId: string, title: string, nth = 0): Move {
 // --- Playing
 
 /** What a sequence of moves did: the last state and every event, in order. */
-export function trace(state: State, ...moves: Move[]): Step {
+export function trace(state: State, ...moves: Move[]): EkStep {
   let current = state
   const events: EkLogEntry[] = []
   for (const move of moves) {
@@ -278,7 +278,7 @@ export function run(state: State, ...moves: Move[]): State {
 }
 
 /** Everybody the open window waits for passes, one after the other, until it closes: the last state and what happened on the way. */
-export function tracePassAll(state: State): Step {
+export function tracePassAll(state: State): EkStep {
   let current = state
   const events: EkLogEntry[] = []
   while (current.phase.kind === "reaction") {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { AnyGameDefinition } from "./contract"
 import { EngineError } from "./errors"
-import { canPlayFor, currentPlayer, playFor, playOn, waitingPlayers, type TurnHooks } from "./turns"
+import { canPlayFor, currentPlayer, playFor, playOn, playUntil, progressOf, waitingPlayers, type TurnHooks } from "./turns"
 
 type S = { over: boolean; waiting: string[]; active: string | null; log: string[] }
 
@@ -185,6 +185,67 @@ describe("playOn", () => {
     const idle: TurnHooks<S> = { isOver: () => false, waitingFor: () => [], autoPlayFor: noop }
     const start = state()
     expect(playOn(idle, start)).toBe(start)
+  })
+})
+
+describe("playUntil", () => {
+  /** A game of ten plays: each play adds a move to the log, and the game is over at ten */
+  const counting = (): TurnHooks<S> => ({
+    isOver: (s) => s.log.length >= 10,
+    waitingFor: (s) => (s.log.length >= 10 ? [] : ["a"]),
+    autoPlayFor: (s, id) => ({ ...s, log: [...s.log, id] }),
+  })
+
+  it("plays until the condition holds, and says how many plays were made when it is asked", () => {
+    const asked: number[] = []
+    const result = playUntil(counting(), state(), (s, plays) => (asked.push(plays), s.log.length === 4))
+    expect(result.log).toHaveLength(4)
+    expect(asked).toEqual([0, 1, 2, 3, 4])
+  })
+
+  it("returns the state it was given when that state already satisfies the condition", () => {
+    const start = state({ log: ["x"] })
+    expect(playUntil(counting(), start, () => true)).toBe(start)
+  })
+
+  it("stops at the end of the game, when nobody is waiting, and after maxSteps plays", () => {
+    expect(playUntil(counting(), state(), () => false).log).toHaveLength(10)
+    expect(playUntil(counting(), state(), () => false, 3).log).toHaveLength(3)
+    const idle = hooks({ waitingFor: () => [], autoPlayFor: noop })
+    const start = state()
+    expect(playUntil(idle, start, () => false)).toBe(start)
+  })
+
+  it("is what playOn does when nothing stops it early", () => {
+    expect(playOn(counting(), state())).toEqual(playUntil(counting(), state(), () => false))
+  })
+})
+
+describe("progressOf", () => {
+  const game = (progress?: (s: S) => number) => ({ isOver: (s: S) => s.over, progress })
+
+  it("is null for a game that does not say how far it has come", () => {
+    expect(progressOf(game(), state())).toBeNull()
+  })
+
+  it("rounds what the game says to a whole number", () => {
+    expect(progressOf(game(() => 41.6), state())).toBe(42)
+  })
+
+  it("keeps it from 0 to 99 while the game is not over, so that 100 means it is", () => {
+    expect(progressOf(game(() => -5), state())).toBe(0)
+    expect(progressOf(game(() => 100), state())).toBe(99)
+    expect(progressOf(game(() => 240), state())).toBe(99)
+  })
+
+  it("is 100 once the game is over, whatever it says", () => {
+    expect(progressOf(game(() => 30), state({ over: true }))).toBe(100)
+  })
+
+  it("is null when the game says something that is not a number", () => {
+    expect(progressOf(game(() => Number.NaN), state())).toBeNull()
+    expect(progressOf(game(() => Number.POSITIVE_INFINITY), state())).toBeNull()
+    expect(progressOf(game((() => "half") as unknown as (s: S) => number), state())).toBeNull()
   })
 })
 

@@ -3,7 +3,7 @@ import { defuse, draw, give, pick, pickable } from "./actions"
 import type { CardKind } from "./catalogue"
 import { type Ctx, close, handOf, kindOf, open, waitingFor } from "./machine"
 import type { Rules } from "./rules"
-import type { State } from "./types"
+import type { State, EkStep } from "./types"
 import { closeWindow } from "./window"
 
 /** What an absent player gives away first, going down the list: the cards they are least likely to need. */
@@ -59,9 +59,14 @@ export function autoPlay(ctx: Ctx, playerId: string): void {
   }
 }
 
-/** `GAME.autoPlayFor`: the state once `playerId` has been played for. */
-export function autoPlayFor(rules: Rules, state: State, playerId: string): State {
+/** `GAME.autoPlayStep`: the state once `playerId` has been played for, and what happened. */
+export function autoPlayStepFor(rules: Rules, state: State, playerId: string): EkStep {
   const ctx = open(rules, state)
   autoPlay(ctx, playerId)
-  return close(ctx).state
+  return close(ctx)
+}
+
+/** `GAME.autoPlayFor`: the state once `playerId` has been played for. */
+export function autoPlayFor(rules: Rules, state: State, playerId: string): State {
+  return autoPlayStepFor(rules, state, playerId).state
 }

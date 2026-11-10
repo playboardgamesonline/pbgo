@@ -19,7 +19,7 @@ The template's engine re-exports the whole kit (`export * from "@pbgo/engine-kit
 
 - **Ids and numbers only.** Names, texts, labels, colours and image paths are display data. They live in the game's catalogue (code) and in Sanity, and the client draws them from the view. A card in the state is an id, an amount is a number.
 - **No derived values.** What can be computed from the rest of the state is computed, never stored: the totals from the scores of the rounds (`sumRounds`), who leads (`leaders`), how many cards a pile holds, whose turn it is when it follows from a counter, who the game waits for (`waitingFor`).
-- **No log in the state.** What happened is not something the next move needs. A game keeps no history in its `State`. The kit gives the shape of a log entry and the per-viewer filter ([`log`](#log-logts)); how an engine hands its entries to the platform is not settled yet, so nothing in the kit assumes it.
+- **No log in the state.** What happened is not something the next move needs. A game keeps no history in its `State`. It says what each move did with `step` (the new state and the entries of the move), and the platform keeps them in the log of the table (`game_log`) and sends each player the lines they may read; the kit gives the shape of an entry, the per-viewer filter and the helpers that play through `step` ([`log`](#log-logts)).
 
 The helpers follow from the rule: cards are numbers ([`ids`](#opaque-ids-idsts), [`deck`](#decks-deckts)), piles are arrays of ids, totals are arrays of numbers in seat order, and the position of a random stream is one number. A state in that style (an illustration, not a template):
 
@@ -57,7 +57,7 @@ type State = {
 
 ### Contract
 
-`contract.ts`, `errors.ts`, `outcomes.ts`. `GameDefinition<State, Action, View, SetupData>` with `setup`, `apply`, `view`, `isOver`, `options`, `presets`, `clientActions`, `waitingFor`, `autoPlayFor`, `debug` (and `activePlayer` / `autoPlay`, `@deprecated`). Also `PlayerInfo`, `PlayerAction`, `PlayerResult`, `Results` (`coop` says that a table that plays on one side won or lost together), `AnyGameDefinition`, `DebugCommand`, `EngineError` and `isEngineError`, and the vocabulary of the refusals every game shares: `SHARED_ERROR_CODES`, `SharedErrorCode` and `isSharedErrorCode`. `outcomesOf(results)` reads the results as the outcome of each player for the history (`win`, `loss`, `draw`, `coop_win`, `coop_loss`: `PLAYER_OUTCOMES`; `abandoned` is the platform's). For the tests of a game, `@pbgo/engine-kit/testing` has `errorVocabularyProblems`, which reads the sources of an engine and says what is wrong with its codes. The principles and the demo game are explained in `template/docs/GAME_GUIDE.md`.
+`contract.ts`, `errors.ts`, `outcomes.ts`. `GameDefinition<State, Action, View, SetupData, Event>` with `setup`, `apply`, `view`, `isOver`, `options`, `presets`, `clientActions`, `waitingFor`, `autoPlayFor`, `debug` (and `activePlayer` / `autoPlay`, `@deprecated`), for a game that says what its moves did, `step`, `autoPlayStep` and `setupStep`, and for a game with a clock, `begin` and `nextDeadline` ([Timers and deadlines](#timers-and-deadlines-timerts-deadlinets)). Also `PlayerInfo`, `PlayerAction`, `PlayerResult`, `Results` (`coop` says that a table that plays on one side won or lost together), `AnyGameDefinition`, `DebugCommand`, `EngineError` and `isEngineError`, and the vocabulary of the refusals every game shares: `SHARED_ERROR_CODES`, `SharedErrorCode` and `isSharedErrorCode`. `outcomesOf(results)` reads the results as the outcome of each player for the history (`win`, `loss`, `draw`, `coop_win`, `coop_loss`: `PLAYER_OUTCOMES`; `abandoned` is the platform's). For the tests of a game, `@pbgo/engine-kit/testing` has `errorVocabularyProblems`, which reads the sources of an engine and says what is wrong with its codes. The principles and the demo game are explained in `template/docs/GAME_GUIDE.md`.
 
 ### Turns
 
@@ -68,7 +68,7 @@ type State = {
 | `waitingPlayers(game, state)` | The players the game waits for, in seat order, no duplicates; nobody once the game is over. |
 | `currentPlayer(game, state)` | The player whose turn it is, or `null`. |
 | `canPlayFor(game)` | Whether the server can play for an absent player of this game. |
-| `playFor(game, state, playerId)` | Plays the current step of one waiting player (`autoPlayFor`). `EngineError("NOT_WAITING")` if they are not waiting, `"AUTOPLAY_UNSUPPORTED"` if the game cannot. |
+| `playFor(game, state, playerId, at?)` | Plays the current step of one waiting player (`autoPlayFor`); `at` is the time the server plays it at, for a game with a clock. `EngineError("NOT_WAITING")` if they are not waiting, `"AUTOPLAY_UNSUPPORTED"` if the game cannot. |
 | `playOn(game, state, maxSteps = 1000)` | Plays for the first waiting player until the game is over. For tests and simulations. |
 
 ### Options
@@ -85,6 +85,78 @@ type State = {
 | `shuffle(items, rng)` | A shuffled copy (Fisher–Yates). |
 | `sideSeed(seed, ...parts)` | A 32-bit seed for an independent stream, from the high bits of the game seed and a few integers of your choice. |
 | `randomSeed()` | A fresh game seed (an integer below 2^52, like the server's). The only function of the kit that is not deterministic. |
+
+### Dice (`dice.ts`)
+
+A roll is a draw from the game's seeded stream, made inside `apply` with a stream restored from the state; the board throws a `Die` onto the number the engine gave (`docs/engine/02-components/10-dice.md`).
+
+| | |
+| --- | --- |
+| `rollDie(rng, sides = 6)` | One roll: a whole number from 1 to `sides`. One draw of the stream. `RangeError` for a die with fewer than two sides, or not a whole number of them. |
+| `rollDice(rng, count, sides = 6)` | `count` dice, one after the other, in order. Nothing is drawn for an empty pool. |
+| `rerollDice(rng, dice, reroll, sides = 6)` | A pool with the dice at the indexes of `reroll` rolled again, in the order of their index whatever the order they were listed in. A new array. `RangeError` for an index that is not a die of the pool or is listed twice. |
+
+### Answers (`answers.ts`)
+
+What a player answers in a window other than text: a number (a bet, a quantity, a bid) or a choice among options. Checked in one place, in `apply`, on the field of the action (`docs/engine/02-components/12-bets-and-choices.md`).
+
+| | |
+| --- | --- |
+| `cleanNumber(input, rules)` | The number chosen, checked against `min`, `max`, `step` (counted from `min`) and `integer` (whole by default). `EngineError("INVALID_NUMBER")` for anything that is not a finite number, one outside the range or off the steps; `RangeError` for rules no number could meet. A string is not a number. |
+| `cleanChoice(input, options)` | The option chosen, one of `options` (strings or numbers, compared strictly). `EngineError("INVALID_CHOICE")` for anything else. |
+| `cleanChoices(input, options, rules)` | Several options: a list with none twice, between `min` and `max`, returned in the order of `options`. `EngineError("INVALID_CHOICE")`. |
+
+### Counters (`counters.ts`)
+
+A number of the state held between two ends: life, coins, clue tokens, points. The helper says what really changed, so that the log can say it (`docs/engine/02-components/14-counters.md`).
+
+| | |
+| --- | --- |
+| `changeCounter(rules, value, delta)` | `value` changed by `delta` and held between `rules.min` and `rules.max` (both optional). A `Change`: `from`, `to`, `applied` (what really changed, with its sign) and `stopped` (`"min"` or `"max"` when that end cut the change short, `null` otherwise, and `null` for an end reached exactly). Never a `-0`. `RangeError` for a `min` above the `max`, a value or a change that is not a finite number, and a value outside the ends. |
+
+### Tracks (`track.ts`)
+
+A marker on a row of spaces, kept in the state as the number of its space; the board walks it along the spaces (`docs/engine/02-components/15-tracks.md`).
+
+| | |
+| --- | --- |
+| `moveAlong(track, from, steps)` | A marker on space `from` of `track` (`{ min = 0, max, loop }`) moved `steps` spaces, forward above zero and back below. A `Walk`: `from`, `to`, `moved` (the spaces really gone), `passed` (the spaces it went through in order, the last being `to`), `laps` (+1 for each crossing from `max` to `min` on a loop, -1 for each crossing back, always 0 without a loop) and `stopped` (the end that cut a move short on a track that does not loop). Never a `-0`. `RangeError` for a track with no space or whose ends are not whole numbers, a marker that is not on a space of it, steps that are not a whole number or are more than `MAX_WALK` (100,000). |
+
+### Bags (`bag.ts`)
+
+Tokens of several kinds drawn at random from counts kept in the state: an array of whole numbers indexed by kind (`docs/engine/02-components/18-bags.md`).
+
+| | |
+| --- | --- |
+| `bagSize(counts)` | How many tokens are in the bag, all kinds together. `RangeError` for counts that are not whole numbers. |
+| `drawFromBag(rng, counts, count = 1)` | `{ drawn, bag }`: `count` tokens drawn one after the other, each as likely as any other in the bag, without putting them back; `drawn` lists their kinds in order and `bag` is the counts left. A bag with fewer tokens gives all it has. One draw of `rng` for each token drawn, none for an empty bag. New arrays. `RangeError` for counts that are not whole numbers and for a number of tokens that is not. |
+
+### Boards (`board.ts`)
+
+A grid of cells that touch one another, whose cells the state names by a number from 0, row by row from the top (`docs/engine/02-components/16-boards.md`). A board has no state: build it once and ask it.
+
+| | |
+| --- | --- |
+| `squareBoard({ columns, rows, diagonals })` | Squares numbered `row * columns + col`. With `diagonals` the corners touch too: eight directions (the even ones are the sides) and the king's distance; without, four directions and the sides' distance. |
+| `hexBoard({ radius })`, `hexBoard({ columns, rows })` | Hexagons with a point up, six directions, axial coordinates `[q, r]`: a hexagon of hexagons round a middle cell, or a rectangle whose odd rows are shifted half a cell to the right (numbered like a square board). |
+| `board.size`, `coords`, `directions`, `at(a, b)`, `step(cell, direction)`, `neighbours(cell)`, `distance(from, to)` | The number of cells, the two numbers that place each (`[col, row]` or `[q, r]`), the number of directions, the cell at two numbers or -1, the cell one step away or -1, the cells next to a cell in the order of the directions, and the number of steps between two cells. `RangeError` for a cell or a direction the board does not have. |
+| `reachable(board, from, range, { blocked })` | The cells reachable in `range` steps at the most without entering a blocked cell, `{ cell, distance }`, nearest first then by number, the start included. |
+| `shortestPath(board, from, to, { blocked })` | The cells to go through from `from` to `to`, the last being `to`: `[]` for the same cell, `null` when there is no way. Directions tried in order, so the same board gives the same way. |
+| `regionOf(board, start, same)` | The cells linked to `start` through cells for which `same` is true, in the order of their number; empty when `start` is not one. |
+| `lineBetween(board, from, to)` | The cells a straight line goes through after `from`, the last being `to` (Bresenham on squares, the nearest cells on hexagons). |
+| `rayFrom(board, from, direction, { blocked })` | `{ open, stoppedBy }`: the cells a sliding piece goes through in one direction, and the blocked cell that stopped it, or `null` at the edge. |
+
+### Writing (`writing.ts`)
+
+The text a player writes is cleaned and bounded in one place, in `apply`, before it reaches a state, a log or another player's screen (`docs/engine/02-components/11-text-field.md`).
+
+| | |
+| --- | --- |
+| `cleanText(input, rules)` | The text ready for the state: composed accents, one space between words, no control, invisible or lone-surrogate character, no stack of combining marks, one line (or the `lines` the rules allow). `EngineError("INVALID_TEXT")` for anything that is not a string, is empty, or is longer or has more lines or words than the rules allow: it never cuts. |
+| `TextRules`, `DEFAULT_TEXT_MAX` | `max` (characters as a reader counts them), `min`, `lines`, `words`. |
+| `textKey(text)`, `sameText(a, b)` | What two texts are compared by: without accents, case or anything but letters and digits. |
+
+A text written in secret by every player is a `Submissions<string>`: the view says who wrote, never what, until the step is resolved.
 
 ### Opaque ids (`ids.ts`)
 
@@ -128,7 +200,35 @@ viewLog(entries, "bob") // the draw, then the masked peek
 viewLog(entries, null) // a spectator: the same as bob
 ```
 
-`viewLog(entries, viewerId)` returns the log as that viewer reads it, oldest first: the full event when the entry is public (`to` absent) or addressed to them, else its `masked` version, else nothing. `null` is a spectator. `event` and `masked` are plain data (ids and numbers, never display text): the client turns them into sentences in the viewer's language. The log is never part of the state, see [the rule](#the-rule-lean-state): these functions only filter, wherever the entries are kept.
+`viewLog(entries, viewerId)` returns the log as that viewer reads it, oldest first: the full event when the entry is public (`to` absent) or addressed to them, else its `masked` version, else nothing. `null` is a spectator. `event` and `masked` are plain data (ids and numbers, never display text): the client turns them into sentences in the viewer's language. The log is never part of the state, see [the rule](#the-rule-lean-state): `viewLog` only filters, wherever the entries are kept, and the platform keeps them in `game_log`.
+
+A game gives its entries with `step`, the `apply` that also says what happened, and `autoPlayStep` and `setupStep` for the player it plays for and the moves of its setup. `Step<State, E>` is `{ state, events }`; `step(state, action).state` is what `apply` gives. The platform never calls the members of the definition for this, it plays through the helpers, which work for a game that has no log:
+
+| Export | What it does |
+| --- | --- |
+| `stepOf(game, state, action)` | The game's `step`, else `apply` with no events |
+| `playStepFor(game, state, playerId, at?)` | The game's `autoPlayStep`, else `playFor` with no events; the same refusals as `playFor` |
+| `setupOf(game, args)` | The game's `setupStep`, else `setup` with no events |
+
+`docs/engine/01-the-game/12-events-and-the-log.md` tells the whole way, from the engine to the board.
+
+### Timers and deadlines (`timer.ts`, `deadline.ts`)
+
+An engine has no clock: it never reads `Date.now()`. The server tells it the time, as the `at` of every action (`PlayerAction.at`, which a client cannot set), and a game with a clock says in `nextDeadline` when it needs the clock next and which system action to play then. The state keeps the clock of a step as a `Timer`, two numbers, so it stays plain data; the view says how long a step lasts and the platform says how much is left.
+
+| Export | What it does |
+| --- | --- |
+| `Timer` | `{ endsAt, seconds }`: when the step ends, in milliseconds on the server's clock, and how long it was set for |
+| `startTimer(at, seconds)` | A timer set for `seconds` that starts at `at`. A time that is not finite or a length that is not above zero throws a `RangeError`: they are bugs of the game |
+| `restartTimer(timer, at)`, `extendTimer(timer, seconds)` | The same timer set again from `at`, and the timer with `seconds` more (the whole grows with the end) |
+| `timeLeft(timer, now)`, `timerDone(timer, now)`, `timerFraction(timer, now)` | The milliseconds left (never below 0), whether the time is out, and the share that is left, from 1 to 0 |
+| `begin(state, at)` | A hook of the definition: the game goes live at `at`, the server calls it once, when every player is ready. A game starts the clock of its first step here and not in `setup` |
+| `nextDeadline(state)` | A hook of the definition: the `Deadline`, `{ at, action }`, or null for no clock, between two steps with none and once the game is over |
+| `SYSTEM_PLAYER`, `systemAction(type, at)`, `isSystemAction(action)` | The clock's action: its `playerId` is `"system"`, its type is no entry of `clientActions`, and `apply` checks `isSystemAction` before it plays it |
+| `beginOf(game, state, at)`, `deadlineOf(game, state)`, `deadlineIn(game, state, now)` | What the server reads through, never the hooks: the state once the game is live, the deadline of a game that has a valid one, and how long until it in whole milliseconds, never below 0 |
+| `settleDeadlines(game, state, now, maxSteps?, before?)` | Plays the deadlines that are due at `now`, each with the time it was due at as its `at`, so the steps that follow start their clocks from the time they would have started at: the same table settled at two moments gives the same game. Up to `MAX_DEADLINES` at once; `before` is asked, with the state, ahead of each one, to learn whom the game was waiting for |
+
+`docs/engine/02-components/20-timers.md` tells the whole way, from the engine to the hourglass on the table.
 
 ### Rounds (`rounds.ts`)
 

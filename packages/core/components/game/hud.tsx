@@ -15,7 +15,9 @@ import { Announcement, type AnnouncementSettings } from "./announcement"
 import { useGame } from "./context"
 import { GuestDock, useGameMenu } from "./game-menu"
 import { useHudDock } from "./hud-dock"
+import { TableDebug } from "./table-debug"
 import { TablePlayers } from "./table-players"
+import { PromptHost } from "./prompt-host"
 
 /** One turn of the history: its author and the actions shown (each action is rendered by the game). */
 export type HistoryTurn = { key: string | number; playerId: string; entries: { key: string | number; node: React.ReactNode }[] }
@@ -243,6 +245,8 @@ export function GameHud({
           <div className="pointer-events-auto contents">{overlay}</div>
         </div>
         <Chat />
+        <TableDebug />
+        <PromptHost />
       </main>
     </MotionConfig>
   )

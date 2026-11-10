@@ -187,4 +187,4 @@ export type Flip7Event =
 export type Flip7LogEntry = LogEntry<Flip7Event>
 
 /** What a step gives back: the new state and what happened, for the platform to keep (the state keeps no log). */
-export type Step = { state: State; events: Flip7LogEntry[] }
+export type Flip7Step = { state: State; events: Flip7LogEntry[] }

@@ -5,7 +5,7 @@ import { loadSettings } from "../../../lib/settings-server"
 import { checkTableSettings } from "../../../lib/table-settings"
 import { ageGateFor } from "../../../server/age-gate"
 import { ApiError, handle, readJson } from "../../../server/api"
-import { publicGame } from "../../../server/games"
+import { servedGame } from "../../../server/games"
 import { getOrCreatePlayerId } from "../../../server/player"
 import { type ProfileInput, resolveSeat } from "../../../server/profile"
 import { rateLimit } from "../../../server/rate-limit"
@@ -29,5 +29,5 @@ export const postGame = (ageRules: AgeRulesSource) =>
     // The options a table opens with are the admin's defaults: one of them may switch an expansion for adults on, and then the table is a table for adults
     const gate = await ageGateFor(ageRules, game, seat)
     const row = await openTable(game, { id, profile, memberId }, { gate, options: gameOptions(game.binding, options), settings: checked?.settings, maxPlayers })
-    return publicGame(game, row, id)
+    return servedGame(game, row, id)
   })

@@ -4,9 +4,13 @@ import { useCursor } from "@react-three/drei"
 import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { AdditiveBlending, type Color, type Group, type Mesh, type MeshBasicMaterial, NormalBlending, type Texture, Vector3 } from "three"
+import { AdditiveBlending, type Color, type Group, type Mesh, type MeshBasicMaterial, NormalBlending, Quaternion, type Texture, Vector3 } from "three"
 import { type CardReading, inspector } from "../debug/inspector"
 import { DEBUG_VIEW } from "../debug/view"
+import { dragGoal } from "../drag/reach"
+import { DRAG_SETTINGS, followSeconds } from "../drag/settings"
+import type { ZoneId } from "../drag/store"
+import { type Drop, useDrag } from "../drag/use-drag"
 import type { Pose } from "../pose"
 import type { CardId } from "../table/memory"
 import { usePoseMemory } from "../table/memory-context"
@@ -17,8 +21,8 @@ import { type Glow, glowNameOf } from "./glows"
 import { CARD_SETTINGS } from "./settings"
 import { glossTexture, haloTexture, shadowTexture, sparkleTexture } from "./textures"
 
-/** Where a dragged card was let go, on the table plane. Reserved with `draggable`: nothing reports it yet */
-export type CardDrop = { position: Vector3 }
+/** Where a dragged card was let go: the zone it was let go on, or null for none, and where it lay on the table (`useDrag`) */
+export type CardDrop = Drop
 
 export type CardProps = {
   /** Names the card: the game's own id for it. When a card with this id leaves the table and one with the same id appears within a second, in another zone, the new one starts from where the old one was. A given `from` wins. Needs a `Table` around it */
@@ -47,10 +51,16 @@ export type CardProps = {
   onHover?: (hovered: boolean) => void
   /** Called when a flight ends */
   onArrive?: () => void
-  /** Reserved: the player will drag the card with the pointer. Does nothing yet */
+  /** The player can pick the card up with the pointer and let it go on the table (default false). A press that stays within a few pixels is still a click. While it is held the card follows the pointer, lifted, and goes back to its `target` when it is let go */
   draggable?: boolean
-  /** Reserved: called with where a dragged card was let go. Never called yet */
+  /** The zones the card may be let go on, by the `id` of each `DropZone` (or the number of a cell of a `Board` that has `drops`). Those zones show themselves while the card is held. Default: any zone */
+  dropOn?: readonly ZoneId[]
+  /** The card is picked up */
+  onDragStart?: () => void
+  /** The card was let go, on a zone or on none: which, and where it lay. The card goes back to its `target`; the game changes the target in the same step when the drop does something */
   onDrop?: (drop: CardDrop) => void
+  /** The drag was given up (Escape, the pointer left the page) and nothing was dropped */
+  onDragCancel?: () => void
   /**
    * What the game draws on the front (value, suit, name...), as three.js elements.
    * Their origin is the middle of the face, x to the right and y up, in the card's own units.
@@ -102,6 +112,11 @@ export function Card({
   onClick,
   onHover,
   onArrive,
+  draggable = false,
+  dropOn,
+  onDragStart,
+  onDrop,
+  onDragCancel,
   children,
 }: CardProps) {
   const { width, height } = size
@@ -138,8 +153,24 @@ export function Card({
   const overlayRef = useRef<Group>(null)
   const flight = useRef<Flight | null>(null)
   const lastOne = useRef(new Vector3())
-  useCursor(hovered && !!onClick)
+  useCursor(hovered && (!!onClick || draggable), draggable ? "grab" : "pointer")
   const memory = usePoseMemory()
+  // Where the card is drawn while it is held, so a frame allocates nothing
+  const [goal] = useState<Pose>(() => ({ position: new Vector3(), quaternion: new Quaternion(), scale: 1 }))
+  const drag = useDrag({
+    enabled: draggable,
+    level: target.position.y,
+    position: () => ref.current?.position ?? null,
+    dropOn,
+    onClick,
+    onDragStart: () => {
+      // A card that was still flying is picked out of the air
+      flight.current = null
+      onDragStart?.()
+    },
+    onDrop,
+    onDragCancel,
+  })
 
   // The debug panel's inspector reads the card under the pointer: what it reads is the card as it is then, not as it was when the pointer came
   const [inspectKey] = useState(() => Symbol("card"))
@@ -222,8 +253,11 @@ export function Card({
     }
     const g = ref.current
     if (!g) return
-    if (!flight.current && target.position.distanceTo(lastOne.current) > JUMP && g.position.distanceTo(target.position) > JUMP) start(g)
-    lastOne.current.copy(target.position)
+    // While the card is held it goes where the pointer has it, lifted; the rest of the time it goes to the place the game gives it
+    const held = drag.held.current
+    const aim = held ? dragGoal(goal, target, held.x, held.z, DRAG_SETTINGS.lift, DRAG_SETTINGS.grow) : target
+    if (!held && !flight.current && target.position.distanceTo(lastOne.current) > JUMP && g.position.distanceTo(target.position) > JUMP) start(g)
+    lastOne.current.copy(aim.position)
 
     if (flight.current) {
       if (stepFlight(flight.current, dt, g, target, S, fold.current)) {
@@ -232,10 +266,11 @@ export function Card({
       }
     } else {
       fold.current.value *= Math.max(0, 1 - dt * 8)
-      targetTmp.copy(target.position)
-      easing.damp3(g.position, targetTmp, speed, dt)
-      easing.dampQ(g.quaternion, target.quaternion, speed, dt)
-      easing.damp3(g.scale, scaleTmp.setScalar(target.scale), speed, dt)
+      const smooth = held ? followSeconds(drag.reduced) : speed
+      targetTmp.copy(aim.position)
+      easing.damp3(g.position, targetTmp, smooth, dt)
+      easing.dampQ(g.quaternion, aim.quaternion, smooth, dt)
+      easing.damp3(g.scale, scaleTmp.setScalar(aim.scale), smooth, dt)
     }
     // The face arches by up to `fold * height / 2` towards the viewer: lift what is drawn on it by as much, or the arch would hide it
     if (overlayRef.current) overlayRef.current.position.z = thickness / 2 + FRONT.overlay + Math.max(0, fold.current.value) * (height / 2)
@@ -249,7 +284,8 @@ export function Card({
     <group
       ref={ref}
       renderOrder={above ? 20 : 0}
-      onClick={onClick}
+      onPointerDown={drag.bind.onPointerDown}
+      onClick={drag.bind.onClick}
       onPointerOver={(e) => {
         e.stopPropagation()
         setHovered(true)

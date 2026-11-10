@@ -25,6 +25,10 @@ GameHud                          DOM, shared: ticker, announcements, game over
 
 `GameHud` is core's ([In-game UI](../../design/04-in-game/index.md)). `Scene` and `World` are the names the template gives the two halves of its `board/scene.tsx` ([Composing a board](../04-build-a-game/04-composing-a-board.md)).
 
+## Die and dice
+
+English has one word for one and another for several: a die, two dice. The code keeps them apart, so a name says how many it is about. `Die` draws one die and `DieModel` is the shape and the faces of one. `DiceTray` is where several are thrown, `rollDie` rolls one and `rollDice` rolls several. Pages that are about dice in general are called Dice.
+
 ## From a word to the code
 
 The code has no component for some of the words used for the parts of a table. This maps them.
@@ -39,7 +43,23 @@ The code has no component for some of the words used for the parts of a table. T
 | hand | A `Zone` over a `fan` layout in front of the viewer | Tools shared, layout per game | [Hand](07-zones.md#hand), [Zone](07-zones.md#zone) |
 | cards in front of a player, cards on a field, the middle | A `Zone` framed on a seat or on the table, with the game's own layout | Tools shared, layout per game | [Where cards are](07-zones.md) |
 | mission card, character card | No component and no kit type: the missions of Courtisans are setup data that the engine deals to each player, keeps in its state and shows to its owner in the view; a character card with a power of its own is not built | Per game | [Game data](../01-the-game/08-game-data.md), [Not built yet](../03-not-built-yet.md) |
-| token, counter, die, game board, track | Nothing: a counter is a number of the state drawn as text, and no tool draws a token, a die or a board | Not built | [Not built yet](../03-not-built-yet.md) |
+| die, dice, tray | `Die` (any shape, any values, rolled by physics) and `DiceTray`; `rollDie`, `rollDice` and `rerollDice` of the kit | Shared | [Dice](10-dice.md) |
+| text field, notepad, writing zone | `TextField`, `askText` of core and `cleanText` of the kit | Shared | [Text field](11-text-field.md) |
+| bet, bid, number field | `NumberField` (a number on the table that opens a window to choose it), `askNumber` and `ask` of core, `cleanNumber` of the kit | Shared | [Bets and choices](12-bets-and-choices.md) |
+| choice field | `ChoiceField`, `askChoice` and `askChoices` of core, `cleanChoice` and `cleanChoices` of the kit | Shared | [Bets and choices](12-bets-and-choices.md) |
+| bid card, sealed bid, secret answer, vote | A `Card` laid at the seat of the player, face down until the view gives the answers: a `Submissions` in the engine, `submittedFlags` in the view, `revealSubmissions` when the step is resolved | Shared pieces, the cards per game | [A bid made with cards](12-bets-and-choices.md#a-bid-made-with-cards) |
+| stepper, plus and minus, arrows | `Stepper`: a number between two arrows that repeat when held; `cleanNumber` of the kit | Shared | [Stepper](12-bets-and-choices.md#stepper) |
+| slider, dial, knob, rail | `Slider`: a knob dragged along a rail marked with the numbers; `cleanNumber` of the kit | Shared | [Slider](12-bets-and-choices.md#slider) |
+| paper, button on the table | `Paper`: a piece of paper with a few words that can be pressed | Shared | [Bets and choices](12-bets-and-choices.md#fields-that-open-a-window) |
+| token, coin, tile, cube, pawn, meeple, stack of tokens | `Piece` (any shape, any silhouette, a picture on each face), `Stack` | Shared | [Pieces](13-pieces.md) |
+| counter, score, life, coins as a number | `Counter` (a number that counts up or down, with the change floating beside it); `changeCounter` of the kit | Shared | [Counters](14-counters.md) |
+| track, score track, path, squares, marker on a track | `Track` (the spaces), `TrackMarker` (a piece that walks along them), `lineSpaces`, `loopSpaces`, `arcSpaces`, `snakeSpaces`, `pathSpaces`; `moveAlong` of the kit | Shared | [Tracks](15-tracks.md) |
+| cup, shaker, hidden roll | `Cup` (covers dice, shakes, tilts, lifts, tips over); the roll is `rollDice` of the kit, hidden by the view | Shared | [Cups](17-cups.md) |
+| bag, pouch, draw a token | `Bag` (draws come out of its mouth, `bagMouth`); `drawFromBag` and `bagSize` of the kit | Shared | [Bags](18-bags.md) |
+| timer, clock, time limit, deadline, hourglass | `Timer` (an hourglass that shows the time left to a step); a `Timer` in the state, `begin`, `nextDeadline` and a system action in the engine, `startTimer` and `systemAction` of the kit | Shared | [Timers](20-timers.md) |
+| drag, drop, drop zone, pick up | `draggable`, `dropOn` and `onDrop` of a `Card` or a `Piece`, `DropZone`, and `drops` of a `Board`; the engine checks the drop like a click | Shared | [Dragging](19-dragging.md) |
+| game board, grid, square, hexagon, cell | `Board` (the cells, which can be pressed), `squareCells`, `hexCells`, a `Piece` or a `TrackMarker` on a cell; `squareBoard`, `hexBoard`, `reachable`, `shortestPath`, `regionOf`, `lineBetween`, `rayFrom` of the kit | Shared | [Boards](16-boards.md) |
+| map of places and roads, territories | Nothing: a board is a regular grid | Not built | [Not built yet](../03-not-built-yet.md) |
 | score | A number of the view, written by the game as the `line` of a `Seat`, a `TableText` under the nickname | The line is shared, the number is the game's | [Score](09-score.md) |
 | player zone | No component: a `Spot` from `seats`, used as the `frame` of a `Zone` and as the `spot` of a `Seat` whose children are what the player holds | Shared | [Seats](03-seats.md) |
 | seat | A `Spot` from `seats`, and the `Seat` that draws the player who sits there | Shared | [Seats](03-seats.md) |

@@ -4,7 +4,7 @@ A view is what one viewer sees of a game: `GAME.view(state, playerId)`. The `Sta
 
 ## What is public
 
-- `PublicGame` (`packages/core/lib/game-types.ts`) is what a browser receives of a table: its code, host, `status`, `players` (id, nickname and the picture of their account, if any), `options`, `replay` (who voted for a rematch), `waitingFor`, `present` and `takeovers`, a few more fields of core's, and the `view`.
+- `PublicGame` (`packages/core/lib/game-types.ts`) is what a browser receives of a table: its code, host, `status`, `players` (id, nickname and the picture of their account, if any), `options`, `replay` (who voted for a rematch), `waitingFor`, `present` and `takeovers`, a few more fields of core's, the `view` and the `log`: the lines of what happened in the game as this player reads them ([Events and the log](12-events-and-the-log.md)).
 - `waitingFor`, `present` and `takeovers` are public: every viewer gets them.
 - `view` gets the viewer's id when they sit at the table and `null` for everybody else. The read route needs no cookie, so a view must be safe to show to anybody.
 - Neither the seed nor a saved stream position is in a view.
@@ -69,6 +69,6 @@ Some of what happens is private: the card a player looks at, the card a Favor gi
 
 - `viewLog` does not throw. `viewerId` is `null` for a spectator, and a player who is not at the table is read like one; `to: []` shows the event in full to nobody, so everyone sees only its `masked` version.
 - `event` and `masked` are plain data, never display text: the client turns them into sentences in the viewer's language.
-- The log is not in the state ([Lean state](09-state.md#lean-state)): `viewLog` only filters, wherever the entries are kept.
-- An engine builds its entries in its own `step`, which returns them next to the state, and `apply` keeps the state (Flip 7, Exploding Kittens). Exploding Kittens adds one with `emit(ctx, event, to, masked)` (`games/exploding-kittens/packages/engine/src/machine.ts`): the card a Favor gives is shown in full to the two players, and the others see who gave to whom.
+- The log is not in the state ([Lean state](09-state.md#lean-state)): the platform keeps the entries (`game_log`) and `viewLog` filters them for each player; what a player gets is `PublicGame.log` ([Events and the log](12-events-and-the-log.md)).
+- An engine builds its entries in its own `step`, which returns them next to the state, and hands them to the platform through `GAME.step` (Flip 7, Exploding Kittens). Exploding Kittens adds one with `emit(ctx, event, to, masked)` (`games/exploding-kittens/packages/engine/src/machine.ts`): the card a Favor gives is shown in full to the two players, and the others see who gave to whom.
 - Test an entry for the players it is addressed to, the others and a spectator, as a view ([Hidden information](#hidden-information)).

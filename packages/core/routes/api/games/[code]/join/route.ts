@@ -5,7 +5,7 @@ import { asksSomething } from "../../../../../lib/table-settings"
 import { ageGateFor } from "../../../../../server/age-gate"
 import { handle, readJson } from "../../../../../server/api"
 import { normalizeCode } from "../../../../../server/code"
-import { publicGame } from "../../../../../server/games"
+import { servedGame } from "../../../../../server/games"
 import { getOrCreatePlayerId } from "../../../../../server/player"
 import { type ProfileInput, resolveSeat } from "../../../../../server/profile"
 import { rateLimit } from "../../../../../server/rate-limit"
@@ -31,5 +31,5 @@ export const postJoin = (ageRules: AgeRulesSource) =>
     const viewer = asksSomething(settings) ? await viewerFor(game.slug, memberId, settings) : null
     const { row, added } = await joinTable(game, params.code ?? "", { id, profile, memberId }, { gate, maxPlayers, settings, viewer })
     // The seat that fills a table is the one that begins it
-    return publicGame(game, added ? await startWhenFull(game, row, { id, actor: seat }, { ageRules, settings }) : row, id)
+    return servedGame(game, added ? await startWhenFull(game, row, { id, actor: seat }, { ageRules, settings }) : row, id)
   })

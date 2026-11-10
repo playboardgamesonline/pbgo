@@ -71,6 +71,7 @@ The table the cards lie on is an endless surface: one colour and, if the game gi
 - Without a `map`, the surface is the colour the canvas is cleared to, not a shape in the scene. There is no edge to reach and no size to outgrow, so no camera sees an end of it: tilted to the horizon or pulled back (try both in [Camera](02-camera.md)), in the entrance or in the share photo.
 - With a `map`, the picture covers a plane `REACH` times wider than the camera's `far` and fades into `color` with distance, from `FOG_START` of `far` to `far`. The fade is the scene's fog: keep `far` well past the cards, or they fade too.
 - The surface lies under everything and takes no clicks ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)). The cards and the seats lie over it, a card at `RESTING_HEIGHT` ([Poses](05-poses-and-motion.md)).
+- The surface is pushed back in the depth buffer (`POLYGON_OFFSET` in `surface.tsx`). It is one plane a thousand units wide, whose depth is not exact over such a size, and without the push what lies a hair above it, the plates of a board or the line of a zone, sank into it wherever the camera stood far from the table.
 - A mat, a board picture or a vignette is a plane the game draws on the table. It has an edge, so it is the game's to place and to hide. A mat with a behaviour of its own, such as a shader that unrolls it, stays in the game.
 
 ## Share photo

@@ -3,7 +3,7 @@ import { CATALOGUE } from "./catalogue"
 import { close, open } from "./machine"
 import { OPTIONS } from "./options"
 import { startRound } from "./round"
-import type { State, Status } from "./types"
+import type { State, Status, Flip7Step } from "./types"
 
 /**
  * The booklet says "3+ players" and recommends a second deck past 18, which this engine does not have. The web edition seats 3 to 8: a line
@@ -16,11 +16,11 @@ export const MAX_PLAYERS = 8
 const IDS_STREAM = 1
 
 /**
- * A new game: the 94 cards are shuffled, a random player is the first dealer, and the first round is dealt (the dealer deals, and the
+ * A new game, and what happened while it was set up: the 94 cards are shuffled, a random player is the first dealer, and the first round is dealt (the dealer deals, and the
  * round goes on until the game needs a player). Everything comes from `seed` (drawn when missing): the same seed and the same options
- * deal the same game.
+ * deal the same game. The events are those of the first round, the log opens with them.
  */
-export function setupGame(args: { players: readonly PlayerInfo[]; options?: unknown; seed?: number }): State {
+export function setupStep(args: { players: readonly PlayerInfo[]; options?: unknown; seed?: number }): Flip7Step {
   const { players } = args
   const seats = Array.isArray(players) ? players.map((player) => player?.id) : []
   if (
@@ -57,5 +57,10 @@ export function setupGame(args: { players: readonly PlayerInfo[]; options?: unkn
   }
   const ctx = open(state)
   startRound(ctx)
-  return close(ctx).state
+  return close(ctx)
+}
+
+/** A new game: the state of `setupStep`. */
+export function setupGame(args: { players: readonly PlayerInfo[]; options?: unknown; seed?: number }): State {
+  return setupStep(args).state
 }

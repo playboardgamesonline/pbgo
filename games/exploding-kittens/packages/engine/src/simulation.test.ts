@@ -5,7 +5,7 @@ import { step } from "./actions"
 import { GAME } from "./game"
 import { ORIGINAL_RULES } from "./rules"
 import { deepFreeze, kittensInPlay, living, newState, oneOf, playRandomly, problems, randomAction, reorderKeys, seedOf, typesOf, viewOf } from "./test-utils"
-import { type Action, CLIENT_ACTIONS, EK_ERROR_CODES, type EkEvent, type EkLogEntry, type Face, type Phase, type PlayerView, type State, type Step } from "./types"
+import { type Action, CLIENT_ACTIONS, EK_ERROR_CODES, type EkEvent, type EkLogEntry, type Face, type Phase, type PlayerView, type State, type EkStep } from "./types"
 
 /**
  * Whole games of the Original Edition, played at random and checked after every move.
@@ -841,7 +841,7 @@ function attempt(run: () => State): Outcome {
 
 const outcomeOf = (state: State, action: unknown): Outcome => attempt(() => GAME.apply(state, action as Action))
 
-function stepOf(state: State, action: unknown): Step | null {
+function stepOf(state: State, action: unknown): EkStep | null {
   try {
     return step(ORIGINAL_RULES, state, action as Action)
   } catch {

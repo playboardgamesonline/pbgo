@@ -2,7 +2,7 @@ import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { trackAfter, trackAnonymously, trackGameFinished } from "../../../../../server/analytics"
 import { handle } from "../../../../../server/api"
-import { deleteEmptyTable, publicGame, updateGame } from "../../../../../server/games"
+import { deleteEmptyTable, servedGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { markTakenOver, recordGameResult } from "../../../../../server/results"
@@ -40,11 +40,12 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     outcome.left = row.status === "playing"
     if (!outcome.left || !row.state || !patch.players) return patch
     // The seat is the server's from now on: the steps that the game waits for from players who left are played at once
-    const settled = settleLeavers(GAME, row.state, patch.players)
+    const settled = settleLeavers(GAME, row.state, patch.players, Date.now())
     outcome.played = settled.played
     if (!settled.played.length) return patch
     outcome.ended = GAME.isOver(settled.state)
-    return { ...patch, state: settled.state, status: outcome.ended ? "over" : "playing", takeover_votes: [] }
+    // What the plays said happened goes in the log of the table, as for any move
+    return { ...patch, state: settled.state, status: outcome.ended ? "over" : "playing", takeover_votes: [], ...(settled.events?.length ? { log: { entries: settled.events } } : {}) }
   })
 
   // Only a leave that wrote something can have emptied the table: a request that changed nothing never deletes one
@@ -61,5 +62,5 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
       if (outcome.ended) await recordGameResult(game, row, { takenOver })
     })
   }
-  return publicGame(game, row, id)
+  return servedGame(game, row, id)
 })

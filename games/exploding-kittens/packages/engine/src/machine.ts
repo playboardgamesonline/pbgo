@@ -1,7 +1,7 @@
 import { EngineError, type SaveableRng, cardOf, openSubmissions, reissueId, reissueIds, restoreRng } from "@pbgo/engine-kit"
 import { type CardKind, type CardType, buildCatalogue } from "./catalogue"
 import type { Rules } from "./rules"
-import type { EkEvent, EkLogEntry, Face, Pending, State, Step } from "./types"
+import type { EkEvent, EkLogEntry, Face, Pending, State, EkStep } from "./types"
 
 /**
  * The machinery every rule is written with: one step of the game is `open` (a private copy of the state), a few mutations, then
@@ -40,7 +40,7 @@ export function open(rules: Rules, state: State): Ctx {
 }
 
 /** A step ends here: the streams are saved back into the state, which comes out with what happened. */
-export function close(ctx: Ctx): Step {
+export function close(ctx: Ctx): EkStep {
   ctx.s.rng = ctx.rng.save()
   ctx.s.idsRng = ctx.idsRng.save()
   return { state: ctx.s, events: ctx.events }

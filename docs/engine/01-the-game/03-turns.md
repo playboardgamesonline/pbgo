@@ -4,14 +4,14 @@ The engine tells the server whose move it is with `waitingFor`, and how to play 
 
 ## Kinds of game
 
-A game's kind is how many players `waitingFor` names at a time and what ends the wait. The framework has the first two kinds; the others are not built ([Not built yet](../03-not-built-yet.md)).
+A game's kind is how many players `waitingFor` names at a time and what ends the wait. The framework has the first two kinds, either of them with a clock; the others are not built ([Not built yet](../03-not-built-yet.md)).
 
 | Kind | How it plays | In the framework | Examples |
 | --- | --- | --- | --- |
 | Turn by turn | One player acts, then the next | `waitingFor` lists one player | Flip 7, Exploding Kittens, Courtisans |
 | Simultaneous step | Several players answer in any order, the last answer ends the step | `waitingFor` lists several players ([Simultaneous steps](#simultaneous-steps)) | The secret bids of the template, the Nope window of Exploding Kittens, the reading of the missions in Courtisans |
 | Without turns | Any player acts at any moment | Not built | The Mind |
-| Real time | A clock closes the wait | Not built (PLT-43) | |
+| Timed | A clock closes the wait, and the game plays for the players it was waiting for | A `Timer` in the state, `begin`, `nextDeadline` and a system action ([Timers](../02-components/20-timers.md)) | The template's option `turnSeconds` |
 | Asynchronous | Turns spread over several days | Not built (PLT-30) | |
 
 A game can mix the first two: most of its play is turn by turn and some steps are simultaneous.
@@ -66,6 +66,7 @@ A simultaneous step is one that several players answer in any order, the last an
 - In `view`, show `submittedFlags` and no answer until the step is resolved.
 - A game whose answers are final refuses the second one itself, with its own `EngineError`, before it calls `submit`.
 - `0`, an empty string and `false` are answers, only `null` means no answer, and a step with no player is complete.
+- On the table, an answer that is given and not yet known is a card face down at its player's seat, and the bids turn over together when the step is resolved: [A bid made with cards](../02-components/12-bets-and-choices.md#a-bid-made-with-cards).
 
 ## Absent players
 

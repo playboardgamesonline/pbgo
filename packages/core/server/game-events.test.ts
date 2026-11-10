@@ -1,6 +1,6 @@
 import { assertNoPersonalData } from "@pbgo/analytics/privacy"
-import { EngineError, type AnyGameDefinition } from "@pbgo/engine-kit"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { EngineError, systemAction, SYSTEM_PLAYER, type AnyGameDefinition, type SetupArgs } from "@pbgo/engine-kit"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { NO_AGE_RULES } from "../lib/age-rules"
 import type { GameRouteContext } from "../lib/binding"
 import { DEFAULT_REACTION_IDS } from "../lib/chat"
@@ -15,6 +15,7 @@ import { POST as replay } from "../routes/api/games/[code]/replay/route"
 import { GET as read } from "../routes/api/games/[code]/route"
 import { postStart } from "../routes/api/games/[code]/start/route"
 import { POST as takeover } from "../routes/api/games/[code]/takeover/route"
+import { POST as tick } from "../routes/api/games/[code]/tick/route"
 import { postGame } from "../routes/api/games/route"
 import { createGame, stateFingerprint } from "./games"
 import { voteEntry } from "./takeover"
@@ -73,6 +74,14 @@ const h = vi.hoisted(() => ({
   record: vi.fn<(game: { slug: string }, row: { code: string; status: string; version: number }, context?: object) => Promise<void>>(async () => {}),
   started: vi.fn<(game: { slug: string }, row: { code: string; status: string }) => Promise<void>>(async () => {}),
   takenOver: vi.fn<(game: { slug: string }, code: string, players: readonly string[]) => Promise<void>>(async () => {}),
+  /** The `game_log` table: what each move said, under the version of the table that it produced */
+  log: [] as Array<{ game: string; code: string; version: number; entries: unknown[] }>,
+  /** The code that the calls on `game_log` fail with instead of working; null: they work */
+  logError: null as string | null,
+  /** How many times the log of a table was read */
+  logReads: 0,
+  /** What the database was asked, in order: `log` when a move is written to the log, `notify` when the players of the table are told */
+  order: [] as string[],
   /** The seats `busy_seats` finds in a game somewhere else (PLT-120), and what the routes asked of the database */
   busy: [] as string[],
   rpcCalls: [] as Array<{ name: string; args: Record<string, unknown> }>,
@@ -118,6 +127,50 @@ vi.mock("./supabase", () => {
       return { data: [{ code: row.code }], error: null }
     }
   }
+  /** `from("game_log").select(…)` and `.delete()`, which are awaited after their filters: a thenable */
+  class LogQuery implements PromiseLike<{ data: unknown; error: unknown }> {
+    private filters: Record<string, unknown> = {}
+    private descending = false
+    private max = Infinity
+    constructor(private kind: "select" | "delete") {}
+    eq(column: string, value: unknown) {
+      this.filters[column] = value
+      return this
+    }
+    order(_column: string, options: { ascending: boolean }) {
+      this.descending = !options.ascending
+      return this
+    }
+    limit(count: number) {
+      this.max = count
+      return this
+    }
+    private run() {
+      if (h.logError) return { data: null, error: { code: h.logError } }
+      const mine = h.log.filter((row) => row.game === this.filters.game && row.code === this.filters.code)
+      if (this.kind === "delete") {
+        h.log = h.log.filter((row) => !mine.includes(row))
+        return { data: null, error: null }
+      }
+      h.logReads += 1
+      const sorted = [...mine].sort((a, b) => (this.descending ? b.version - a.version : a.version - b.version))
+      return { data: structuredClone(sorted.slice(0, this.max).map(({ version, entries }) => ({ version, entries }))), error: null }
+    }
+    then<A = { data: unknown; error: unknown }, B = never>(resolve?: ((value: { data: unknown; error: unknown }) => A | PromiseLike<A>) | null, reject?: ((reason: unknown) => B | PromiseLike<B>) | null) {
+      return Promise.resolve(this.run()).then(resolve, reject)
+    }
+  }
+  const logTable = {
+    select: () => new LogQuery("select"),
+    delete: () => new LogQuery("delete"),
+    insert: async (row: { game: string; code: string; version: number; entries: unknown[] }) => {
+      if (h.logError) return { error: { code: h.logError } }
+      if (h.log.some((r) => r.game === row.game && r.code === row.code && r.version === row.version)) return { error: { code: "23505" } }
+      h.order.push("log")
+      h.log.push(structuredClone(row))
+      return { error: null }
+    },
+  }
   class Delete extends Filters {
     async select() {
       const hook = h.beforeDelete
@@ -131,20 +184,26 @@ vi.mock("./supabase", () => {
       return { data: [{ code: row.code }], error: null }
     }
   }
+  const gamesTable = {
+    select: () => new Select(),
+    update: (patch: Partial<StoredRow>) => new Update(patch),
+    delete: () => new Delete(),
+    insert: async (row: Record<string, unknown>) => {
+      const key = `${row.game}:${row.code}`
+      if (h.rows.has(key)) return { error: { code: "23505" } }
+      const now = new Date().toISOString()
+      h.rows.set(key, { ...structuredClone(row), created_at: now, updated_at: now } as StoredRow)
+      return { error: null }
+    },
+  }
   const db = {
-    from: () => ({
-      select: () => new Select(),
-      update: (patch: Partial<StoredRow>) => new Update(patch),
-      delete: () => new Delete(),
-      insert: async (row: Record<string, unknown>) => {
-        const key = `${row.game}:${row.code}`
-        if (h.rows.has(key)) return { error: { code: "23505" } }
-        const now = new Date().toISOString()
-        h.rows.set(key, { ...structuredClone(row), created_at: now, updated_at: now } as StoredRow)
-        return { error: null }
+    from: (table: string) => (table === "game_log" ? logTable : gamesTable),
+    channel: () => ({
+      httpSend: async () => {
+        h.order.push("notify")
+        return { success: true as const }
       },
     }),
-    channel: () => ({ httpSend: async () => ({ success: true as const }) }),
     rpc: async (name: string, args: Record<string, unknown>) => {
       h.rpcCalls.push({ name, args })
       return name === "busy_seats" ? { data: h.busy, error: null } : { data: null, error: { message: `function public.${name} does not exist` } }
@@ -315,6 +374,10 @@ beforeEach(() => {
   h.record.mockClear()
   h.started.mockClear()
   h.takenOver.mockClear()
+  h.log = []
+  h.logError = null
+  h.logReads = 0
+  h.order.length = 0
   h.busy = []
   h.rpcCalls.length = 0
   h.playerId = null
@@ -1004,6 +1067,527 @@ describe("chat_message_sent", () => {
     h.playerId = "p1"
     expect((await call(chat, { text: "   " })).status).toBe(400)
     expect(names()).toEqual([])
+  })
+})
+
+// A game that says what its moves did: each move is an event of the log, and the mover also looks at a card that only they may read in full.
+type Moved = { kind: "moved"; by: string; turn: number }
+const LOGGED: AnyGameDefinition = {
+  ...GAME,
+  id: "logged",
+  step: (state: TestState, action: { playerId: string }) => ({
+    state: GAME.apply(state, action),
+    events: [
+      { event: { kind: "moved", by: action.playerId, turn: state.turn } satisfies Moved },
+      { event: { kind: "looked", by: action.playerId, card: 100 + state.turn }, to: [action.playerId], masked: { kind: "looked", by: action.playerId } },
+    ],
+  }),
+  autoPlayStep: (state: TestState, playerId: string) => ({ state: GAME.autoPlayFor!(state, playerId), events: [{ event: { kind: "moved", by: playerId, turn: state.turn } satisfies Moved }] }),
+  progress: (state: TestState) => (state.turn / state.length) * 100,
+  // The first round is dealt while the game is set up: the log opens with it
+  setupStep: (args: SetupArgs) => ({ state: GAME.setup(args), events: [{ event: { kind: "dealt", players: args.players.length } }] }),
+}
+const logged = gameOf(LOGGED)
+type Served = { status: string; version: number; progress: number | null; log: Array<{ v: number; event: Record<string, unknown> }> }
+const served = async (response: Response) => (await response.json()) as Served
+
+describe("the log of a table", () => {
+  it("keeps what a move said under the version of the table that the move produced, and sends it back to the player who moved", async () => {
+    playing(["p1", "p2"], 0)
+    h.playerId = "p1"
+    const response = await call(action, { type: "move" }, CODE, logged)
+    expect(response.status).toBe(200)
+    expect(h.log).toEqual([
+      {
+        game: SLUG,
+        code: CODE,
+        version: 8,
+        entries: [
+          { event: { kind: "moved", by: "p1", turn: 0 } },
+          { event: { kind: "looked", by: "p1", card: 100 }, to: ["p1"], masked: { kind: "looked", by: "p1" } },
+        ],
+      },
+    ])
+    expect(stored().version).toBe(8)
+    expect((await served(response)).log).toEqual([
+      { v: 8, event: { kind: "moved", by: "p1", turn: 0 } },
+      { v: 8, event: { kind: "looked", by: "p1", card: 100 } },
+    ])
+  })
+
+  it("sends every viewer their own reading of it: an event in full to those it is addressed to, what the others read instead to the rest, spectators included", async () => {
+    playing(["p1", "p2"], 0)
+    h.playerId = "p1"
+    await call(action, { type: "move" }, CODE, logged)
+    for (const [viewer, looked] of [
+      ["p1", { kind: "looked", by: "p1", card: 100 }],
+      ["p2", { kind: "looked", by: "p1" }],
+      [null, { kind: "looked", by: "p1" }],
+    ] as const) {
+      h.playerId = viewer
+      const { log } = await served(await call(read, {}, CODE, logged))
+      expect(log).toEqual([
+        { v: 8, event: { kind: "moved", by: "p1", turn: 0 } },
+        { v: 8, event: looked },
+      ])
+    }
+  })
+
+  it("keeps the moves in the order they were played, each line with the version of its move", async () => {
+    playing(["p1", "p2"], 0)
+    h.playerId = "p1"
+    await call(action, { type: "move" }, CODE, logged)
+    h.playerId = "p2"
+    await call(action, { type: "move" }, CODE, logged)
+    expect(h.log.map((row) => row.version)).toEqual([8, 9])
+    const { log } = await served(await call(read, {}, CODE, logged))
+    expect(log.map((line) => [line.v, line.event.kind, line.event.by])).toEqual([
+      [8, "moved", "p1"],
+      [8, "looked", "p1"],
+      [9, "moved", "p2"],
+      [9, "looked", "p2"],
+    ])
+  })
+
+  it("sends at most the last lines of it", async () => {
+    playing(["p1", "p2"], 0)
+    for (let version = 8; version < 88; version++) h.log.push({ game: SLUG, code: CODE, version, entries: [{ event: { kind: "moved", by: "p1", turn: version } }] })
+    h.playerId = "p2"
+    const { log } = await served(await call(read, {}, CODE, logged))
+    expect(log).toHaveLength(60)
+    expect(log[0]?.v).toBe(28)
+    expect(log.at(-1)?.v).toBe(87)
+  })
+
+  it("writes nothing for a move the engine refuses", async () => {
+    playing(["p1", "p2"], 0)
+    h.playerId = "p2"
+    expect((await call(action, { type: "move" }, CODE, logged)).status).toBe(400)
+    expect(h.log).toEqual([])
+    expect(stored().version).toBe(7)
+  })
+
+  it("writes once, under the version that won, when the write lost a race and the move is played again", async () => {
+    playing(["p1", "p2"], 0)
+    h.playerId = "p1"
+    race(() => ({}))
+    expect((await call(action, { type: "move" }, CODE, logged)).status).toBe(200)
+    expect(h.log.map((row) => row.version)).toEqual([9])
+  })
+
+  it("is written before the others are told, so that whoever reads on the ping finds the move in it", async () => {
+    playing(["p1", "p2"], 0)
+    h.playerId = "p1"
+    await call(action, { type: "move" }, CODE, logged)
+    expect(h.order).toEqual(["log", "notify"])
+  })
+
+  it("keeps what is played for an absent player, as the takeover plays it", async () => {
+    stalled(["p1", "p2"], 1)
+    h.playerId = "p1"
+    expect((await call(takeover, {}, CODE, logged)).status).toBe(200)
+    expect(h.log).toEqual([{ game: SLUG, code: CODE, version: 8, entries: [{ event: { kind: "moved", by: "p2", turn: 1 } }] }])
+  })
+
+  it("starts again with a new game on the table, and leaves the logs of the other tables alone", async () => {
+    seed({ status: "over", players: [ann, bob], state: { players: ["p1", "p2"], turn: 3, length: 3 }, version: 9 })
+    h.log.push(
+      { game: SLUG, code: CODE, version: 9, entries: [{ event: { kind: "moved", by: "p1", turn: 2 } }] },
+      { game: SLUG, code: "ZZZ999", version: 3, entries: [{ event: { kind: "moved", by: "x", turn: 0 } }] },
+    )
+    h.playerId = "p1"
+    await call(replay, {}, CODE, logged)
+    expect(h.log).toHaveLength(2)
+
+    h.playerId = "p2"
+    await call(replay, {}, CODE, logged)
+    expect(stored().status).toBe("playing")
+    // The old game's lines are gone and the new game's log opens with what its setup said, under the version of the write that made it
+    expect(h.log).toEqual([
+      { game: SLUG, code: "ZZZ999", version: 3, entries: [{ event: { kind: "moved", by: "x", turn: 0 } }] },
+      { game: SLUG, code: CODE, version: 11, entries: [{ event: { kind: "dealt", players: 2 } }] },
+    ])
+    h.playerId = "p1"
+    expect((await served(await call(read, {}, CODE, logged))).log).toEqual([{ v: 11, event: { kind: "dealt", players: 2 } }])
+  })
+
+  it("opens with what the setup said when the host starts the table", async () => {
+    seed({ players: [ann, bob] })
+    h.playerId = "p1"
+    expect((await call(start, {}, CODE, logged)).status).toBe(200)
+    expect(stored().status).toBe("starting")
+    expect(h.log).toEqual([{ game: SLUG, code: CODE, version: 2, entries: [{ event: { kind: "dealt", players: 2 } }] }])
+  })
+
+  it("is neither read nor written for a game that says nothing of what its moves did", async () => {
+    playing(["p1", "p2"], 0)
+    h.playerId = "p1"
+    const response = await call(action, { type: "move" })
+    expect(response.status).toBe(200)
+    expect((await served(response)).log).toEqual([])
+    await call(read)
+    expect(h.log).toEqual([])
+    expect(h.logReads).toBe(0)
+  })
+
+  it("is not read for a table that has no game in it yet", async () => {
+    seed()
+    h.playerId = "p1"
+    expect((await served(await call(read, {}, CODE, logged))).log).toEqual([])
+    expect(h.logReads).toBe(0)
+  })
+
+  it("lets the game go on when it cannot be written or read, and says so in the logs unless the migration is just not applied yet", async () => {
+    const complain = vi.spyOn(console, "error").mockImplementation(() => {})
+    try {
+      playing(["p1", "p2"], 0)
+      h.playerId = "p1"
+      h.logError = "XX000"
+      const response = await call(action, { type: "move" }, CODE, logged)
+      expect(response.status).toBe(200)
+      expect((stored().state as TestState).turn).toBe(1)
+      expect((await served(response)).log).toEqual([])
+      expect(complain).toHaveBeenCalled()
+
+      complain.mockClear()
+      h.logError = "PGRST205"
+      h.playerId = "p2"
+      expect((await call(action, { type: "move" }, CODE, logged)).status).toBe(200)
+      expect(complain).not.toHaveBeenCalled()
+    } finally {
+      complain.mockRestore()
+    }
+  })
+})
+
+describe("how far the game has come", () => {
+  it("is sent with the table when the game says it, and moves with the game", async () => {
+    playing(["p1", "p2"], 0)
+    h.playerId = "p1"
+    expect((await served(await call(read, {}, CODE, logged))).progress).toBe(0)
+    const moved = await served(await call(action, { type: "move" }, CODE, logged))
+    expect(moved.progress).toBe(10)
+    h.playerId = null
+    expect((await served(await call(read, {}, CODE, logged))).progress).toBe(10)
+  })
+
+  it("is 100 once the game is over, and never 100 before", async () => {
+    playing(["p1", "p2"], 8, 10)
+    h.playerId = "p1"
+    expect((await served(await call(action, { type: "move" }, CODE, logged))).progress).toBe(90)
+    h.playerId = "p2"
+    const over = await served(await call(action, { type: "move" }, CODE, logged))
+    expect(over.status).toBe("over")
+    expect(over.progress).toBe(100)
+  })
+
+  it("is null for a game that does not say it, and for a table with no game in it", async () => {
+    playing(["p1", "p2"], 3)
+    h.playerId = "p1"
+    expect((await served(await call(read))).progress).toBeNull()
+    seed()
+    expect((await served(await call(read, {}, CODE, logged))).progress).toBeNull()
+  })
+})
+
+describe("the debug tools of a table", () => {
+  afterEach(() => vi.unstubAllEnvs())
+
+  const saved = (players: string[], state: unknown, game = SLUG) => ({ game, players, state, savedAt: "2026-11-10T00:00:00.000Z" })
+  const json = async (response: Response) => (await response.json()) as Record<string, unknown>
+
+  describe("state", () => {
+    it("gives the state of the table with its seats in order, to keep", async () => {
+      playing(["p1", "p2"], 4)
+      h.playerId = "p1"
+      const response = await call(debug, { command: "state" })
+      expect(response.status).toBe(200)
+      expect(await json(response)).toEqual({ game: SLUG, players: ["p1", "p2"], state: { players: ["p1", "p2"], turn: 4, length: 10 }, savedAt: expect.any(String) })
+      expect(stored().version).toBe(7)
+    })
+
+    it("is refused to somebody who does not sit at the table, and for a table with no game in it", async () => {
+      playing(["p1", "p2"], 4)
+      h.playerId = "stranger"
+      expect((await call(debug, { command: "state" })).status).toBe(403)
+      h.playerId = null
+      expect((await call(debug, { command: "state" })).status).toBe(403)
+      seed({ players: [ann, bob] })
+      h.playerId = "p1"
+      expect((await call(debug, { command: "state" })).status).toBe(409)
+    })
+  })
+
+  describe("load", () => {
+    it("puts a saved state in the place of the state of the table, its seats mapped on the table's, and clears the votes", async () => {
+      playing(["p1", "p2"], 1, 10, { takeover_votes: ["old"] })
+      h.playerId = "p1"
+      const response = await call(debug, { command: "load", saved: saved(["x", "y"], { players: ["x", "y"], turn: 7, length: 10 }) })
+      expect(response.status).toBe(200)
+      expect(stored().state).toEqual({ players: ["p1", "p2"], turn: 7, length: 10 })
+      expect(stored().status).toBe("playing")
+      expect(stored().takeover_votes).toEqual([])
+    })
+
+    it("starts the log of the table again, for a game that keeps one", async () => {
+      playing(["p1", "p2"], 1)
+      h.log.push({ game: SLUG, code: CODE, version: 5, entries: [{ event: { kind: "moved", by: "p1", turn: 0 } }] })
+      h.playerId = "p1"
+      expect((await call(debug, { command: "load", saved: saved(["p1", "p2"], { players: ["p1", "p2"], turn: 3, length: 10 }) }, CODE, logged)).status).toBe(200)
+      expect(h.log).toEqual([])
+    })
+
+    it("begins a game on a table that has none, and ends one when the state it loads is over, written down as a debug game", async () => {
+      seed({ players: [ann, bob] })
+      h.playerId = "p1"
+      expect((await call(debug, { command: "load", saved: saved(["a", "b"], { players: ["a", "b"], turn: 2, length: 10 }) })).status).toBe(200)
+      expect(stored().status).toBe("playing")
+      expect((await call(debug, { command: "load", saved: saved(["a", "b"], { players: ["a", "b"], turn: 10, length: 10 }) })).status).toBe(200)
+      expect(stored().status).toBe("over")
+      await afterResponse()
+      expect(h.record).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), expect.objectContaining({ status: "over" }), { debug: true })
+    })
+
+    it("refuses what is not a state of this game for this many seats, or that the engine cannot read, and writes nothing", async () => {
+      playing(["p1", "p2"], 1)
+      h.playerId = "p1"
+      const bad = [
+        saved(["x", "y"], { players: ["x", "y"], turn: 7, length: 10 }, "hanabi"),
+        saved(["x", "y", "z"], { players: ["x", "y", "z"], turn: 7, length: 10 }),
+        saved(["x", "y"], {}),
+        saved(["x", "y"], null),
+        null,
+        "text",
+      ]
+      for (const one of bad) {
+        const response = await call(debug, { command: "load", saved: one })
+        expect([response.status, (await json(response)).error]).toEqual([400, "INVALID_STATE"])
+      }
+      expect(stored().version).toBe(7)
+      expect(stored().state).toEqual({ players: ["p1", "p2"], turn: 1, length: 10 })
+    })
+
+    it("is refused to somebody who does not sit at the table", async () => {
+      playing(["p1", "p2"], 1)
+      h.playerId = "stranger"
+      expect((await call(debug, { command: "load", saved: saved(["x", "y"], { players: ["x", "y"], turn: 7, length: 10 }) })).status).toBe(403)
+    })
+  })
+
+  it("is off on a production deployment, for every command, unless DEBUG_GAMES says 1", async () => {
+    playing(["p1", "p2"], 0)
+    h.playerId = "p1"
+    vi.stubEnv("NODE_ENV", "production")
+    for (const command of ["start", "state", "load", "turn"]) {
+      const response = await call(debug, { command, saved: saved(["x", "y"], {}) })
+      expect([command, response.status, (await json(response)).error]).toEqual([command, 403, "DEBUG_DISABLED"])
+    }
+    vi.stubEnv("DEBUG_GAMES", "1")
+    expect((await call(debug, { command: "state" })).status).toBe(200)
+  })
+})
+
+describe("the clock of a game", () => {
+  // A game where each turn lasts ten seconds: a turn that runs out is played by the clock, and the next one starts its clock from the time the last one ended at
+  type TimedState = TestState & { deadline: number | null; at: number | null }
+  const TURN_MS = 10_000
+  const advance = (state: TimedState, at: number | undefined): TimedState => {
+    const next = { ...state, turn: state.turn + 1, at: at ?? null }
+    return { ...next, deadline: at === undefined || isOver(next) ? null : at + TURN_MS }
+  }
+  const TIMED: AnyGameDefinition = {
+    ...GAME,
+    id: "timed",
+    setup: ({ players, options }: { players: Array<{ id: string }>; options: Record<string, unknown> }): TimedState => ({ players: players.map((p) => p.id), turn: 0, length: Number(options.rounds), deadline: null, at: null }),
+    begin: (state: TimedState, at: number): TimedState => ({ ...state, deadline: at + TURN_MS }),
+    apply: (state: TimedState, action: { type: string; playerId: string; at?: number }): TimedState => {
+      if (action.type === "timeout" && action.playerId !== SYSTEM_PLAYER) throw new EngineError("INVALID_ACTION")
+      if (action.type !== "timeout" && !waitingFor(state).includes(action.playerId)) throw new EngineError("NOT_YOUR_TURN")
+      return advance(state, action.at)
+    },
+    autoPlayFor: (state: TimedState, _playerId: string, at?: number): TimedState => advance(state, at),
+    nextDeadline: (state: TimedState) => (isOver(state) || state.deadline === null ? null : { at: state.deadline, action: systemAction("timeout", state.deadline) }),
+  }
+  const timed = gameOf(TIMED)
+
+  /** A table in play whose turn is at `turn` and whose clock says the turn ends in `left` ms (negative: it ended that long ago). */
+  function clocked(ids: string[], turn: number, left: number, length = 10, partial: Partial<StoredRow> = {}) {
+    return seed({
+      status: "playing",
+      host_id: ids[0] ?? "",
+      players: ids.map((id) => ({ id, nickname: id.toUpperCase() })),
+      state: { players: ids, turn, length, deadline: Date.now() + left, at: null } satisfies TimedState,
+      version: 7,
+      ...partial,
+    })
+  }
+  const state = () => stored().state as TimedState
+  const json = async (response: Response) => (await response.json()) as { error?: string; status: string; deadlineInMs: number | null; waitingFor: string[]; version: number }
+  const flush = async () => void (await Promise.all(h.scheduled.splice(0).map((callback) => callback())))
+
+  it("tells a board how much time is left, as a duration", async () => {
+    clocked(["p1", "p2"], 0, 6_000)
+    h.playerId = "p1"
+    const table = await json(await call(read, undefined, CODE, timed))
+    expect(table.deadlineInMs).toBeGreaterThan(5_000)
+    expect(table.deadlineInMs).toBeLessThanOrEqual(6_000)
+    expect(stored().version).toBe(7)
+  })
+
+  it("tells nothing of a game with no clock, and writes nothing for it", async () => {
+    playing(["p1", "p2"], 0)
+    h.playerId = "p1"
+    const table = await json(await call(read))
+    expect(table.deadlineInMs).toBeNull()
+    expect(stored().version).toBe(7)
+  })
+
+  it("tells nothing outside a game in progress", async () => {
+    seed({ status: "lobby", players: [ann, bob] })
+    h.playerId = "p1"
+    expect((await json(await call(read, undefined, CODE, timed))).deadlineInMs).toBeNull()
+  })
+
+  it("plays a deadline that has passed on the first look at the table, at the time it was due", async () => {
+    clocked(["p1", "p2"], 0, -3_000)
+    const due = (state() as TimedState).deadline!
+    h.playerId = "p2"
+    const table = await json(await call(read, undefined, CODE, timed))
+    expect(stored().version).toBe(8)
+    expect(state().turn).toBe(1)
+    // The play carries the time of the deadline, not the time it was played at, and the next turn's clock starts from it
+    expect(state().at).toBe(due)
+    expect(state().deadline).toBe(due + TURN_MS)
+    expect(table.waitingFor).toEqual(["p2"])
+    expect(table.deadlineInMs).toBeGreaterThan(6_000)
+  })
+
+  it("plays the deadlines of a table that nobody looked at for a while, in order, and no more than are due", async () => {
+    clocked(["p1", "p2"], 0, -35_000)
+    h.playerId = "p1"
+    await call(read, undefined, CODE, timed)
+    expect(state().turn).toBe(4)
+    expect(state().deadline).toBeGreaterThan(Date.now())
+    expect(stored().version).toBe(8)
+  })
+
+  it("does nothing for a deadline that has not come", async () => {
+    clocked(["p1", "p2"], 0, 5_000)
+    h.playerId = "p1"
+    await call(read, undefined, CODE, timed)
+    expect(stored().version).toBe(7)
+    expect(state().turn).toBe(0)
+  })
+
+  it("is played by the tick of a board, once, whoever sends it and however many do at once", async () => {
+    clocked(["p1", "p2"], 0, -1_000)
+    h.playerId = "p2"
+    expect((await call(tick, {}, CODE, timed)).status).toBe(200)
+    expect(state().turn).toBe(1)
+    expect(stored().version).toBe(8)
+    h.playerId = "p1"
+    await call(tick, {}, CODE, timed)
+    expect(state().turn).toBe(1)
+    expect(stored().version).toBe(8)
+  })
+
+  it("is played once when another request wins the race to play it", async () => {
+    clocked(["p1", "p2"], 0, -1_000)
+    // The request that wins the race plays the deadline itself, as the real one would
+    race((row) => {
+      const at = (row.state as TimedState).deadline!
+      return { state: advance(row.state as TimedState, at) }
+    })
+    h.playerId = "p1"
+    await call(tick, {}, CODE, timed)
+    expect(state().turn).toBe(1)
+    expect(stored().version).toBe(9 - 1)
+  })
+
+  it("plays the players the clock played for as played for, so that they count for no rating", async () => {
+    clocked(["p1", "p2"], 0, -1_000)
+    h.playerId = "p2"
+    await call(read, undefined, CODE, timed)
+    await flush()
+    expect(h.takenOver).toHaveBeenCalledWith(expect.anything(), CODE, ["p1"])
+  })
+
+  it("writes down a game that the clock ends, once", async () => {
+    clocked(["p1", "p2"], 1, -1_000, 2)
+    h.playerId = "p1"
+    const table = await json(await call(tick, {}, CODE, timed))
+    await flush()
+    expect(table.status).toBe("over")
+    expect(stored().status).toBe("over")
+    expect(h.record).toHaveBeenCalledTimes(1)
+    expect(h.record).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ status: "over" }), { takenOver: ["p2"] })
+    await call(tick, {}, CODE, timed)
+    await flush()
+    expect(h.record).toHaveBeenCalledTimes(1)
+  })
+
+  it("is played before a move, which is then judged on the table as it stands", async () => {
+    clocked(["p1", "p2"], 0, -1_000)
+    h.playerId = "p2"
+    const response = await call(action, { type: "move" }, CODE, timed)
+    expect(response.status).toBe(200)
+    // The turn of p1 ran out and was played by the clock, then p2 moved
+    expect(state().turn).toBe(2)
+    await flush()
+    expect(h.takenOver).toHaveBeenCalledWith(expect.anything(), CODE, ["p1"])
+  })
+
+  it("is not lost when a move is refused after it: the next look plays it", async () => {
+    clocked(["p1", "p2"], 0, -1_000)
+    h.playerId = "p1"
+    // It was p1's turn when they started to move, and the clock played it: their move is refused, and nothing is written
+    expect((await call(action, { type: "move" }, CODE, timed)).status).toBe(400)
+    expect(stored().version).toBe(7)
+    await call(read, undefined, CODE, timed)
+    expect(state().turn).toBe(1)
+  })
+
+  it("is stamped on a move by the server, whatever the client sent", async () => {
+    clocked(["p1", "p2"], 0, 5_000)
+    h.playerId = "p1"
+    const before = Date.now()
+    await call(action, { type: "move", at: 1 }, CODE, timed)
+    expect(state().at).toBeGreaterThanOrEqual(before)
+    expect(state().at).toBeLessThanOrEqual(Date.now())
+  })
+
+  it("cannot be played by a client: the action of a deadline is not one a client may send", async () => {
+    clocked(["p1", "p2"], 0, 60_000)
+    h.playerId = "p1"
+    for (const body of [{ type: "timeout" }, { type: "timeout", playerId: SYSTEM_PLAYER }]) expect((await call(action, body, CODE, timed)).status).toBe(400)
+    expect(state().turn).toBe(0)
+  })
+
+  it("starts when the last player is ready, not when the game was set up", async () => {
+    h.playerId = "p2"
+    const ids = ["p1", "p2"]
+    seed({
+      status: "starting",
+      host_id: "p1",
+      players: ids.map((id) => ({ id, nickname: id.toUpperCase() })),
+      state: { players: ids, turn: 0, length: 3, deadline: Date.now() - 5 * 60_000, at: null } satisfies TimedState,
+      ready_at: { p1: new Date().toISOString() },
+      ready_deadline: new Date(Date.now() + 30_000).toISOString(),
+      version: 7,
+    })
+    await call(ready, {}, CODE, timed)
+    expect(stored().status).toBe("playing")
+    // The clock of the first turn began now: the stale one from the set-up is gone
+    expect(state().deadline).toBeGreaterThan(Date.now() + TURN_MS - 2_000)
+  })
+
+  it("is played when the others vote to play for somebody, before the vote counts", async () => {
+    const ids = ["p1", "p2"]
+    clocked(ids, 0, -1_000, 10, { seen: Object.fromEntries(ids.map((id) => [id, new Date().toISOString()])), updated_at: new Date(Date.now() - 10 * 60_000).toISOString() })
+    h.playerId = "p2"
+    expect((await call(takeover, {}, CODE, timed)).status).toBe(200)
+    expect(state().turn).toBe(1)
+    expect(stored().takeover_votes).toEqual([])
   })
 })
 

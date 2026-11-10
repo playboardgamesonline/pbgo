@@ -1,9 +1,10 @@
+import { beginOf } from "@pbgo/engine-kit"
 import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { visibilityOf } from "../../../../../lib/table-settings"
 import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle } from "../../../../../server/api"
-import { publicGame, updateGame } from "../../../../../server/games"
+import { servedGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { readyExpired, readyPatch, expirePatch } from "../../../../../server/ready"
@@ -23,6 +24,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
 
   // Set by the run of the modifier that the write came from: a write lost to a concurrent request runs it again
   const outcome = { began: false }
+  const { GAME } = game.binding
   const row = await updateGame(game, params.code ?? "", (row) => {
     outcome.began = false
     if (!id || !row.players.some((player) => player.id === id)) throw new ApiError("UNKNOWN_PLAYER", 403)
@@ -30,7 +32,8 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     if (readyExpired(row, now)) return expirePatch(row)
     const patch = readyPatch(row, id, now)
     outcome.began = patch?.status === "playing"
-    return patch
+    // The game is live from this moment: the clock of its first step, if it has one, starts now and not when the host started the table
+    return patch && outcome.began && GAME.begin ? { ...patch, state: beginOf(GAME, row.state, now) } : patch
   })
   // The host is the one who started it, whoever was the last to be ready. Who may find the table is kept apart from it: it is read once, for the count, when the game begins
   if (outcome.began) {
@@ -40,5 +43,5 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     // The people who play leave the other lobbies where they sit: a player in a game cannot begin another, so they would only block them
     after(() => leaveOtherLobbies(game, row))
   }
-  return publicGame(game, row, id)
+  return servedGame(game, row, id)
 })

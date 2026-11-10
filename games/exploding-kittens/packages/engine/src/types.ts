@@ -200,4 +200,4 @@ export type EkEvent =
 export type EkLogEntry = LogEntry<EkEvent>
 
 /** What a step gives back: the new state and what happened, for the platform to keep (the state keeps no log). */
-export type Step = { state: State; events: EkLogEntry[] }
+export type EkStep = { state: State; events: EkLogEntry[] }

@@ -85,6 +85,7 @@ function componentsOf(from: { dir: readonly string[] }, specimens: Specimens | u
       switch (link.kind) {
         case "anchor":
         case "page":
+        case "route":
           return (
             <a href={link.href} className={LINK}>
               {children}

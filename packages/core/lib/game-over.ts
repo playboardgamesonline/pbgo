@@ -62,7 +62,8 @@ export function winnerAnnouncement(
   if (!results) return { phrase: "", detail: "", winners: [], kind: "victory" }
   if (endingOf(results) === "defeat") return { phrase: defeatText, detail: pointsText(results.players[0]?.total ?? 0), winners: [], kind: "defeat" }
   const winners = results.players.filter((j) => results.winners.includes(j.playerId))
-  const template = phrases[hash(game.code + (view.log?.length ?? 0)) % phrases.length] ?? ""
+  // Varies from one game of a table to the next: the length of the view's own log, or, for a game that keeps its history in the log of the table, the version of its last move
+  const template = phrases[hash(game.code + (view.log?.length ?? game.log?.at(-1)?.v ?? 0)) % phrases.length] ?? ""
   const phrase = template.split("{pseudo}")[0]!.replace("{points}", String(winners[0]?.total ?? 0)).replace(/[\s:,–-]+$/, "").trim()
   const names = winners.map((v) => game.players.find((j) => j.id === v.playerId)?.nickname).join(" & ")
   return { phrase, detail: `${names} · ${pointsText(winners[0]?.total ?? 0)}`, winners: winners.map((v) => v.playerId), kind: "victory" }

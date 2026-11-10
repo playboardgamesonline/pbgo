@@ -25,6 +25,7 @@ An engine is written from the data up to the definition: the box, the state, the
 
 - `game.ts` builds one `GameDefinition<State, Action, PlayerView>` and exports it as `GAME`. Every hook calls a part above, so the file holds no rule ([A minimal engine](../01-the-game/11-the-contract.md#a-minimal-engine)).
 - `index.ts` re-exports the kit with the engine's names, so the binding can import both from `@<slug>/engine`; a name the kit exports cannot be declared again by the engine.
+- A game that wants a history on the screen gives `step` and `autoPlayStep` (and `setupStep` when its setup plays moves) next to `apply` and `autoPlayFor`, and types its events as the last parameter of `GameDefinition`: the platform keeps what they say in the log of the table ([Events and the log](../01-the-game/12-events-and-the-log.md)). `apply` stays, as `step(state, action).state`.
 - The binding re-exports `GAME` ([Wiring the engine into the app](05-wiring-it-in.md)).
 
 From `games/flip-7/packages/engine/src/index.ts`:

@@ -2,10 +2,11 @@
 
 import type { PlayedCard, PlayerView } from "@template/engine"
 import { useEffect, useMemo, useState } from "react"
+import { Bids } from "./bids"
 import { CAMERA, PHOTO } from "./camera"
-import { PlayerSeat, Table, useSettings, Zone, type Pose, type ZoneCard } from "@pbgo/table"
+import { PlayerSeat, Table, Timer, useSettings, Zone, type Pose, type ZoneCard } from "@pbgo/table"
 import { GLOWS } from "./glows"
-import { DECK_POSE, backFrame, backLayout, backPose, collectedPose, handLayout, LAYOUT_SETTINGS, seats, trickPose } from "./layout"
+import { CLOCK, DECK_POSE, backFrame, backLayout, backPose, collectedPose, handLayout, LAYOUT_SETTINGS, seats, trickPose } from "./layout"
 import { CARD_SIZE, MAT_COLOR, backTexture, faceTexture, matTexture } from "./textures"
 
 function useCollect(view: PlayerView) {
@@ -20,7 +21,7 @@ function useCollect(view: PlayerView) {
   return state.phase
 }
 
-function World({ view, pointsText, onPlay, myTurn }: SceneProps) {
+function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: SceneProps) {
   // The table's own folders (camera, cards, seats, glows, lights...) are made by the shared `Table`; the game binds the knobs of its layout
   useSettings("Layout", LAYOUT_SETTINGS, {
     radiusX: ["seat ring radius x", 3, 14, 0.1],
@@ -91,6 +92,10 @@ function World({ view, pointsText, onPlay, myTurn }: SceneProps) {
         )
       })}
       <Zone layout={handLayout(hand.length, raised)} size={CARD_SIZE} enter={DECK_POSE} cards={handCards} />
+      {/* The bids of the simultaneous step, asked and shown with cards of the game's own on the table */}
+      <Bids view={view} slots={slots} canBid={canBid} onBid={onBid} />
+      {/* The clock of the step, for a game with the option `turnSeconds`: the game says how long a step lasts (the view), the platform when it ends (`deadlineAt`) */}
+      {view.timer && <Timer endsAt={deadlineAt} seconds={view.timer.seconds} at={CLOCK.at} size={CLOCK.size} />}
       {/* The middle of the table: the trick being played, and the last one on its way to its winner. Each card lies by its player's seat, so the layout is the game's own */}
       <Zone
         layout={middle.map(({ pose }) => pose)}
@@ -107,6 +112,12 @@ type SceneProps = {
   pointsText: (points: number) => string
   myTurn: boolean
   onPlay: (cardId: string) => void
+  /** The viewer may bid now: the players are bidding and no bid is waiting for the server */
+  canBid: boolean
+  /** The viewer pressed the bid card of this many tricks */
+  onBid: (amount: number) => void
+  /** Where the clock of the step ends, on the page's own clock (`deadlineAt` of the board props), null when none runs */
+  deadlineAt: number | null
   /** The start screen is up: the camera's entrance waits for it to go (`held` of the shared `Table`) */
   held?: boolean
   /** Called once when the table is drawn with everything it waited for (`onLoaded` of the shared `Table`) */

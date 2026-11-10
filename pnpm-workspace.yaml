@@ -76,6 +76,7 @@ catalog:
   "@react-three/fiber": ^9.8.2
   "@react-three/drei": ^10.7.9
   maath: ^0.10.8
+  "@dimforge/rapier3d-deterministic-compat": ^0.21.0
 
   # Sanity
   sanity: ^6.21.0

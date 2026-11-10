@@ -3,7 +3,7 @@ import type { GameRouteContext } from "../../../../../lib/binding"
 import { loadSettings } from "../../../../../lib/settings-server"
 import { trackAfter } from "../../../../../server/analytics"
 import { ApiError, handle } from "../../../../../server/api"
-import { loadSetupData, newGame, publicGame, readGame, updateGame } from "../../../../../server/games"
+import { loadSetupData, newGame, servedGame, readGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { markGameStarted } from "../../../../../server/results"
@@ -42,5 +42,5 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     trackAfter("rematch_started", id, { game: game.slug })
     after(() => markGameStarted(game, row))
   }
-  return publicGame(game, row, id)
+  return servedGame(game, row, id)
 })

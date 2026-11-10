@@ -1,6 +1,6 @@
 # Actions
 
-An action is what a player sends: `{ type, ...fields }`, where the server sets `playerId`; on the board it starts as a click. Core receives it in the action route and hands it to the engine's `apply`; the types a client may send are the engine's `clientActions`.
+An action is what a player sends: `{ type, ...fields }`, where the server sets `playerId` and `at`, the time it plays the action at; on the board it starts as a click. Core receives it in the action route and hands it to the engine's `apply`; the types a client may send are the engine's `clientActions`.
 
 ## What reaches apply
 
@@ -14,7 +14,8 @@ const row = await updateGame(game, params.code ?? "", (row) => {
 })
 ```
 
-- Core sets `playerId` to the caller's id, made from the secret of their cookie, whatever the body says, so a client cannot act for another player ([Where an id comes from](02-players.md#where-an-id-comes-from)).
+- Core sets `playerId` to the caller's id, made from the secret of their cookie, whatever the body says, so a client cannot act for another player ([Where an id comes from](02-players.md#where-an-id-comes-from)). It sets `at` to its own time the same way: an engine reads the time of a move from its action, and a game with a clock starts the clock of the step the move begins from it ([Timers](../02-components/20-timers.md#in-the-engine)).
+- An action of the clock's, a system action, is not in `clientActions`: no player can send it, and the server plays it when the time has come ([Timers](../02-components/20-timers.md#on-the-platform)).
 - An `EngineError` ends the request before the write; any other error is logged and answers `SERVER_ERROR`.
 - A table that is not in play is refused by `notPlaying` before `apply` runs: `GAME_OVER` when the game has ended, `GAME_NOT_STARTED` when it has not begun.
 
@@ -57,6 +58,9 @@ An engine refuses with a code of one vocabulary, `SHARED_ERROR_CODES` of the kit
 | `UNKNOWN_PLAYER` | The player is not at the table |
 | `UNKNOWN_CARD` | The card is not in the player's hand |
 | `INVALID_TARGET` | The player the action aims at cannot be chosen |
+| `INVALID_TEXT` | A text the player wrote is empty, too long or not a text: `cleanText` throws it ([Text field](../02-components/11-text-field.md)) |
+| `INVALID_NUMBER` | A number the player chose is not a number, is outside the range or is off the steps: `cleanNumber` throws it ([Bets and choices](../02-components/12-bets-and-choices.md)) |
+| `INVALID_CHOICE` | An option the player chose is not one of the options: `cleanChoice` and `cleanChoices` throw it ([Bets and choices](../02-components/12-bets-and-choices.md)) |
 | `AUTOPLAY_UNSUPPORTED` | The engine cannot play for this player; the kit throws it |
 
 - Take the code whose meaning is yours: `INVALID_ACTION` for an action that is wrong anywhere (an unknown type, a missing field), `INVALID_PHASE` for the right action at the wrong moment, `GAME_OVER` for any action once the game has ended.

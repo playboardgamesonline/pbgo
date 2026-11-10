@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { conformanceProblems, type ConformanceOptions, deepEqual, deepFreeze, jsonProblems, reorderKeys } from "./conformance"
-import type { GameDefinition, Results, Standing } from "./contract"
+import type { AnyGameDefinition, GameDefinition, Results, Standing } from "./contract"
+import { isSystemAction, systemAction } from "./deadline"
 import { EngineError } from "./errors"
+import type { LogEntry, Step } from "./log"
 import { normalizeOptions, type OptionDefinitions } from "./options"
 import { assertPlayers } from "./players"
 import { createSaveableRng, restoreRng } from "./rng"
@@ -20,8 +22,10 @@ type State = {
   rng: number
   secrets: string[]
   over: boolean
+  /** The time the step ends at, for the game with a clock */
+  deadline?: number | null
 }
-type Roll = { type: "roll"; playerId: string }
+type Roll = { type: "roll"; playerId: string; at?: number }
 type View = { scores: { id: string; points: number }[]; turn: string | null; me: { secret: string } | null; results: Results | null; standings?: Standing[] }
 
 const OPTIONS: OptionDefinitions = {
@@ -105,6 +109,7 @@ const dash: GameDefinition<State, Roll, View> = {
     }
   },
   isOver: (state) => state.over,
+  progress: (state) => Math.min(100, (Math.max(...Object.values(state.scores)) / state.target) * 100),
   waitingFor: waiting,
   autoPlayFor: (state, playerId) => {
     if (!waiting(state).includes(playerId)) throw new EngineError("NOT_WAITING")
@@ -115,7 +120,7 @@ const dash: GameDefinition<State, Roll, View> = {
 const secretsFor = (state: State, viewer: string | null) => state.secrets.filter((_, i) => state.seats[i] !== viewer)
 
 /** The sentences the suite says about a game, one per line. */
-const said = (game: GameDefinition<State, Roll, View>, extra: ConformanceOptions = {}) =>
+const said = (game: AnyGameDefinition, extra: ConformanceOptions = {}) =>
   conformanceProblems(game, { seeds: 2, variantSeeds: 1, playerCounts: [2, 3], secretsFor, errorCodes: [], ...extra }).join("\n")
 
 /** The game, with one part of it broken. */
@@ -160,6 +165,27 @@ describe("the definition", () => {
   it("is refused when it lists a line of score twice, or when a line of the results is not listed", () => {
     expect(said(broken({ scoreLines: ["rolls", "rolls"] }))).toContain("scoreLines lists a line twice")
     expect(said(broken({ scoreLines: ["other"] }))).toContain("a line of the score is not in the definition's scoreLines")
+  })
+})
+
+describe("progress", () => {
+  it("is not asked of a game that does not say how far it has come", () => {
+    expect(said(broken({ progress: undefined }))).toBe("")
+  })
+
+  it("must be a number from 0 to 100", () => {
+    expect(said(broken({ progress: () => 140 }))).toContain("progress is not a number from 0 to 100")
+    expect(said(broken({ progress: () => -1 }))).toContain("progress is not a number from 0 to 100")
+    expect(said(broken({ progress: () => Number.NaN }))).toContain("progress is not a number from 0 to 100")
+    expect(said(broken({ progress: (() => "half") as unknown as () => number }))).toContain("progress is not a number from 0 to 100")
+  })
+
+  it("may not throw", () => {
+    expect(said(broken({ progress: () => { throw new Error("boom") } }))).toContain("progress throws an error where it must work")
+  })
+
+  it("may not change once jsonb has reordered the keys of the state", () => {
+    expect(said(broken({ progress: (state) => (Object.keys(state.scores)[0] === state.seats[0] ? 10 : 20) }))).toContain("progress changes once jsonb has reordered the keys")
   })
 })
 
@@ -402,6 +428,116 @@ describe("junk actions", () => {
   })
 })
 
+// The same game, now saying what happens: each roll is an event of the log. A step and an autoPlayStep come together, and what they say is held to the rules of the log.
+type Rolled = { kind: "rolled"; by: string; points: number; secret?: string }
+
+const rolled = (before: State, after: State, id: string): LogEntry<Rolled> => ({ event: { kind: "rolled", by: id, points: after.scores[id]! - before.scores[id]! } })
+
+const logged: GameDefinition<State, Roll, View, undefined, Rolled> = {
+  ...dash,
+  setupStep: (args): Step<State, Rolled> => ({ state: dash.setup(args), events: [{ event: { kind: "rolled", by: args.players[0]!.id, points: 0 } }] }),
+  step: (state, action): Step<State, Rolled> => {
+    const next = dash.apply(state, action)
+    return { state: next, events: [rolled(state, next, action.playerId)] }
+  },
+  autoPlayStep: (state, playerId): Step<State, Rolled> => {
+    const next = dash.autoPlayFor!(state, playerId)
+    return { state: next, events: [rolled(state, next, playerId)] }
+  },
+}
+
+/** The logged game, with what its auto-play says changed. */
+const saying = (change: (step: Step<State, Rolled>, playerId: string) => Step<State, Rolled>): AnyGameDefinition => ({
+  ...logged,
+  autoPlayStep: (state, playerId) => change(logged.autoPlayStep!(state, playerId), playerId),
+})
+
+const entries = (...list: unknown[]) => (step: Step<State, Rolled>) => ({ ...step, events: list as LogEntry<Rolled>[] })
+
+describe("the log", () => {
+  it("has nothing said about a game that says what happens and keeps the contract", () => {
+    expect(conformanceProblems(logged, { secretsFor, errorCodes: [] })).toEqual([])
+  })
+
+  it("wants a step and an autoPlayStep together", () => {
+    expect(said({ ...logged, autoPlayStep: undefined })).toContain("a step but no autoPlayStep")
+    expect(said({ ...logged, step: undefined })).toContain("an autoPlayStep but no step")
+  })
+
+  it("wants autoPlayStep to play the move autoPlayFor plays", () => {
+    expect(said(saying((step) => ({ ...step, state: { ...step.state, target: step.state.target + 1 } })))).toContain("autoPlayStep gives another state than autoPlayFor")
+  })
+
+  it("wants the same log each time for the same state", () => {
+    let count = 0
+    expect(said(saying((step, id) => ({ ...step, events: [{ event: { kind: "rolled", by: id, points: count++ } }] })))).toContain("two different logs for the same state")
+  })
+
+  it("wants the entries to be plain JSON", () => {
+    expect(said(saying((step, id) => entries({ event: { kind: "rolled", by: id, points: undefined } })(step)))).toContain("the log of a step is not plain JSON")
+  })
+
+  it("wants every entry to have an event", () => {
+    expect(said(saying((step) => entries({})(step)))).toContain("an entry of the log has no event")
+    expect(said(saying((step) => entries({ event: "rolled" })(step)))).toContain("an entry of the log has no event")
+  })
+
+  it("wants an entry to be addressed to players of the table, and a masked version to have somebody it is addressed to", () => {
+    expect(said(saying((step, id) => entries({ event: { kind: "rolled", by: id, points: 1 }, to: ["nobody"] })(step)))).toContain("addressed to somebody who is not at the table")
+    expect(said(saying((step, id) => entries({ event: { kind: "rolled", by: id, points: 1 }, masked: { kind: "rolled", by: id, points: 0 } })(step)))).toContain("a masked version but nobody it is addressed to")
+  })
+
+  it("refuses a nickname in an entry: the log keeps the ids", () => {
+    expect(said(saying((step) => entries({ event: { kind: "rolled", by: "Nickname 1", points: 1 } })(step)))).toContain("an entry of the log holds a nickname")
+  })
+
+  it("refuses a log that shows a viewer what they must not know, unless only the owner reads it in full", () => {
+    const secretOf = (state: State, id: string) => state.secrets[state.seats.indexOf(id)]!
+    const everybody = saying((step, id) => entries({ event: { kind: "rolled", by: id, points: 1, secret: secretOf(step.state, id) } })(step))
+    expect(said(everybody)).toContain("the log shows what its viewer must not know")
+    const owner = saying((step, id) => entries({ event: { kind: "rolled", by: id, points: 1, secret: secretOf(step.state, id) }, to: [id], masked: { kind: "rolled", by: id, points: 1 } })(step))
+    expect(said(owner)).toBe("")
+  })
+
+  it("is not asked of a game that says nothing", () => {
+    expect(said(dash)).toBe("")
+  })
+})
+
+describe("the opening of the log", () => {
+  it("wants a setupStep to come with a step", () => {
+    expect(said({ ...logged, step: undefined, autoPlayStep: undefined })).toContain("a setupStep but no step")
+  })
+
+  it("wants setupStep to set up the game setup sets up", () => {
+    const other: AnyGameDefinition = { ...logged, setupStep: (args) => ({ ...logged.setupStep!(args), state: { ...dash.setup(args), target: 7 } }) }
+    expect(said(other)).toContain("setupStep gives another game than setup")
+  })
+
+  it("wants the same log each time for the same seed", () => {
+    let count = 0
+    const other: AnyGameDefinition = { ...logged, setupStep: (args) => ({ state: dash.setup(args), events: [{ event: { kind: "rolled", by: args.players[0]!.id, points: count++ } }] }) }
+    expect(said(other)).toContain("setupStep gives two different logs for the same seed")
+  })
+
+  it("holds what it says to the rules of an entry, as the moves are", () => {
+    const named: AnyGameDefinition = { ...logged, setupStep: (args) => ({ state: dash.setup(args), events: [{ event: { kind: "rolled", by: "Nickname 1", points: 0 } }] }) }
+    expect(said(named)).toContain("an entry of the log holds a nickname")
+    const leaking: AnyGameDefinition = {
+      ...logged,
+      setupStep: (args) => {
+        const state = dash.setup(args)
+        return { state, events: [{ event: { kind: "rolled", by: args.players[0]!.id, points: 0, secret: state.secrets[0] } }] }
+      },
+    }
+    expect(said(leaking)).toContain("the log shows what its viewer must not know")
+  })
+
+  it("says which hook of the opening refuses a table where it must work", () => {
+    expect(said({ ...logged, setupStep: (args) => ({ state: dash.setup({ ...args, players: [] }), events: [] }) })).toContain("setupStep")
+  })
+})
+
 describe("the helpers a test of an engine can use", () => {
   it("deepFreeze makes every level read only", () => {
     const state = deepFreeze({ a: { b: [1, { c: 2 }] } })
@@ -437,5 +573,77 @@ describe("the helpers a test of an engine can use", () => {
       "state.f is a bigint",
       "state.g.self points back at itself",
     ])
+  })
+})
+
+// The same race with a clock: each turn lasts ten seconds, and a turn that runs out is rolled for by the clock, a system action that no client can send.
+describe("the clock", () => {
+  type Timeout = { type: "timeout"; playerId: string; at?: number }
+  const SECONDS = 10_000
+  const after = (state: State, at: number | undefined): State => ({ ...state, deadline: at === undefined ? null : at + SECONDS })
+  const timed: GameDefinition<State, Roll | Timeout, View> = {
+    ...dash,
+    step: undefined,
+    autoPlayStep: undefined,
+    begin: (state, at) => after(state, at),
+    apply: (state, action) => {
+      if (action.type === "timeout") {
+        if (!isSystemAction(action)) throw new EngineError("INVALID_ACTION")
+        return after(roll(state, state.seats[state.turn]!), action.at)
+      }
+      if (action.type !== "roll") throw new EngineError("INVALID_ACTION")
+      return after(roll(state, action.playerId), action.at)
+    },
+    autoPlayFor: (state, playerId, at) => {
+      if (!waiting(state).includes(playerId)) throw new EngineError("NOT_WAITING")
+      return after(roll(state, playerId), at)
+    },
+    nextDeadline: (state) => (state.over || state.deadline === null || state.deadline === undefined ? null : { at: state.deadline, action: systemAction("timeout", state.deadline) as Timeout }),
+  }
+  const clocked = (patch: Partial<GameDefinition<State, Roll | Timeout, View>>) => ({ ...timed, ...patch }) as unknown as AnyGameDefinition
+
+  it("has nothing said about a game that keeps the contract, played to its end by its players and by its clock", () => {
+    expect(conformanceProblems(timed as unknown as AnyGameDefinition, { secretsFor, errorCodes: [], seeds: 4 })).toEqual([])
+  })
+
+  it("is not asked of a game that has none", () => {
+    expect(said(dash)).toBe("")
+  })
+
+  it("must name a time that is a finite number of milliseconds", () => {
+    expect(said(clocked({ nextDeadline: (state) => (state.over || state.deadline == null ? null : { at: Number.NaN, action: systemAction("timeout", 0) as Timeout }) }))).toContain("the time of a deadline is not a finite number")
+  })
+
+  it("must name an action that the clock plays, not one of a seat", () => {
+    expect(said(clocked({ nextDeadline: (state) => (state.over || state.deadline == null ? null : { at: state.deadline, action: { type: "timeout", playerId: state.seats[0]! } }) }))).toContain("the action of a deadline is not a system action")
+  })
+
+  it("must name an action that no client may send", () => {
+    expect(said(clocked({ clientActions: ["roll", "timeout"] }))).toContain("the action of a deadline is one a client may send")
+  })
+
+  it("must have none once the game is over", () => {
+    expect(said(clocked({ nextDeadline: (state) => ({ at: state.deadline ?? 0, action: systemAction("timeout", state.deadline ?? 0) as Timeout }) }))).toContain("nextDeadline names a deadline once the game is over")
+  })
+
+  it("must move the game on when its action is played", () => {
+    expect(said(clocked({ apply: (state, action) => (action.type === "timeout" ? state : timed.apply(state, action)) }))).toContain("the action of a deadline changes nothing")
+  })
+
+  it("must not be earlier than the one just played", () => {
+    expect(said(clocked({ apply: (state, action) => (action.type === "timeout" ? { ...timed.apply(state, action), deadline: (action.at ?? 0) - 1 } : timed.apply(state, action)) }))).toContain("the next deadline is earlier than the one just played")
+  })
+
+  it("must come from the state alone, the same on every call", () => {
+    let calls = 0
+    expect(said(clocked({ nextDeadline: (state) => (state.over || state.deadline == null ? null : { at: state.deadline + calls++, action: systemAction("timeout", state.deadline) as Timeout }) }))).toContain("the deadline of a game changes")
+  })
+
+  it("must leave a game that goes live twice as it is once, at the later time", () => {
+    expect(said(clocked({ begin: (state, at) => ({ ...state, deadline: (state.deadline ?? 0) + at + SECONDS }) }))).toContain("begin is not harmless to call again")
+  })
+
+  it("must refuse a system action from a seat", () => {
+    expect(() => timed.apply(timed.setup({ players: [{ id: "a", nickname: "A" }, { id: "b", nickname: "B" }], options: {}, seed: 1 }), { type: "timeout", playerId: "a" })).toThrow(EngineError)
   })
 })

@@ -57,9 +57,9 @@ function Message({ children }: { children: ReactNode }) {
 
 /**
  * A scene and its controls in one box. `label` says what the scene shows (it is the scene's accessible name, and the text of the fallback); `controls` sit under the scene and are the way to do with the keyboard everything the scene lets
- * a pointer do.
+ * a pointer do. `tall` gives the box more height, for a scene that has a great deal on its table. `fill` makes it the whole of the room its parent gives it, with no border and no fixed ratio: a scene that is a page of its own.
  */
-export function SceneFrame({ label, controls, children }: { label: string; controls?: ReactNode; children: ReactNode }) {
+export function SceneFrame({ label, controls, tall = false, fill = false, children }: { label: string; controls?: ReactNode; tall?: boolean; fill?: boolean; children: ReactNode }) {
   const box = useRef<HTMLDivElement>(null)
   const [mode, setMode] = useState<Mode>("idle")
   const [ready, setReady] = useState(false)
@@ -109,13 +109,13 @@ export function SceneFrame({ label, controls, children }: { label: string; contr
   const live = mode === "live"
   const spoken = mode === "unsupported" || mode === "failed" || mode === "lost"
   return (
-    <div data-slot="scene-specimen" className="flex flex-col overflow-hidden rounded-3xl border">
+    <div data-slot="scene-specimen" className={cn("flex flex-col overflow-hidden", fill ? "h-full" : "rounded-3xl border")}>
       <div
         ref={box}
         role={spoken ? undefined : "img"}
         aria-label={spoken ? undefined : label}
         aria-busy={live && !ready}
-        className="relative aspect-4/3 w-full overflow-hidden bg-card sm:aspect-video [&_canvas]:touch-pan-y"
+        className={cn("relative w-full overflow-hidden bg-card [&_canvas]:touch-pan-y", fill ? "h-full min-h-0 flex-1" : tall ? "aspect-square sm:aspect-16/10" : "aspect-4/3 sm:aspect-video")}
       >
         {live && (
           <Boundary

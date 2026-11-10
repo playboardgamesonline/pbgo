@@ -24,6 +24,9 @@ const REACH = 3
 /** Where the fog starts, as a share of the camera's `far`: the cards and the seats lie nearer, so only the picture of the table fades */
 const FOG_START = 0.5
 
+/** How far the table is pushed back in the depth buffer, in the units of `polygonOffset`: the surface is one plane a thousand units wide, whose depth is not exact over such a size, so what lies a hair above it (the plates of a board, the line of a zone) would sink into it where the camera looks from far away */
+const POLYGON_OFFSET = 4
+
 /** Keeps the picture sharp where the table runs off toward the horizon */
 const ANISOTROPY = 8
 
@@ -54,7 +57,7 @@ export function Surface(props: SurfaceProps) {
           <fog attach="fog" args={[color, far * FOG_START, far]} />
           <mesh rotation-x={-Math.PI / 2} renderOrder={-1} raycast={() => null}>
             <planeGeometry args={[width, width]} />
-            <meshBasicMaterial map={picture} toneMapped={false} />
+            <meshBasicMaterial map={picture} toneMapped={false} polygonOffset polygonOffsetFactor={POLYGON_OFFSET} polygonOffsetUnits={POLYGON_OFFSET} />
           </mesh>
         </>
       )}
