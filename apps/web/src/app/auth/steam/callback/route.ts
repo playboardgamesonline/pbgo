@@ -93,6 +93,8 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createAuthClient()
   const session = supabase ? await supabase.auth.verifyOtp({ token_hash: result.tokenHash, type: "email" }) : null
+  // The Auth server refuses the token of an account that its member closed (PLT-36: it is banned), and says why. Only the owner of that Steam account gets this far, so the sign-in page can say where the link that reopens it is
+  if (session?.error?.code === "user_banned") return to(`/login?error=closed&next=${encodeURIComponent(next)}`)
   if (!session || session.error || !session.data.user || !session.data.session) return failed("session")
 
   // A member whose account asks for a second step (PLT-129) goes to the sign-in, which asks for the code and brings them on to `next`: it can be a page that anybody sees, where they would be left as a guest

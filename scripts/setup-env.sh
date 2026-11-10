@@ -11,6 +11,14 @@
 #   CRON_SECRET                     what Vercel Cron sends to /api/cron/purge (the nightly clean-up of old tables and feedback),
 #                                   32 characters at least. Like the session key: this file's, else the one of .env.local, else
 #                                   a new one, appended here and never overwritten. Pushed to every Vercel target
+#   RESEND_API_KEY                  optional: the key of Resend (re_…) that the site's own code sends e-mails with (the link that
+#   RESEND_PREVIEW_API_KEY          reopens an account its member deleted), made in Resend's dashboard with sending access only,
+#                                   limited to the domain mail.playboardgamesonline.app. Not the key of Supabase's SMTP settings.
+#                                   Two keys go the way the Supabase keys do: RESEND_API_KEY is the production one (the Vercel
+#                                   production target only), RESEND_PREVIEW_API_KEY the one of previews and local development
+#                                   (.env.local and the Vercel preview and development targets). One key alone (either) serves
+#                                   every environment. Without any, a development server prints the e-mail in its terminal, and
+#                                   a deployment cannot send it: deleting an account says so
 #   SUPABASE_ACCESS_TOKEN          Supabase personal token: API keys read, migrations applied
 #   SUPABASE_PROJECT_REF            production project, shared by every game (rows carry a `game` column)
 #   SUPABASE_PREVIEW_PROJECT_REF    preview project (pbgo-preview), another project than the production one
@@ -360,6 +368,30 @@ for k in VERCEL_TOKEN VERCEL_TEAM_ID; do
   if [ -z "$v" ]; then warn "$k not set"; elif safe "$v"; then envset "$ENV_FILE" "$k" "$v"; ok "$k"; else err "$k: unexpected characters"; fi
 done
 
+# ---------- E-mails of the site (optional) ----------
+# The key of the mail provider for the e-mails that the site's own code sends (core/server/mail.ts: the link that confirms the
+# deletion of an account). Shape-checked like the PostHog pair: a value that is not a Resend key is neither written nor pushed, and
+# never named in the message
+title "E-mails sent by the site (optional)"
+# Two keys, the way the Supabase keys go: the production one, and the one of previews and local development. One alone serves
+# every environment. Only the secrets file is read for them: .env.local holds the preview one, and would come back as the
+# production one if it were read too. A key written by hand in .env.local alone is left as it is, and not pushed
+resend_valid() { safe "$1" && [[ "$1" == re_* ]] && [ "${#1}" -ge 20 ]; }
+RESEND_PROD="$(secret RESEND_API_KEY)"; RESEND_PREV="$(secret RESEND_PREVIEW_API_KEY)"
+RESEND_BAD=0
+if [ -n "$RESEND_PROD" ] && ! resend_valid "$RESEND_PROD"; then RESEND_BAD=1; RESEND_PROD=""; fi
+if [ -n "$RESEND_PREV" ] && ! resend_valid "$RESEND_PREV"; then RESEND_BAD=1; RESEND_PREV=""; fi
+[ "$RESEND_BAD" = 0 ] || err "RESEND_API_KEY / RESEND_PREVIEW_API_KEY: a key of Resend (re_…) is expected; the one that is not is neither written nor pushed"
+[ -n "$RESEND_PREV" ] || RESEND_PREV="$RESEND_PROD"
+if [ -z "$RESEND_PROD$RESEND_PREV" ]; then
+  [ "$RESEND_BAD" = 1 ] || warn "RESEND_API_KEY not set: a development server prints the e-mails it would send, and a deployment cannot send them (deleting an account is not available there)"
+else
+  envset "$ENV_FILE" RESEND_API_KEY "$RESEND_PREV"
+  if [ -z "$RESEND_PROD" ]; then ok "RESEND_PREVIEW_API_KEY (previews and local development; production has none)"
+  elif [ "$RESEND_PROD" = "$RESEND_PREV" ]; then ok "RESEND_API_KEY (every environment)"
+  else ok "RESEND_API_KEY (production), RESEND_PREVIEW_API_KEY (previews and local development)"; fi
+fi
+
 # ---------- PostHog (optional) ----------
 # Both values or neither (the key is public: it ships to the browser). The pair is checked with the app's own resolveConfig
 # (packages/analytics/src/config.ts, imported by Node like the registry): one it refuses would deploy a site that reports
@@ -491,6 +523,9 @@ if [ "$PUSH" = 1 ] && [ -n "$VID" ]; then
   ALL='["production","preview","development"]'
   # Supabase: the production project's keys to the production target only, the preview project's to preview and development
   push_supabase "$TMP/production.env" '["production"]'; push_supabase "$TMP/preview.env" '["preview","development"]'
+  # The key of Resend, the same way: the production one to the production target, the other to preview and development (the one key, to both)
+  [ -z "$RESEND_PROD" ] || push RESEND_API_KEY "$RESEND_PROD" '["production"]'
+  [ -z "$RESEND_PREV" ] || push RESEND_API_KEY "$RESEND_PREV" '["preview","development"]'
   # The rest, the same everywhere (not NEXT_PUBLIC_SITE_URL, NEXT_PUBLIC_SANITY_DATASET nor DEBUG_GAMES: local settings). PostHog only when its value passed the check
   # above (a refused one may still sit in .env.local): the browser value of PostHog is inlined at build, so it applies from the
   # next deployment

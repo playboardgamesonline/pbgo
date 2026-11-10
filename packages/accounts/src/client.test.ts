@@ -156,6 +156,13 @@ describe("signInWithPassword", () => {
     expect(cookieWrites).toEqual([])
   })
 
+  it("tells a closed account (the member deleted it, PLT-36: it is banned) like a wrong password, since the Auth server says it before it looks at the password, to anyone who knows the address", async () => {
+    stubClient({ signIn: { data: { user: null }, error: { code: "user_banned" } } })
+    const { signInWithPassword } = await client()
+    expect(await signInWithPassword("ore@example.com", "secret")).toBe("That e-mail and that password do not go together.")
+    expect(cookieWrites).toEqual([])
+  })
+
   it("does not ask Supabase for a username it cannot look up", async () => {
     const auth = stubClient()
     const { signInWithPassword } = await client()

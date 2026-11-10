@@ -108,7 +108,9 @@ export async function signInWithPassword(identifier: string, password: string): 
     if (language) document.cookie = languageCookie(language)
     return null
   }
-  if (error.code === "invalid_credentials") return "That e-mail and that password do not go together."
+  // A closed account (the member deleted it, PLT-36) is banned: the Auth server says so before it looks at the password, to anyone who knows the address, so it is told like a wrong password, which gives nothing away.
+  // The member who closed it knows, and has the e-mail with the link that reopens it
+  if (error.code === "invalid_credentials" || error.code === "user_banned") return "That e-mail and that password do not go together."
   // Told only to someone who typed the right password, so it gives nothing away: an account that was made and never confirmed (`signUpWithPassword`)
   if (error.code === "email_not_confirmed") return "Your e-mail address is not confirmed yet. Use the code we sent you, or create the account again to get a new one."
   return "Sign-in did not work. Try again."

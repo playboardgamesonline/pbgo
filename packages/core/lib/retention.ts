@@ -26,6 +26,13 @@ export const FINISHED_STATE_RETENTION_HOURS = 24
  */
 export const UNRANKED_SEAT_RETENTION_MONTHS = 12
 
+/**
+ * A member who deletes their account (PLT-36) has it CLOSED at once: nobody can sign in to it, and the e-mail they are sent holds a link that reopens it for this many days at least (to the end of the UTC day that is this many days away). Then the
+ * link is dead, and the nightly clean-up deletes the account with what it holds (`erase_account`, migration 0011). The day is fixed when the account is closed (`account_deletions.scheduled_for`), so a later change of this number moves no promise
+ * already made. The row of the settings, the e-mail, the Privacy Policy and the Terms print it.
+ */
+export const ACCOUNT_DELETION_GRACE_DAYS = 7
+
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 
@@ -63,4 +70,13 @@ export function finishedStateCutoff(now: Date = new Date()): Date {
 /** The seats of an unranked game that ended strictly before this instant are old enough to delete: the same moment `UNRANKED_SEAT_RETENTION_MONTHS` calendar months earlier, in UTC. */
 export function unrankedSeatCutoff(now: Date = new Date()): Date {
   return monthsBefore(now, UNRANKED_SEAT_RETENTION_MONTHS)
+}
+
+/**
+ * The moment the link that reopens an account stops working, and the account is due to be deleted, when its member closed it at `now`: the last millisecond of the UTC day that is `ACCOUNT_DELETION_GRACE_DAYS` days away. The e-mail says that day
+ * ("until 16 November"), so the link works through the whole of it, and the nightly clean-up deletes the account in the night after.
+ */
+export function accountDeletionDate(now: Date = new Date()): Date {
+  const day = new Date(now.getTime() + ACCOUNT_DELETION_GRACE_DAYS * DAY_MS)
+  return new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + 1) - 1)
 }
