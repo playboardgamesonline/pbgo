@@ -2,15 +2,14 @@ import type { ReactNode } from "react"
 import { cn } from "@pbgo/ui/utils"
 
 /**
- * One page of the settings: its title, a line that says what is in it, and its groups, one under the other. The title is the page's own heading, under the window's (`Settings`, which only a screen reader reads: `SettingsModal`), so that a
- * screen reader finds the section in the window.
+ * One page of the settings: its title, and its groups, one under the other. The title is the page's own heading, under the window's (`Settings`, which only a screen reader reads: `SettingsModal`), so that a screen reader finds the section
+ * in the window. It has no line under it that says what is in it: the groups say it, and the sidebar names the page.
  */
-export function SettingsPage({ title, description, children }: { title: string; description: string; children: ReactNode }) {
+export function SettingsPage({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-10">
       <header>
         <h2 className="font-heading text-3xl">{title}</h2>
-        <p className="mt-2 text-muted-foreground">{description}</p>
       </header>
       {children}
     </div>

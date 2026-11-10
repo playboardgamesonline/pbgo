@@ -22,7 +22,7 @@ export default async function PrivacySettingsPage() {
   const demo = isDemoAccount(account)
 
   return (
-    <SettingsPage title="Data & Privacy" description="What the other players see of you, and what we keep.">
+    <SettingsPage title="Data & Privacy">
       <SettingsGroup title="Your profile">
         <PreferenceRow
           name="hideHistory"

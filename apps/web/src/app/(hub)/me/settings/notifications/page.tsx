@@ -20,7 +20,7 @@ export default async function NotificationSettingsPage() {
   const demo = isDemoAccount(account)
 
   return (
-    <SettingsPage title="Notifications" description="What reaches you when you are not looking at the game.">
+    <SettingsPage title="Notifications">
       <SettingsGroup title="In your browser">
         <BrowserNotificationsRow />
         <PreferenceRow name="notifyTurn" title="Your turn" description="A game is waiting for you to play." initial={account.preferences.notifyTurn} demo={demo} />

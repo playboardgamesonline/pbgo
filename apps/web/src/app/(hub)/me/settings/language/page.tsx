@@ -36,7 +36,7 @@ export default async function LanguageSettingsPage() {
   const language = resolveLanguage({ account: account.language, cookie: store.get(LANGUAGE_COOKIE)?.value, browser: requestHeaders.get("accept-language") })
 
   return (
-    <SettingsPage title="Language & Time" description="The language you read in, and how times are written.">
+    <SettingsPage title="Language & Time">
       <SettingsField title="Select a language" description="Choose the language you want the site to use.">
         <LanguagePicker language={language} options={languageOptions()} />
       </SettingsField>
