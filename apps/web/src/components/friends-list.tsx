@@ -1,14 +1,13 @@
 "use client"
 
-import { FriendsPanel, type Friend } from "@pbgo/ui/platform/friends-panel"
+import { FriendsPanel, type Friend, type FriendMenuHandlers } from "@pbgo/ui/platform/friends-panel"
 import { useCopied } from "@/lib/use-copied"
 
 /**
- * The friends of the visitor listed in full, on the page of their friends: the panel, with its search and its sections, and the same button as the bar's that
- * copies the address of the sign-in. What a friend's buttons do needs the friends to exist (PLT-23): only the demo account of development (`preview`) has some,
- * and they do nothing. It fills the height of its parent.
+ * The friends of the visitor listed in full, on the page of their friends: the panel, with its search and its sections, and the same button as the bar's that copies the address of the sign-in. What a friend's menu does is the page's (`onViewProfile`,
+ * `onRemove`, `onBlock`). Joining and inviting a friend are not there for a real account (PLT-109): only the demo account of development (`preview`) has the buttons, and they do nothing. It fills the height of its parent.
  */
-export function FriendsList({ friends, preview, className }: { friends: readonly Friend[]; preview: boolean; className?: string }) {
+export function FriendsList({ friends, preview, className, ...menu }: { friends: readonly Friend[]; preview: boolean; className?: string } & FriendMenuHandlers) {
   const [copied, copy] = useCopied()
   const nothing = () => {}
   return (
@@ -19,6 +18,7 @@ export function FriendsList({ friends, preview, className }: { friends: readonly
       shareLabel={copied ? "Link copied" : "Invite a friend"}
       onInvite={preview ? nothing : undefined}
       onJoin={preview ? nothing : undefined}
+      {...menu}
     />
   )
 }

@@ -38,6 +38,7 @@ export type {
   AccountService,
   AuthProvider,
   ClientEvents,
+  FriendRequestSource,
   GameOrder,
   GameRoute,
   Language,

@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 type Row = Record<string, unknown>
 
 const h = vi.hoisted(() => ({
-  tables: { games: [] as Row[], feedback: [] as Row[], member_presence: [] as Row[] } as Record<string, Row[]>,
+  tables: { games: [] as Row[], feedback: [] as Row[], member_presence: [] as Row[], friend_requests: [] as Row[] } as Record<string, Row[]>,
   /** What `due_account_deletions` answers: the accounts whose day has passed, with their address */
   due: [] as Array<{ user_id: string; email: string | null }>,
   /** The accounts `erase_account` was asked to delete, in order, each with the day it was asked to wait for */
@@ -17,7 +17,7 @@ const h = vi.hoisted(() => ({
   /** The paths of the objects in the `feedback` bucket */
   objects: new Set<string>(),
   log: [] as string[],
-  fail: { games: null as string | null, presence: null as string | null, removal: null as string | null, removalCall: 1, feedbackDelete: null as string | null, silentDelete: false, rpc: {} as Record<string, string>, erase: {} as Record<string, string>, eraseGone: [] as string[] },
+  fail: { games: null as string | null, presence: null as string | null, friendRequests: null as { message: string; code?: string } | null, removal: null as string | null, removalCall: 1, feedbackDelete: null as string | null, silentDelete: false, rpc: {} as Record<string, string>, erase: {} as Record<string, string>, eraseGone: [] as string[] },
   /** What each clean-up function of the database answers, one answer for each call: how many rows it deleted */
   rpcAnswers: {} as Record<string, number[]>,
   removals: 0,
@@ -88,9 +88,10 @@ vi.mock("./supabase", () => {
         hook()
       }
       const found = (h.tables[this.table] ?? []).filter((row) => this.matches.every((match) => match(row)))
+      if (this.table === "friend_requests" && h.fail.friendRequests) return { data: null, error: { ...h.fail.friendRequests }, count: null }
       if (this.action === "delete") {
-        h.log.push(`delete ${this.table} ${found.map((row) => String(row.id ?? row.code ?? row.user_id)).join(",")}`)
-        const failure = this.table === "games" ? h.fail.games : this.table === "member_presence" ? h.fail.presence : h.fail.feedbackDelete
+        h.log.push(`delete ${this.table} ${found.map((row) => String(row.id ?? row.code ?? row.user_id ?? row.sender)).join(",")}`)
+        const failure = this.table === "games" ? h.fail.games : this.table === "member_presence" ? h.fail.presence : this.table === "feedback" ? h.fail.feedbackDelete : null
         if (failure) return { data: null, error: { message: failure }, count: null }
         if (h.fail.silentDelete && this.table === "feedback") return { data: null, error: null, count: 0 }
         h.tables[this.table] = (h.tables[this.table] ?? []).filter((row) => !found.includes(row))
@@ -170,10 +171,12 @@ beforeEach(() => {
   h.tables.games = []
   h.tables.feedback = []
   h.tables.member_presence = []
+  h.tables.friend_requests = []
   h.objects.clear()
   h.log.length = 0
   h.fail.games = null
   h.fail.presence = null
+  h.fail.friendRequests = null
   h.fail.removal = null
   h.fail.removalCall = 1
   h.fail.feedbackDelete = null
@@ -232,7 +235,7 @@ describe("tables", () => {
 
   it("tells the moments it measured against", async () => {
     const report = await purgeExpired({ now: NOW })
-    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1), states: daysAgo(1), seats: YEAR_AGO })
+    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1), states: daysAgo(1), seats: YEAR_AGO, friendRequests: daysAgo(30) })
   })
 })
 
@@ -268,6 +271,56 @@ describe("presence", () => {
     expect(codes()).toEqual([])
     expect(ids()).toEqual([])
     expect(users()).toEqual(["a"])
+  })
+})
+
+/** A friend request sent `sentDaysAgo` days ago */
+const request = (sender: string, recipient: string, sentDaysAgo: number): Row => ({ sender, recipient, created_at: daysAgo(sentDaysAgo) })
+const senders = () => h.tables.friend_requests!.map((row) => row.sender)
+
+describe("friend requests", () => {
+  it("deletes the requests that waited more than 30 days and keeps the others", async () => {
+    h.tables.friend_requests = [request("a", "b", 31), request("c", "d", 29), request("e", "f", 90), request("g", "h", 0)]
+    const report = await purgeExpired({ now: NOW })
+    expect(senders()).toEqual(["c", "g"])
+    expect(report).toMatchObject({ friendRequests: 2, errors: [] })
+  })
+
+  it("keeps a request that waited exactly 30 days and deletes one that waited a millisecond more", async () => {
+    const older = { sender: "older", recipient: "x", created_at: new Date(NOW.getTime() - 30 * DAY - 1).toISOString() }
+    h.tables.friend_requests = [request("edge", "x", 30), older]
+    await purgeExpired({ now: NOW })
+    expect(senders()).toEqual(["edge"])
+  })
+
+  it("does nothing the second time", async () => {
+    h.tables.friend_requests = [request("a", "b", 40), request("c", "d", 1)]
+    await purgeExpired({ now: NOW })
+    expect((await purgeExpired({ now: NOW })).friendRequests).toBe(0)
+    expect(senders()).toEqual(["c"])
+  })
+
+  it("counts what it would delete and deletes nothing in a dry run", async () => {
+    h.tables.friend_requests = [request("a", "b", 40), request("c", "d", 1)]
+    const report = await purgeExpired({ now: NOW, dryRun: true })
+    expect(report).toMatchObject({ dryRun: true, friendRequests: 1, errors: [] })
+    expect(senders()).toEqual(["a", "c"])
+  })
+
+  it("runs on its own: a failure here does not hold the tables back, and says so", async () => {
+    h.tables.games = [table("courtisans", "AAAA", 31)]
+    h.tables.friend_requests = [request("a", "b", 40)]
+    h.fail.friendRequests = { message: "canceling statement due to statement timeout", code: "57014" }
+    const report = await purgeExpired({ now: NOW })
+    expect(report.errors).toEqual(["friendRequests: canceling statement due to statement timeout"])
+    expect(codes()).toEqual([])
+    expect(senders()).toEqual(["a"])
+  })
+
+  it("has none to delete where migration 0017 is not applied yet, and says nothing of it", async () => {
+    h.fail.friendRequests = { message: "relation public.friend_requests does not exist", code: "42P01" }
+    const report = await purgeExpired({ now: NOW })
+    expect(report).toMatchObject({ friendRequests: 0, errors: [] })
   })
 })
 

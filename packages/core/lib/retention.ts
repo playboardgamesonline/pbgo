@@ -14,6 +14,12 @@ export const FEEDBACK_RETENTION_MONTHS = 12
 export const PRESENCE_RETENTION_DAYS = 1
 
 /**
+ * A friend request that nobody answered (`friend_requests`, PLT-23) goes this many days after it was sent: the nightly clean-up deletes it, and the sender can ask again. The friendships and the blocks stay as long as the two accounts do, and a request
+ * that is answered is not kept at all (accepting makes the friendship, declining and cancelling leave nothing).
+ */
+export const FRIEND_REQUEST_RETENTION_DAYS = 30
+
+/**
  * The state of a table that is over (the hidden information of the game: hands, decks) goes this many hours after the table was last written, once the game it played is written down (`game_results`). The end screen and the
  * rematch need it for a while, nothing needs it after a day. The owner's rule of 11 October 2026 (PLT-13): the state is deleted once the result is recorded.
  */
@@ -39,6 +45,11 @@ const DAY_MS = 24 * HOUR_MS
 /** A table whose `updated_at` is strictly before this instant is old enough to delete. */
 export function tableCutoff(now: Date = new Date()): Date {
   return new Date(now.getTime() - TABLE_RETENTION_DAYS * DAY_MS)
+}
+
+/** A friend request whose `created_at` is strictly before this instant has waited longer than `FRIEND_REQUEST_RETENTION_DAYS`: it is old enough to delete. */
+export function friendRequestCutoff(now: Date = new Date()): Date {
+  return new Date(now.getTime() - FRIEND_REQUEST_RETENTION_DAYS * DAY_MS)
 }
 
 /** A member whose `seen_at` is strictly before this instant has not been seen for longer than `PRESENCE_RETENTION_DAYS`: their row is old enough to delete. */

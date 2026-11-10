@@ -74,6 +74,17 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   PROFILE_TAKEN: "Somebody already goes by that username and tag. Choose another tag.",
   PROFILE_INVALID: "This username or tag is not valid.",
   PROFILE_UNAVAILABLE: "Your username and tag can't be saved right now, try again later.",
+  // What the routes of the friends refuse with (PLT-23). A member who blocked you is never one of these: your request seems to go. No number is in a message: the limits are `lib/friends.ts`'s
+  FRIEND_INVALID: "Type a username and a tag, like Alex#0042.",
+  FRIEND_NOT_FOUND: "No player goes by that username and tag.",
+  FRIEND_SELF: "You can't add yourself.",
+  FRIEND_BLOCKED: "You blocked this player. Unblock them first.",
+  FRIEND_LIMIT: "You can't have more friends. Remove a friend to add another.",
+  FRIEND_REQUESTS_LIMIT: "You have too many requests waiting. Cancel some, or wait for an answer.",
+  FRIEND_REQUEST_UNAVAILABLE: "This player can't receive friend requests right now.",
+  FRIEND_REQUEST_GONE: "This request is no longer there.",
+  FRIEND_BLOCK_LIMIT: "You can't block more players. Unblock one first.",
+  FRIENDS_UNAVAILABLE: "Friends can't be used right now, try again later.",
   CROSS_ORIGIN: "This request did not come from this site.",
 }
 

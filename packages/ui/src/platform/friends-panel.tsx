@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowUp01Icon, Edit02Icon, Link01Icon, Search01Icon, UserAdd01Icon } from "@hugeicons/core-free-icons"
+import { ArrowUp01Icon, Edit02Icon, Link01Icon, MoreHorizontalIcon, Search01Icon, UserAdd01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useReducedMotion } from "../reduced-motion"
@@ -12,6 +12,7 @@ import { cn } from "../utils"
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "./avatar"
 import { Badge } from "./badge"
 import { Button } from "./button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./dropdown-menu"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 import { MovingCard, useMovingCard, type MovingCardControl } from "./moving-card"
 
@@ -109,7 +110,7 @@ function FriendCard({ friend, gameIcon, onNote }: { friend: Friend; gameIcon?: (
         <PresenceDot status={friend.status} />
       </Avatar>
       <div className="flex min-w-0 flex-col gap-1">
-        <p className="truncate text-lg leading-tight font-strong text-foreground">
+        <p className="ph-mask truncate text-lg leading-tight font-strong text-foreground">
           {friend.nickname}
           {friend.tag && <span className="text-muted-foreground">#{friend.tag}</span>}
         </p>
@@ -131,12 +132,56 @@ function FriendCard({ friend, gameIcon, onNote }: { friend: Friend; gameIcon?: (
   )
 }
 
+/**
+ * What can be done with a friend, which the page decides (an entry whose handler is missing is not drawn, and the menu is not either without any): see their profile, remove them from the friends, block them. It is the same on every row of the list and
+ * is behind a button on the row (`···`, there under the pointer and the focus, and always on a touch screen, which has no hover), so that it can be reached whether or not the card under the pointer opens.
+ */
+type FriendMenuHandlers = {
+  onViewProfile?: (friend: Friend) => void
+  onRemove?: (friend: Friend) => void
+  onBlock?: (friend: Friend) => void
+}
+
+/** The button of a row that opens the menu of a friend, and the menu. */
+function FriendMenu({ friend, onViewProfile, onRemove, onBlock }: { friend: Friend } & FriendMenuHandlers) {
+  if (!onViewProfile && !onRemove && !onBlock) return null
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          aria-label={`More about ${friend.nickname}`}
+          title="More"
+          className="shrink-0 opacity-0 group-hover/friend:opacity-100 focus-visible:opacity-100 group-focus-within/friend:opacity-100 data-[state=open]:opacity-100 [@media(hover:none)]:opacity-100"
+        >
+          <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        {onViewProfile && <DropdownMenuItem onSelect={() => onViewProfile(friend)}>View profile</DropdownMenuItem>}
+        {onViewProfile && (onRemove || onBlock) && <DropdownMenuSeparator />}
+        {onRemove && <DropdownMenuItem onSelect={() => onRemove(friend)}>Remove friend</DropdownMenuItem>}
+        {onBlock && (
+          <DropdownMenuItem variant="destructive" onSelect={() => onBlock(friend)}>
+            Block
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 function FriendRow({
   friend,
   card,
   onInvite,
   onJoin,
   onOpen,
+  onViewProfile,
+  onRemove,
+  onBlock,
 }: {
   friend: Friend
   /** The card of the list, which this row shows its friend in under the pointer. */
@@ -144,7 +189,7 @@ function FriendRow({
   onInvite?: (friend: Friend) => void
   onJoin?: (friend: Friend) => void
   onOpen?: (friend: Friend) => void
-}) {
+} & FriendMenuHandlers) {
   // A friend who plays can be joined, so can one who waits at a table that has room; one who is online anywhere else can be invited
   const joinable = friend.status === "playing" || (friend.status === "online" && friend.table !== undefined && friend.table.size < friend.table.max)
   const act = joinable ? onJoin : friend.status === "online" ? onInvite : undefined
@@ -158,7 +203,7 @@ function FriendRow({
         <PresenceDot status={friend.status} />
       </Avatar>
       <div className="min-w-0 flex-1 text-left">
-        <p className={cn("truncate text-sm", friend.status !== "offline" && "text-foreground")}>
+        <p className={cn("ph-mask truncate text-sm", friend.status !== "offline" && "text-foreground")}>
           {friend.nickname}
           {friend.tag && <span className="text-muted-foreground">#{friend.tag}</span>}
         </p>
@@ -208,6 +253,7 @@ function FriendRow({
           {joinable ? "Join" : "Invite"}
         </Button>
       )}
+      <FriendMenu friend={friend} onViewProfile={onViewProfile} onRemove={onRemove} onBlock={onBlock} />
     </li>
   )
 }
@@ -230,9 +276,12 @@ function FriendsRoster({
   onJoin,
   onNote,
   onOpen,
+  onViewProfile,
+  onRemove,
+  onBlock,
   className,
   ...props
-}: Omit<React.ComponentProps<"div">, "children"> & {
+}: Omit<React.ComponentProps<"div">, "children"> & FriendMenuHandlers & {
   friends: readonly Friend[]
   /** The picture of a game, from its slug; the initial of its name is drawn where there is none or it does not load. */
   gameIcon?: (slug: string) => string | undefined
@@ -297,7 +346,7 @@ function FriendsRoster({
             const list = (
               <ul className="flex flex-col">
                 {group.friends.map((friend) => (
-                  <FriendRow key={friend.id} friend={friend} card={card} onInvite={onInvite} onJoin={onJoin} onOpen={onOpen} />
+                  <FriendRow key={friend.id} friend={friend} card={card} onInvite={onInvite} onJoin={onJoin} onOpen={onOpen} onViewProfile={onViewProfile} onRemove={onRemove} onBlock={onBlock} />
                 ))}
               </ul>
             )
@@ -383,11 +432,14 @@ function FriendsPanel({
   onAddFriend,
   onInvite,
   onJoin,
+  onViewProfile,
+  onRemove,
+  onBlock,
   onShareLink,
   shareLabel = "Invite a friend",
   className,
   ...props
-}: Omit<React.ComponentProps<"aside">, "children"> & {
+}: Omit<React.ComponentProps<"aside">, "children"> & FriendMenuHandlers & {
   friends: readonly Friend[]
   /** The picture of a game, from its slug, for the heads of the list. */
   gameIcon?: (slug: string) => string | undefined
@@ -421,7 +473,7 @@ function FriendsPanel({
         )}
       </header>
 
-      <FriendsRoster friends={friends} gameIcon={gameIcon} onInvite={onInvite} onJoin={onJoin} />
+      <FriendsRoster friends={friends} gameIcon={gameIcon} onInvite={onInvite} onJoin={onJoin} onViewProfile={onViewProfile} onRemove={onRemove} onBlock={onBlock} />
 
       {onShareLink && (
         <Button type="button" variant="outline" size="lg" className="w-full" onClick={onShareLink}>
@@ -433,4 +485,5 @@ function FriendsPanel({
   )
 }
 
+export type { FriendMenuHandlers }
 export { FriendsPanel, FriendsRoster, GameIcon, PresenceDot }

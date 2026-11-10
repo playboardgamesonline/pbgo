@@ -1,6 +1,7 @@
 import "server-only"
-import { feedbackCutoff, finishedStateCutoff, presenceCutoff, tableCutoff, unrankedSeatCutoff } from "../lib/retention"
+import { feedbackCutoff, finishedStateCutoff, friendRequestCutoff, presenceCutoff, tableCutoff, unrankedSeatCutoff } from "../lib/retention"
 import { dueAccounts, eraseAccount } from "./account-deletion"
+import { isMissingTable } from "./db-error"
 import { FEEDBACK_BATCH_SIZE, removeFeedbackRows, type FeedbackRow } from "./feedback-removal"
 import { supabaseAdmin } from "./supabase"
 
@@ -20,12 +21,14 @@ const ERASE_DRY_LIMIT = 1000
 export type PurgeReport = {
   /** Nothing was deleted: the counts are what a real run would delete now */
   dryRun: boolean
-  /** A table last written before the first, a feedback received before the second, a member last seen before the third, the state of a table that is over before the fourth, the seats of an unranked game that ended before the fifth, is old enough (`lib/retention.ts`) */
-  cutoffs: { tables: string; feedback: string; presence: string; states: string; seats: string }
+  /** A table last written before the first, a feedback received before the second, a member last seen before the third, the state of a table that is over before the fourth, the seats of an unranked game that ended before the fifth, a friend request sent before the sixth, is old enough (`lib/retention.ts`) */
+  cutoffs: { tables: string; feedback: string; presence: string; states: string; seats: string; friendRequests: string }
   tables: number
   feedback: number
   /** The members' rows of `member_presence` (the last time each was seen on the site) */
   presence: number
+  /** The friend requests nobody answered in time (`friend_requests`, PLT-23) */
+  friendRequests: number
   /** The states of tables that are over, whose game is written down (`games.state`) */
   states: number
   /** The seats of unranked games, folded into the totals of their players (`game_participants`) */
@@ -45,7 +48,7 @@ const messageOf = (error: unknown) => (error instanceof Error ? error.message : 
 /**
  * The nightly clean-up of what the Privacy Policy promises (PLT-113): the tables written more than `TABLE_RETENTION_DAYS` ago, the
  * feedback received more than `FEEDBACK_RETENTION_MONTHS` ago, each feedback with its screenshot, the members' last sight on the site
- * more than `PRESENCE_RETENTION_DAYS` ago, and, for the games that are written down (PLT-13), the state of a table that is over a day after its last write and the seats of an unranked game a year after it ended. Called by
+ * more than `PRESENCE_RETENTION_DAYS` ago, the friend requests that waited longer than `FRIEND_REQUEST_RETENTION_DAYS` (PLT-23), and, for the games that are written down (PLT-13), the state of a table that is over a day after its last write and the seats of an unranked game a year after it ended. Called by
  * `GET /api/cron/purge`, which Vercel Cron runs every night. Idempotent: a run that stops half way (an error, the batch limit) is finished by the next one. The jobs are independent, one that fails is reported in
  * `errors` and does not hold the others back.
  */
@@ -56,8 +59,9 @@ export async function purgeExpired({ now = new Date(), dryRun = false }: { now?:
     presence: presenceCutoff(now).toISOString(),
     states: finishedStateCutoff(now).toISOString(),
     seats: unrankedSeatCutoff(now).toISOString(),
+    friendRequests: friendRequestCutoff(now).toISOString(),
   }
-  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, presence: 0, states: 0, seats: 0, screenshots: 0, accounts: 0, accountFeedback: 0, errors: [] }
+  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, presence: 0, friendRequests: 0, states: 0, seats: 0, screenshots: 0, accounts: 0, accountFeedback: 0, errors: [] }
   try {
     report.tables = await purgeTables(cutoffs.tables, dryRun)
   } catch (error) {
@@ -67,6 +71,11 @@ export async function purgeExpired({ now = new Date(), dryRun = false }: { now?:
     report.presence = await purgePresence(cutoffs.presence, dryRun)
   } catch (error) {
     report.errors.push(`presence: ${messageOf(error)}`)
+  }
+  try {
+    report.friendRequests = await purgeFriendRequests(cutoffs.friendRequests, dryRun)
+  } catch (error) {
+    report.errors.push(`friendRequests: ${messageOf(error)}`)
   }
   try {
     report.states = await sweep("drop_finished_states", cutoffs.states, dryRun, STATE_BATCH_SIZE)
@@ -147,6 +156,19 @@ async function purgePresence(cutoff: string, dryRun: boolean): Promise<number> {
     ? await presence.select("user_id", { count: "exact", head: true }).lt("seen_at", cutoff)
     : await presence.delete({ count: "exact" }).lt("seen_at", cutoff)
   if (error) throw error
+  return count ?? 0
+}
+
+/** The requests nobody answered go in one statement: the table holds the requests that wait and nothing else, and `created_at` has an index. A project where migration 0017 is not applied yet has none. */
+async function purgeFriendRequests(cutoff: string, dryRun: boolean): Promise<number> {
+  const requests = supabaseAdmin().from("friend_requests")
+  const { count, error } = dryRun
+    ? await requests.select("sender", { count: "exact", head: true }).lt("created_at", cutoff)
+    : await requests.delete({ count: "exact" }).lt("created_at", cutoff)
+  if (error) {
+    if (isMissingTable(error)) return 0
+    throw error
+  }
   return count ?? 0
 }
 
