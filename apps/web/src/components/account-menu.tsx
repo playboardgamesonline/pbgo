@@ -16,6 +16,7 @@ import {
 } from "@pbgo/ui/platform/dropdown-menu"
 import { PresenceDot } from "@pbgo/ui/platform/friends-panel"
 import { OwnName } from "@/components/own-name"
+import { GAME_SETTINGS_PATH, SETTINGS_PATH } from "@/lib/settings-paths"
 
 type Place = { side: "bottom" | "left"; align: "start" | "end"; sideOffset: number; alignOffset: number }
 
@@ -29,7 +30,7 @@ const UNDER: Place = { side: "bottom", align: "end", sideOffset: 4, alignOffset:
  * its left, overlapping it by 16px (the edge of what the panel holds) and 12px under its top, as the Riot Client's does. Where it goes is read as it opens: the panel is where it is then.
  *
  * On the screen of a game (`game`: the rows of the game, which core draws, see `HudMenu`) they come first, under the head and above the pages of the account, which then open in a new tab: a click on one must not take the
- * visitor away from the table they are playing at.
+ * visitor away from the table they are playing at. The settings are the exception: they open as a window over the board, at the address that the games' window answers (`GAME_SETTINGS_PATH`), and closing it leaves the board as it was.
  */
 export function AccountMenu({ account, beside, game, children }: { account: Account; beside?: string; game?: ReactNode; children: ReactNode }) {
   const trigger = useRef<HTMLButtonElement>(null)
@@ -93,10 +94,7 @@ export function AccountMenu({ account, beside, game, children }: { account: Acco
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/me/settings/account" {...away}>
-            Settings
-            {arrow}
-          </Link>
+          <Link href={`${game ? GAME_SETTINGS_PATH : SETTINGS_PATH}/account`}>Settings</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <form action="/logout" method="post">

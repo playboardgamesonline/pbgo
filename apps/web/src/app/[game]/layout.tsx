@@ -64,11 +64,13 @@ export async function generateViewport({ params }: LayoutProps<"/[game]">): Prom
  * Root layout of a game's pages (`/<slug>/...`): its theme and fonts (admin › Visual), its client runtime (styles,
  * binding: only this game's code is loaded) and the shared shell (sound, toolbar, small screens).
  *
+ * `modal` is the window that a link of the site opens over the board (the settings, at `/settings/<section>`: `@modal`, `docs/routing.md`); a game's layout draws it itself, since the hub's own window cannot cross into another root layout.
+ *
  * A slug that is not a game must not `notFound()` here: nothing sits above a root layout to catch it, and Next answers
  * with its own default 404 page. This layout renders a bare shell instead, every page of the slug calls `notFound()`
  * (`gameOf`), and `./not-found.tsx` fills the shell with the site's 404 (status 404, noindex).
  */
-export default async function GameLayout({ children, params }: LayoutProps<"/[game]">) {
+export default async function GameLayout({ children, modal, params }: LayoutProps<"/[game]">) {
   const game = await findGameOf(params)
   if (!game) {
     return (
@@ -99,6 +101,7 @@ export default async function GameLayout({ children, params }: LayoutProps<"/[ga
               <TooltipProvider delayDuration={300}>{children}</TooltipProvider>
             </GameDockProvider>
           </AppShell>
+          {modal}
           <AppToaster />
         </GameRuntime>
         <Analytics />

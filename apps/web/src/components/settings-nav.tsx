@@ -6,10 +6,11 @@ import { useEffect, useRef } from "react"
 import { CreditCardIcon, Logout01Icon, LockIcon, Notification01Icon, PaletteIcon, TranslationIcon, UniversalAccessCircleIcon, UserIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "@pbgo/ui/utils"
+import { GAME_SETTINGS_PATH, SETTINGS_PATH } from "@/lib/settings-paths"
 import { BILLING_OPEN, NOTIFICATIONS_OPEN } from "@/site"
 
-/** A section of the settings: where it is, what it is called, its icon, and whether it exists for now (`open`, which a section that is hidden says is false: no entry here, and its address shows the 404 page). */
-type Section = { href: string; label: string; icon: typeof UserIcon; open?: boolean }
+/** A section of the settings: its name in the address, what it is called, its icon, and whether it exists for now (`open`, which a section that is hidden says is false: no entry here, and its address shows the 404 page). */
+type Section = { slug: string; label: string; icon: typeof UserIcon; open?: boolean }
 
 /**
  * The sections of the settings, in two groups, in the owner's order. The first is the member and their account: who they are and how they get in, and who sees what and what is kept; what they pay (`BILLING_OPEN`) and what reaches them
@@ -20,18 +21,18 @@ const GROUPS: readonly { label: string | null; sections: readonly Section[] }[] 
   {
     label: null,
     sections: [
-      { href: "/me/settings/account", label: "Account", icon: UserIcon },
-      { href: "/me/settings/billing", label: "Billing", icon: CreditCardIcon, open: BILLING_OPEN },
-      { href: "/me/settings/notifications", label: "Notifications", icon: Notification01Icon, open: NOTIFICATIONS_OPEN },
-      { href: "/me/settings/privacy", label: "Data & Privacy", icon: LockIcon },
+      { slug: "account", label: "Account", icon: UserIcon },
+      { slug: "billing", label: "Billing", icon: CreditCardIcon, open: BILLING_OPEN },
+      { slug: "notifications", label: "Notifications", icon: Notification01Icon, open: NOTIFICATIONS_OPEN },
+      { slug: "privacy", label: "Data & Privacy", icon: LockIcon },
     ],
   },
   {
     label: "Experience",
     sections: [
-      { href: "/me/settings/appearance", label: "Appearance", icon: PaletteIcon },
-      { href: "/me/settings/accessibility", label: "Accessibility", icon: UniversalAccessCircleIcon },
-      { href: "/me/settings/language", label: "Language & Time", icon: TranslationIcon },
+      { slug: "appearance", label: "Appearance", icon: PaletteIcon },
+      { slug: "accessibility", label: "Accessibility", icon: UniversalAccessCircleIcon },
+      { slug: "language", label: "Language & Time", icon: TranslationIcon },
     ],
   },
 ]
@@ -44,6 +45,8 @@ const GROUPS: readonly { label: string | null; sections: readonly Section[] }[] 
  */
 export function SettingsNav({ className }: { className?: string }) {
   const pathname = usePathname()
+  // Over a game's screen the window is at the alias, and its sections too: a link to the settings' own address would be answered by the hub's window, which leaves the game's page
+  const base = pathname.startsWith(`${GAME_SETTINGS_PATH}/`) ? GAME_SETTINGS_PATH : SETTINGS_PATH
   const row = useRef<HTMLElement>(null)
   useEffect(() => {
     const nav = row.current
@@ -59,11 +62,12 @@ export function SettingsNav({ className }: { className?: string }) {
           {index > 0 && <span aria-hidden="true" className="mx-2 my-2 w-px shrink-0 bg-border md:hidden" />}
           {group.label && <p className="hidden px-3 pt-6 pb-1 text-sm text-muted-foreground md:block">{group.label}</p>}
           {group.sections.filter((section) => section.open !== false).map((section) => {
-            const current = pathname.startsWith(section.href)
+            const href = `${base}/${section.slug}`
+            const current = pathname.startsWith(href)
             return (
               <Link
-                key={section.href}
-                href={section.href}
+                key={section.slug}
+                href={href}
                 replace
                 aria-current={current ? "page" : undefined}
                 className={cn(item, "text-muted-foreground hover:bg-muted/50 hover:text-foreground", current && "bg-muted text-foreground")}

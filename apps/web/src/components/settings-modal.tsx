@@ -7,10 +7,11 @@ import { initialsOf, tagText } from "@pbgo/accounts"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { Dialog, DialogContent, DialogTitle } from "@pbgo/ui/platform/dialog"
 import { SettingsNav } from "@/components/settings-nav"
+import { GAME_SETTINGS_PATH, SETTINGS_PATH } from "@/lib/settings-paths"
 
 /**
  * The settings of a signed-in member as a window, the way the apps the owner pointed to have them: the sidebar at the left (the member's name, which leads to their profile, the sections and Sign out), the section at its right, a close button at its
- * top right, and the page behind it dimmed. The window is the same wherever it comes from. `over` says whether it opens over the page the member was on (a link from the account menu, intercepted by `@modal`: the page stays under it and closing goes
+ * top right, and the page behind it dimmed. The window is the same wherever it comes from. `over` says whether it opens over the page the member was on (a link from the account menu, intercepted by `@modal`, the hub's or, over a game's board, the game's: the page stays under it and closing goes
  * back to it) or is the page itself (the address was typed, a link of an e-mail opened it, the page was reloaded: there is nothing under it, and closing leads to the front page, which sends a member to their home). The sections are the pages
  * under `/me/settings`, so a link can lead straight to one. It keeps the room of the consent banner free (`--consent-h`: `docs/design/01-guidelines/04-in-game-rules.md`), as every screen of the hub does: shorter by the banner's height and lifted by half of it. A slot keeps what it showed when the page changes under it, so the window draws nothing once the address is no longer the settings' (a link of the sidebar to the profile, for one).
  */
@@ -25,7 +26,7 @@ export function SettingsModal({ nickname, tag, avatarUrl, over, children }: { ni
     else router.push("/")
   }
 
-  if (!pathname.startsWith("/me/settings")) return null
+  if (!pathname.startsWith(SETTINGS_PATH) && !pathname.startsWith(`${GAME_SETTINGS_PATH}/`)) return null
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
