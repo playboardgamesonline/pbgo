@@ -17,11 +17,12 @@ import { PrimaryButton } from "../home/screen"
 import { useEngineTexts } from "../skin-provider"
 import { SeatAvatarMark, SeatLabel, type SeatSize } from "./seat-label"
 
-// The end screen, in the game's look: a card centered on the screen, over the board with no veil around it. It wears what a game gives its screens: the surface, line, corners and ink of `UI_THEME.gameOver`, the pictures of `UI_THEME.seat`, the game's fonts,
-// its crown and its buttons (`PrimaryButton`). A podium has the winner at the center top, with the second place on its left and the third on its right, and the places after them as rows under it; players who share a rank share a step (a tie, a team), and
-// a table that plays together has one place for everybody. Under the podium it says how the game ended for the visitor (a score, the rank points of a game that counted for the rank), then two buttons: "Continue", which leaves the finished game for the
-// platform, and "Rematch", which asks the table for another game and says who has agreed. The scores of every player, with their lines, are behind "Show scores". Pure presentation, no game context: the connected `GameOver` feeds it from the game, the
-// design docs with samples. The names and the score lines are what the players and the game wrote; every other word is English until the language pass.
+// The end screen, in the game's look: a card centered on the screen, over the board with no veil around it. It wears what a game gives its screens: the surface, line, corners and ink of `UI_THEME.gameOver`, the ring and the name colours of `UI_THEME.seat`
+// (the pictures are always round), the game's fonts, its crown and its buttons (`PrimaryButton`). At the very top it says how the game ended for the visitor (a score, the rank points of a game that counted for the rank). Under it a podium has the winner
+// in the middle, with the second place on its left and the third on its right, on steps that touch each other; at two places the steps share the whole width; players who share a rank share a step (a tie, a team), and a table that plays together has one
+// place for everybody. The places after the third are rows under the podium. Then two buttons: "Continue", which leaves the finished game for the platform, and "Rematch", which asks the table for another game and says who has agreed. The scores of every
+// player, with their lines, are behind "Show scores". Pure presentation, no game context: the connected `GameOver` feeds it from the game, the design docs with samples. The names and the score lines are what the players and the game wrote; every other word
+// is English until the language pass.
 
 /** The game's own rendering of the score lines of a player (its `renderDetail`), for a game whose lines are more than chips. */
 export type ResultDetailRenderer = (result: PlayerResult, options: { large: boolean; centered: boolean }) => ReactNode
@@ -69,7 +70,7 @@ function Crowned({ crown, className }: { crown: GameOverCardProps["crown"]; clas
   )
 }
 
-/** The pictures of the players of a place, side by side and overlapping when there are several, in the shape the game picked for its seats. */
+/** The pictures of the players of a place, side by side and overlapping when there are several. */
 function Faces({ entries, seat, size }: { entries: GameOverEntry[]; seat: SeatTheme; size: SeatSize }) {
   return (
     <div className="flex -space-x-2">
@@ -86,27 +87,44 @@ const namesOf = (entries: readonly GameOverEntry[], meId: string | null): string
 /** A player alone is written in the colour of their seat when the game asks for it; several players, in the ink of the card. */
 const inSeatColour = (seat: SeatTheme, entries: readonly GameOverEntry[]) => seat.name === "seat" && entries.length === 1
 
-/** The height of the steps: the first place is the highest, and each step after it is lower. */
-const STEP_HEIGHTS = ["h-20", "h-14", "h-10"] as const
-/** The column of each step of the podium: the first place in the middle, the second on its left, the third on its right. */
-const STEP_COLUMNS = ["col-start-2", "col-start-1", "col-start-3"] as const
+/** The height of the steps, which touch each other: the first place is the highest, and each step after it is lower. */
+const STEP_HEIGHTS = ["min-h-32", "min-h-28", "min-h-24"] as const
+/**
+ * How the steps stand for one, two or three places. The first place is in the middle of three; at two the steps share the whole width, the second on the left of the first; a single place takes it all. The classes are written out for the stylesheet to find them.
+ */
+const LAYOUT = {
+  1: { grid: "grid-cols-1", columns: ["col-start-1"] },
+  2: { grid: "grid-cols-2", columns: ["col-start-2", "col-start-1"] },
+  3: { grid: "grid-cols-3", columns: ["col-start-2", "col-start-1", "col-start-3"] },
+} as const
 
 type PlaceProps = { place: PodiumPlace; winners: readonly string[]; meId: string | null; scored: boolean; seat: SeatTheme; crown: GameOverCardProps["crown"] }
 
-/** One of the three steps of the podium: the crown of a winner, the pictures, the name (or the name of the team and the names of its players under it), the score, and the step with its rank. */
-function Step({ place, index, winners, meId, scored, seat, crown }: PlaceProps & { index: number }) {
+/**
+ * One step of the podium: the players stand on it (the crown of a winner above their pictures), and the name (or the name of the team and the names of its players under it) and the score are written on its face. The steps touch each other, so that
+ * together they make one podium, and none of them has a number.
+ */
+function Step({ place, index, count, winners, meId, scored, seat, crown }: PlaceProps & { index: number; count: 1 | 2 | 3 }) {
   const { entries } = place
   const first = index === 0
   const alone = first && entries.length === 1
   const coloured = inSeatColour(seat, entries)
   return (
-    <li className={cn("row-start-1 flex min-w-0 flex-col items-center justify-end gap-1.5", STEP_COLUMNS[index])}>
-      {entries.some((entry) => winners.includes(entry.result.playerId)) && <Crowned crown={crown} className="short:hidden" />}
-      <Faces entries={entries} seat={seat} size={alone ? "xl" : entries.length > 2 ? "md" : "lg"} />
-      <div className="flex w-full min-w-0 flex-col items-center gap-0.5">
+    <li className={cn("row-start-1 flex min-w-0 flex-col items-center justify-end", LAYOUT[count].columns[index])}>
+      <div className="flex flex-col items-center gap-1.5 pb-2 short:pb-1">
+        {entries.some((entry) => winners.includes(entry.result.playerId)) && <Crowned crown={crown} className="short:hidden" />}
+        <Faces entries={entries} seat={seat} size={alone ? "xl" : entries.length > 2 ? "md" : "lg"} />
+      </div>
+      <div
+        className={cn(
+          "flex w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-t-lg border border-current/15 px-2 py-3 text-center short:min-h-0 short:py-2",
+          first ? "bg-current/15" : "bg-current/10",
+          STEP_HEIGHTS[index] ?? "min-h-24",
+        )}
+      >
         <p
           className={cn(
-            "ph-mask line-clamp-2 w-full text-center font-sans leading-tight font-black tracking-[0.1em] text-balance uppercase [overflow-wrap:anywhere]",
+            "ph-mask line-clamp-2 w-full font-sans leading-tight font-black tracking-[0.1em] text-balance uppercase [overflow-wrap:anywhere]",
             first ? "text-lg" : "text-sm",
             coloured && "brightness-150",
           )}
@@ -114,15 +132,12 @@ function Step({ place, index, winners, meId, scored, seat, crown }: PlaceProps &
         >
           {place.label ?? namesOf(entries, meId)}
         </p>
-        {place.label && <p className="ph-mask line-clamp-2 w-full text-center font-sans text-xs text-balance opacity-60">{namesOf(entries, meId)}</p>}
+        {place.label && <p className="ph-mask line-clamp-2 w-full font-sans text-xs text-balance opacity-60">{namesOf(entries, meId)}</p>}
         {scored && entries[0] && (
           <p className={cn("font-display tabular-nums", first ? "text-xl" : "text-base opacity-80")} style={first ? ACCENT : undefined}>
             {scoreText(entries[0].result.total)}
           </p>
         )}
-      </div>
-      <div className={cn("mt-1 grid w-full place-items-center rounded-lg border border-current/15 bg-current/10 font-display text-2xl tabular-nums short:hidden", STEP_HEIGHTS[index] ?? "h-10")}>
-        <span className="opacity-45">{place.rank}</span>
       </div>
     </li>
   )
@@ -147,14 +162,17 @@ function Rest({ place, meId, scored, seat }: Omit<PlaceProps, "winners" | "crown
   )
 }
 
-/** The podium: the three first places on their steps, the others as rows under them. A place after the third has no step. */
+/** The podium: the three first places on steps that touch each other, the others as rows under them. A place after the third has no step. */
 function Podium({ places, ...rest }: Omit<PlaceProps, "place"> & { places: PodiumPlace[] }) {
+  const steps = places.slice(0, 3)
   const after = places.slice(3)
+  const count = steps.length as 1 | 2 | 3
+  if (steps.length === 0) return null
   return (
     <div className="flex flex-col gap-3 pt-2 short:pt-0">
-      <ol aria-label="Podium" className="grid grid-cols-3 items-end gap-2">
-        {places.slice(0, 3).map((place, index) => (
-          <Step key={place.rank} place={place} index={index} {...rest} />
+      <ol aria-label="Podium" className={cn("grid items-end", LAYOUT[count].grid)}>
+        {steps.map((place, index) => (
+          <Step key={place.rank} place={place} index={index} count={count} {...rest} />
         ))}
       </ol>
       {after.length > 0 && (
@@ -247,7 +265,7 @@ export type GameOverCardProps = {
 }
 
 /**
- * The end screen: the podium at the top, how the game ended for the visitor under it, the scores of every player behind "Show scores" and the two buttons. The score of a game that counts no points is not written, and neither are the lines under it.
+ * The end screen: how the game ended for the visitor at the very top, the podium under it, the scores of every player behind "Show scores" and the two buttons. The score of a game that counts no points is not written, and neither are the lines under it.
  * `Rematch` says how many of the players still at the table agreed, and a line under the buttons says who asked, whom the table waits for and who left (`rematchLine`).
  */
 export function GameOverCard({ theme, seat, pattern, crown, summary, places, winners, together, meId, rank, rematch, voting = false, onRematch, onContinue, onShare, renderDetail, motion, className }: GameOverCardProps) {
@@ -259,6 +277,8 @@ export function GameOverCard({ theme, seat, pattern, crown, summary, places, win
   // The count of the players who agreed means something while another game can still be played
   const asked = rematch.agreed.length > 0 && rematch.enough
   const everyone = places.flatMap((place) => place.entries.map((entry) => ({ entry, rank: place.rank })))
+  // A picture of a player is always round, whatever shape the game gives the seats on its table; the ring and the colour of the names stay the theme's
+  const faces: SeatTheme = { ...seat, shape: "disc" }
   return (
     <animated.section
       aria-label="Game result"
@@ -283,14 +303,9 @@ export function GameOverCard({ theme, seat, pattern, crown, summary, places, win
           <HugeiconsIcon icon={Share08Icon} strokeWidth={1.8} className="size-5" />
         </button>
 
-        {together ? (
-          <Together place={places[0] ?? { rank: 1, entries: [] }} won={together === "won"} meId={meId} scored={scored} seat={seat} crown={crown} />
-        ) : (
-          <Podium places={places} winners={winners} meId={meId} scored={scored} seat={seat} crown={crown} />
-        )}
-
-        <div className="flex flex-col items-center gap-2">
-          <h2 className="font-display text-2xl leading-tight tracking-wide" style={summary.outcome === "win" ? ACCENT : undefined}>
+        {/* How it ended for the visitor comes first, at the very top of the card, with the score and the rank points; the share is in the corner beside it */}
+        <div className="flex flex-col items-center gap-2 px-9">
+          <h2 className="text-center font-display text-3xl leading-tight tracking-wide short:text-2xl" style={summary.outcome === "win" ? ACCENT : undefined}>
             {summary.title}
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-1.5 empty:hidden">
@@ -306,20 +321,27 @@ export function GameOverCard({ theme, seat, pattern, crown, summary, places, win
               </span>
             )}
           </div>
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-controls={listId}
-            onClick={() => setOpen((was) => !was)}
-            className="cursor-pointer font-display text-sm underline underline-offset-4 opacity-70 transition-opacity hover:opacity-100 motion-reduce:transition-none"
-          >
-            {open ? "Hide scores" : "Show scores"}
-          </button>
         </div>
+
+        {together ? (
+          <Together place={places[0] ?? { rank: 1, entries: [] }} won={together === "won"} meId={meId} scored={scored} seat={faces} crown={crown} />
+        ) : (
+          <Podium places={places} winners={winners} meId={meId} scored={scored} seat={faces} crown={crown} />
+        )}
+
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={listId}
+          onClick={() => setOpen((was) => !was)}
+          className="mx-auto cursor-pointer font-display text-sm underline underline-offset-4 opacity-70 transition-opacity hover:opacity-100 motion-reduce:transition-none"
+        >
+          {open ? "Hide scores" : "Show scores"}
+        </button>
 
         <ol id={listId} aria-label="Final ranking" className={cn("flex max-h-[min(30dvh,14rem)] flex-col gap-0.5 overflow-y-auto [scrollbar-width:thin] short:max-h-20", !open && "hidden")}>
           {everyone.map(({ entry, rank: place }) => (
-            <Row key={entry.result.playerId} entry={entry} rank={place} winner={winners.includes(entry.result.playerId)} me={entry.result.playerId === meId} scored={scored} seat={seat} crown={crown} renderDetail={renderDetail} />
+            <Row key={entry.result.playerId} entry={entry} rank={place} winner={winners.includes(entry.result.playerId)} me={entry.result.playerId === meId} scored={scored} seat={faces} crown={crown} renderDetail={renderDetail} />
           ))}
         </ol>
 

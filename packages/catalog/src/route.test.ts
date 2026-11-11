@@ -25,7 +25,7 @@ const SHORT = "public, max-age=60, s-maxage=60"
 const REDIRECT = "public, max-age=0, s-maxage=10"
 const PICTURE_REDIRECT = "public, max-age=300, s-maxage=3600"
 const ICON = "public, max-age=86400, s-maxage=86400"
-const NO_ICON = "public, max-age=3600, s-maxage=3600"
+const NO_ICON = "public, max-age=86400, s-maxage=86400"
 const SANDBOX = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
 
 const SANITY = `${PLATFORM_PROJECT_ID}.apicdn.sanity.io`
@@ -83,6 +83,13 @@ const logged = () => warn.mock.calls.map((call) => call.join(" ")).join("\n")
 const later = (ms: number) => vi.setSystemTime(Date.now() + ms)
 const bytesOf = async (response: Response) => new Uint8Array(await response.arrayBuffer())
 
+/** A picture that cannot be served, said with no error status (no console reports it): a 204 with nothing in it, and what it may be kept for. */
+async function expectNoPicture(response: Response, cache: string) {
+  expect(response.status).toBe(204)
+  expect(response.headers.get("cache-control")).toBe(cache)
+  expect(await response.text()).toBe("")
+}
+
 const pictures = { logo: cdn("logo-1600x476.webp"), icon: cdn("icon-512x512.png"), background: cdn("background-2400x1350.jpg"), cover: cdn("cover-640x480.webp") }
 const withPictures = (slug: string) => sanityGame(slug, { name: slug, ...pictures })
 
@@ -115,7 +122,7 @@ describe("a picture of a game", () => {
     const w = await world({ sanity: groqSanity([english, french, icon, game]) })
     expect((await w.ask(PLANNED.slug, "logo")).headers.get("location")).toBe(`${english.url}?w=800&fit=max&auto=format&q=85`)
     expect((await w.ask(PLANNED.slug, "icon")).headers.get("location")).toBe(`${icon.url}?w=512&fit=max&auto=format&q=85`)
-    expect((await w.ask(PLANNED.slug, "background")).status).toBe(404)
+    await expectNoPicture(await w.ask(PLANNED.slug, "background"), SHORT)
   })
 
   it("sends a vector picture to its file as it is", async () => {
@@ -149,7 +156,7 @@ describe("a picture of a game", () => {
 
   it("never sends a visitor anywhere but to the image CDN of the project that was read", async () => {
     const w = await world({ games: [sanityGame(PLANNED.slug, { name: "Elsewhere", logo: "https://evil.example/logo.png" })] })
-    expect((await w.ask(PLANNED.slug, "logo")).status).toBe(404)
+    await expectNoPicture(await w.ask(PLANNED.slug, "logo"), SHORT)
   })
 })
 
@@ -172,18 +179,21 @@ describe("a picture that is not there", () => {
 
   it.each([
     ["a game that is nowhere", "nope"],
-    ["a live game that the Studio has no game for: its row of the registry has no picture", LIVE.slug],
     ["a game of the registry that is not live and has no game in the Studio", PLANNED.slug],
   ])("answers 404 for %s", async (_label, slug) => {
     const w = await world({ games: [withPictures(STUDIO_ONLY)] })
     expect((await w.ask(slug, "logo")).status).toBe(404)
   })
 
-  it("answers 404 for a picture the game does not have, even when it has the others", async () => {
+  it("answers 204 for a live game that the Studio has no game for: it is a game of the catalog, by its row of the registry, which has no picture", async () => {
+    const w = await world({ games: [withPictures(STUDIO_ONLY)] })
+    await expectNoPicture(await w.ask(LIVE.slug, "logo"), SHORT)
+  })
+
+  it("answers 204, with no error status, for a picture the game does not have, even when it has the others: a page that asks for it by the old address (the friends' panel) draws a plain frame, and no console reports it", async () => {
     const w = await world({ games: [sanityGame(PLANNED.slug, { name: "Half", logo: pictures.logo })] })
-    const response = await w.ask(PLANNED.slug, "icon")
-    expect(response.status).toBe(404)
-    expect(response.headers.get("cache-control")).toBe(SHORT)
+    await expectNoPicture(await w.ask(PLANNED.slug, "icon"), SHORT)
+    expect(w.downloads()).toEqual([])
     expect((await w.ask(PLANNED.slug, "logo")).status).toBe(308)
   })
 
@@ -197,12 +207,9 @@ describe("a picture that is not there", () => {
 })
 
 describe("when the catalog cannot be read", () => {
-  it("answers 503: the game may well exist, it is not known to be missing", async () => {
+  it("answers 204 that nobody keeps: the game may well exist, it is not known to be missing, and a picture that cannot be served is no error", async () => {
     const w = await world({ games: [withPictures(PLANNED.slug)], sanity: () => new Response("{}", { status: 500 }) })
-    const response = await w.ask(PLANNED.slug, "logo")
-    expect(response.status).toBe(503)
-    expect(response.headers.get("cache-control")).toBe("no-store")
-    expect(response.headers.get("retry-after")).toBe("5")
+    await expectNoPicture(await w.ask(PLANNED.slug, "logo"), "no-store")
     expect(w.downloads()).toEqual([])
     expect(logged()).toContain("The platform's Sanity project is unavailable, only the live games are listed")
   })
@@ -299,58 +306,55 @@ describe("the icon of a publisher", () => {
     expect(w.downloads()).toEqual([])
   })
 
-  it("answers 404, for an hour, when the website has no icon the server can use, and says so once with the host and no address", async () => {
+  it("answers 204, for a day, when the website has no icon the server can use, and says so once with the host and no address", async () => {
     const w = await world({ games, hosts: { [SITE]: () => new Response("Not found", { status: 404 }) } })
-    const response = await w.ask(PLANNED.slug, "publisher-0", VERSION)
-    expect(response.status).toBe(404)
-    expect(response.headers.get("cache-control")).toBe(NO_ICON)
+    await expectNoPicture(await w.ask(PLANNED.slug, "publisher-0", VERSION), NO_ICON)
     await w.ask(PLANNED.slug, "publisher-0", VERSION)
     expect(warn).toHaveBeenCalledTimes(1)
     expect(logged()).toContain(`[catalog] The icon of the publisher 1 of "${PLANNED.slug}" cannot be served: ${SITE} has no icon the server can use`)
     expect(logged()).not.toContain("https://")
   })
 
-  it("answers 404 when the website only sends web pages where its icon should be", async () => {
+  it("answers 204 when the website only sends web pages where its icon should be", async () => {
     const w = await world({ games, hosts: { [SITE]: () => new Response(webPage(), { headers: { "content-type": "image/png" } }) } })
-    expect((await w.ask(PLANNED.slug, "publisher-0", VERSION)).status).toBe(404)
+    await expectNoPicture(await w.ask(PLANNED.slug, "publisher-0", VERSION), NO_ICON)
   })
 
-  it("answers 503, kept by nobody, when the website cannot be reached: the next try may find the icon", async () => {
+  it("answers 204, for a short time only, when the website cannot be reached: the next try may find the icon", async () => {
     const w = await world({ games })
-    const response = await w.ask(PLANNED.slug, "publisher-0", VERSION)
-    expect(response.status).toBe(503)
-    expect(response.headers.get("cache-control")).toBe("no-store")
-    expect(response.headers.get("retry-after")).toBe("300")
+    await expectNoPicture(await w.ask(PLANNED.slug, "publisher-0", VERSION), SHORT)
     expect(logged()).toContain(`${SITE} could not be reached`)
   })
 
   it("leaves a website that could not be reached alone for five minutes, whoever asks, then asks again and recovers", async () => {
     let up = false
     const w = await world({ games, hosts: { [SITE]: (url, init) => (up ? site(url, init) : Promise.reject(new TypeError("fetch failed"))) } })
-    expect((await w.ask(PLANNED.slug, "publisher-0", VERSION)).status).toBe(503)
+    await expectNoPicture(await w.ask(PLANNED.slug, "publisher-0", VERSION), SHORT)
     const asked = w.downloads().length
     up = true
     later(4 * 60_000)
-    const waiting = await w.ask(PLANNED.slug, "publisher-0", VERSION)
-    expect(waiting.status).toBe(503)
-    expect(waiting.headers.get("retry-after")).toBe("60")
+    await expectNoPicture(await w.ask(PLANNED.slug, "publisher-0", VERSION), SHORT)
     expect(w.downloads()).toHaveLength(asked)
     later(61_000)
     expect((await w.ask(PLANNED.slug, "publisher-0", VERSION)).status).toBe(200)
   })
 
-  it("does not leave alone a website that answered and has no icon: it is the CDN that keeps that answer", async () => {
-    const w = await world({ games, hosts: { [SITE]: () => new Response("Not found", { status: 404 }) } })
-    await w.ask(PLANNED.slug, "publisher-0", VERSION)
+  it("leaves a website that answered and has no icon alone for a day, since a 204 is no CDN's to keep, then asks again and recovers", async () => {
+    let up = false
+    const w = await world({ games, hosts: { [SITE]: (url, init) => (up ? site(url, init) : new Response("Not found", { status: 404 })) } })
+    await expectNoPicture(await w.ask(PLANNED.slug, "publisher-0", VERSION), NO_ICON)
     const asked = w.downloads().length
-    await w.ask(PLANNED.slug, "publisher-0", VERSION)
-    expect(w.downloads().length).toBeGreaterThan(asked)
+    up = true
+    later(23 * 60 * 60_000)
+    await expectNoPicture(await w.ask(PLANNED.slug, "publisher-0", VERSION), NO_ICON)
+    expect(w.downloads()).toHaveLength(asked)
+    later(61 * 60_000)
+    expect((await w.ask(PLANNED.slug, "publisher-0", VERSION)).status).toBe(200)
   })
 
-  it("answers 503 when the catalog cannot be read: the game may well have a publisher", async () => {
+  it("answers 204 that nobody keeps when the catalog cannot be read: the game may well have a publisher", async () => {
     const w = await world({ games, hosts, sanity: () => new Response("{}", { status: 500 }) })
-    const response = await w.ask(PLANNED.slug, "publisher-0", VERSION)
-    expect(response.status).toBe(503)
+    await expectNoPicture(await w.ask(PLANNED.slug, "publisher-0", VERSION), "no-store")
     expect(w.downloads()).toEqual([])
   })
 })
@@ -405,11 +409,9 @@ describe("the icon of BoardGameGeek", () => {
     expect(w.downloads()).toEqual([])
   })
 
-  it("answers 404, for an hour, when BoardGameGeek has no icon the server can use, and says so once with the host and no address", async () => {
+  it("answers 204, for a day, when BoardGameGeek has no icon the server can use, and says so once with the host and no address", async () => {
     const w = await world({ games, hosts: { [SITE]: () => new Response("Not found", { status: 404 }) } })
-    const response = await w.ask(PLANNED.slug, "bgg", VERSION)
-    expect(response.status).toBe(404)
-    expect(response.headers.get("cache-control")).toBe(NO_ICON)
+    await expectNoPicture(await w.ask(PLANNED.slug, "bgg", VERSION), NO_ICON)
     await w.ask(PLANNED.slug, "bgg", VERSION)
     expect(warn).toHaveBeenCalledTimes(1)
     expect(logged()).toContain(`[catalog] The icon of BoardGameGeek, for "${PLANNED.slug}" cannot be served: ${SITE} has no icon the server can use`)
@@ -418,11 +420,9 @@ describe("the icon of BoardGameGeek", () => {
 
   it("leaves BoardGameGeek alone for five minutes when it cannot be reached, whichever game asks: one website, one wait", async () => {
     const w = await world({ games })
-    const response = await w.ask(PLANNED.slug, "bgg", VERSION)
-    expect(response.status).toBe(503)
-    expect(response.headers.get("cache-control")).toBe("no-store")
+    await expectNoPicture(await w.ask(PLANNED.slug, "bgg", VERSION), SHORT)
     const asked = w.downloads().length
-    expect((await w.ask(LIVE.slug, "bgg", VERSION)).status).toBe(503)
+    await expectNoPicture(await w.ask(LIVE.slug, "bgg", VERSION), SHORT)
     expect(w.downloads()).toHaveLength(asked)
   })
 })

@@ -19,7 +19,7 @@ This file is a map: structure, routes, commands, rules of work. The detail of ea
 - `packages/` — shared code (below)
 - `docs/` — the detail behind this map, one file per area (see Where to read more), and `content-pipeline.md` (seeding a game's Sanity content)
 - `supabase/migrations/` — schema of the single Supabase project
-- `scripts/` — `new-game.sh`, `go-live.sh`, `add-game.sh`, `game-rules.sh`, `setup-env.sh` (helpers in `lib.sh`), `run.sh`, `check-catalog.mjs`
+- `scripts/` — `new-game.sh`, `go-live.sh`, `add-game.sh`, `game-rules.sh`, `setup-env.sh` (helpers in `lib.sh`), `run.sh`, `check-catalog.mjs`, `check-game.mjs`
 - `.claude/skills/` — the agents' skills by category (`game-`, `engine-`, `platform-`): the questions, rules and commands of a recurring job, written once. `README.md` lists them
 
 ## Routes (`apps/web/src/app`)
@@ -101,6 +101,7 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 - `pnpm new-game <slug> [--name "<Game Name>"]` — `games/<slug>` from `template/`, registered in `packages/games` (not live); the name defaults to the slug, capitalised
 - `pnpm go-live <slug>` — Sanity side: project, public dataset, CORS, studio deployed, project id written in the registry, write token in `apps/web/.env.local`
 - `pnpm add-game [<slug>] [--name "<Game Name>"] [--rules [<lang>=]<file.pdf> …] [--yes] [--dry-run] [--no-open] [--push]` — a new game from nothing to its Studio (new-game + go-live + rules PDFs + setup-env), checked first and confirmed before anything leaves the machine; the skill `game-new` (`/game-new <slug>`) runs it for the owner. All options and steps: `docs/scripts.md`
+- `pnpm check:game <slug> [--stage scaffold|engine|binding|board|content|live]` · `pnpm check:game --all` — how far a game has got on its way from a name to live, from what is in the repo, and the gate before each next step (with `--stage`, exit 1 while a check up to that stage fails); `.claude/skills/README.md` ("A game from A to Z")
 - `pnpm game-rules <slug> --rules [<lang>=]<file.pdf> […] [--dry-run] [--overwrite]` — a game's rulebook PDF per language into the draft of its `settings`, whatever its size (`docs/scripts.md`)
 - `pnpm setup-env [--no-push | --check]` — applies the pending Supabase migrations, fills `apps/web/.env.local` and pushes the variables to the Vercel project `pbgo`; run it from an up-to-date `main`, never from a branch with an unmerged migration (`--no-push` stays on preview, `--check` validates the settings only). `docs/scripts.md`, `docs/supabase-and-env.md`
 
@@ -149,6 +150,6 @@ Open the file of the area you touch before changing it: it holds the full rules 
 - `docs/catalog.md` — the hub catalog: which games it lists, the platform's Sanity project it reads (the query, the order, the cache), the pictures and the publishers' icons, the SEO of the game pages, `pnpm catalog:list`
 - `docs/sanity-and-languages.md` — a game's Sanity project, Studio forms, seeding, the media proxy; texts and the four languages
 - `docs/supabase-and-env.md` — environment variables and secrets, Supabase migrations, realtime, presence
-- `docs/scripts.md` — `pnpm add-game`, `pnpm game-rules`, `pnpm setup-env` in full
+- `docs/scripts.md` — `pnpm add-game`, `pnpm game-rules`, `pnpm setup-env`, `pnpm check:game` in full
 - `docs/content-pipeline.md` — seeding a game's Sanity content
 - Elsewhere: `.claude/skills/README.md` (the agents' skills), `template/CLAUDE.md` and `template/docs/GAME_GUIDE.md` (building a game), `packages/engine-kit/README.md`, `packages/content-kit/README.md`, `MIGRATION.md` (moving the project to another account)
