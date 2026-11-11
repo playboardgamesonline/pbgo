@@ -58,6 +58,9 @@ The rules of a board (the last page of [Components](../../../docs/engine/02-comp
 - No word in code: texts, translations and labels come from Sanity. No picture, sound or text kept in `apps/web/public`.
 - The screen around the table (HUD, players, chat, the menu) is core's: do not redraw it. In the board, only what lies on the table.
 - A visitor who asks for less motion gets it from the table; do not add animation of your own that ignores it.
+- The controls lie in the middle band of the table, never in the bottom strip that the cookie banner covers (`docs/design/01-guidelines/04-in-game-rules.md`): a paper laid in front of the viewer's line is pressed through the banner.
+- A card that lies face down shows no glow: the halo and the outline face the card's face, and the shine, the frame and the sparkle lie on it. To make a pile glow, turn its top card up with the back as its picture (`top.front` of `Pile`), as `games/flip-7/src/components/board/scene.tsx` does.
+- A game with a range of seats (3 to 8) has its knobs for both ends and goes between them (`tableOf` and `cameraFor` in `games/flip-7/src/components/board/`): one ring crowds the full table or leaves the small one empty. Check the fewest, a middle one and the most seats from the first slice.
 
 ## 5. Tune
 
@@ -67,10 +70,11 @@ The debug panel and the settings objects of each block ([Tuning](../../../docs/e
 
 Every pull request is checked, and says how.
 
-- **Two seats need two hosts.** `http://alice.localhost:3100` and `http://bob.localhost:3100` have separate cookies and storage; `127.0.0.1` serves the page but does not hydrate. `pnpm dev <slug>` prints the address. Say which Supabase project `.env.local` points at before creating a table: previews and local development use `pbgo-preview`.
+- **Two seats need two hosts.** `http://alice.localhost:3100` and `http://bob.localhost:3100` have separate cookies and storage; `127.0.0.1` serves the page but does not hydrate. `pnpm dev <slug>` prints the address. Say which Supabase project `.env.local` points at before creating a table: previews and local development use `pbgo-preview`. **The pictures come from the game's Sanity CDN, whose CORS lists `http://localhost:3100`, the production domain and the Studio only**: on `alice.localhost` every card reads a stand-in. Look at the board as the viewer on `localhost` and seat the others through the API (or on a `*.localhost` host when their screen does not matter).
 - **Drive a table without the screen** when a flow is long: from each host, `POST /api/<slug>/games` makes the table, `…/<code>/join` seats the guest and `…/<code>/debug` with `{ "command": "start" }` starts it (outside production only).
 - **Play a whole game**: lobby, start, the ready check, every phase of a turn, the end, the rematch. Then reload in the middle of a game; leave a seat and let the others take over; open a third tab as a spectator.
-- **A phone and a finger**: 390 wide, with touch, nothing scrolling sideways, every control reachable. Then reduced motion on.
+- **Press what a player presses.** Project a place of the table through the camera to a pixel, press it with the mouse, then read the table's version through the API to see that the move went through; a press that does nothing is a control under the banner, the HUD or another card. Play the other seats through the API, and wait for the page to say that it is the viewer's turn before pressing.
+- **A phone and a finger**: 390 wide, with touch, nothing scrolling sideways, every control reachable. Then reduced motion on. Below 900 px the platform covers the game pages with its desktop-only screen (`interface.desktopOnly`, true by default): when the game has not turned it off, say that the phone was not checked.
 - **Pixels need frames.** The Browser pane of the app does not paint while the session is out of view; for a check of the 3D board drive a headless Chromium over the DevTools protocol.
 - **No screenshot in a pull request**: write what was checked and what was seen.
 

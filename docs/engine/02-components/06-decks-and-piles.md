@@ -44,7 +44,7 @@ const { hands, pile: deck } = deal(rest, count, HAND_SIZE)
 | `limit` | The most cards drawn; `LIMIT` in `pile.tsx` when not given |
 | `enter`, `stagger` | Where the cards come in from, and the seconds between two ([Zone](07-zones.md#zone)) |
 
-`PileTop` is the props of a [Card](04-cards.md#card), all optional, but `target`, `size` and `back`: its `front`, and whatever else a card takes, such as a `glow` or an `onClick`.
+`PileTop` is the props of a [Card](04-cards.md#card), all optional, but `target`, `size` and `back`: its `front`, and whatever else a card takes, such as a `glow` or an `onClick`. A `glow` and a `gloss` show on a card that lies face up only ([Glows](04-cards.md#glows)): a deck that lights up on the viewer's turn gives its top card the back for its `front`.
 
 Turn the top card up, draw one, and push the count past the limit: a taller pile looks no different.
 

@@ -1092,9 +1092,18 @@ importers:
       '@pbgo/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@pbgo/table':
+        specifier: workspace:*
+        version: link:../../packages/table
       '@pbgo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@react-three/drei':
+        specifier: 'catalog:'
+        version: 10.7.9(@react-three/fiber@9.8.2(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(three@0.187.0))(@types/react@19.3.0)(@types/three@0.186.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(three@0.187.0)
+      '@react-three/fiber':
+        specifier: 'catalog:'
+        version: 9.8.2(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(three@0.187.0)
       '@sanity/client':
         specifier: 'catalog:'
         version: 8.14.1(vitest@5.0.5(@types/node@26.6.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.3.4(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)))
@@ -1104,6 +1113,12 @@ importers:
       server-only:
         specifier: 'catalog:'
         version: 0.0.1
+      sonner:
+        specifier: 'catalog:'
+        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      three:
+        specifier: 'catalog:'
+        version: 0.187.0
     devDependencies:
       '@pbgo/content-kit':
         specifier: workspace:*
@@ -1126,6 +1141,9 @@ importers:
       '@types/react-dom':
         specifier: 'catalog:'
         version: 19.3.0(@types/react@19.3.0)
+      '@types/three':
+        specifier: 'catalog:'
+        version: 0.186.0
       next:
         specifier: 'catalog:'
         version: 16.4.3(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@26.6.6)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
