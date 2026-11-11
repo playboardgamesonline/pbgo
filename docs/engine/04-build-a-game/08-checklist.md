@@ -30,10 +30,13 @@ One line per rule, each linking to the page that owns it. A line that is not tru
 - Every layer has its file, and `pnpm --filter @<slug>/engine test` and `typecheck` pass ([Testing the engine](06-testing.md)).
 - `src/takeover.test.ts` is adapted to the new engine ([Testing turns](06-testing.md#testing-turns)).
 - `src/conformance.test.ts` passes, with the `secretsFor` of the game ([The conformance test](06-testing.md#the-conformance-test)).
+- `pnpm check:game <slug> --stage engine` exits 0 ([How far a game has got](01-steps.md#how-far-a-game-has-got)).
 
 ## The binding
 
 - `GAME` is exported and the engine is a dependency of the binding ([Exporting `GAME`](05-wiring-it-in.md#exporting-game)).
 - The game's own codes, and only those, are in `ERROR_CODES`, and `src/error-codes.test.ts` passes ([Error codes](05-wiring-it-in.md#error-codes)).
+- The binding's `vitest.config.ts` includes `src/**/*.test.ts`, or its tests never run; and the Studio's `package.json` has the `test` script that runs `studio-forms.test.ts`.
+- `pnpm check:game <slug> --stage binding` exits 0 ([How far a game has got](01-steps.md#how-far-a-game-has-got)).
 - The game is registered and still not live ([`live` and `indexable`](05-wiring-it-in.md#live-and-indexable)).
 - `pnpm test` and `pnpm typecheck` pass for the whole repo.
