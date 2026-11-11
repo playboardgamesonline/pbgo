@@ -3,10 +3,9 @@ import Link from "next/link"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import { getSections } from "@pbgo/docs/server"
 import { Card, CardDescription, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
-import { Logo } from "@pbgo/ui/platform/logo"
-import { NavbarBrand } from "@pbgo/ui/platform/navbar"
+import { ListPageHeader } from "@/components/list-page-header"
+import { SiteFooter } from "@/components/site-footer"
 import { docIconOf } from "@/lib/doc-icons"
-import { SITE_NAME } from "@/site"
 
 const DESCRIPTION = "The reference for how Play Board Games Online is designed and built: the look of its screens and the engines behind its games."
 
@@ -30,7 +29,7 @@ function DocCard({ href, icon, title, description }: { href: string; icon: IconS
 }
 
 /**
- * The way into the docs, with no navbar like every page of the docs: a slim top with the logo, the brand's button as the doc's own menu has it, which leads home, and the title, then a card for each doc, with its icon, its name and its description. There is
+ * The way into the docs, in the look of the pages of the navbar: the head they share (`ListPageHeader`, the title alone), then a card for each doc, with its icon, its name and its description, and the footer. There is
  * no list to keep here: a doc is a folder of `docs/` whose landing page says its icon and its description in its front matter, and a new folder is a new card. A card leads to the doc, which has a look of its own, a side menu next to its pages.
  * The first card is not a doc: it is the playground, an interface of its own at `/docs/playground`.
  */
@@ -38,16 +37,9 @@ export default async function DocsPage() {
   const docs = await getSections()
   return (
     <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b px-4">
-        <NavbarBrand asChild>
-          <Link href="/" aria-label={SITE_NAME} title="Home">
-            <Logo className="h-6" />
-          </Link>
-        </NavbarBrand>
-        <h1 className="font-heading text-xl">Docs</h1>
-      </header>
       <main className="flex-1">
-        <section aria-label="Docs" className="mx-auto w-full max-w-page px-gutter py-section">
+        <ListPageHeader title="Docs" />
+        <section aria-label="Docs" className="mx-auto w-full max-w-page px-gutter pb-section">
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <li>
               <DocCard href="/docs/playground" icon={docIconOf("dice")} title="Playground" description="Every component of the table on one table, to move, tune and play with." />
@@ -60,6 +52,7 @@ export default async function DocsPage() {
           </ul>
         </section>
       </main>
+      <SiteFooter />
     </div>
   )
 }
