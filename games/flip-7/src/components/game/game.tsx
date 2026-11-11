@@ -65,7 +65,6 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   const log = useGameLog<Flip7Event>()
   const settings = useAnnouncementSettings()
   const { announce, element: announcement, current } = useAnnouncements(settings)
-  const [scoresOpen, setScoresOpen] = useState(true)
   const [sending, setSending] = useState(false)
   const previous = useRef<{ round: number; turn: string | null; phase: string } | null>(null)
   const played = useRef<number | null>(null)
@@ -87,7 +86,6 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
       if (before?.phase !== "over") {
         const { phrase, detail, winners, kind } = winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points }), t("defeatTitle"))
         announce(phrase, kind, { subtitle: detail, sound: kind === "victory" ? "victory" : undefined, seats: seatsFor(winners) })
-        setScoresOpen(true)
       }
       return
     }
@@ -175,7 +173,7 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
         <>
           {announcement}
           <StalledTurn onUpdate={onUpdate} />
-          {ended && !current && <GameOver onUpdate={onUpdate} isOpen={scoresOpen} onToggle={() => setScoresOpen((o) => !o)} />}
+          {ended && !current && <GameOver onUpdate={onUpdate} />}
           <DebugSlot />
         </>
       }
