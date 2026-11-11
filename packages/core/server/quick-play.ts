@@ -5,7 +5,7 @@ import { TIERS, type Tier } from "@pbgo/ui/ranks"
 import type { AgeRulesSource } from "../lib/age-rules"
 import type { PlayableGame } from "../lib/binding"
 import type { GameStatus } from "../lib/game-types"
-import { olderLobby, openingSettings, rankLobbies, seated, type CancelRequest, type Lobby, type PlayMode, type PlayRequest, type PlayState, type PlayTable } from "../lib/quick-play"
+import { olderLobby, openingSettings, rankLobbies, seated, settleOwn, type CancelRequest, type Lobby, type PlayMode, type PlayRequest, type PlayState, type PlayTable } from "../lib/quick-play"
 import { gameOptions } from "../lib/settings"
 import { loadSettings } from "../lib/settings-server"
 import { asksSomething, effectiveSettings, modeOf, tierOf, type TableSettings, type Viewer } from "../lib/table-settings"
@@ -156,16 +156,50 @@ async function open(search: Search, game: PlayableGame, gate: AgeGate, range: { 
   return { table: tableOf(game.slug, row, settings, range.max, true), seat: sitter.id, hostId: row.host_id }
 }
 
+/** Whether a lobby is of the kind a search keeps the visitor at: public, and of the mode of the search. */
+const isSearchKind = (settings: TableSettings | undefined, mode: PlayMode): boolean => settings?.visibility === "public" && modeOf(settings) === mode
+
+/** Gives up the spare lobbies of the visitor, where they sit alone. Never throws: a lobby that could not be left is logged, and stays until its seat is left or the nightly clean-up takes it. */
+async function giveUp(game: PlayableGame, spares: readonly MemberTable[]): Promise<void> {
+  await Promise.all(
+    spares.map(async (table) => {
+      try {
+        await leaveLobby(game, table.code, table.seat)
+      } catch (error) {
+        console.error("A spare lobby of a search could not be left", { game: game.slug }, error instanceof Error ? error.message : error)
+      }
+    }),
+  )
+}
+
+/**
+ * Two calls of one visitor at the same moment (two tabs, a press while a call that keeps the search alive is on its way) each find no table of theirs and each open one. Once a table is opened, the visitor's lobbies of the game are read again and the one that stays is the one
+ * every call picks (`settleOwn`): a call whose table is not that one leaves it and answers with the other. A failure here leaves a twin for the next call of the search to give up.
+ */
+async function settleTwins(search: Search, game: PlayableGame, opened: Found, maxPlayers: number): Promise<Found> {
+  try {
+    const held = (await tablesOf(search.actor, [game.slug])).filter((table) => table.game === game.slug && table.status === "lobby")
+    if (held.length < 2) return opened
+    const kept = await readTableSettings(game.slug, held.map((table) => table.code))
+    const { stay, spares } = settleOwn(held.filter((table) => isSearchKind(kept.get(table.code), search.mode)))
+    await giveUp(game, spares)
+    if (!stay || stay.code === opened.table.code) return opened
+    return { table: tableOf(game.slug, stay, kept.get(stay.code) ?? {}, maxPlayers, false), seat: stay.seat, hostId: stay.hostId }
+  } catch (error) {
+    console.error("The twins of a lobby could not be settled", { game: game.slug }, error instanceof Error ? error.message : error)
+    return opened
+  }
+}
+
 /** The table of the search for one game: the lobby the visitor sits at already (and, when they sit there alone, the older one they should move to), else one to sit at, else a new one. */
 async function searchGame(search: Search, game: PlayableGame): Promise<Found> {
   const { minPlayers, maxPlayers } = await loadSettings(game)
   const gate = await ageGateFor(search.deps.ageRules, game, search.actor)
   const held = search.mine.filter((table) => table.game === game.slug && table.status === "lobby")
   const [kept, lobbies] = await Promise.all([readTableSettings(game.slug, held.map((table) => table.code)), readPublicTables(game.slug)])
-  const mineHere = held.find((table) => {
-    const settings = kept.get(table.code) ?? {}
-    return settings.visibility === "public" && modeOf(settings) === search.mode
-  })
+  // The lobbies of the kind a search keeps the visitor at: one, and when two calls of the same moment each opened one, the one that stays is theirs and the others, where they sit alone, are given up (`settleOwn`)
+  const { stay: mineHere, spares } = settleOwn(held.filter((table) => isSearchKind(kept.get(table.code), search.mode)))
+  await giveUp(game, spares)
   const viewer = await viewerIn(search, game.slug, lobbies)
   const candidates = rankLobbies(lobbies, { mode: search.mode, viewer: () => viewer, maxOf: () => maxPlayers, mine: new Set(held.map((table) => `${table.game}:${table.code}`)), now: search.now })
 
@@ -190,7 +224,8 @@ async function searchGame(search: Search, game: PlayableGame): Promise<Found> {
   // Nothing to sit at: a table of the game is opened, if the visitor may sit at it (the age of the game)
   const options = await optionsFor(search, game)
   gate.assertMay(gate.tableAge(options))
-  return open(search, game, gate, { min: minPlayers, max: maxPlayers }, options)
+  const opened = await open(search, game, gate, { min: minPlayers, max: maxPlayers }, options)
+  return settleTwins(search, game, opened, maxPlayers)
 }
 
 /**
