@@ -118,7 +118,10 @@ function SelectItem({
             className=" pointer-events-none" />
         </SelectPrimitive.ItemIndicator>
       </span>
-      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      {/* Radix portals the text of the chosen item into the trigger: as a bare text node, a browser's translation replaces it and React then fails to remove it. A span keeps it React's, and `contents` keeps the layout */}
+      <SelectPrimitive.ItemText>
+        <span className="contents">{children}</span>
+      </SelectPrimitive.ItemText>
     </SelectPrimitive.Item>
   )
 }
