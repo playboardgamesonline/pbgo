@@ -5,7 +5,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = { robots: { index: false, follow: false } }
 
 /**
- * `/docs` is the way into the docs (`page.tsx`: a card for each doc under a slim top with the logo, with no navbar) and each doc has a shell of its own (`[section]/layout.tsx`: its side menu next to its pages), so this
+ * `/docs` is the way into the docs (`page.tsx`: a card for each doc, in the look of the hub's pages, with the hub's navbar and footer) and each doc has a shell of its own (`[section]/layout.tsx`: its side menu next to its pages), so this
  * layout draws nothing. It is where all of them become `noindex`.
  */
 export default function DocsLayout({ children }: Readonly<{ children: React.ReactNode }>) {
