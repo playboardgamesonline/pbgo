@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { isOlder, lobbyKey, olderLobby, openingSettings, parseCancelRequest, parsePlayRequest, rankLobbies, seated, SEARCH_MAX_GAMES, type Choice, type Lobby } from "./quick-play"
+import { isOlder, lobbyKey, olderLobby, openingSettings, parseCancelRequest, parsePlayRequest, rankLobbies, seated, SEARCH_MAX_GAMES, settleOwn, type Choice, type Lobby } from "./quick-play"
 import { RANK_GAP_STEP_MS, type TableSettings } from "./table-settings"
 
 const NOW = Date.parse("2026-01-01T12:00:00.000Z")
@@ -203,5 +203,39 @@ describe("olderLobby", () => {
 
   it("is nothing when there is no other lobby", () => {
     expect(olderLobby(mine, [])).toBeNull()
+  })
+})
+
+describe("settleOwn", () => {
+  it("keeps the only lobby of the visitor and gives nothing up", () => {
+    const only = lobby("ONLYYY", 1)
+    expect(settleOwn([only])).toEqual({ stay: only, spares: [] })
+  })
+
+  it("keeps the older of two lobbies that two calls of the same moment opened and gives the other up, whichever order they come in", () => {
+    const older = lobby("OLDERR", 1, { createdAt: ago(5_000) })
+    const younger = lobby("YOUNGE", 1, { createdAt: ago(4_955) })
+    expect(settleOwn([younger, older])).toEqual({ stay: older, spares: [younger] })
+    expect(settleOwn([older, younger])).toEqual({ stay: older, spares: [younger] })
+  })
+
+  it("lets the code settle two lobbies opened at the same instant, so that both calls agree", () => {
+    const a = lobby("AAAAAA", 1, { createdAt: ago(5_000) })
+    const b = lobby("BBBBBB", 1, { createdAt: ago(5_000) })
+    expect(settleOwn([b, a]).stay).toBe(a)
+    expect(settleOwn([a, b]).stay).toBe(a)
+  })
+
+  it("keeps the fullest lobby whatever its age, and never gives up one where somebody sits with the visitor", () => {
+    const alone = lobby("OLDERR", 1, { createdAt: ago(9_000) })
+    const company = lobby("FULLER", 2, { createdAt: ago(1_000) })
+    expect(settleOwn([alone, company])).toEqual({ stay: company, spares: [alone] })
+    const both = settleOwn([lobby("BOTH_A", 2, { createdAt: ago(9_000) }), lobby("BOTH_B", 3, { createdAt: ago(1_000) })])
+    expect(both.stay?.code).toBe("BOTH_B")
+    expect(both.spares).toEqual([])
+  })
+
+  it("is nothing when the visitor sits at none", () => {
+    expect(settleOwn([])).toEqual({ stay: null, spares: [] })
   })
 })

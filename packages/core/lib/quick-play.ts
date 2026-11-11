@@ -137,3 +137,12 @@ export function rankLobbies<L extends Lobby>(lobbies: readonly L[], choice: Choi
 export function olderLobby<L extends Lobby>(mine: Pick<Lobby, "createdAt" | "code">, ranked: readonly L[]): L | null {
   return ranked.find((lobby) => seated(lobby) >= 1 && isOlder(lobby, mine)) ?? null
 }
+
+/**
+ * Which of the lobbies of one kind that a visitor sits at stays, when there are several. A search keeps the visitor at one lobby of a game and a kind, so a second one is a twin: two calls of the same visitor at the same moment (two tabs, a press while a call that keeps the
+ * search alive is on its way) each found nothing of theirs and each opened one. The fullest stays, then the older, so that the calls agree on the same one; the others are given up when the visitor sits alone at them, and never when somebody sits with them.
+ */
+export function settleOwn<L extends Pick<Lobby, "createdAt" | "code" | "players">>(own: readonly L[]): { stay: L | null; spares: L[] } {
+  const [stay = null, ...others] = [...own].sort((a, b) => seated(b) - seated(a) || (isOlder(a, b) ? -1 : isOlder(b, a) ? 1 : 0))
+  return { stay, spares: others.filter((lobby) => seated(lobby) <= 1) }
+}
