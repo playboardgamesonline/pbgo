@@ -105,15 +105,15 @@ export default function TermsOfUse() {
           What you write (a nickname, a bio, a chat message, feedback) stays yours. By sending it you allow us to show it to the people it is meant for, such as your table, and, for feedback, to read it and use it to improve the site, without paying you.
         </LegalText>
         <LegalText>
-          The list of cities that you pick your city from, for your profile, includes data from{" "}
-          <a className={LEGAL_LINK} href="https://www.geonames.org">
-            GeoNames
+          The cities that you can pick for your profile are found with{" "}
+          <a className={LEGAL_LINK} href="https://www.geoapify.com/">
+            Geoapify
           </a>
-          , used under the{" "}
-          <a className={LEGAL_LINK} href="https://creativecommons.org/licenses/by/4.0/">
-            Creative Commons Attribution 4.0 licence
+          , from data of{" "}
+          <a className={LEGAL_LINK} href="https://www.openstreetmap.org/copyright">
+            © OpenStreetMap contributors
           </a>
-          . It is provided as it is, without warranty of its accuracy.
+          , which is available under the Open Database Licence.
         </LegalText>
       </LegalSection>
 

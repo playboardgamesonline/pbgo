@@ -80,8 +80,18 @@ export function favoriteGamesOf(value: unknown): string[] | null {
   return slugs
 }
 
-/** The city a member says they live in: a city of the list that ships with the site (`@pbgo/cities`), kept as its GeoNames number, its name and its country, which is the profile's own country (the table checks it). Never free text. */
-export type ProfileCity = { id: number; name: string; country: string }
+/** The city a member says they live in: a city that Geoapify knows (`verifyCity` of core asks it), kept as its name and its country, which is the profile's own country (the table checks it). Never free text: the window only offers the cities Geoapify finds. */
+export type ProfileCity = { name: string; country: string }
+
+/** A city as a request says it, as far as its shape goes: an object with a name (1 to 100 characters, no control character, one space between words) and a country (an ISO code), and no other key. Whether such a city exists is for the server to ask (`verifyCity`). Null for anything else. */
+export function cityOfRequest(value: unknown): ProfileCity | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value) || Object.keys(value).length !== 2) return null
+  const { name, country } = value as Record<string, unknown>
+  if (typeof name !== "string" || typeof country !== "string") return null
+  const written = name.replace(/\p{Cc}/gu, "").replace(/\s+/g, " ").trim()
+  const code = country.trim().toUpperCase()
+  return written !== "" && Array.from(written).length <= 100 && isCountryCode(code) ? { name: written, country: code } : null
+}
 
 /** The words a page writes for a city, with its country: "Lyon, France". */
 export const cityText = (city: ProfileCity): string => `${city.name}, ${countryName(city.country)}`
@@ -105,14 +115,14 @@ export const noProfileDetails = (): ProfileDetails => ({ pronouns: null, country
 /** Whether a profile says anything of its member beyond their name. */
 export const hasProfileDetails = (details: ProfileDetails): boolean => details.pronouns !== null || details.country !== null || details.city !== null || details.favoriteGames.length > 0 || details.bio !== null
 
-// The city of a row: its three columns, and only when the city is in the country the profile says (a city of another country is never drawn)
+// The city of a row: its two columns, and only when the city is in the country the profile says (a city of another country is never drawn)
 function cityOfRow(row: Record<string, unknown>, country: string | null): ProfileCity | null {
-  const { city_id: id, city_name: name, city_country: cityCountry } = row
-  if (typeof id !== "number" || !Number.isInteger(id) || id < 1 || typeof name !== "string" || name === "" || Array.from(name).length > 100) return null
-  return isCountryCode(cityCountry) && cityCountry === country ? { id, name, country: cityCountry } : null
+  const { city_name: name, city_country: cityCountry } = row
+  if (typeof name !== "string" || name === "" || Array.from(name).length > 100) return null
+  return isCountryCode(cityCountry) && cityCountry === country ? { name, country: cityCountry } : null
 }
 
-/** The details a row of the database says (`pronouns`, `country`, `city_*`, `favorite_games`, `bio`), read as safely as anything that comes from outside: the table checks all of it, and this is only never to draw what it does not hold. A row without them (a migration is not applied) says nothing. */
+/** The details a row of the database says (`pronouns`, `country`, `city_name`, `city_country`, `favorite_games`, `bio`), read as safely as anything that comes from outside: the table checks all of it, and this is only never to draw what it does not hold. A row without them (a migration is not applied) says nothing. */
 export function detailsOf(row: Record<string, unknown> | null | undefined): ProfileDetails {
   if (!row) return noProfileDetails()
   const slugs = Array.isArray(row.favorite_games) ? [...new Set(row.favorite_games.filter(isGameSlug))].slice(0, FAVORITES_MAX) : []
@@ -136,26 +146,23 @@ export type ProfileEdit = {
   tag?: number
   pronouns?: Pronouns | null
   country?: string | null
-  /** The city, with its name and its country as the list of cities says them (the server looks the city up: see `ParsedProfileEdit`). `null` takes it away. */
+  /** The city, with its country (which has to be the profile's: the window sets the two together). The server checks that Geoapify knows it. `null` takes it away. */
   city?: ProfileCity | null
   favoriteGames?: string[]
   bio?: string | null
 }
-
-/** What a request body asks for, before the server has looked a city up: the same as `ProfileEdit`, with the city as the GeoNames number the client sends (a client never says a city's name or country, the list does). */
-export type ParsedProfileEdit = Omit<ProfileEdit, "city"> & { cityId?: number | null }
 
 const isThere = (body: Record<string, unknown>, key: keyof ProfileEdit): boolean => Object.hasOwn(body, key) && body[key] !== undefined
 
 /**
  * The change that a request body asks for (`POST /api/hub/profile`), judged: the fields it holds, cleaned as the profile keeps them (the nickname as `checkNickname` makes it, the country in capitals, the bio as `cleanBio` makes it), or `ok: false` for a body that is not
  * an object, that has no field of a profile, or that has a field a profile cannot hold. An empty text clears the pronouns and the country, as `null` does. A key this does not know is left out: a client cannot say whose profile it is, the session does. Whether the
- * favourite games are games of the catalog is not judged here: only the server can say.
+ * favourite games are games of the catalog, and the city a city that exists, is not judged here: only the server can say.
  */
-export function parseProfileEdit(body: unknown): { ok: true; edit: ParsedProfileEdit } | { ok: false } {
+export function parseProfileEdit(body: unknown): { ok: true; edit: ProfileEdit } | { ok: false } {
   if (typeof body !== "object" || body === null || Array.isArray(body)) return { ok: false }
   const input = body as Record<string, unknown>
-  const edit: ParsedProfileEdit = {}
+  const edit: ProfileEdit = {}
   if (isThere(input, "nickname")) {
     const checked = typeof input.nickname === "string" ? checkNickname(input.nickname) : null
     if (!checked?.ok) return { ok: false }
@@ -178,10 +185,9 @@ export function parseProfileEdit(body: unknown): { ok: true; edit: ParsedProfile
     edit.country = checked.country
   }
   if (isThere(input, "city")) {
-    const { city } = input
-    if (city === null) edit.cityId = null
-    else if (typeof city === "number" && Number.isInteger(city) && city >= 1 && city <= 2_147_483_647) edit.cityId = city
-    else return { ok: false }
+    const city = input.city === null ? null : cityOfRequest(input.city)
+    if (input.city !== null && city === null) return { ok: false }
+    edit.city = city
   }
   if (isThere(input, "favoriteGames")) {
     const slugs = input.favoriteGames === null ? [] : favoriteGamesOf(input.favoriteGames)

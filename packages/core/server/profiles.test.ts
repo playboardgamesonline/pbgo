@@ -35,12 +35,12 @@ describe("readProfileByHandle", () => {
   })
 
   it("says what the member says of themselves, as the lookup gives it", async () => {
-    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "she/her", country: "FR", city_id: 2996944, city_name: "Lyon", city_country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!" })], error: null })
-    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: "she/her", country: "FR", city: { id: 2996944, name: "Lyon", country: "FR" }, favoriteGames: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!" })
+    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "she/her", country: "FR", city_name: "Lyon", city_country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!" })], error: null })
+    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: "she/her", country: "FR", city: { name: "Lyon", country: "FR" }, favoriteGames: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!" })
   })
 
   it("draws nothing it does not hold: a pronoun off the list, a country that is no country, a bio that is too long", async () => {
-    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "xe/xem", country: "ZZ", city_id: 1, city_name: "Lyon", city_country: "ZZ", favorite_games: ["Not A Slug"], bio: "b".repeat(201) })], error: null })
+    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "xe/xem", country: "ZZ", city_name: "Lyon", city_country: "ZZ", favorite_games: ["Not A Slug"], bio: "b".repeat(201) })], error: null })
     expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null })
   })
 
@@ -127,10 +127,10 @@ describe("readProfile", () => {
 
 describe("readProfileDetails", () => {
   it("reads the four fields of one account, and only those", async () => {
-    mocks.maybeSingle.mockResolvedValue({ data: { pronouns: "any", country: "BE", city_id: 2800866, city_name: "Brussels", city_country: "BE", favorite_games: ["hanabi"], bio: "Hi" }, error: null })
-    expect(await readProfileDetails(ANN)).toEqual({ pronouns: "any", country: "BE", city: { id: 2800866, name: "Brussels", country: "BE" }, favoriteGames: ["hanabi"], bio: "Hi" })
+    mocks.maybeSingle.mockResolvedValue({ data: { pronouns: "any", country: "BE", city_name: "Brussels", city_country: "BE", favorite_games: ["hanabi"], bio: "Hi" }, error: null })
+    expect(await readProfileDetails(ANN)).toEqual({ pronouns: "any", country: "BE", city: { name: "Brussels", country: "BE" }, favoriteGames: ["hanabi"], bio: "Hi" })
     expect(mocks.from).toHaveBeenCalledWith("profiles")
-    expect(mocks.select).toHaveBeenCalledWith("pronouns, country, favorite_games, bio, city_id, city_name, city_country")
+    expect(mocks.select).toHaveBeenCalledWith("pronouns, country, favorite_games, bio, city_name, city_country")
     expect(mocks.eq).toHaveBeenCalledWith("user_id", ANN)
   })
 
@@ -208,10 +208,10 @@ describe("saveProfile", () => {
 
   it("sends every field of the edit under the name of its column, in one call", async () => {
     mocks.rpc.mockResolvedValue({ data: "ok", error: null })
-    await saveProfile(ANN, { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", city: { id: 2996944, name: "Lyon", country: "FR" }, favoriteGames: ["courtisans", "flip-7"], bio: "Hello" })
+    await saveProfile(ANN, { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", city: { name: "Lyon", country: "FR" }, favoriteGames: ["courtisans", "flip-7"], bio: "Hello" })
     expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("set_profile", {
       p_user: ANN,
-      p_changes: { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", city: { id: 2996944, name: "Lyon", country: "FR" }, favorite_games: ["courtisans", "flip-7"], bio: "Hello" },
+      p_changes: { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", city: { name: "Lyon", country: "FR" }, favorite_games: ["courtisans", "flip-7"], bio: "Hello" },
     })
   })
 

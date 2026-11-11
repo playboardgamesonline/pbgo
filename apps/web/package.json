@@ -24,7 +24,6 @@
     "@pbgo/accounts": "workspace:*",
     "@pbgo/analytics": "workspace:*",
     "@pbgo/catalog": "workspace:*",
-    "@pbgo/cities": "workspace:*",
     "@pbgo/core": "workspace:*",
     "@pbgo/docs": "workspace:*",
     "@pbgo/engine-kit": "workspace:*",

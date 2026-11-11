@@ -5,20 +5,22 @@ const mocks = vi.hoisted(() => ({
   saveProfile: vi.fn(async (_userId: string, _edit: Record<string, unknown>): Promise<"ok" | "taken" | "invalid" | "missing"> => "ok"),
   ensureProfile: vi.fn(async (_account: unknown): Promise<object | null> => ({})),
   catalog: vi.fn(async (_slugs: readonly string[]): Promise<{ unknown: readonly string[]; complete: boolean }> => ({ unknown: [], complete: true })),
-  cityOf: vi.fn((id: number): { id: number; name: string; country: string; region?: string; population?: number } | null => (id === 2996944 ? { id, name: "Lyon", country: "FR", region: "Auvergne-Rhône-Alpes", population: 520774 } : id === 2800866 ? { id, name: "Brussels", country: "BE" } : null)),
+  verifyCity: vi.fn(async (city: { name: string; country: string }): Promise<{ name: string; country: string; region: string | null } | null> => ({ name: city.name === "lyon" ? "Lyon" : city.name, country: city.country, region: null })),
 }))
 
 vi.mock("server-only", () => ({}))
 vi.mock("@pbgo/accounts/server", () => ({ getAccount: async () => mocks.account }))
 vi.mock("../../../../server/player", () => ({ getPlayerId: async () => null }))
+vi.mock("../../../../server/geoapify", async (importOriginal) => ({ ...(await importOriginal<typeof import("../../../../server/geoapify")>()), verifyCity: mocks.verifyCity }))
 vi.mock("../../../../server/profiles", async (importOriginal) => ({ ...(await importOriginal<typeof import("../../../../server/profiles")>()), saveProfile: mocks.saveProfile, ensureProfile: mocks.ensureProfile }))
 
 import { CORE_ERROR_MESSAGES } from "../../../../lib/api"
+import { CitySearchUnavailable } from "../../../../server/geoapify"
 import { setRateLimitStore } from "../../../../server/rate-limit"
 import { MemoryRateLimitStore } from "../../../../server/rate-limiter"
 import { GET, postProfile } from "./route"
 
-const POST = postProfile(mocks.catalog, mocks.cityOf)
+const POST = postProfile(mocks.catalog)
 
 const ANN = "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11"
 
@@ -36,7 +38,7 @@ beforeEach(() => {
   mocks.ensureProfile.mockResolvedValue({})
   mocks.catalog.mockReset()
   mocks.catalog.mockResolvedValue({ unknown: [], complete: true })
-  mocks.cityOf.mockClear()
+  mocks.verifyCity.mockClear()
   setRateLimitStore(new MemoryRateLimitStore())
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
@@ -254,57 +256,77 @@ describe("POST /api/hub/profile", () => {
   })
 
   describe("the city", () => {
-    it("is asked for by its number, and the server takes its name and its country from the list: only those three are kept, and the country becomes the profile's", async () => {
+    const LYON = { city: { name: "lyon", country: "fr" } }
+
+    it("is checked at Geoapify, and the profile keeps Geoapify's spelling of it, with its country as the profile's", async () => {
       mocks.account = { id: ANN }
-      const response = await send({ city: 2996944 })
+      const response = await send(LYON)
       expect(response.status).toBe(200)
-      const kept = { city: { id: 2996944, name: "Lyon", country: "FR" }, country: "FR" }
+      const kept = { city: { name: "Lyon", country: "FR" }, country: "FR" }
       expect(await response.json()).toEqual({ saved: true, ...kept })
+      expect(mocks.verifyCity).toHaveBeenCalledExactlyOnceWith({ name: "lyon", country: "FR" })
       expect(mocks.saveProfile).toHaveBeenCalledExactlyOnceWith(ANN, kept)
     })
 
-    it("is picked together with its own country, in one change with the rest", async () => {
+    it("comes in one change with its own country and the rest", async () => {
       mocks.account = { id: ANN }
-      await send({ country: "fr", city: 2996944, bio: "Hi" })
-      expect(mocks.saveProfile).toHaveBeenCalledExactlyOnceWith(ANN, { city: { id: 2996944, name: "Lyon", country: "FR" }, country: "FR", bio: "Hi" })
+      await send({ country: "fr", ...LYON, bio: "Hi" })
+      expect(mocks.saveProfile).toHaveBeenCalledExactlyOnceWith(ANN, { city: { name: "Lyon", country: "FR" }, country: "FR", bio: "Hi" })
     })
 
-    it("refuses a request that puts a city in another country than the one it says, or in no country", async () => {
+    it("is refused in another country than the one the request says, or in none: nothing is asked of Geoapify, nothing is kept", async () => {
       mocks.account = { id: ANN }
-      for (const body of [{ country: "BE", city: 2996944 }, { country: null, city: 2996944 }]) {
+      for (const body of [{ country: "BE", ...LYON }, { country: null, ...LYON }]) {
         const response = await send(body)
         expect(response.status, JSON.stringify(body)).toBe(400)
         expect(await errorOf(response)).toBe("PROFILE_INVALID")
       }
+      expect(mocks.verifyCity).not.toHaveBeenCalled()
       expect(mocks.saveProfile).not.toHaveBeenCalled()
     })
 
-    it("refuses a number that is not a city of the list, which is never free text: nothing is kept", async () => {
+    it("is refused when Geoapify does not know it, which is never free text: nothing is kept", async () => {
       mocks.account = { id: ANN }
-      const response = await send({ nickname: "Alex", tag: 42, city: 12345 })
+      mocks.verifyCity.mockResolvedValue(null)
+      const response = await send({ nickname: "Alex", tag: 42, city: { name: "Nowhereville", country: "FR" } })
       expect(response.status).toBe(400)
       expect(await errorOf(response)).toBe("PROFILE_CITY_UNKNOWN")
       expect(mocks.saveProfile).not.toHaveBeenCalled()
     })
 
-    it("refuses a city that is not a number: a name is not asked, the list is", async () => {
+    it("says it is not available when Geoapify cannot answer: a city that nobody could check is not kept", async () => {
       mocks.account = { id: ANN }
-      for (const city of ["Lyon", { id: 2996944, name: "Lyon", country: "FR" }, 0, -1, 1.5, [2996944], true]) {
+      mocks.verifyCity.mockRejectedValue(new CitySearchUnavailable("Geoapify answered 429"))
+      const response = await send(LYON)
+      expect(response.status).toBe(503)
+      expect(await errorOf(response)).toBe("PROFILE_UNAVAILABLE")
+      expect(mocks.saveProfile).not.toHaveBeenCalled()
+    })
+
+    it("answers with an error when the check fails in some other way", async () => {
+      mocks.account = { id: ANN }
+      mocks.verifyCity.mockRejectedValue(new Error("boom"))
+      expect((await send(LYON)).status).toBe(500)
+    })
+
+    it("is refused when it is not a name and a country: nothing is asked of Geoapify", async () => {
+      mocks.account = { id: ANN }
+      for (const city of ["Lyon", 2996944, { name: "Lyon" }, { name: "", country: "FR" }, { name: "Lyon", country: "ZZ" }, { name: "Lyon", country: "FR", id: 5 }, [], true]) {
         const response = await send({ city })
         expect(response.status, JSON.stringify(city)).toBe(400)
         expect(await errorOf(response)).toBe("PROFILE_INVALID")
       }
-      expect(mocks.cityOf).not.toHaveBeenCalled()
+      expect(mocks.verifyCity).not.toHaveBeenCalled()
       expect(mocks.saveProfile).not.toHaveBeenCalled()
     })
 
-    it("takes the city away with null, with the country it left or changed in the same request: the table keeps the two together", async () => {
+    it("is taken away with null, with the country it left or changed in the same request: the table keeps the two together", async () => {
       mocks.account = { id: ANN }
       expect(await (await send({ city: null })).json()).toEqual({ saved: true, city: null })
       expect(mocks.saveProfile).toHaveBeenLastCalledWith(ANN, { city: null })
       await send({ country: "BE", city: null })
       expect(mocks.saveProfile).toHaveBeenLastCalledWith(ANN, { country: "BE", city: null })
-      expect(mocks.cityOf).not.toHaveBeenCalled()
+      expect(mocks.verifyCity).not.toHaveBeenCalled()
     })
 
     it("tells a refusal of the table, a city in another country than the profile's that the request left alone, as an invalid profile", async () => {
@@ -315,23 +337,19 @@ describe("POST /api/hub/profile", () => {
       expect(await errorOf(response)).toBe("PROFILE_INVALID")
     })
 
-    it("keeps nothing for the demo account, and says the city it would have kept", async () => {
+    it("keeps nothing for the demo account, and asks nothing of Geoapify: it says the city it would have kept", async () => {
       mocks.account = { id: "demo" }
-      const response = await send({ city: 2996944 })
-      expect(await response.json()).toEqual({ saved: true, city: { id: 2996944, name: "Lyon", country: "FR" }, country: "FR" })
+      const response = await send(LYON)
+      expect(await response.json()).toEqual({ saved: true, city: { name: "lyon", country: "FR" }, country: "FR" })
       expect(mocks.saveProfile).not.toHaveBeenCalled()
-      expect((await send({ city: 12345 })).status).toBe(400)
+      expect(mocks.verifyCity).not.toHaveBeenCalled()
     })
 
-    it("needs the catalog for the games and the list for the city, each only when it is asked about", async () => {
+    it("asks Geoapify only when a city is asked for", async () => {
       mocks.account = { id: ANN }
-      await send({ city: 2996944 })
-      expect(mocks.catalog).not.toHaveBeenCalled()
-      expect(mocks.cityOf).toHaveBeenCalledTimes(1)
-      mocks.cityOf.mockClear()
+      await send({ bio: "Hi" })
       await send({ favoriteGames: ["courtisans"] })
-      expect(mocks.cityOf).not.toHaveBeenCalled()
-      expect(mocks.catalog).toHaveBeenCalledTimes(1)
+      expect(mocks.verifyCity).not.toHaveBeenCalled()
     })
   })
 

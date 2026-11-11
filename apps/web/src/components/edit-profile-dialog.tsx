@@ -49,14 +49,10 @@ const sameList = (a: readonly string[], b: readonly string[]): boolean => a.leng
 
 type Saved = { nickname: string; tag: number } & ProfileDetails
 
-/** What goes to the server for an edit: a city goes as its number, since the list says its name and its country. */
-function requestOf(edit: ProfileEdit): Record<string, unknown> {
-  const { city, ...rest } = edit
-  return city === undefined ? rest : { ...rest, city: city === null ? null : city.id }
-}
+const sameCity = (a: ProfileCity | null, b: ProfileCity | null): boolean => a?.name === b?.name && a?.country === b?.country
 
 /**
- * The Edit profile window of a member's own profile (`/me` and their public page): their username and tag, their pronouns (a list), their country (searched in a list), their city (searched in the list of cities, never typed: `CityField`), up to five favourite games of the catalog (with their covers) and a short bio. One Save sends
+ * The Edit profile window of a member's own profile (`/me` and their public page): their username and tag, their pronouns (a list), their country (searched in a list), their city (searched at Geoapify, never typed: `CityField`), up to five favourite games of the catalog (with their covers) and a short bio. One Save sends
  * what changed, and only that, to `POST /api/hub/profile`, which keeps it whole or not at all: the pair that somebody else has is told in place and nothing else is changed. The window closes on Save and the page behind it is drawn again (on the public page, the new
  * address when the pair changed). The account keeps a copy of the username for the navbar (`saveNickname`). The picture is the provider's and is not edited here. `address` says which page the member is on.
  */
@@ -66,6 +62,7 @@ export function EditProfileDialog({
   details,
   games,
   countries,
+  cities,
   demo,
   address,
 }: {
@@ -75,6 +72,8 @@ export function EditProfileDialog({
   /** Every game of the catalog, as a favourite can be picked: its slug, its name and its small cover. */
   games: readonly ComboboxOption[]
   countries: readonly { code: string; name: string }[]
+  /** The search of a city is on (the server has the key of Geoapify): without it the window has no City field. */
+  cities: boolean
   demo: boolean
   address: "me" | "player"
 }) {
@@ -105,7 +104,7 @@ export function EditProfileDialog({
   if (checkedTag.ok && checkedTag.tag !== saved.tag) edit.tag = checkedTag.tag
   if (pronouns !== saved.pronouns) edit.pronouns = pronouns
   if (country !== saved.country) edit.country = country
-  if (city?.id !== saved.city?.id) edit.city = city
+  if (!sameCity(city, saved.city)) edit.city = city
   if (!sameList(favorites, saved.favoriteGames)) edit.favoriteGames = favorites
   if (checkedBio.ok && checkedBio.bio !== saved.bio) edit.bio = checkedBio.bio
   const canSave = checkedName.ok && checkedTag.ok && checkedBio.ok && Object.keys(edit).length > 0
@@ -130,7 +129,7 @@ export function EditProfileDialog({
     setError(null)
     setPending(true)
     try {
-      await gameRequest("/api/hub/profile", { method: "POST", body: JSON.stringify(requestOf(edit)) })
+      await gameRequest("/api/hub/profile", { method: "POST", body: JSON.stringify(edit) })
     } catch (failure) {
       setPending(false)
       const reason = failure instanceof ApiClientError ? REFUSALS[failure.code] : undefined
@@ -287,21 +286,23 @@ export function EditProfileDialog({
                 />
               </Field>
 
-              <Field>
-                <FieldLabel htmlFor="profile-city">City</FieldLabel>
-                <CityField
-                  id="profile-city"
-                  city={city}
-                  country={country}
-                  disabled={pending}
-                  onCityChange={(next) => {
-                    setCity(next)
-                    // A city comes with its country
-                    if (next) setCountry(next.country)
-                    setError(null)
-                  }}
-                />
-              </Field>
+              {cities && (
+                <Field>
+                  <FieldLabel htmlFor="profile-city">City</FieldLabel>
+                  <CityField
+                    id="profile-city"
+                    city={city}
+                    country={country}
+                    disabled={pending}
+                    onCityChange={(next) => {
+                      setCity(next)
+                      // A city comes with its country
+                      if (next) setCountry(next.country)
+                      setError(null)
+                    }}
+                  />
+                </Field>
+              )}
 
               <Field>
                 <FieldLabel id="profile-favorites-label">Favourite games</FieldLabel>
