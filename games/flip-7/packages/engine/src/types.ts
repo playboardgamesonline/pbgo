@@ -1,4 +1,4 @@
-import type { LogEntry, OptionValues, Results } from "@pbgo/engine-kit"
+import type { LogEntry, OptionValues, Results, Standing } from "@pbgo/engine-kit"
 
 /**
  * Flip 7: the types the engine and the board share.
@@ -146,6 +146,8 @@ export type PlayerView = {
   me: string | null
   /** In seat order. */
   players: PublicSeat[]
+  /** What each seat has banked in the finished rounds, one for each seat in seat order and the same for every viewer: the points of the list of the players in the HUD. */
+  standings: Standing[]
   /** The dealer: of the round going on, or of the next one between two rounds. */
   dealer: string
   /** The draw pile: its size, and how many of each face it still holds (what is not in front of anyone nor on the discard). */

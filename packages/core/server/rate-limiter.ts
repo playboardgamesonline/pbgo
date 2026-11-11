@@ -58,6 +58,8 @@ export const RATE_LIMITS = {
   profileRead: { limit: 120, windowMs: 60_000, by: "ip" },
   /** A member changing their nickname and tag (`POST /api/hub/profile`, PLT-39): a few tries when a pair is taken, per IP */
   profile: { limit: 20, windowMs: 10 * 60_000, by: "ip" },
+  /** The search of a city while a member types it (`GET /api/hub/cities`, PLT-139): a call after a pause in the typing, so a few a second at most while it lasts. Per IP, since the route belongs to no game and a visitor needs no session, with room for a few members behind one address */
+  cities: { limit: 150, windowMs: 60_000, by: "ip" },
   /** A member taking an account at an external provider off theirs (Steam: `POST /api/hub/unlink-external`): it reads and writes the database, and a human does it once in a while (a mistake, a change of mind), so a few per 10 minutes, per IP, whatever the cookies, with room for a few members behind one address */
   externalUnlink: { limit: 10, windowMs: 10 * 60_000, by: "ip" },
   /** The whole social state of a member (`GET /api/hub/friends`, PLT-23): the panel of every page of the hub asks for it about every 20 s while a tab is in view, and after each action. Per IP, since the route belongs to no game, with room for a few members and tabs behind one address */

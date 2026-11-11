@@ -35,6 +35,9 @@
 #                                   Written to .env.local and pushed to every Vercel target. Without them the analytics and
 #                                   the cookie banner are off; a pair of the wrong shape (the one @pbgo/analytics refuses)
 #                                   is neither written nor pushed
+#   GEOAPIFY_API_KEY                optional: the key of Geoapify (letters and digits, from myprojects.geoapify.com), which switches the search of a city
+#                                   of the Edit profile window on (docs/accounts.md, "Profiles"). Written to .env.local and pushed to every Vercel
+#                                   target. Without it the window has no City field; one of the wrong shape is neither written nor pushed
 #   STEAM_WEB_API_KEY               optional: the key of Steam's Web API (32 hexadecimal characters, from steamcommunity.com/dev/apikey),
 #                                   which switches the Steam button of the sign-in on (docs/accounts.md). Written to .env.local and
 #                                   pushed to every Vercel target. Without it the sign-in has no Steam button; one of the wrong shape
@@ -427,6 +430,15 @@ if [ -z "$STEAM_KEY" ]; then warn "STEAM_WEB_API_KEY not set: the sign-in has no
 elif [[ "$STEAM_KEY" =~ ^[0-9A-Fa-f]{32}$ ]]; then envset "$ENV_FILE" STEAM_WEB_API_KEY "$STEAM_KEY"; STEAM_OK=1; ok "STEAM_WEB_API_KEY"
 else err "STEAM_WEB_API_KEY: a Steam Web API key is 32 hexadecimal characters; neither written nor pushed"; fi
 
+# ---------- City search (optional) ----------
+# The key of Geoapify is what the server asks for the cities a member searches in the Edit profile window, and the switch of its City field (citySearchAvailable, @pbgo/core): the server holds it, the browser never sees it.
+# Letters and digits (32 of them in the keys made so far). Its value is never printed, not even in the message of a refusal
+title "City search (optional)"
+GEO_KEY="$(setting GEOAPIFY_API_KEY)"; GEO_OK=0
+if [ -z "$GEO_KEY" ]; then warn "GEOAPIFY_API_KEY not set: the Edit profile window has no City field"
+elif [[ "$GEO_KEY" =~ ^[A-Za-z0-9]{16,64}$ ]]; then envset "$ENV_FILE" GEOAPIFY_API_KEY "$GEO_KEY"; GEO_OK=1; ok "GEOAPIFY_API_KEY"
+else err "GEOAPIFY_API_KEY: a Geoapify key is 16 to 64 letters and digits; neither written nor pushed"; fi
+
 # ---------- BoardGameGeek (optional) ----------
 # The token of the application registered at BoardGameGeek: what `content:bgg` of @pbgo/platform reads its API with (the figures of the games, PLT-78). It stays on this machine,
 # in .env.local, and is not in the list of what is pushed to Vercel below, since the hub never calls BoardGameGeek. Its value is never printed, not even in the message of a refusal
@@ -544,7 +556,7 @@ if [ "$PUSH" = 1 ] && [ -n "$VID" ]; then
   while read -r k; do
     [[ "$FROM_VERCEL" == *"|$k|"* ]] && continue
     v="$(envget "$ENV_FILE" "$k")"; [ -n "$v" ] && push "$k" "$v" "$ALL"
-  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET CRON_SECRET VERCEL_TOKEN VERCEL_TEAM_ID; [ "$PH_OK" = 1 ] && printf "%s\n" NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST; [ "$STEAM_OK" = 1 ] && printf "%s\n" STEAM_WEB_API_KEY; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
+  done < <(printf "%s\n" ADMIN_LOGIN ADMIN_PASSWORD ADMIN_SESSION_SECRET CRON_SECRET VERCEL_TOKEN VERCEL_TEAM_ID; [ "$PH_OK" = 1 ] && printf "%s\n" NEXT_PUBLIC_POSTHOG_KEY NEXT_PUBLIC_POSTHOG_HOST; [ "$STEAM_OK" = 1 ] && printf "%s\n" STEAM_WEB_API_KEY; [ "$GEO_OK" = 1 ] && printf "%s\n" GEOAPIFY_API_KEY; registry 'GAMES.map((g) => g.slug)' | while read -r s; do token_name "$s"; echo; done)
   [ -z "$(envget "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID)" ] && envset "$ENV_FILE" VERCEL_ANALYTICS_PROJECT_ID "$VID"
   PUSHED=1
 fi

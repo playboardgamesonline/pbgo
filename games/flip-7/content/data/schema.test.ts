@@ -100,7 +100,7 @@ describe("the Studio", () => {
     // the Studio offers no "new document" template for a singleton, which it opens by the name of its type
     const creatable = studio.schema.templates(SEED_TYPES.map((schemaType) => ({ schemaType }))).map(({ schemaType }) => schemaType)
     const singletons = SEED_TYPES.filter((type) => !creatable.includes(type))
-    expect([...singletons].sort()).toEqual(["game", "settings"])
+    expect([...singletons].sort()).toEqual(["game", "settings", "texts"])
     for (const doc of seedDocs()) expect(doc._id === doc._type, doc._id).toBe(singletons.includes(doc._type))
   })
 })

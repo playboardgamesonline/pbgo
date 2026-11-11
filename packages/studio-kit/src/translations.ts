@@ -426,6 +426,8 @@ export const ERROR_TRANSLATIONS: Record<TranslatedLocale, Record<string, string>
     PROFILE_TAKEN: "Somebody already goes by that username and tag. Choose another tag.",
     PROFILE_INVALID: "Something in this profile is not valid. Check the fields and try again.",
     PROFILE_GAME_UNKNOWN: "One of your favourite games is not on the site any more. Remove it and try again.",
+    PROFILE_CITY_UNKNOWN: "This city is not on the list. Pick one from the list.",
+    CITIES_UNAVAILABLE: "Cities can't be searched right now, try again later.",
     PROFILE_UNAVAILABLE: "Your profile can't be saved right now, try again later.",
     FRIEND_INVALID: "Type a username and a tag, like Alex#0042.",
     FRIEND_NOT_FOUND: "No player goes by that username and tag.",

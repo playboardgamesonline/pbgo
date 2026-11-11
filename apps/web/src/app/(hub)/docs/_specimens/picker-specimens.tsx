@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { CountedTextarea } from "@pbgo/ui/platform/counted-textarea"
 import { CoverTile } from "@pbgo/ui/platform/cover-tile"
 import { MultiSelect } from "@pbgo/ui/platform/multi-select"
@@ -53,6 +53,46 @@ export function CoverTileSpecimen() {
       <CoverTile />
       <CoverTile className="size-14" />
       <CoverTile className="size-20" />
+    </div>
+  )
+}
+
+/** A search that answers after a short wait, as a server does: the countries whose name starts with what was typed. */
+export function SearchSelectRemoteSpecimen() {
+  const [value, setValue] = useState<string | null>(null)
+  const [options, setOptions] = useState<typeof COUNTRIES>([])
+  const [loading, setLoading] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function search(query: string) {
+    if (timer.current) clearTimeout(timer.current)
+    if (query.trim() === "") {
+      setOptions([])
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    timer.current = setTimeout(() => {
+      setOptions(COUNTRIES.filter((country) => country.label.toLowerCase().startsWith(query.trim().toLowerCase())))
+      setLoading(false)
+    }, 300)
+  }
+  const picked = COUNTRIES.find((country) => country.value === value)
+  return (
+    <div className="w-full max-w-xs">
+      <SearchSelect
+        options={options.map((country) => ({ ...country, description: country.value }))}
+        value={value}
+        selectedLabel={picked?.label}
+        onValueChange={setValue}
+        onQueryChange={search}
+        loading={loading}
+        placeholder="Not set"
+        searchPlaceholder="Search..."
+        prompt="Type the first letters."
+        empty="No country matches."
+        clearLabel="Clear"
+        aria-label="Country"
+      />
     </div>
   )
 }

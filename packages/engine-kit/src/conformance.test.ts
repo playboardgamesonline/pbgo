@@ -275,6 +275,13 @@ describe("autoPlayFor", () => {
 })
 
 describe("views", () => {
+  it("must not show an opaque id, which is a number, that their viewer must not know", () => {
+    const hidden = () => [1234567891]
+    // A number is looked for as a number: a view that holds it leaks, and one that does not is left alone
+    expect(said(broken({ view: (s, v) => ({ ...dash.view(s, v), leak: [1234567891] }) as View }), { secretsFor: hidden })).toContain("a view shows what its viewer must not know")
+    expect(said(dash, { secretsFor: hidden })).toBe("")
+  })
+
   it("must not show what their viewer must not know", () => {
     expect(said(broken({ view: (s, v) => ({ ...dash.view(s, v), leak: s.secrets }) as View }))).toContain("a view shows what its viewer must not know")
   })

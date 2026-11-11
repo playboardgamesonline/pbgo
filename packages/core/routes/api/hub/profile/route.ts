@@ -2,6 +2,7 @@ import { parseProfileEdit } from "@pbgo/accounts"
 import { DEMO_TAG, isDemoAccount } from "@pbgo/accounts/demo"
 import { getAccount } from "@pbgo/accounts/server"
 import { ApiError, assertSameOrigin, handle, readJson } from "../../../../server/api"
+import { CitySearchUnavailable, verifyCity } from "../../../../server/geoapify"
 import { ensureProfile, profilesNotApplied, saveProfile, type ProfileChange } from "../../../../server/profiles"
 import { rateLimit } from "../../../../server/rate-limit"
 
@@ -12,10 +13,11 @@ import { rateLimit } from "../../../../server/rate-limit"
 export type CatalogCheck = (slugs: readonly string[]) => Promise<{ unknown: readonly string[]; complete: boolean }>
 
 /**
- * `POST /api/hub/profile`: a signed-in member changes what their profile says (PLT-39). The body holds the fields to change and nothing else, any of `{ "nickname": "Alex", "tag": 42, "pronouns": "they/them", "country": "FR", "favoriteGames": ["flip-7"], "bio": "…" }`: a
+ * `POST /api/hub/profile`: a signed-in member changes what their profile says (PLT-39). The body holds the fields to change and nothing else, any of `{ "nickname": "Alex", "tag": 42, "pronouns": "they/them", "country": "FR", "city": { "name": "Lyon", "country": "FR" }, "favoriteGames": ["flip-7"], "bio": "…" }`: a
  * field that is missing stays as it is, and `null` takes away the pronouns, the country, the favourite games and the bio. The request must come from this site. Every field is checked here (`parseProfileEdit`, and the favourite games against the catalog, `catalog`) and by
  * the database, which makes the change whole or not at all (`set_profile`). 409 `PROFILE_TAKEN` when another member has the nickname and tag (case ignored), 400 `PROFILE_INVALID` for a field a profile cannot hold, 400 `PROFILE_GAME_UNKNOWN` for a favourite that is not a game
- * of the catalog (503 `PROFILE_UNAVAILABLE` while the catalog cannot be read in full and cannot say). The demo account writes nothing. The answer is `{ "saved": true }` and the fields that were kept, as they were cleaned.
+ * of the catalog (503 `PROFILE_UNAVAILABLE` while the catalog cannot be read in full and cannot say). The city is a name and its country, and never free text: the server asks Geoapify whether such a city exists (`verifyCity`: 400 `PROFILE_CITY_UNKNOWN` when it does not, 503 `PROFILE_UNAVAILABLE` when
+ * Geoapify cannot answer) and keeps Geoapify's own spelling of it, never the client's. A city comes with its country, which becomes the profile's (a request that says another country is invalid). `null` takes the city away. The demo account writes nothing, and asks nothing of Geoapify. The answer is `{ "saved": true }` and the fields that were kept, as they were cleaned.
  */
 export const postProfile = (catalog: CatalogCheck) =>
   handle(async (request: Request) => {
@@ -26,11 +28,29 @@ export const postProfile = (catalog: CatalogCheck) =>
     const parsed = parseProfileEdit(await readJson<unknown>(request))
     if (!parsed.ok) throw new ApiError("PROFILE_INVALID")
     const { edit } = parsed
+    // A city comes with its country, which becomes the profile's: a request that says another country is wrong
+    if (edit.city) {
+      if (edit.country !== undefined && edit.country !== edit.city.country) throw new ApiError("PROFILE_INVALID")
+      edit.country = edit.city.country
+    }
     if (isDemoAccount(account)) return { saved: true, ...edit }
     // Only the games of the catalog can be a favourite: the page draws their covers, and the table cannot tell (a slug is a text)
     if (edit.favoriteGames && edit.favoriteGames.length > 0) {
       const { unknown, complete } = await catalog(edit.favoriteGames)
       if (unknown.length > 0) throw complete ? new ApiError("PROFILE_GAME_UNKNOWN") : new ApiError("PROFILE_UNAVAILABLE", 503)
+    }
+
+    // Only a city that Geoapify knows: the client could send any text, and the profile keeps Geoapify's spelling of the city, not the client's
+    if (edit.city) {
+      try {
+        const found = await verifyCity(edit.city)
+        if (!found) throw new ApiError("PROFILE_CITY_UNKNOWN")
+        edit.city = { name: found.name, country: found.country }
+      } catch (error) {
+        if (!(error instanceof CitySearchUnavailable)) throw error
+        console.error("A city could not be checked:", error.message)
+        throw new ApiError("PROFILE_UNAVAILABLE", 503)
+      }
     }
 
     const change = async (): Promise<ProfileChange> => {
