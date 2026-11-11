@@ -144,9 +144,9 @@ export type ClientEvents = {
    * a leaderboard, the games of another profile, the member's own account; `direct` when it says nothing). Never a nickname or a tag: the address of the page is scrubbed too (`scrub.ts`).
    */
   profile_viewed: { own: boolean; hidden: boolean; from: "seat" | "leaderboard" | "history" | "account" | "direct" }
-  /** A member changed their nickname, their tag, or both (PLT-39): which of them changed, never what they became. */
-  profile_updated: { nickname: boolean; tag: boolean }
-  /** A change of the nickname or the tag was refused: somebody else goes by that pair, it is not what a profile can have, or it cannot be saved yet (PLT-39). */
+  /** A member changed what their profile says (PLT-39): which fields changed (`favorites` is the favourite games), never what they became. */
+  profile_updated: { nickname: boolean; tag: boolean; pronouns: boolean; country: boolean; favorites: boolean; bio: boolean }
+  /** A change of the profile was refused: somebody else goes by that nickname and tag, it is not what a profile can have (a favourite that is not a game included), or it cannot be saved yet (PLT-39). */
   profile_update_refused: { reason: "taken" | "invalid" | "unavailable" }
   /** A member chose to hide their games from the other players, or to show them again (PLT-39: "Hide my game history" of the privacy settings). */
   profile_history_hidden: { hidden: boolean }

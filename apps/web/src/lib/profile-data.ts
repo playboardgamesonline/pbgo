@@ -1,10 +1,10 @@
 import "server-only"
 import { cache } from "react"
-import { profileViewOf, type Account, type Handle } from "@pbgo/accounts"
+import { noProfileDetails, profileViewOf, type Account, type Handle, type ProfileDetails } from "@pbgo/accounts"
 import { DEMO_TAG, isDemoAccount } from "@pbgo/accounts/demo"
 import type { FriendRelation } from "@pbgo/core/lib/friends"
 import { readRelation } from "@pbgo/core/server/friends"
-import { ensureProfile, readProfileByHandle, type ProfileRecord } from "@pbgo/core/server/profiles"
+import { ensureProfile, readProfileByHandle, readProfileDetails, type ProfileWithDetails } from "@pbgo/core/server/profiles"
 import { memberGames, type MemberGames } from "./member-games"
 
 // What the pages of a profile say (PLT-39, PLT-111): the member's own (`/me`) and anybody's (`/player/<nickname>-<tag>`). A head (who and since when) and, unless the member hides them, their games.
@@ -20,19 +20,24 @@ export type ProfileHead = {
   memberSince: string | null
   /** The member chose to show no games, no records and no ranks to the others (`pbgo_hide_history`). */
   hideHistory: boolean
+  /** What they say of themselves, to every visitor: pronouns, country, favourite games, bio. Empty fields are for the page to leave out. */
+  details: ProfileDetails
 }
 
-const headOf = (record: ProfileRecord): ProfileHead => ({ nickname: record.nickname, tag: record.tag, avatarUrl: record.avatarUrl, memberSince: record.createdAt, hideHistory: record.hideHistory })
+const headOf = (record: ProfileWithDetails): ProfileHead => ({ nickname: record.nickname, tag: record.tag, avatarUrl: record.avatarUrl, memberSince: record.createdAt, hideHistory: record.hideHistory, details: record.details })
+
+/** What the demo account of development says of itself: made up, like its profile, so that a page with everything filled in can be looked at. Games the hub's catalog lists, so that their covers come from it. */
+const DEMO_DETAILS: ProfileDetails = { pronouns: "they/them", country: "FR", favoriteGames: ["courtisans", "flip-7", "hanabi"], bio: "A made-up member, for the development browser.\nNothing here is kept." }
 
 /**
  * The head of a signed-in member's own profile: the profile they have (made on the spot if missing), else their account's name and picture with no tag (migration not applied, or unreadable: the cause is in the log). Read once per request.
  */
 export const ownProfileHead = cache(async (account: Account): Promise<ProfileHead> => {
-  const fallback: ProfileHead = { nickname: account.nickname, tag: null, avatarUrl: account.avatarUrl, memberSince: account.createdAt, hideHistory: account.preferences.hideHistory }
-  if (isDemoAccount(account)) return { ...fallback, tag: DEMO_TAG }
+  const fallback: ProfileHead = { nickname: account.nickname, tag: null, avatarUrl: account.avatarUrl, memberSince: account.createdAt, hideHistory: account.preferences.hideHistory, details: noProfileDetails() }
+  if (isDemoAccount(account)) return { ...fallback, tag: DEMO_TAG, details: DEMO_DETAILS }
   try {
     const record = await ensureProfile(account)
-    return record ? headOf(record) : fallback
+    return record ? headOf({ ...record, details: await readProfileDetails(account.id) }) : fallback
   } catch (error) {
     console.error("The profile of a member could not be read", error instanceof Error ? error.message : error)
     return fallback

@@ -53,6 +53,16 @@ export async function ageRulesOf(slug: string): Promise<AgeRules> {
   return ageRulesFor(catalog.entries, catalog.expansions, slug)
 }
 
+/**
+ * Which of these slugs are not games of the hub's catalog, and whether the catalog could be read in full: what the route that keeps a member's favourite games asks (`CatalogCheck` of `@pbgo/core/routes/api/hub/profile/route`). Any game of the catalog counts, live or still to
+ * come, as the page of the games lists them. While the platform's Sanity project cannot be read the catalog is the live games alone (`complete` is false), so a slug it does not list may still be a game: the route does not take it for one that is not.
+ */
+export async function checkCatalogSlugs(slugs: readonly string[]): Promise<{ unknown: string[]; complete: boolean }> {
+  const catalog = await getCatalog()
+  const listed = new Set(catalog.entries.map((entry) => entry.slug))
+  return { unknown: slugs.filter((slug) => !listed.has(slug)), complete: catalog.source === "ok" }
+}
+
 /** Tag of the cached read of the editorial: `revalidateTag(EDITORIAL_TAG, { expire: 0 })` makes the next read ask Sanity again. */
 export const EDITORIAL_TAG = "editorial"
 

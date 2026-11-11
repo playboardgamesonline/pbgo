@@ -4,7 +4,8 @@ import * as React from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Search01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { cn } from "../utils"
-import { matchOptions } from "../match-options"
+import { optionMatches } from "../match-options"
+import { CoverTile, type CoverTileProps } from "./cover-tile"
 import { Input } from "./input"
 
 // A list of options with a search field above it, for a panel (a `Popover` with no padding of its own, which draws its title above) whose options are more
@@ -15,13 +16,18 @@ import { Input } from "./input"
 // picks or unpicks the option they are on, and so does a click: the list stays open, since any number of options can be picked. The field takes the focus
 // the moment the panel opens (`autoFocus`: React focuses it as it mounts, before anything is painted), except on a screen that is touched, where the keyboard
 // would hide the list. The list has no scrollbar and scrolls all the same (wheel, touch, arrow keys): a row cut by its bottom edge says there is more. It
-// names itself (`aria-label`) and draws nothing around itself: the panel does.
+// names itself (`aria-label`) and draws nothing around itself: the panel does. `max` limits the picks (1 makes it a single choice: a pick replaces the one before and `onPick` lets the panel close itself; more makes
+// a limited multiple choice: once `max` are picked the other options are off until one is put back), and an option can have a `label` apart from its `value` (a slug and its title) and a small `cover`.
 
 type ComboboxOption = {
-  /** The name that is shown and compared. */
+  /** What names the option, and what is shown and compared unless `label` says another. */
   value: string
+  /** The words that are shown and compared when they are not the value: a game's title for its slug. */
+  label?: string
   /** The icon that stands before the name, if the option has one. */
   icon?: React.ComponentProps<typeof HugeiconsIcon>["icon"]
+  /** A small picture that stands before the name (`CoverTile`). `null` is an option with no picture in a list that has some: its place is kept. */
+  cover?: CoverTileProps | null
 }
 
 type ComboboxProps = Omit<React.ComponentProps<"div">, "children" | "onChange" | "role"> & {
@@ -34,20 +40,24 @@ type ComboboxProps = Omit<React.ComponentProps<"div">, "children" | "onChange" |
   placeholder: string
   /** What the list says when no option holds the text: "No category matches.". */
   empty: string
+  /** How many options can be picked at most; no limit when it is not given. With 1 the list is a single choice. Once `max` are picked the other options are off until one is put back. */
+  max?: number
+  /** Called with the option that was just picked (never when one is put back), after `onValueChange`: a panel that holds one choice closes itself here. */
+  onPick?: (value: string) => void
   /** Names the field and the list: "Categories". */
   "aria-label": string
 }
 
-function Combobox({ options, value, onValueChange, placeholder, empty, className, "aria-label": label, ...props }: ComboboxProps) {
+function Combobox({ options, value, onValueChange, placeholder, empty, max, onPick, className, "aria-label": label, ...props }: ComboboxProps) {
   const id = React.useId()
   const [query, setQuery] = React.useState("")
   const [active, setActive] = React.useState(0)
   // A screen that is touched does not focus the field: its keyboard would hide the list. Read once, as the panel opens
   const [touched] = React.useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches)
-  const shown = React.useMemo(() => {
-    const byName = new Map(options.map((option) => [option.value, option]))
-    return matchOptions([...byName.keys()], query).flatMap((name) => byName.get(name) ?? [])
-  }, [options, query])
+  const shown = React.useMemo(() => [...new Map(options.map((option) => [option.value, option])).values()].filter((option) => optionMatches(option.label ?? option.value, query)), [options, query])
+  const covers = options.some((option) => option.cover !== undefined)
+  // The picks are all taken: the options that are not picked are off (a single choice always takes another pick in place of the one it has)
+  const full = max !== undefined && max > 1 && value.length >= max
   // The option the arrow keys are on: the list can get shorter under it as the text grows
   const current = shown.length === 0 ? -1 : Math.min(active, shown.length - 1)
 
@@ -57,7 +67,14 @@ function Combobox({ options, value, onValueChange, placeholder, empty, className
   }, [id, current])
 
   function toggle(name: string) {
-    onValueChange(value.includes(name) ? value.filter((picked) => picked !== name) : [...value, name])
+    if (max === 1) {
+      onValueChange([name])
+      onPick?.(name)
+    } else if (value.includes(name)) onValueChange(value.filter((picked) => picked !== name))
+    else if (!full) {
+      onValueChange([...value, name])
+      onPick?.(name)
+    }
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -108,26 +125,29 @@ function Combobox({ options, value, onValueChange, placeholder, empty, className
           id={`${id}-list`}
           role="listbox"
           aria-label={label}
-          aria-multiselectable="true"
+          aria-multiselectable={max === 1 ? undefined : "true"}
           className="flex max-h-60 flex-col overflow-y-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {shown.map((option, index) => {
             const picked = value.includes(option.value)
+            const off = full && !picked
             return (
               <li
                 key={option.value}
                 id={`${id}-option-${index}`}
                 role="option"
                 aria-selected={picked}
-                data-active={index === current ? "" : undefined}
+                aria-disabled={off || undefined}
+                data-active={index === current && !off ? "" : undefined}
                 // The pointer keeps the focus in the field: a click on an option is not a click away from it
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => toggle(option.value)}
                 onPointerMove={() => setActive(index)}
-                className="flex h-9 shrink-0 cursor-default items-center gap-3 rounded-2xl px-3 text-sm select-none data-active:bg-input/50"
+                className={cn("flex shrink-0 cursor-default items-center gap-3 rounded-2xl px-3 text-sm select-none data-active:bg-input/50 aria-disabled:opacity-50", covers ? "h-12" : "h-9")}
               >
                 {option.icon && <HugeiconsIcon icon={option.icon} strokeWidth={2} aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />}
-                <span className="min-w-0 flex-1 truncate">{option.value}</span>
+                {option.cover !== undefined && <CoverTile className="size-8 rounded-lg" {...option.cover} />}
+                <span className="min-w-0 flex-1 truncate">{option.label ?? option.value}</span>
                 <span className="flex size-4 shrink-0 items-center justify-center">
                   {picked && <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} className="size-4" />}
                 </span>

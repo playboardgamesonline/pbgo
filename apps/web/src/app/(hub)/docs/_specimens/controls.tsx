@@ -23,6 +23,7 @@ import { CodeSpecimen } from "./code-specimen"
 import { ComboboxSpecimen } from "./combobox-specimen"
 import { InlineEditSpecimen, InlineFieldsSpecimen } from "./inline-edit-specimen"
 import { MeterSpecimen } from "./meter-specimen"
+import { CountedTextareaSpecimen, CoverTileSpecimen, MultiSelectSpecimen, SearchSelectSpecimen } from "./picker-specimens"
 import { SingleSliderSpecimen } from "./slider-specimen"
 import { Frame } from "./text"
 
@@ -487,6 +488,58 @@ function ComboboxInAPopover() {
   )
 }
 
+function SearchSelectInAField() {
+  return (
+    <Frame code={`<SearchSelect
+  options={[{ value: "FR", label: "France" }, { value: "BE", label: "Belgium" }]}
+  value={country}
+  onValueChange={setCountry}
+  placeholder="Select a country"
+  searchPlaceholder="Search countries..."
+  empty="No country matches."
+  clearLabel="Clear"
+  aria-label="Country"
+/>`}>
+      <SearchSelectSpecimen />
+    </Frame>
+  )
+}
+
+function MultiSelectLimited() {
+  return (
+    <Frame code={`<MultiSelect
+  options={[{ value: "hanabi", label: "Hanabi", cover: { picture: url } }]}
+  value={picked}
+  onValueChange={setPicked}
+  max={5}
+  placeholder="Add a game"
+  searchPlaceholder="Search games..."
+  empty="No game matches."
+  aria-label="Favourite games"
+/>`}>
+      <MultiSelectSpecimen />
+    </Frame>
+  )
+}
+
+function CountedTextareaField() {
+  return (
+    <Frame code={`<CountedTextarea value={text} onChange={onChange} left={200 - text.length} aria-label="Bio" />`}>
+      <CountedTextareaSpecimen />
+    </Frame>
+  )
+}
+
+function CoverTileSizes() {
+  return (
+    <Frame code={`<CoverTile picture={cover} />
+<CoverTile logo={logo} className="size-14 rounded-2xl" />
+<CoverTile />`}>
+      <CoverTileSpecimen />
+    </Frame>
+  )
+}
+
 function SliderOneThumb() {
   return (
     <Frame code={`<Slider
@@ -647,6 +700,10 @@ export const controlsSpecimens: Specimens = {
   "switch-states": SwitchStates,
   "select-default-and-small": SelectDefaultAndSmall,
   "combobox-in-a-popover": ComboboxInAPopover,
+  "search-select": SearchSelectInAField,
+  "multi-select": MultiSelectLimited,
+  "counted-textarea": CountedTextareaField,
+  "cover-tile": CoverTileSizes,
   "inline-edit-row": InlineEditRow,
   "radio-group-states": RadioGroupStates,
   "inline-edit-fields": InlineEditFields,

@@ -67,7 +67,7 @@ const CLIENT: { [Name in keyof ClientEvents]: ClientEvents[Name] } = {
   language_changed: { from: "en", to: "fr" },
   cookie_consent: { choice: "accepted", marketing: false },
   profile_viewed: { own: false, hidden: false, from: "leaderboard" },
-  profile_updated: { nickname: true, tag: false },
+  profile_updated: { nickname: true, tag: false, pronouns: false, country: true, favorites: true, bio: false },
   profile_update_refused: { reason: "taken" },
   profile_history_hidden: { hidden: true },
 }

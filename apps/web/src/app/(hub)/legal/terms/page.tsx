@@ -66,7 +66,7 @@ export default function TermsOfUse() {
           An account can also be made with an e-mail address and a password: you confirm the address with a code that we e-mail you, and you are responsible for keeping the password safe.
         </LegalText>
         <LegalText>
-          Your nickname, or the name and picture of your account, are seen by the people at your table. Do not use the name of someone else, or a name or a picture that is offensive, hateful or illegal. We may change a nickname or refuse a picture that breaks this rule.
+          Your nickname, or the name and picture of your account, are seen by the people at your table, and your profile, with the pronouns, the country, the favourite games and the bio you choose to fill in, by every visitor of the site. Do not use the name of someone else, or a name, a picture or a bio that is offensive, hateful or illegal. We may change a nickname, empty a bio or refuse a picture that breaks this rule.
         </LegalText>
       </LegalSection>
 
@@ -74,7 +74,7 @@ export default function TermsOfUse() {
         <LegalText>Play in good faith and be respectful. You must not:</LegalText>
         <LegalList
           items={[
-            "harass, threaten or insult other players, or put hateful, sexual, violent or illegal content in a nickname, in the chat or in feedback;",
+            "harass, threaten or insult other players, or put hateful, sexual, violent or illegal content in a nickname, in a bio, in the chat or in feedback;",
             "cheat, for example with scripts or bots, or by using a bug on purpose;",
             "try to see what is hidden from you (such as the hands of the other players), to get around the limits of the site, to disrupt it or overload it, or to reach accounts, tables or data that are not yours;",
             "pretend to be someone else, or to speak for the site;",
@@ -102,7 +102,7 @@ export default function TermsOfUse() {
           The site itself, its design, its code and its texts belong to {PUBLISHER.name} or to those who allowed their use. We give you a personal, free right to use the site as these terms say. It does not let you copy, sell or republish the site or its games.
         </LegalText>
         <LegalText>
-          What you write (a nickname, a chat message, feedback) stays yours. By sending it you allow us to show it to the people it is meant for, such as your table, and, for feedback, to read it and use it to improve the site, without paying you.
+          What you write (a nickname, a bio, a chat message, feedback) stays yours. By sending it you allow us to show it to the people it is meant for, such as your table, and, for feedback, to read it and use it to improve the site, without paying you.
         </LegalText>
       </LegalSection>
 

@@ -70,10 +70,11 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   BIRTHDATE_INVALID: "This date of birth is not valid.",
   BIRTHDATE_UNDER_MINIMUM: "You must be at least 13 to use the site.",
   BIRTHDATE_LOCKED: "Your date of birth is already saved and cannot be changed here. Write to us if it needs to be corrected.",
-  // What the profile route refuses with (PLT-39): a username and a tag that somebody else has, that are not what a profile can have, or that cannot be saved yet
+  // What the profile route refuses with (PLT-39): a username and a tag that somebody else has, a profile that is not what a profile can be, a favourite game that is not a game of the site, or a profile that cannot be saved yet
   PROFILE_TAKEN: "Somebody already goes by that username and tag. Choose another tag.",
-  PROFILE_INVALID: "This username or tag is not valid.",
-  PROFILE_UNAVAILABLE: "Your username and tag can't be saved right now, try again later.",
+  PROFILE_INVALID: "Something in this profile is not valid. Check the fields and try again.",
+  PROFILE_GAME_UNKNOWN: "One of your favourite games is not on the site any more. Remove it and try again.",
+  PROFILE_UNAVAILABLE: "Your profile can't be saved right now, try again later.",
   // What the routes of the friends refuse with (PLT-23). A member who blocked you is never one of these: your request seems to go. No number is in a message: the limits are `lib/friends.ts`'s
   FRIEND_INVALID: "Type a username and a tag, like Alex#0042.",
   FRIEND_NOT_FOUND: "No player goes by that username and tag.",
