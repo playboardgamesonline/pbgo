@@ -59,12 +59,25 @@ export function demoConversations(now: number): readonly Conversation[] {
   ]
 }
 
+// Their opponents are the demo friends: their pictures, and the handle that a member has (the page it leads to is that of a made-up member, which has no profile in any database). A record is what the card of a player says: their rank in the game and the games of it they won.
+const O = {
+  marly: { nickname: "Marly", avatarUrl: DEMO_AVATARS.marly, handle: { nickname: "Marly", tag: 4821 }, record: { rank: { tier: "Gold", division: 3 }, gamesPlayed: 41, wins: 19 } },
+  herve: { nickname: "Hervé", avatarUrl: DEMO_AVATARS.herve, handle: { nickname: "Hervé", tag: 412 }, record: { rank: { tier: "Silver", division: 1 }, gamesPlayed: 23, wins: 9 } },
+  max: { nickname: "Max", avatarUrl: DEMO_AVATARS.max, handle: { nickname: "Max", tag: 5501 } },
+  zoe: { nickname: "Zoé", avatarUrl: DEMO_AVATARS.zoe, handle: { nickname: "Zoé", tag: 1033 }, record: { rank: { tier: "Silver", division: 2 }, gamesPlayed: 12, wins: 6 } },
+  tom: { nickname: "Tom", avatarUrl: DEMO_AVATARS.tom, handle: { nickname: "Tom", tag: 7712 } },
+  lina: { nickname: "Lina", avatarUrl: DEMO_AVATARS.lina, handle: { nickname: "Lina", tag: 2290 } },
+  ines: { nickname: "Inès", avatarUrl: DEMO_AVATARS.ines, handle: { nickname: "Inès", tag: 3318 } },
+  sam: { nickname: "Sam", avatarUrl: DEMO_AVATARS.sam },
+} as const
+
+// The games of the demo account: what a finished game says of itself is what a real one has (`playedGameOf`): the table as it was played (ranked or normal, its speed, how long it lasted, its expansions), the score where the game counts points and how many sat at it.
 export const DEMO_GAMES: readonly PlayedGame[] = [
-  { id: "g1", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-29T20:41:00Z", table: "K7P", opponents: [{ nickname: "Marly" }, { nickname: "Hervé" }], state: "in-progress" },
-  { id: "g2", slug: "skull-king", name: "Skull King", playedAt: "2026-10-29T18:05:00Z", table: "9QD", opponents: [{ nickname: "Zoé" }, { nickname: "Tom" }, { nickname: "Lina" }], state: "in-progress" },
-  { id: "g3", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-28T21:12:00Z", table: "M3T", opponents: [{ nickname: "Marly" }, { nickname: "Max" }], state: "finished", result: "won", rank: 1, points: 18 },
-  { id: "g4", slug: "love-letter", name: "Love Letter", playedAt: "2026-10-27T19:30:00Z", table: "B8C", opponents: [{ nickname: "Inès" }, { nickname: "Sam" }, { nickname: "Tom" }], state: "finished", result: "lost", rank: 3 },
-  { id: "g5", slug: "hanabi", name: "Hanabi", playedAt: "2026-10-24T20:00:00Z", table: "H2X", opponents: [{ nickname: "Zoé" }], state: "finished", result: "won", rank: 1 },
-  { id: "g6", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-22T22:48:00Z", table: "P5R", opponents: [{ nickname: "Hervé" }, { nickname: "Lina" }, { nickname: "Max" }], state: "finished", result: "lost", rank: 2, points: -12 },
-  { id: "g7", slug: "skyjo", name: "Skyjo", playedAt: "2026-10-19T17:15:00Z", table: "W9N", opponents: [{ nickname: "Sam" }, { nickname: "Inès" }], state: "finished", result: "draw", rank: 1, points: 0 },
+  { id: "g1", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-29T20:41:00Z", table: "K7P", opponents: [O.marly, O.herve], state: "in-progress" },
+  { id: "g2", slug: "skull-king", name: "Skull King", playedAt: "2026-10-29T18:05:00Z", table: "9QD", opponents: [O.zoe, O.tom, O.lina], state: "in-progress" },
+  { id: "g3", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-28T21:12:00Z", opponents: [O.marly, O.max], state: "finished", result: "won", rank: 1, points: 18, score: 31, ranked: true, playerCount: 3, durationSeconds: 1680, pace: "normal", expansions: ["Diplomats & Confidants"] },
+  { id: "g4", slug: "love-letter", name: "Love Letter", playedAt: "2026-10-27T19:30:00Z", opponents: [O.ines, O.sam, O.tom], state: "finished", result: "lost", rank: 3, ranked: false, playerCount: 4, durationSeconds: 540, pace: "fast" },
+  { id: "g5", slug: "hanabi", name: "Hanabi", playedAt: "2026-10-24T20:00:00Z", opponents: [O.zoe], state: "finished", result: "won", score: 23, ranked: false, playerCount: 2, durationSeconds: 1320, pace: "none", expansions: ["Black Powder"] },
+  { id: "g6", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-22T22:48:00Z", opponents: [O.herve, O.lina, O.max], state: "finished", result: "lost", rank: 2, points: -12, score: 19, ranked: true, playerCount: 4, durationSeconds: 2100, pace: "slow" },
+  { id: "g7", slug: "skyjo", name: "Skyjo", playedAt: "2026-10-19T17:15:00Z", opponents: [O.sam, O.ines], state: "finished", result: "draw", rank: 1, points: 0, score: 42, ranked: true, playerCount: 3, durationSeconds: 960, pace: "async" },
 ]

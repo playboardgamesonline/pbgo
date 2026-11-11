@@ -151,6 +151,7 @@ describe("readHistory", () => {
           duration_s: 900,
           options: { sevenWonders: true, rounds: 3 },
           points: 48,
+          pace: "fast",
           opponents: [
             { name: "Ola", avatarUrl: "https://example.com/o.png" },
             { name: null, avatarUrl: null },
@@ -172,13 +173,15 @@ describe("readHistory", () => {
         playerCount: 3,
         durationSeconds: 900,
         options: { sevenWonders: true, rounds: 3 },
+        pace: "fast",
         points: 48,
         opponents: [
           { name: "Ola", avatarUrl: "https://example.com/o.png" },
           { name: null, avatarUrl: null },
         ],
       },
-      { id: "g2", finishedAt: "2026-11-07T10:00:00+00:00", outcome: "coop_win", place: 1, score: 5, playerCount: 2, durationSeconds: null, options: {}, points: null, opponents: [] },
+      // A result that does not say its speed was played at the normal one
+      { id: "g2", finishedAt: "2026-11-07T10:00:00+00:00", outcome: "coop_win", place: 1, score: 5, playerCount: 2, durationSeconds: null, options: {}, pace: "normal", points: null, opponents: [] },
     ])
   })
 
@@ -198,7 +201,7 @@ describe("readHistory", () => {
 
 describe("readMemberGames", () => {
   const mine = [
-    { game_result_id: "r1", seat: 1, outcome: "win", rank: 1, score: 12, finished_at: "2026-11-08T10:00:00+00:00", game_results: { game: "courtisans", ranked: true, player_count: 3, duration_s: 900, options: { rounds: 3 } } },
+    { game_result_id: "r1", seat: 1, outcome: "win", rank: 1, score: 12, finished_at: "2026-11-08T10:00:00+00:00", game_results: { game: "courtisans", ranked: true, player_count: 3, duration_s: 900, options: { rounds: 3 }, pace: "slow" } },
     // The database may embed the game as a list of one
     { game_result_id: "r2", seat: 0, outcome: "coop_win", rank: 1, score: 5, finished_at: "2026-11-07T10:00:00+00:00", game_results: [{ game: "hanabi", ranked: false, player_count: 2, duration_s: null, options: null }] },
   ]
@@ -230,13 +233,14 @@ describe("readMemberGames", () => {
         playerCount: 3,
         durationSeconds: 900,
         options: { rounds: 3 },
+        pace: "slow",
         points: 16,
         opponents: [
-          { name: "Ola", avatarUrl: "https://example.com/o.png" },
-          { name: null, avatarUrl: null },
+          { name: "Ola", avatarUrl: "https://example.com/o.png", record: null },
+          { name: null, avatarUrl: null, record: null },
         ],
       },
-      { id: "r2", game: "hanabi", ranked: false, finishedAt: "2026-11-07T10:00:00+00:00", outcome: "coop_win", place: 1, score: 5, playerCount: 2, durationSeconds: null, options: {}, points: null, opponents: [{ name: "Zed", avatarUrl: null }] },
+      { id: "r2", game: "hanabi", ranked: false, finishedAt: "2026-11-07T10:00:00+00:00", outcome: "coop_win", place: 1, score: 5, playerCount: 2, durationSeconds: null, options: {}, pace: "normal", points: null, opponents: [{ name: "Zed", avatarUrl: null, record: null }] },
     ])
     // What was asked: the member's own seats, the latest first; then everybody seated at those games and what they gave the member
     expect(log.map((query) => query.table)).toEqual(["game_participants", "game_participants", "rating_changes"])
@@ -432,13 +436,51 @@ describe("the accounts that sat in a seat, named by their profile", () => {
       ],
       rating_changes: [{ data: [], error: null }],
       profiles: [{ data: [profile(BOB, "Bob", 7)], error: null }],
+      player_stats: [{ data: [{ user_id: BOB, game: "courtisans", games_played: 12, wins: 4, coop_wins: 1 }], error: null }],
+      ratings: [{ data: [{ user_id: BOB, game: "courtisans", points: 1450 }], error: null }],
     })
     const [game] = await readMemberGames(USER, 20)
+    // An account that rated the game has its record for the card (their rank, the games of it they won, together too), a guest has none
     expect(game?.opponents).toEqual([
-      { name: "Bob", avatarUrl: null, handle: { nickname: "Bob", tag: 7 } },
-      { name: "Guest", avatarUrl: null },
+      { name: "Bob", avatarUrl: null, handle: { nickname: "Bob", tag: 7 }, record: { rank: { tier: "Platinum", division: 3 }, gamesPlayed: 12, wins: 5 } },
+      { name: "Guest", avatarUrl: null, record: null },
     ])
-    expect(log.map((query) => query.table)).toEqual(["game_participants", "game_participants", "rating_changes", "profiles"])
+    expect(log.map((query) => query.table).sort()).toEqual(["game_participants", "game_participants", "player_stats", "profiles", "rating_changes", "ratings"])
+    // Every opponent of every game is asked at once, and the member is not one of them
+    expect(log.find((query) => query.table === "ratings")?.calls).toEqual(expect.arrayContaining([["in", ["user_id", [BOB]]], ["in", ["game", ["courtisans"]]]]))
     expect(JSON.stringify(game)).not.toContain(BOB)
+  })
+
+  it("leaves the cards without a record, and the history whole, when the records cannot be read", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    tables({
+      game_participants: [
+        { data: [{ game_result_id: "r1", seat: 1, outcome: "win", rank: 1, score: 12, finished_at: "2026-11-08T10:00:00+00:00", game_results: { game: "courtisans", ranked: true, player_count: 2, duration_s: 900, options: {} } }], error: null },
+        { data: [{ game_result_id: "r1", seat: 0, user_id: BOB, display_name: "Bobby", avatar_url: null }], error: null },
+      ],
+      rating_changes: [{ data: [], error: null }],
+      profiles: [{ data: [], error: null }],
+      player_stats: [{ data: null, error: { message: "permission denied" } }],
+      ratings: [{ data: [], error: null }],
+    })
+    const [game] = await readMemberGames(USER, 20)
+    expect(game?.opponents).toEqual([{ name: "Bobby", avatarUrl: null, record: null }])
+    expect(error).toHaveBeenCalled()
+    error.mockRestore()
+  })
+
+  it("reads the games without their speed where migration 0021 is not applied yet: every game was played at the normal one", async () => {
+    const log = tables({
+      game_participants: [
+        { data: null, error: { code: "42703", message: "column game_results_1.pace does not exist" } },
+        { data: [{ game_result_id: "r1", seat: 0, outcome: "win", rank: 1, score: null, finished_at: "2026-11-08T10:00:00+00:00", game_results: { game: "courtisans", ranked: false, player_count: 1, duration_s: null, options: {} } }], error: null },
+        { data: [], error: null },
+      ],
+      rating_changes: [{ data: [], error: null }],
+    })
+    const [game] = await readMemberGames(USER, 20)
+    expect(game?.pace).toBe("normal")
+    expect(String(log[0]?.calls.find(([name]) => name === "select")?.[1][0])).toContain("pace")
+    expect(String(log[1]?.calls.find(([name]) => name === "select")?.[1][0])).not.toContain("pace")
   })
 })

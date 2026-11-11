@@ -10,8 +10,8 @@ import { RankBadge } from "./rank-badge"
 // What the card of a player says, which opens under the pointer on their picture (`HoverCard`): the picture, big, their name and tag, and what they have done in the game: their rank, and how many of their games they won, then, for an account, a button
 // that leads to their profile (`href`). A guest has no tag, no rank and no profile, and says so; so does an account that has not played the game ranked yet. It draws what it is given.
 
-/** The card of a player: draw it in a `HoverCardContent`, or by itself where a player is introduced. */
-function UserCard({ player, className, ...props }: Omit<React.ComponentProps<"div">, "children"> & { player: SeatedPlayer }) {
+/** The card of a player: draw it in a `HoverCardContent`, or by itself where a player is introduced. `showTag` is false where a page does not write the tags of its players (a profile): the card still knows an account from a guest. */
+function UserCard({ player, showTag = true, className, ...props }: Omit<React.ComponentProps<"div">, "children"> & { player: SeatedPlayer; showTag?: boolean }) {
   const { name, tag, avatarUrl, host, record, href } = player
   const note = !tag ? "Guest" : host ? "Host of the table" : null
   return (
@@ -24,7 +24,7 @@ function UserCard({ player, className, ...props }: Omit<React.ComponentProps<"di
         <div className="flex min-w-0 flex-col gap-1">
           <p className="ph-mask truncate text-lg leading-tight font-strong text-foreground">
             {name}
-            {tag && <span className="text-muted-foreground">#{tag}</span>}
+            {tag && showTag && <span className="text-muted-foreground">#{tag}</span>}
           </p>
           {note && <p className="truncate text-sm text-muted-foreground">{note}</p>}
         </div>

@@ -2,7 +2,9 @@ import "server-only"
 import type { Handle } from "@pbgo/accounts"
 import type { Rank } from "@pbgo/ui/ranks"
 import type { Outcome } from "@pbgo/ui/results"
+import { PACES, type Pace, type PlayerRecord } from "@pbgo/ui/tables"
 import { progressOfPoints, rankOfPoints } from "../lib/ladder"
+import { isMissingColumn } from "./db-error"
 import { handleOf, readProfiles, type ProfileRecord } from "./profiles"
 import { supabaseAdmin } from "./supabase"
 
@@ -19,9 +21,14 @@ const USER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const text = (value: unknown): string | null => (typeof value === "string" ? value : null)
 const count = (value: unknown): number => (typeof value === "number" && Number.isFinite(value) ? value : Number(value) || 0)
 const maybe = (value: unknown): number | null => (value === null || value === undefined ? null : count(value))
+/** The speed a game was played at, as its result keeps it (`game_results.pace`, migration 0021): a result that does not say was played at the normal one, as every game was until a table could be given another. */
+const paceOf = (value: unknown): Pace => PACES.find((pace) => pace.value === value)?.value ?? "normal"
 
-/** Who sat in a seat, as the history and the board draw them: what the seat had (the name and the picture it was copied with) or, while the account is still there, the account's own name and picture, with the handle that leads to its profile (PLT-39). */
-export type Seated = { name: string | null; avatarUrl: string | null; handle?: Handle }
+/**
+ * Who sat in a seat, as the history and the board draw them: what the seat had (the name and the picture it was copied with) or, while the account is still there, the account's own name and picture, with the handle that leads to its profile (PLT-39).
+ * `record` is what their card says (their rank in the game and how many games of it they won): only the history of a member has it, and an account that rated nothing in the game has none.
+ */
+export type Seated = { name: string | null; avatarUrl: string | null; handle?: Handle; record?: PlayerRecord | null }
 
 /**
  * The profiles of the accounts that sat in these seats, read once. A database that cannot say leaves the seats as they were, with no handle and the cause in the log: a history or a board is never refused for the links it would have had. The account's id
@@ -125,6 +132,8 @@ export type HistoryRow = {
   durationSeconds: number | null
   /** The options it was played with, expansions included. */
   options: Record<string, unknown>
+  /** The speed the table was set to. */
+  pace: Pace
   /** The rank points it gave (+) or took (-), null for a game that was not rated. */
   points: number | null
   /** The others at the table, by seat: the name and picture their seat had, null once the account is gone; an account that is still there is named as it goes now, with its handle (`Seated`). */
@@ -145,6 +154,7 @@ export async function readHistory(userId: string, game: string, limit: number): 
     playerCount: count(row.player_count),
     durationSeconds: maybe(row.duration_s),
     options: row.options && typeof row.options === "object" ? (row.options as Record<string, unknown>) : {},
+    pace: paceOf(row.pace),
     points: maybe(row.points),
     opponents: seatsOf(row).map((seat) => seatedOf({ userId: text(seat.userId), name: text(seat.name), avatarUrl: text(seat.avatarUrl) }, profiles)),
   }))
@@ -162,18 +172,51 @@ export const MEMBER_GAMES_MAX = 100
 /** What the database embeds of a row it is joined to: one row, or a list of one. */
 const joined = (value: unknown): Row => (Array.isArray(value) ? ((value[0] ?? {}) as Row) : value && typeof value === "object" ? (value as Row) : {})
 
-/** The games a member finished, the latest first, at most `limit` (`MEMBER_GAMES_MAX`): how each ended for them, the rank points it gave and the others at the table, by seat. */
+/**
+ * What a card says of each player of a history: their rank in the game and how many games of it they won (`player_stats`, `ratings`), read for every opponent of every game at once, by `user_id:game`. A player with no rating in the game has no record, as a
+ * guest has none. A database that cannot say leaves the cards without one and the cause in the log: a history is never refused for it.
+ */
+async function recordsOf(userIds: readonly string[], games: readonly string[]): Promise<Map<string, PlayerRecord>> {
+  const records = new Map<string, PlayerRecord>()
+  if (userIds.length === 0 || games.length === 0) return records
+  try {
+    const db = supabaseAdmin()
+    const [stats, ratings] = await Promise.all([
+      db.from("player_stats").select("user_id, game, games_played, wins, coop_wins").in("user_id", [...userIds]).in("game", [...games]),
+      db.from("ratings").select("user_id, game, points").in("user_id", [...userIds]).in("game", [...games]),
+    ])
+    if (stats.error) throw stats.error
+    if (ratings.error) throw ratings.error
+    const played = new Map(((stats.data ?? []) as Row[]).map((row) => [`${row.user_id}:${row.game}`, row]))
+    for (const row of (ratings.data ?? []) as Row[]) {
+      const key = `${row.user_id}:${row.game}`
+      const totals = played.get(key)
+      records.set(key, { rank: rankOfPoints(count(row.points)), gamesPlayed: count(totals?.games_played), wins: count(totals?.wins) + count(totals?.coop_wins) })
+    }
+  } catch (error) {
+    console.error("The records of the players of a history could not be read", error instanceof Error ? error.message : error)
+  }
+  return records
+}
+
+/** The games a member finished, the latest first, at most `limit` (`MEMBER_GAMES_MAX`): how each ended for them, the rank points it gave, the speed it was played at and the others at the table, by seat, each with their record in the game. */
 export async function readMemberGames(userId: string, limit: number): Promise<MemberGameRow[]> {
   if (!USER_ID.test(userId)) return []
   const db = supabaseAdmin()
-  const mine = await db
-    .from("game_participants")
-    .select("game_result_id, seat, outcome, rank, score, finished_at, game_results!inner(game, ranked, player_count, duration_s, options)")
-    .eq("user_id", userId)
-    .order("finished_at", { ascending: false })
-    .limit(Math.min(limit, MEMBER_GAMES_MAX))
+  const ask = async (withPace: boolean): Promise<{ data: Row[] | null; error: { code?: string } | null }> => {
+    const { data, error } = await db
+      .from("game_participants")
+      .select(`game_result_id, seat, outcome, rank, score, finished_at, game_results!inner(game, ranked, player_count, duration_s, options${withPace ? ", pace" : ""})`)
+      .eq("user_id", userId)
+      .order("finished_at", { ascending: false })
+      .limit(Math.min(limit, MEMBER_GAMES_MAX))
+    return { data: data as Row[] | null, error }
+  }
+  let mine = await ask(true)
+  // A project where migration 0021 is not applied yet has no speed to read: every game was played at the normal one
+  if (isMissingColumn(mine.error)) mine = await ask(false)
   if (mine.error) throw mine.error
-  const own = (mine.data ?? []) as Row[]
+  const own = mine.data ?? []
   if (own.length === 0) return []
   const ids = own.map((row) => String(row.game_result_id))
   const [seated, changes] = await Promise.all([
@@ -190,7 +233,8 @@ export async function readMemberGames(userId: string, limit: number): Promise<Me
     const id = String(row.game_result_id)
     seats.set(id, [...(seats.get(id) ?? []), { seat: count(row.seat), userId: text(row.user_id), name: text(row.display_name), avatarUrl: text(row.avatar_url) }])
   }
-  const profiles = await profilesOf([...seats.values()].flatMap((list) => list.map((seat) => seat.userId)))
+  const opponents = [...new Set([...seats.values()].flatMap((list) => list.flatMap((seat) => (seat.userId && seat.userId !== userId ? [seat.userId] : []))))]
+  const [profiles, records] = await Promise.all([profilesOf([...seats.values()].flatMap((list) => list.map((seat) => seat.userId))), recordsOf(opponents, [...new Set(own.map((row) => String(joined(row.game_results).game)))])])
 
   return own.map((row) => {
     const id = String(row.game_result_id)
@@ -206,11 +250,12 @@ export async function readMemberGames(userId: string, limit: number): Promise<Me
       playerCount: count(result.player_count),
       durationSeconds: maybe(result.duration_s),
       options: result.options && typeof result.options === "object" ? (result.options as Record<string, unknown>) : {},
+      pace: paceOf(result.pace),
       points: points.get(id) ?? null,
       opponents: (seats.get(id) ?? [])
         .filter((seat) => seat.seat !== count(row.seat))
         .sort((a, b) => a.seat - b.seat)
-        .map((seat) => seatedOf(seat, profiles)),
+        .map((seat) => ({ ...seatedOf(seat, profiles), record: seat.userId ? (records.get(`${seat.userId}:${String(result.game)}`) ?? null) : null })),
     }
   })
 }

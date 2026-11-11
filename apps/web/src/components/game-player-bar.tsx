@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight01Icon, DicesIcon, HourglassIcon, MedalFirstPlaceIcon, UserMultipleIcon, ZapIcon } from "@hugeicons/core-free-icons"
+import { ArrowRight01Icon, DicesIcon, MedalFirstPlaceIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AchievementsCard } from "@pbgo/ui/platform/achievements-card"
 import { Badge } from "@pbgo/ui/platform/badge"
@@ -9,11 +9,12 @@ import { Progress } from "@pbgo/ui/platform/progress"
 import { RankEmblem } from "@pbgo/ui/platform/rank-emblem"
 import { StatBar, StatBarItem, StatBarLabel, StatBarNote, StatBarValue } from "@pbgo/ui/platform/stat-bar"
 import { rankLabel } from "@pbgo/ui/ranks"
-import { lengthOf, pointsLabel, pointsTone, winRate } from "@pbgo/ui/results"
+import { pointsLabel, pointsTone, winRate } from "@pbgo/ui/results"
 import { cn } from "@pbgo/ui/utils"
 import type { TimeFormat } from "@pbgo/accounts"
 import type { Expansion, HistoryEntry, PlayerStats } from "@/lib/game-activity"
 import { dayOf, lastGameOf } from "@/lib/game-activity-props"
+import { Duration, PaceFact, PlayerCount } from "./played-game-bits"
 
 // What the signed-in visitor has done in a game, as the first section under the head of its page and above the tables: three cards a little apart (`StatBar`), in this order: the rank progress, the recent games and the achievements.
 // Rank progress: its emblem (2.5rem: its crest where the owner has handed it over, Grandmaster's so far, and a stand-in where not, `RankEmblem`) at the left of its name (1.5rem, on one line whatever the room: the longest, "Grandmaster III", needs 174px), so that the label, the emblem and the thin bar under them share one left edge,
@@ -29,16 +30,6 @@ import { dayOf, lastGameOf } from "@/lib/game-activity-props"
 
 /** How many of the latest games the recent card says: three rows of 4.25rem with 0.25rem between them, 212px (200px for the card: the list goes 0.75rem down into its padding). */
 const RECENT_MAX = 3
-
-/** How long a game lasted, small and quiet, with an hourglass at its left (the head's, which says how long a game takes): the hourglass is centred on the line and the figure stands on the baseline of the text around it. */
-function Duration({ seconds, className }: { seconds: number; className?: string }) {
-  return (
-    <span className={cn("flex items-baseline gap-1 text-xs text-muted-foreground tabular-nums", className)}>
-      <HugeiconsIcon icon={HourglassIcon} strokeWidth={2} className="size-3.5 shrink-0 self-center" aria-hidden="true" />
-      <span>{lengthOf(seconds)}</span>
-    </span>
-  )
-}
 
 export function GamePlayerBar({ slug, stats, recent, expansions, timeFormat = "auto" }: { slug: string; stats: PlayerStats; recent: readonly HistoryEntry[]; expansions: readonly Expansion[]; timeFormat?: TimeFormat }) {
   const { rank, rankProgress, gamesPlayed, wins, achievements, achievementsTotal } = stats
@@ -110,15 +101,8 @@ export function GamePlayerBar({ slug, stats, recent, expansions, timeFormat = "a
                       {entry.durationSeconds !== null && <Duration seconds={entry.durationSeconds} className="hidden @min-[21rem]:flex" />}
                     </div>
                     <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-xs leading-4 text-muted-foreground @min-[21rem]:flex-nowrap">
-                      <span className="flex shrink-0 items-center gap-1">
-                        <HugeiconsIcon icon={UserMultipleIcon} strokeWidth={2} className="size-3.5 shrink-0" aria-hidden="true" />
-                        <span aria-hidden="true">{entry.playerCount}</span>
-                        <span className="sr-only">{entry.playerCount === 1 ? "1 player" : `${entry.playerCount} players`}</span>
-                      </span>
-                      <span data-pace={game.pace.value} className="flex shrink-0 items-center gap-1">
-                        <HugeiconsIcon icon={ZapIcon} strokeWidth={2} className="size-3.5 shrink-0" aria-hidden="true" />
-                        <span>{game.pace.label}</span>
-                      </span>
+                      <PlayerCount count={entry.playerCount} />
+                      <PaceFact value={game.pace.value} label={game.pace.label} />
                       {entry.durationSeconds !== null && <Duration seconds={entry.durationSeconds} className="@min-[21rem]:hidden" />}
                       {names.length > 0 && (
                         <span className="max-w-full basis-full truncate @min-[21rem]:basis-auto" title={names.join(", ")}>

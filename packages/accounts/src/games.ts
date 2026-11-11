@@ -3,6 +3,9 @@
 
 import type { Handle } from "./profile"
 
+/** What the card of an opponent says: their rank in the game (a tier and a division, none at the top) and how many games of it they won. A guest, and an account that rated nothing in the game, have none. */
+export type OpponentRecord = { rank: { tier: string; division?: number }; gamesPlayed: number; wins: number }
+
 /** A game a visitor played, or is playing. */
 export type PlayedGame = {
   id: string
@@ -14,7 +17,7 @@ export type PlayedGame = {
   /** The code of the table, for a game in progress. A game that is over has none: its result is kept without the table, which goes. */
   table?: string
   /** The others at the table. An opponent whose account is still there has a handle, which is where their profile is (`profilePath`): a guest has none, and neither has an account that was deleted. */
-  opponents: readonly { nickname: string; avatarUrl?: string | null; handle?: Handle | null }[]
+  opponents: readonly { nickname: string; avatarUrl?: string | null; handle?: Handle | null; record?: OpponentRecord | null }[]
   state: "in-progress" | "finished"
   /** How it ended for the visitor, once it has. */
   result?: "won" | "lost" | "draw"
@@ -22,6 +25,18 @@ export type PlayedGame = {
   rank?: number
   /** The rank points the game gave them (+) or took (−): absent where none applied, a game that was not rated or that was played together. */
   points?: number
+  /** Their score, for a game that counts points (the total the engine gives them): absent for one that does not. */
+  score?: number
+  /** The table was played for the rank (a game that counted for it) and not as a normal one. */
+  ranked?: boolean
+  /** How many players sat at the table, the visitor included. */
+  playerCount?: number
+  /** How long the game lasted, in seconds: absent where the start was not told. */
+  durationSeconds?: number
+  /** The speed the table was set to: `none`, `slow`, `normal`, `fast` or `async` (the words are the platform's, `PACES` of `@pbgo/ui/tables`). */
+  pace?: string
+  /** The expansions it was played with, by name. */
+  expansions?: readonly string[]
 }
 
 /** The games that are over. */
@@ -74,8 +89,16 @@ export type FinishedGame = {
   place: number | null
   /** The rank points the game gave them (+) or took (−), null where none applied. */
   points: number | null
-  /** The others at the table, by seat: a seat whose account is gone has no name. The name and the picture are the account's own while it is there, with its handle, else what the seat had. */
-  opponents: readonly { name: string | null; avatarUrl: string | null; handle?: Handle | null }[]
+  /** Their total, null where the engine gives none. */
+  score: number | null
+  /** The table was played for the rank. */
+  ranked: boolean
+  playerCount: number
+  /** How long it lasted, in seconds, null where the start was not told. */
+  durationSeconds: number | null
+  pace: string
+  /** The others at the table, by seat: a seat whose account is gone has no name. The name and the picture are the account's own while it is there, with its handle, else what the seat had. `record` is what their card says of them in the game. */
+  opponents: readonly { name: string | null; avatarUrl: string | null; handle?: Handle | null; record?: OpponentRecord | null }[]
 }
 
 /** What an opponent whose account is gone is called. */
@@ -83,20 +106,31 @@ const FORMER_PLAYER = "Player"
 
 /**
  * A game that was recorded as a row of the visitor's games. It won when it was won (alone or together), drew when it drew, and was lost in every other way: a lost game, a game given up. A game played together has no place, since
- * the table wins or loses as one.
+ * the table wins or loses as one. `expansions` are the names of the ones it was played with.
  */
-export function playedGameOf(game: FinishedGame, name: string): PlayedGame {
+export function playedGameOf(game: FinishedGame, name: string, expansions: readonly string[] = []): PlayedGame {
   const together = game.outcome === "coop_win" || game.outcome === "coop_loss"
   return {
     id: game.id,
     slug: game.game,
     name,
     playedAt: game.finishedAt,
-    opponents: game.opponents.map((opponent) => ({ nickname: opponent.name ?? FORMER_PLAYER, avatarUrl: opponent.avatarUrl, ...(opponent.handle ? { handle: opponent.handle } : {}) })),
+    opponents: game.opponents.map((opponent) => ({
+      nickname: opponent.name ?? FORMER_PLAYER,
+      avatarUrl: opponent.avatarUrl,
+      ...(opponent.handle ? { handle: opponent.handle } : {}),
+      ...(opponent.record ? { record: opponent.record } : {}),
+    })),
     state: "finished",
     result: game.outcome === "win" || game.outcome === "coop_win" ? "won" : game.outcome === "draw" ? "draw" : "lost",
     ...(together || game.place === null ? {} : { rank: game.place }),
     ...(game.points === null ? {} : { points: game.points }),
+    ...(game.score === null ? {} : { score: game.score }),
+    ranked: game.ranked,
+    playerCount: game.playerCount,
+    ...(game.durationSeconds === null ? {} : { durationSeconds: game.durationSeconds }),
+    pace: game.pace,
+    ...(expansions.length > 0 ? { expansions } : {}),
   }
 }
 

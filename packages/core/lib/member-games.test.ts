@@ -17,6 +17,7 @@ const row = (overrides: Partial<MemberGameRow> = {}): MemberGameRow => ({
   playerCount: 3,
   durationSeconds: 900,
   options: {},
+  pace: "normal",
   points: 16,
   opponents: [{ name: "Ola", avatarUrl: null }],
   ...overrides,
@@ -47,6 +48,14 @@ describe("memberGamesOf", () => {
       ["r2", "Hanabi", "hanabi", "lost", "finished"],
       ["r3", "unknown-game", "unknown-game", "won", "finished"],
     ])
+  })
+
+  it("says how each game was played: its table, its speed, its score, how many sat at it and the expansions the options name, which the hub names", () => {
+    const { games } = memberGamesOf([row({ options: { "courtisans-diplomats": true, rounds: 3 }, pace: "fast", score: 31, playerCount: 4 }), row({ id: "r2", score: null, ranked: false })], [], nameOf, (slug, options) => (slug === "courtisans" && options["courtisans-diplomats"] === true ? ["Diplomats & Confidants"] : []))
+    expect(games[0]).toMatchObject({ ranked: true, pace: "fast", score: 31, playerCount: 4, durationSeconds: 900, expansions: ["Diplomats & Confidants"] })
+    expect(games[1]).toMatchObject({ ranked: false, pace: "normal" })
+    expect(games[1]).not.toHaveProperty("score")
+    expect(games[1]).not.toHaveProperty("expansions")
   })
 
   it("carries the rank points a game gave, and none for a game that was not rated", () => {

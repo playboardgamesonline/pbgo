@@ -2,10 +2,12 @@ import type { ReactNode } from "react"
 import { countryName, initialsOf, pronounsLabel, tagText } from "@pbgo/accounts"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { monthOf } from "@/lib/account-data"
+import { ProfileName } from "@/components/profile-name"
 import type { ProfileHead } from "@/lib/profile-data"
 
 /**
- * The top of a profile, the member's own or anybody's: picture, nickname with tag, the pronouns beside it (muted), the country and since when. `children` are the actions (the edit button on the member's own page, "Add friend", PLT-23). `note` goes before the rest of the line.
+ * The top of a profile, the member's own or anybody's: picture, nickname, the pronouns beside it (muted), the country and since when. The tag is not drawn: it is what copying the name gives (`ProfileName`).
+ * `children` are the actions (the edit button on the member's own page, "Add friend", PLT-23). `note` goes before the rest of the line.
  */
 export function ProfileHeader({ head, note, children }: { head: ProfileHead; note?: string; children?: ReactNode }) {
   const { pronouns, country } = head.details
@@ -18,10 +20,7 @@ export function ProfileHeader({ head, note, children }: { head: ProfileHead; not
       </Avatar>
       <div className="min-w-0 flex-1 basis-56">
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-3">
-          <h1 className="ph-mask min-w-0 truncate font-heading text-3xl sm:text-5xl">
-            {head.nickname}
-            {head.tag !== null && <span className="text-muted-foreground">#{tagText(head.tag)}</span>}
-          </h1>
+          <ProfileName nickname={head.nickname} tag={head.tag === null ? null : tagText(head.tag)} className="min-w-0 truncate font-heading text-3xl sm:text-5xl" />
           {pronouns && <p className="ph-mask text-muted-foreground sm:text-lg">{pronounsLabel(pronouns)}</p>}
         </div>
         {line && <p className="ph-mask mt-1 text-muted-foreground">{line}</p>}

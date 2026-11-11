@@ -63,8 +63,8 @@ begin
     (g3, 0, u, 'Uma', null, 1, 1, 'win', '2026-11-08 13:00:00+00');
   insert into public.rating_changes (game_result_id, user_id, game, rating_before, rating_after, points_before, points_after) values (g1, u, 'zz-a', 1540, 1556, 144, 160);
   r := r || pg_temp.check_that('the history of a game, the latest first, and only that game', (select string_agg(outcome, ',' order by finished_at desc) from public.player_history(u, 'zz-a')) = 'coop_win,win', (select string_agg(outcome, ',' order by finished_at desc) from public.player_history(u, 'zz-a')));
-  r := r || pg_temp.check_that('a game: place, score, players, duration, options and the others at the table by seat',
-    (select place = 1 and score = 12 and player_count = 3 and duration_s = 900 and options = '{"rounds": 3}' and opponents = '[{"name": "Ola", "avatarUrl": "https://example.com/o.png"}, {"name": "Guest", "avatarUrl": null}]'::jsonb from public.player_history(u, 'zz-a') where id = g1), null);
+  r := r || pg_temp.check_that('a game: place, score, players, duration, options, the speed and the others at the table by seat',
+    (select place = 1 and score = 12 and player_count = 3 and duration_s = 900 and options = '{"rounds": 3}' and pace = 'normal' and (select jsonb_agg(o - 'userId') from jsonb_array_elements(opponents) o) = '[{"name": "Ola", "avatarUrl": "https://example.com/o.png"}, {"name": "Guest", "avatarUrl": null}]'::jsonb from public.player_history(u, 'zz-a') where id = g1), (select format('%s', row(h.*)) from public.player_history(u, 'zz-a') h where id = g1));
   r := r || pg_temp.check_that('the points a rated game gave are what it added to the total, none for a game played together', (select points = 16 from public.player_history(u, 'zz-a') where id = g1) and (select points is null from public.player_history(u, 'zz-a') where id = g2), (select points::text from public.player_history(u, 'zz-a') where id = g1));
   r := r || pg_temp.check_that('the limit and a player with no game', (select count(*) from public.player_history(u, 'zz-a', 1)) = 1 and (select count(*) from public.player_history(stranger, 'zz-a')) = 0, null);
 
