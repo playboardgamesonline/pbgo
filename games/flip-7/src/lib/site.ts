@@ -10,3 +10,9 @@ export const AUTHOR = { name: "oré", signature: "oré ˖ ࣪⊹", url: "https:/
 export const CONTACT = "hey@playboardgamesonline.app"
 
 export const STUDIO_URL = "https://flip-7.sanity.studio"
+
+/**
+ * The codes of the game's own refusals: the ones the engine throws that every game does not share (`SHARED_ERROR_CODES` of `@pbgo/engine-kit`, which the platform words: not your turn, invalid target, game over…). Flip 7 has one, a stay with nothing in front of the player.
+ * Its message is written in Sanity (Gamemaster › Copy › Errors; the seed in `content/data/texts.ts` drafts it). `error-codes.test.ts` keeps this list and the engine in step.
+ */
+export const ERROR_CODES = ["CANNOT_STAY"]
