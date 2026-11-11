@@ -19,6 +19,7 @@ import { DEFAULT_LIGHTS, type LightsProps } from "../table/lights"
 import { SURFACE_TILE } from "../table/surface"
 import type { TableProps } from "../table/table"
 import { ROAD_MAP_FIELDS, ROAD_MAP_SETTINGS } from "../roadmap/settings"
+import { SHEET_FIELDS, SHEET_SETTINGS } from "../sheet/settings"
 import { SKETCH_FIELDS, SKETCH_SETTINGS } from "../sketch/settings"
 import { SLIDER_FIELDS, SLIDER_SETTINGS } from "../slider/settings"
 import { STEPPER_FIELDS, STEPPER_SETTINGS } from "../stepper/settings"
@@ -186,7 +187,7 @@ function GlowFolder({ name, glow }: { name: string; glow: Glow }) {
   return null
 }
 
-/** What the table owns and a frame reads: the cards, the dice, the pieces, the counters, the cups, the bags, the tracks, the steppers, the sliders, the sketches, the road maps, the timers, the drag, the seats, and the glows the game defined (those with no part at all have nothing to tune) */
+/** What the table owns and a frame reads: the cards, the dice, the pieces, the counters, the cups, the bags, the tracks, the steppers, the sliders, the sketches, the road maps, the sheets, the timers, the drag, the seats, and the glows the game defined (those with no part at all have nothing to tune) */
 function PieceFolders() {
   useSettings("Card", CARD_SETTINGS, CARD_FIELDS, { order: 2 })
   useDebugFolder({
@@ -209,6 +210,7 @@ function PieceFolders() {
   useSettings("Slider", SLIDER_SETTINGS, SLIDER_FIELDS, { order: 2 })
   useSettings("Sketch", SKETCH_SETTINGS, SKETCH_FIELDS, { order: 2 })
   useSettings("Road map", ROAD_MAP_SETTINGS, ROAD_MAP_FIELDS, { order: 2 })
+  useSettings("Sheet", SHEET_SETTINGS, SHEET_FIELDS, { order: 2 })
   useSettings("Timer", TIMER_SETTINGS, TIMER_FIELDS, { order: 2 })
   useSettings("Drag", DRAG_SETTINGS, DRAG_FIELDS, { order: 2 })
   useSettings("Seat", SEAT_SETTINGS, SEAT_FIELDS, { order: 3 })

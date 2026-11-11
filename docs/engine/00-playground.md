@@ -26,6 +26,7 @@ Each part is the component of the package as the page of its own shows it, given
 | Paper button | Press the paper: the turn written above it goes up | [Bets and choices](02-components/12-bets-and-choices.md), [Score](02-components/09-score.md#text-on-the-table) |
 | Sketch | Switch it on and the camera backs off to show the sheet on the right of the table: draw on it, pick a colour and a brush, undo a stroke or clear it | [Drawing](02-components/21-drawing.md) |
 | Map | Switch it on and the camera backs off to show six cities and the roads between them, on the left of the table: press a city to pick it and a road to claim it, and the longest route of the claimed roads is counted | [Maps](02-components/22-maps.md) |
+| Sheet | Switch it on and the camera backs off to show a sheet of twenty-four numbered boxes on the left of the table: pick a tick, a cross or a circle, press a box to write it and press it again to take it off | [Sheets](02-components/23-sheets.md) |
 | Seats | Seat two to five players around the table, and press a plate to pick that player | [Seats](02-components/03-seats.md) |
 | Camera | Move it back or forward, look from above | [Camera](02-components/02-camera.md) |
 

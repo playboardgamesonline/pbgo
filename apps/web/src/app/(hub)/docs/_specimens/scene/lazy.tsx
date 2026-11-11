@@ -30,6 +30,7 @@ export const PourScene = dynamic(() => import("./three/cup").then((m) => m.PourS
 export const BidScene = dynamic(() => import("./three/bid").then((m) => m.BidScene), { ssr: false })
 export const NumbersScene = dynamic(() => import("./three/numbers").then((m) => m.NumbersScene), { ssr: false })
 export const RoadMapScene = dynamic(() => import("./three/road-map").then((m) => m.RoadMapScene), { ssr: false })
+export const SheetScene = dynamic(() => import("./three/sheet").then((m) => m.SheetScene), { ssr: false })
 export const SketchScene = dynamic(() => import("./three/sketch").then((m) => m.SketchScene), { ssr: false })
 export const BagScene = dynamic(() => import("./three/bag").then((m) => m.BagScene), { ssr: false })
 export const DragScene = dynamic(() => import("./three/drag").then((m) => m.DragScene), { ssr: false })

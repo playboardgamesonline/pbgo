@@ -114,6 +114,9 @@ export const ISLAND_NUMBERS: readonly number[] = [10, 2, 9, 12, 6, 4, 10, 9, 11,
 export const ISLAND_BUILDS = ["settlement", "road"] as const
 export type IslandBuild = (typeof ISLAND_BUILDS)[number]
 
+/** The sheet specimen: where the scorecard lies and how big it is, the seed of its dice, and how many dice a roll has and how many rolls a turn. */
+export const SHEET = { at: { x: -2.6, z: 0.1 }, width: 4.4, height: 5.9, seed: 7, dice: 5, rolls: 3 }
+
 export const TIMER_SECONDS = { min: 5, max: 30, start: 12 }
 /** What is left of the time in the three hourglasses that wait with no clock: most of it, half and little */
 export const TIMER_REST = [0.85, 0.5, 0.15] as const
@@ -158,9 +161,9 @@ export const DRAG_START: DragCards = { hand: DRAG_HAND.map(({ card }) => card), 
 /** The playground: the things that lie on its table, the parts of the table that can be switched on, and where it starts. */
 export const PLAY_PIECES = ["disc", "square", "hex", "cube", "sphere", "pawn"] as const
 export type PlayPiece = (typeof PLAY_PIECES)[number]
-export const PLAY_PARTS = ["board", "track", "counter", "stepper", "slider", "timer", "bag", "cup", "dice", "fields", "sketch", "hand", "piles", "stack", "paper", "map", "seats"] as const
+export const PLAY_PARTS = ["board", "track", "counter", "stepper", "slider", "timer", "bag", "cup", "dice", "fields", "sketch", "hand", "piles", "stack", "paper", "map", "sheet", "seats"] as const
 export type PlayPart = (typeof PLAY_PARTS)[number]
-export const PLAY_PART_NAMES: Record<PlayPart, string> = { board: "Board", track: "Track", counter: "Counter", stepper: "Stepper", slider: "Slider", timer: "Timer", bag: "Bag", cup: "Cup", dice: "Dice tray", fields: "Fields", sketch: "Sketch", hand: "Hand", piles: "Piles", stack: "Stack", paper: "Paper button", map: "Map", seats: "Seats" }
+export const PLAY_PART_NAMES: Record<PlayPart, string> = { board: "Board", track: "Track", counter: "Counter", stepper: "Stepper", slider: "Slider", timer: "Timer", bag: "Bag", cup: "Cup", dice: "Dice tray", fields: "Fields", sketch: "Sketch", hand: "Hand", piles: "Piles", stack: "Stack", paper: "Paper button", map: "Map", sheet: "Sheet", seats: "Seats" }
 export const PLAY_CUP_POSES = ["covering", "peeking", "lifted", "shaking", "rest", "pouring"] as const
 export type PlayCupPose = (typeof PLAY_CUP_POSES)[number]
 /** The playground's map: six cities, the roads between them (each the two cities it joins), where the map lies on the table and how far its cities are from the middle of it. */
@@ -179,6 +182,10 @@ export const PLAY_MAP = {
   at: { x: -12.6, z: -1.8 },
   radius: 2,
 }
+/** The playground's sheet: the marks a box can wear, where the sheet lies and how big it is, how many boxes it has across and down, and how far the camera backs off for it: it lies beyond the rest of the table, on the left. */
+export const PLAY_MARKS = ["tick", "cross", "circle"] as const
+export type PlayMark = (typeof PLAY_MARKS)[number]
+export const PLAY_SHEET = { x: -11.4, z: 5.6, width: 4.2, height: 3.4, columns: 6, rows: 4, zoom: 32 }
 /** The names of the players the playground seats, in the order of the seats. */
 export const PLAY_NAMES = ["Alix", "Basile", "Camille", "Dana", "Eli"] as const
 /** A card that is in the hand or on the discard pile and not on the table: the id it has everywhere (so that it keeps its name, and glides, when it changes places), the number its face is painted from, and, when it was just dealt from the draw pile, how many cards the pile held then (where it flies in from). */
@@ -214,7 +221,7 @@ export type PlayState = {
   text: string
   bet: number | null
   face: number | null
-  /** The sheet: what is drawn on it, as the engine would keep it, and the pen */
+  /** The sketch: what is drawn on its paper, as the engine would keep it, and the pen */
   sketch: { strokes: Drawing; color: number; width: number }
   /** The glow of the picked card */
   glow: PlayGlow
@@ -230,6 +237,8 @@ export type PlayState = {
   seat: number | null
   /** The map: which roads were claimed, and the city that was picked */
   map: { claimed: boolean[]; city: number | null }
+  /** The sheet: the mark in each box, or none, and the mark a press writes */
+  sheet: { marks: (PlayMark | null)[]; mark: PlayMark }
   players: number
   above: boolean
   zoom: number
@@ -260,6 +269,8 @@ export type PlayActions = {
   claim: (road: number) => void
   /** A city of the map is pressed: it is picked, or nobody when it was the one picked */
   visit: (city: number | null) => void
+  /** A box of the sheet is pressed: it gets the picked mark, or loses it when it held that mark already */
+  mark: (box: number) => void
   /** The plate of a seat is pressed: that player is picked, or nobody when it was the one picked already */
   pickSeat: (seat: number | null) => void
   /** The paper is pressed */
@@ -269,7 +280,7 @@ export type PlayActions = {
 export const PLAY_NUMBERS = { stepper: { min: 0, max: 20, start: 3 }, slider: { min: 0, max: 100, step: 5, start: 40 } }
 /** How long a step of the playground's timer lasts, in seconds. */
 export const PLAY_CLOCK = { seconds: 12 }
-/** Where the playground's sheet lies and how big it is, and how far the camera backs off for it: it lies beyond the rest of the table, on the right. */
+/** Where the playground's sketch lies and how big it is, and how far the camera backs off for it: it lies beyond the rest of the table, on the right. */
 export const PLAY_SKETCH = { x: 11.4, z: 6.2, width: 4.8, height: 3.6, zoom: 32 }
 /** How many things the table holds at the most, how many tokens the track has, and the most the counter reaches. */
 export const PLAY_LIMITS = { things: 24, spaces: 8, counter: 99, dice: 6, zoom: { min: 14, max: 34, start: 22 }, tilt: { min: 0, max: 60, start: 34 } }
