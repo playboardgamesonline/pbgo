@@ -145,30 +145,54 @@ describe("the podium", () => {
     expect(crowns(first!)).toBe(1)
     expect(crowns(second!)).toBe(0)
     expect(crowns(third!)).toBe(0)
-    expect(first).toContain("h-20")
-    expect(second).toContain("h-14")
-    expect(third).toContain("h-10")
+    expect(first).toContain("min-h-32")
+    expect(second).toContain("min-h-28")
+    expect(third).toContain("min-h-24")
   })
 
-  it("writes the rank on each step and the score under each name", () => {
-    const [first, second] = steps(markup())
-    expect(first).toContain(">1</span></div>")
-    expect(second).toContain(">2</span></div>")
+  it("writes the name and the score on the face of each step, and no number", () => {
+    const [first, second, third] = steps(markup())
     expect(first).toContain(">9 pts<")
     expect(second).toContain(">6 pts<")
+    for (const step of [first, second, third]) expect(step).not.toMatch(/>\d<\//)
   })
 
-  it("keeps the winner in the middle at a table of two, with the other player on its left", () => {
-    const two = steps(markup({ places: [place(1, [A]), place(2, [C])] }))
+  it("makes the steps touch each other, so that together they make one podium", () => {
+    expect(/<ol aria-label="Podium" class="([^"]*)"/.exec(markup())?.[1]).not.toMatch(/\bgap-/)
+  })
+
+  it("puts the players on the steps and the name on their face: the pictures come before the name in a step", () => {
+    const [first] = steps(markup())
+    expect(first!.indexOf("ph-mask\">A<")).toBeLessThan(first!.indexOf("Ann (you)"))
+  })
+
+  it("shares the whole width between two places, the second on the left of the first", () => {
+    const html = markup({ places: [place(1, [A]), place(2, [C])] })
+    const two = steps(html)
     expect(two).toHaveLength(2)
+    expect(/<ol aria-label="Podium" class="([^"]*)"/.exec(html)?.[1]).toContain("grid-cols-2")
     expect(columnOf(two[0]!)).toBe("2")
     expect(columnOf(two[1]!)).toBe("1")
   })
 
-  it("keeps a single player in the middle too", () => {
-    const one = steps(markup({ places: [place(1, [A])] }))
+  it("gives a single place the whole width", () => {
+    const html = markup({ places: [place(1, [A])] })
+    const one = steps(html)
     expect(one).toHaveLength(1)
-    expect(columnOf(one[0]!)).toBe("2")
+    expect(/<ol aria-label="Podium" class="([^"]*)"/.exec(html)?.[1]).toContain("grid-cols-1")
+    expect(columnOf(one[0]!)).toBe("1")
+  })
+
+  it("has three columns for three places or more, the winner in the middle", () => {
+    expect(/<ol aria-label="Podium" class="([^"]*)"/.exec(markup())?.[1]).toContain("grid-cols-3")
+  })
+
+  it("says how it ended at the very top, above the podium", () => {
+    const html = markup()
+    expect(html.indexOf("<h2")).toBeGreaterThan(-1)
+    expect(html.indexOf("<h2")).toBeLessThan(html.indexOf('aria-label="Podium"'))
+    const together = markup({ summary: { title: "Victory", outcome: "win", place: null, of: 3, points: 11 }, places: [place(1, [entry("a", "Ann", 11, 1), entry("b", "Bob", 11, 1)])], winners: ["a", "b"], together: "won" })
+    expect(together.indexOf("<h2")).toBeLessThan(together.indexOf('aria-label="Winner"'))
   })
 
   it("has a step for the first three places and a row under the podium for each place after them", () => {
@@ -193,11 +217,11 @@ describe("the podium", () => {
     expect(/<ol aria-label="Other places"[^>]*>(.*?)<\/ol>/s.exec(html)?.[1]).toContain("bg-current/10")
   })
 
-  it("draws the pictures of the players in the shape the game picked for its seats", () => {
-    const round = steps(markup())[0]
-    expect(round).toContain("rounded-full")
-    const square = steps(markup({ seat: seatTheme({ shape: "square" }) }))[0]
-    expect(square).toContain("rounded-[24%]")
+  it("draws the pictures of the players round, even for a game whose seats are square", () => {
+    for (const html of [markup(), markup({ seat: seatTheme({ shape: "square" }) })]) {
+      expect(steps(html)[0]).toContain("rounded-full")
+      expect(html).not.toContain("rounded-[24%]")
+    }
   })
 
   it("writes a name in the colour of its seat when the game asks for it, and in the ink of the card when it does not", () => {
@@ -217,8 +241,8 @@ describe("a tie and a team", () => {
     const [first, second] = steps(html)
     expect(first).toContain("Ann (you) and Dee")
     expect(faces(first)).toBe(2)
-    // The step after the tie is the third, and it keeps its rank
-    expect(second).toContain(">3</span></div>")
+    // The step after the tie is the next place, with its own player
+    expect(second).toContain("Bob")
     expect(crowns(first!)).toBe(1)
   })
 
