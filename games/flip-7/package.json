@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Flip 7 for apps/web: site constants, logo and default look. The engine is written, but the binding does not export it yet, so its home page says \"coming soon\".",
+  "description": "Flip 7 for apps/web: site constants, logo, default look and the engine (GAME). No board yet: outside production a table can be opened but one that starts has nothing to show, and in production its page says \"coming soon\".",
   "exports": {
     ".": "./src/index.ts",
     "./ui": "./src/ui.tsx",
@@ -19,6 +19,7 @@
     "deploy:studio": "pnpm --filter flip-7-studio run deploy"
   },
   "dependencies": {
+    "@flip-7/engine": "workspace:*",
     "@pbgo/core": "workspace:*",
     "@pbgo/ui": "workspace:*",
     "server-only": "catalog:"
@@ -29,8 +30,8 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@flip-7/engine": "workspace:*",
     "@pbgo/content-kit": "workspace:*",
+    "@pbgo/engine-kit": "workspace:*",
     "@pbgo/studio-kit": "workspace:*",
     "@pbgo/tsconfig": "workspace:*",
     "@types/node": "catalog:",

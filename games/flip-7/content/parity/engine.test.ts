@@ -1,8 +1,9 @@
-import { CARDS, DECK, defaultOptions, engineTextKeys, GAME, OPTIONS } from "@flip-7/engine"
+import { CARDS, DECK, defaultOptions, engineTextKeys, GAME, isSharedErrorCode, OPTIONS } from "@flip-7/engine"
 import type { CardKind } from "@flip-7/engine"
 import { describe, expect, expectTypeOf, it } from "vitest"
 import { CATEGORIES, CATEGORY_KEYS, titleOf } from "../../apps/studio/schemaTypes/constants.ts"
 import type { CategoryKey } from "../../apps/studio/schemaTypes/constants.ts"
+import { ERROR_CODES } from "../../src/lib/site.ts"
 import { CARD_LIST } from "../data/cards.ts"
 import { seedDocs } from "../data/test-fixtures.ts"
 
@@ -88,10 +89,32 @@ describe("the seed's words of the engine", () => {
     expect(new Set(items.map((item) => item.key)).size).toBe(items.length)
   })
 
+  it("are keyed as the Copy page of the gamemaster keys them, so that a text edited there is not added a second time", () => {
+    // Every character outside letters, digits, `_` and `-` becomes `_` (`core/server/settings.ts`): the items are paired by `_key` when the seed merges
+    const items = (docsById().get("texts")?.engineTexts ?? []) as { _key: string; key: string }[]
+    for (const item of items) expect(item._key, item.key).toBe(item.key.replace(/[^A-Za-z0-9_-]/g, "_"))
+  })
+
   it("leave the engine with no word of its own: an option and a line of the score say none", () => {
     for (const definition of Object.values(OPTIONS)) {
       expect(definition).not.toHaveProperty("label")
       expect(definition).not.toHaveProperty("help")
     }
+  })
+})
+
+describe("the seed's messages of the game's own error codes", () => {
+  const messages = () => (docsById().get("texts")?.errorMessages ?? []) as { _key: string; code: string }[]
+
+  it("word the codes the binding lists in `ERROR_CODES`, no more and no fewer", () => {
+    expect(messages().map((message) => message.code).sort()).toEqual([...ERROR_CODES].sort())
+  })
+
+  it("leave the shared codes to the platform, which words them", () => {
+    for (const { code } of messages()) expect(isSharedErrorCode(code), code).toBe(false)
+  })
+
+  it("are keyed by their code, as the Copy page keys them", () => {
+    for (const message of messages()) expect(message._key, message.code).toBe(message.code)
   })
 })

@@ -287,8 +287,8 @@ describe("the settings", () => {
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    // the names of the 3 action cards, the credits and the 6 words of the engine
-    expect(objects).toHaveLength(10)
+    // the names of the 3 action cards, the credits, the 6 words of the engine and the message of the game's one error code
+    expect(objects).toHaveLength(11)
     for (const { path, value } of objects) expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
   })
 
