@@ -99,7 +99,6 @@ function Board({
   // The players shown with an announcement (the viewer for "your turn", the winners for the victory). `GameProvider` is mounted below,
   // so `useGame()` is not available here: the seats come straight from the players and the skin's palette.
   const seatsFor = (ids: readonly string[]) => seatsOf(game.players, ids, playerColors)
-  const [scoresOpen, setScoresOpen] = useState(true)
   const [rawSelection, setSelection] = useState<Courtier | null>(null)
   const [assassination, setAssassination] = useState<Assassination | null>(null)
   const [sending, setSending] = useState(false)
@@ -384,9 +383,7 @@ function Board({
                     {catalog.words.skip}
                   </button>
                 )}
-                {ending?.scoreboard && (
-                  <GameOver onUpdate={onUpdate} isOpen={scoresOpen} onToggle={() => setScoresOpen((o) => !o)} renderDetail={renderFamilyCards} />
-                )}
+                {ending?.scoreboard && <GameOver onUpdate={onUpdate} renderDetail={renderFamilyCards} />}
               </>
             }
           >

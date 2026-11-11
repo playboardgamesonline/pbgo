@@ -89,22 +89,22 @@ export type UiTheme = {
     ring?: string
     /** Font of the initial in the avatar: a CSS font-family value (default: the skin's title font) */
     font?: string
-    /** Colour of the nickname where the UI writes it (game over): "seat" (default) is the seat colour, "ink" the text colour around it */
+    /** Colour of the nickname where the UI writes it: "seat" (default) is the seat colour, "ink" the text colour around it */
     name?: "seat" | "ink"
   }
-  /** The end-of-game panel (winner, ranking, share thumbnail): its surface, line, corners and colours */
+  /** The end-of-game card (the podium, how it ended, the buttons): its surface, line, corners and colours */
   gameOver?: {
-    /** Background of the panel: any CSS `background` value, so a colour, a gradient or a texture (default: the skin's surface) */
+    /** Background of the card: any CSS `background` value, so a colour, a gradient or a texture (default: the skin's surface) */
     surface?: string
-    /** Line around the panel: a CSS colour (default: the skin's accent at 60%) */
+    /** Line around the card: a CSS colour (default: the skin's accent at 60%) */
     border?: string
-    /** Corner radius of the panel: a CSS length (default: 1.5rem) */
+    /** Corner radius of the card: a CSS length (default: 1.5rem) */
     radius?: string
-    /** Colour of the text on the panel, the score chips included: a CSS colour (default: the skin's foreground) */
+    /** Colour of the text on the card, the score chips included: a CSS colour (default: the skin's foreground) */
     ink?: string
-    /** Colour of the crown and of the winner's points: a CSS colour (default: the skin's accent) */
+    /** Colour of the crown, of the winner's score and of the title of a win: a CSS colour (default: the skin's accent) */
     accent?: string
-    /** Frame of the share thumbnail, the polaroid on the panel's corner: a CSS colour (default: cream) */
+    /** Frame of the share thumbnail, the polaroid of the former panel: a CSS colour (default: cream). The card shares with a button and no longer reads it */
     frame?: string
   }
 }

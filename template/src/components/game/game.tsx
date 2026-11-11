@@ -112,7 +112,6 @@ function Table({ onUpdate, onLeave, held = false, onLoaded, deadlineAt = null }:
   const log = useGameLog<GameEvent>()
   const settings = useAnnouncementSettings()
   const { announce, element: announcement, current } = useAnnouncements(settings)
-  const [scoresOpen, setScoresOpen] = useState(true)
   const [sending, setSending] = useState(false)
   const previous = useRef<{ round: number; active: string | null; phase: string } | null>(null)
 
@@ -132,7 +131,6 @@ function Table({ onUpdate, onLeave, held = false, onLoaded, deadlineAt = null }:
         // `kind` is "defeat" for a table that lost together (a game whose players play on one side); this demo always ends in a victory
         const { phrase, detail, winners, kind } = winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points }), t("defeatTitle"))
         announce(phrase, kind, { subtitle: detail, sound: kind === "victory" ? "victory" : undefined, seats: seatsFor(winners) })
-        setScoresOpen(true)
       }
       return
     }
@@ -226,7 +224,7 @@ function Table({ onUpdate, onLeave, held = false, onLoaded, deadlineAt = null }:
           {announcement}
           <BidPanel sending={sending} onBid={bid} />
           <StalledTurn onUpdate={onUpdate} />
-          {ended && !current && <GameOver onUpdate={onUpdate} isOpen={scoresOpen} onToggle={() => setScoresOpen((o) => !o)} />}
+          {ended && !current && <GameOver onUpdate={onUpdate} />}
           <DebugSlot />
         </>
       }

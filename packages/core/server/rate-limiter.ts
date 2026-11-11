@@ -40,6 +40,8 @@ export const RATE_LIMITS = {
   /** The countdown of a table's deadline came to 0 (`POST …/tick`): each board sends one, and a few more when the server's clock is a hair behind the board's */
   tick: { limit: 20, windowMs: 10_000 },
   replay: { limit: 10, windowMs: 60_000 },
+  /** What the game that just ended did to a member's rank points (`GET …/rank`): the end screen asks every couple of seconds until the game is written down, which it is in a moment */
+  rank: { limit: 30, windowMs: 60_000 },
   /** Votes to play for the players the game waits for and who don't play (core `takeover`) */
   vote: { limit: 10, windowMs: 60_000 },
   /** Feedback form: fast in-memory gate in front of the durable checks done in the database (room to resend after a validation error) */

@@ -1,12 +1,12 @@
-import type { PlayerResult, Results } from "@pbgo/engine-kit"
+import { outcomesOf, type PlayerResult, type Results } from "@pbgo/engine-kit"
 import type { CoreView } from "./binding"
 import type { PublicGame } from "./game-types"
 import { EASE_STANDARD, fade, travel, type Motion } from "./motion-preference"
 import { DEFAULT_SKIN, fill } from "./skin"
 
 /**
- * What the game-over panel (`components/game/game-over.tsx`) reads from the results, apart from the DOM: who is the hero, who is
- * in the ranking, how a score is written and when each part comes in. Pure, so the panel and the specimens of the design docs agree.
+ * What the end screen (`components/game/game-over.tsx`) reads from the results, apart from the DOM: how the game ended for the visitor, who comes where and how a score is written. Pure, so the screen and the specimens of the
+ * design docs agree.
  */
 
 /**
@@ -17,7 +17,7 @@ export function endingOf(results: Results): "victory" | "defeat" {
   return results.coop === "lost" ? "defeat" : "victory"
 }
 
-/** A player of the finished game as the panel shows them: the result, the name and the seat */
+/** A player of the finished game as the end screen shows them: the result, the name and the seat */
 export type GameOverEntry = {
   result: PlayerResult
   nickname: string
@@ -27,12 +27,67 @@ export type GameOverEntry = {
   imageUrl?: string | null
 }
 
-/** The players of a finished game as the panel shows them: the winners as the hero, the others as the ranking (by rank, a tie keeps the seat order). */
-export function splitResults(results: Results): { winners: PlayerResult[]; others: PlayerResult[] } {
-  const won = (result: PlayerResult) => results.winners.includes(result.playerId)
-  return {
-    winners: results.players.filter(won),
-    others: results.players.filter((result) => !won(result)).sort((a, b) => a.rank - b.rank),
+/** The players of a finished game from the first place to the last: a tie keeps the seat order. */
+export const rankedResults = (results: Results): PlayerResult[] => [...results.players].sort((a, b) => a.rank - b.rank)
+
+/** A step of the podium: the players who share a rank, so a tie, the members of a team, or the whole table of a game that is played together. */
+export type Place = { rank: number; results: PlayerResult[] }
+
+/**
+ * The places of a finished game from the first to the last. Players who share a rank share a place: that is how a tie is told, how a game with teams tells which team each player was on (the members of a team have the rank of their team) and how a game
+ * that is played together tells that the table won or lost as one (everybody is first). The place keeps the rank, so that the step after a tie for the first place is the third, as it was written.
+ */
+export function placesOf(results: Results): Place[] {
+  const places: Place[] = []
+  for (const result of rankedResults(results)) {
+    const last = places.at(-1)
+    if (last && last.rank === result.rank) last.results.push(result)
+    else places.push({ rank: result.rank, results: [result] })
+  }
+  return places
+}
+
+/** A place in words: "1st", "2nd", "3rd", "4th", "11th", "22nd". */
+export function ordinal(n: number): string {
+  if (n % 100 >= 11 && n % 100 <= 13) return `${n}th`
+  return `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`
+}
+
+/** Whether the game counts points: some player has a score or a line of detail. A game won by an event, with nothing to add up, has none to show. */
+export const scoredOf = (results: Results): boolean => results.players.some((player) => player.total !== 0 || player.detail.length > 0)
+
+/** How the game ended for the visitor, for the head of the end screen. */
+export type Summary = {
+  /** What the screen says first: "You won", "Draw", "2nd place" (at a table of more than two, "You lost" at one of two), "Victory" or "Defeat" for a table that plays together. */
+  title: string
+  /** Won, lost or drawn, for the mark that goes with the title. */
+  outcome: "win" | "loss" | "draw"
+  /** Where they came, null for a table that plays together (everybody is first). */
+  place: number | null
+  /** How many played. */
+  of: number
+  /** Their score, null for a game that does not count points. */
+  points: number | null
+}
+
+/** How the game ended for `playerId`. A visitor the results do not name (they are not one of the players) is told only that it is over. */
+export function summaryOf(results: Results, playerId: string | null): Summary {
+  const of = results.players.length
+  const mine = results.players.find((player) => player.playerId === playerId)
+  if (!mine) return { title: "Game over", outcome: "draw", place: null, of, points: null }
+  const points = scoredOf(results) ? mine.total : null
+  const outcome = outcomesOf(results).find((entry) => entry.playerId === mine.playerId)?.outcome
+  switch (outcome) {
+    case "coop_win":
+      return { title: "Victory", outcome: "win", place: null, of, points }
+    case "coop_loss":
+      return { title: "Defeat", outcome: "loss", place: null, of, points }
+    case "win":
+      return { title: "You won", outcome: "win", place: mine.rank, of, points }
+    case "draw":
+      return { title: "Draw", outcome: "draw", place: mine.rank, of, points }
+    default:
+      return { title: of > 2 ? `${ordinal(mine.rank)} place` : "You lost", outcome: "loss", place: mine.rank, of, points }
   }
 }
 
@@ -69,6 +124,9 @@ export function winnerAnnouncement(
   return { phrase, detail: `${names} · ${pointsText(winners[0]?.total ?? 0)}`, winners: winners.map((v) => v.playerId), kind: "victory" }
 }
 
+/** A score as the end screen writes it: "1 pt", "9 pts", "-3 pts". */
+export const scoreText = (points: number): string => `${points} ${Math.abs(points) === 1 ? "pt" : "pts"}`
+
 /** A player's points with a "+" in front of a gain: "+10 pts", "0 pts", "-3 pts". `format` writes the points in the visitor's language. */
 export const pointsLine = (points: number, format: (points: number) => string) => `${points > 0 ? "+" : ""}${format(points)}`
 
@@ -76,27 +134,7 @@ export const pointsLine = (points: number, format: (points: number) => string) =
 export const signed = (n: number) => pointsLine(n, String)
 
 /**
- * Seconds, with lively motion: the panel settles, the hero comes in, the points count up, then the ranking rows follow one after
- * the other. Calm and reduced motion have none of it: the panel comes in whole.
- */
-export const GAME_OVER_TIMING = {
-  /** The hero's parts start together with this offset between them */
-  hero: 0.2,
-  /** The count-up of the points */
-  count: 0.9,
-  /** First ranking row, after the panel has settled */
-  rows: 0.55,
-  /** Between two rows */
-  step: 0.09,
-  /** Rows after this one all come in together, so a long table is not slow to read */
-  maxSteps: 6,
-} as const
-
-/** When the nth ranking row comes in (seconds) */
-export const rowDelay = (index: number) => GAME_OVER_TIMING.rows + Math.min(Math.max(index, 0), GAME_OVER_TIMING.maxSteps) * GAME_OVER_TIMING.step
-
-/**
- * How the panel comes in and goes out as a whole: a spring that settles with lively motion, a short slide with calm motion, a
+ * How the end screen comes in and goes out as a whole: a spring that settles with lively motion, a short slide with calm motion, a
  * fade of 150 ms at most with reduced motion (no slide, no scale).
  */
 export function sectionMotion(motion: Motion) {

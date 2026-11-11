@@ -7,7 +7,7 @@
 | Field | Required | Role | Rule |
 | --- | --- | --- | --- |
 | `id` | yes | The game's identifier | Its slug by convention |
-| `name` | yes | The game's name | Shown in the game-over footer and on the gamemaster's monitoring page |
+| `name` | yes | The game's name | Shown on the gamemaster's monitoring page |
 | `minPlayers`, `maxPlayers` | yes | The bounds of a table | The gamemaster can narrow them, never widen them |
 | `options` | yes | The `OptionDefinitions` of the game | `{}` for none; see [Options](07-parameters.md#options) |
 | `presets` | no | Option combinations, `OptionPreset`s | Applied over the defaults and normalized by `applyPreset`; no screen of the app offers them |

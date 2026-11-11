@@ -1,13 +1,13 @@
 # In-game rules
 
-A game's screen is drawn in two looks. The table is the game's: its cards, tokens, seat plates, announcements and confetti read the game's skin tokens, set by `themeStyle()` and tuned by `UI_THEME` (see [Game themes](../04-in-game/03-game-themes.md)). Everything around the table is the platform's: the corners of the HUD (the state of the game, the social dock with the menu of the game, the players with their scores, the chat) and the windows of that menu take the platform's tokens, Geist and the `.platform` class, from `@pbgo/ui/platform`.
+A game's screen is drawn in two looks. The table is the game's: its cards, tokens, seat plates, announcements, confetti and the end screen read the game's skin tokens, set by `themeStyle()` and tuned by `UI_THEME` (see [Game themes](../04-in-game/03-game-themes.md)). Everything around the table is the platform's: the corners of the HUD (the state of the game, the social dock with the menu of the game, the players with their scores, the chat) and the windows of that menu take the platform's tokens, Geist and the `.platform` class, from `@pbgo/ui/platform`.
 
 - Around the table, nothing of the game's look: no `@pbgo/ui/game`, no `surface`, `accent-game` or `font-display`. The pieces carry the `.platform` class themselves, since a game's page is not `.platform`; `platform-look.test.ts` keeps the rule.
 - On the table, nothing of the platform's: no `@pbgo/ui/platform`, no Geist, no `.platform` class. It reads the game's skin tokens.
 - A game never forks or restyles a shared component: for what is on the table it asks for a field in `UiTheme`, and for what is around it gives its view what the corners read (`standings`, the score of each player).
 - No copy in shared components: every label is a `UI_TEXTS` key, in the four languages, or in English only until the language pass for a new one (`ENGLISH_ONLY_TEXTS`).
 - The start screen, between a table that starts and its board (`StartScreen`, PLT-107), was the first piece around the table in the platform's look, in English until the language pass.
-- The game over panel is still in the game's look.
+- The end screen (`GameOverCard`) is the table's own: a card centered on the screen, over the board with no veil, in the game's look (`UI_THEME.gameOver`, `UI_THEME.seat`, the skin), in English until the language pass, with its own `short` layout.
 
 ## Room for the cookie banner
 

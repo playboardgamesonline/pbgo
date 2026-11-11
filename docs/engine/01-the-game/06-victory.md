@@ -28,7 +28,7 @@ The history keeps how a game ended for each player: `win`, `loss`, `draw`, `coop
 The end screen tells the same distinction. A table that lost together (`coop` is `"lost"`, `endingOf(results)` of core is `"defeat"`) has nobody to crown, so it is told as a defeat and not as a victory with no winner:
 
 - The board announces it with the `defeat` kind of [announcement](../../design/04-in-game/06-announcements.md): `winnerAnnouncement` gives the `kind` along with the sentence, the template announces with it, and nobody is shown with it.
-- The panel of the [game over](../../design/04-in-game/07-game-over.md) puts `defeatTitle` where it puts `winnerTitle` for a victory, over the ranking of the whole table.
+- The [end screen](../../design/04-in-game/07-game-over.md) puts the players on a podium by their `rank`: players who share a rank share a step, so a tie is told by giving the same rank, and a game with teams tells which team each player was on by giving the members of a team the rank of their team (the winning team is first). A table that lost together has no podium and no crown, and says "Defeat"; `defeatTitle` is the words of the announcement.
 - The share image names the whole table under no crown, with `shareHeadlineDefeat`, and the share text is `lostWith`.
 - Those three words are labels of the platform in `UI_TEXTS`, in English until the language pass (`ENGLISH_ONLY_TEXTS` of `@pbgo/studio-kit`), that a game's Copy overwrites like the others. A game that wants the words of its own universe writes them there.
 

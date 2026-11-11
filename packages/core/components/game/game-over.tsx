@@ -1,62 +1,57 @@
 "use client"
 
 import type { PlayerResult } from "@pbgo/engine-kit"
-import { CrownIcon, EyeIcon, EyeOffIcon } from "lucide-react"
-import { GameOverPanel, type ResultDetailRenderer } from "./game-over-panel"
-import { SharePreview } from "./preview-sharing"
-import { generateShareImage, type ShareRow } from "./sharing"
-import { AnimatePresence, motion } from "motion/react"
+import { CrownIcon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { PrimaryButton } from "../home/screen"
+import { cn } from "@pbgo/ui/utils"
 import { useApi, useBinding } from "../../lib/binding-context"
-import { formatDateTime } from "../../lib/format-date"
-import { endingOf, pointsLine, sectionMotion, splitResults, type GameOverEntry } from "../../lib/game-over"
+import { endingOf, placesOf, summaryOf, type GameOverEntry } from "../../lib/game-over"
 import type { PublicGame } from "../../lib/game-types"
-import { fade } from "../../lib/motion-preference"
+import { rematchOf } from "../../lib/rematch"
 import { gameOverTheme } from "../../lib/ui-theme"
 import { useMotion } from "../../lib/use-motion"
-import { cn } from "@pbgo/ui/utils"
 import { useSiteSettings } from "../settings-provider"
 import { useSkin, useText } from "../skin-provider"
-import { HostIcon } from "./host-icon"
+import { useContinue } from "./continue-context"
 import { useGame } from "./context"
+import { GameOverCard, type ResultDetailRenderer } from "./game-over-card"
+import { HostIcon } from "./host-icon"
+import { SharePreview } from "./preview-sharing"
 import { useSeatTheme } from "./seat-label"
+import { generateShareImage, type ShareRow } from "./sharing"
+import { useRankChange } from "./use-rank-change"
+import { useRematchToasts } from "./use-rematch-toasts"
 
-export type { GameOverLabels, GameOverPanelProps, ResultDetailRenderer } from "./game-over-panel"
+export type { GameOverCardProps, ResultDetailRenderer } from "./game-over-card"
 export { winnerAnnouncement } from "../../lib/game-over"
 
 /**
- * End-of-game board: winner(s), ranking, "Replay (x/n)", show / hide, share thumbnail. A table that lost together has no winner: the panel says "Defeat" over the ranking.
- * `renderDetail`: the game's own rendering of a player's score breakdown (default: `label +n` chips).
- * The look is the game's `UI_THEME.gameOver` and `UI_THEME.seat`, how much it moves its `UI_THEME.motion`.
+ * The end screen of a game, in the game's look (`GameOverCard`, dressed by `UI_THEME.gameOver` and `UI_THEME.seat` and the skin: its crown and its pattern): centered on the screen, over the board with no veil around it, it puts the players on a podium, says how the game ended for
+ * the visitor, and has the two buttons that go on from it. "Continue" leaves the finished table and goes on to the platform (`useContinue`: `GameClient` owns where). "Rematch" votes for another game at the same table (`POST …/replay`) and says how many of the
+ * players still there agreed; when somebody else asks first, a toast of the game has the button that agrees (`useRematchToasts`). A member of a table that counted for the rank sees the rank points the game gave or took (`useRankChange`). The share thumbnail is the share button's, drawn in the background.
+ * `renderDetail`: the game's own rendering of a player's score breakdown (default: `label +n` chips). The table that lost together has no winner: the card says "Defeat".
  */
-export function GameOver({
-  onUpdate,
-  isOpen,
-  onToggle,
-  renderDetail,
-}: {
-  onUpdate: (p: PublicGame) => void
-  isOpen: boolean
-  onToggle: () => void
-  renderDetail?: ResultDetailRenderer
-}) {
+export function GameOver({ onUpdate, renderDetail }: { onUpdate: (p: PublicGame) => void; renderDetail?: ResultDetailRenderer }) {
   const t = useText()
-  const { GAME, NAME, SLUG, UI_THEME } = useBinding()
+  const { GAME, SLUG, UI_THEME } = useBinding()
   const api = useApi()
   const { hostIcon, decor, locale } = useSkin()
+  const seat = useSeatTheme()
+  const theme = useMemo(() => gameOverTheme(UI_THEME?.gameOver), [UI_THEME?.gameOver])
   const { view, game, nickname, color, avatarUrl } = useGame()
   const { title } = useSiteSettings()
-  const seat = useSeatTheme()
   const mode = useMotion()
-  const theme = useMemo(() => gameOverTheme(UI_THEME?.gameOver), [UI_THEME?.gameOver])
-  const [sending, setSending] = useState(false)
+  const goOn = useContinue()
+  const [voting, setVoting] = useState(false)
   const [image, setImage] = useState<File | null>(null)
   const [preview, setPreview] = useState(false)
-  const [seenKey, setSeenKey] = useState<string | null>(null)
   const results = game.status === "over" ? view.results : null
   const lost = !!results && endingOf(results) === "defeat"
+  const me = game.players.find((player) => player.id === game.meId)
+  const rematch = rematchOf(game.players, game.replay, game.meId, GAME?.minPlayers ?? 1)
+  // A guest has no rank to move: only a member asks for the points
+  const rank = useRankChange(game.code, !!results && !!me?.tag)
 
   const resultsKey = results ? `${game.code}|${results.coop ?? ""}|${results.winners.join()}|${results.players.map((j) => `${j.playerId}:${j.total}`).join()}` : null
   useEffect(() => {
@@ -83,130 +78,56 @@ export function GameOver({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultsKey, locale])
 
-  // The first opening plays the panel's flourish; hiding the scores and showing them back does not play it again
-  const shown = isOpen && !!resultsKey
-  useEffect(() => {
-    if (!shown) return
-    const id = setTimeout(() => setSeenKey(resultsKey), 2000)
-    return () => clearTimeout(id)
-  }, [shown, resultsKey])
-
-  const url = useMemo(() => (image ? URL.createObjectURL(image) : null), [image])
-  useEffect(() => () => void (url && URL.revokeObjectURL(url)), [url])
-
-  if (!results) return null
-  const { winners, others } = splitResults(results)
-  const entry = (result: PlayerResult): GameOverEntry => ({
-    result,
-    nickname: nickname(result.playerId),
-    color: color(result.playerId),
-    imageUrl: avatarUrl(result.playerId),
-  })
-  const alreadyVoted = !!game.meId && game.replay.includes(game.meId)
-
-  async function replay() {
-    setSending(true)
+  /** Votes for another game: whether it went through (a vote that is refused says why, in a toast, and the button can be pressed again). */
+  async function vote(): Promise<boolean> {
+    setVoting(true)
     try {
       onUpdate(await api.replay(game.code))
+      return true
     } catch (e) {
       toast.error((e as Error).message)
+      return false
     } finally {
-      setSending(false)
+      setVoting(false)
     }
   }
+  useRematchToasts(game, rematch.mine, vote)
 
-  const replayButton = (
-    <div className="pointer-events-auto">
-      <PrimaryButton onClick={replay} busy={sending} waiting={alreadyVoted} className="h-14 w-auto max-w-none rounded-t-2xl rounded-b-none px-10 whitespace-nowrap shadow-[0_-6px_24px_rgb(0_0_0/35%)] hover:scale-100 hover:brightness-110 short:h-11">
-        {t("replay")} ({game.replay.length}/{game.players.length})
-      </PrimaryButton>
-    </div>
-  )
-  const created = game.createdAt ? new Date(game.createdAt) : null
-  const ended = game.updatedAt ? new Date(game.updatedAt) : null
-  const minutes = created && ended ? Math.max(1, Math.round((ended.getTime() - created.getTime()) / 60000)) : null
-  const footer = [
-    GAME?.name ?? NAME,
-    minutes !== null ? (minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}` : `${minutes} min`) : null,
-    ended ? formatDateTime(ended, locale) : null,
-    "PBGO",
-  ]
-    .filter(Boolean)
-    .join("  ·  ")
+  if (!results) return null
+  const entry = (result: PlayerResult): GameOverEntry => ({ result, nickname: nickname(result.playerId), color: color(result.playerId), imageUrl: avatarUrl(result.playerId) })
+  // Players who share a rank share a place on the podium (a tie, the members of a team); a table that plays together has one place
+  const places = placesOf(results).map((place) => ({ rank: place.rank, entries: place.results.map(entry) }))
   // A table that lost together has no winner to name: the text names the whole table
-  const names = (lost ? results.players : winners).map((v) => nickname(v.playerId)).join(" & ")
-  const shareText = lost ? t("lostWith", { names, points: results.players[0]?.total ?? 0 }) : t("winsWith", { names, points: winners[0]?.total ?? 0 })
+  const names = (lost ? results.players : results.players.filter((v) => results.winners.includes(v.playerId))).map((v) => nickname(v.playerId)).join(" & ")
+  const points = (lost ? results.players[0]?.total : results.players.find((v) => results.winners.includes(v.playerId))?.total) ?? 0
+  const shareText = lost ? t("lostWith", { names, points }) : t("winsWith", { names, points })
 
   return (
     <>
       <SharePreview file={preview ? image : null} text={shareText} onClose={() => setPreview(false)} />
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: fade(mode, 0.3) }}
-            className="fixed inset-0 z-40 bg-black/80 backdrop-blur-[2px]"
-            onClick={onToggle}
-          />
-        )}
-      </AnimatePresence>
-      <div className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center px-6 pt-20 pb-[calc(var(--spacing)*28+var(--consent-h,0px))] short:pt-12 short:pb-[calc(var(--spacing)*14+var(--consent-h,0px))]">
-        <AnimatePresence mode="popLayout">
-          {isOpen && (
-            <motion.section
-              key="scoreboard"
-              role="dialog"
-              aria-label={t("scoreboard")}
-              {...sectionMotion(mode)}
-              className="pointer-events-auto relative flex max-h-full w-full max-w-lg flex-col short:max-w-2xl"
-            >
-              <GameOverPanel
-                theme={theme}
-                seat={seat}
-                motion={mode}
-                winners={winners.map(entry)}
-                others={others.map(entry)}
-                lost={lost}
-                labels={{
-                  scoreboard: t("scoreboard"),
-                  winnerTitle: t("winnerTitle"),
-                  defeatTitle: t("defeatTitle"),
-                  shareResult: t("shareResult"),
-                  points: (n) => pointsLine(n, (points) => t("pointsShort", { points })),
-                }}
-                pattern={decor.pattern}
-                crown={(size) =>
-                  hostIcon ? (
-                    <HostIcon className={cn("inline-block shrink-0 bg-current", size)} />
-                  ) : (
-                    <CrownIcon aria-hidden className={cn("fill-current text-current", size)} />
-                  )
-                }
-                footer={footer}
-                thumbnail={url}
-                onShare={image ? () => setPreview(true) : undefined}
-                renderDetail={renderDetail}
-                entrance={seenKey !== resultsKey}
-              />
-            </motion.section>
-          )}
-        </AnimatePresence>
+      <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center p-6 short:p-3">
+        <GameOverCard
+          theme={theme}
+          seat={seat}
+          pattern={decor.pattern}
+          crown={(size) =>
+            hostIcon ? <HostIcon className={cn("inline-block shrink-0 bg-current", size)} /> : <CrownIcon aria-hidden className={cn("fill-current text-current", size)} />
+          }
+          summary={summaryOf(results, game.meId)}
+          places={places}
+          winners={results.winners}
+          together={results.coop}
+          meId={game.meId}
+          rank={rank}
+          rematch={rematch}
+          voting={voting}
+          onRematch={() => void vote()}
+          onContinue={goOn ?? undefined}
+          onShare={image ? () => setPreview(true) : undefined}
+          renderDetail={renderDetail}
+          motion={mode}
+        />
       </div>
-      <div className="pointer-events-none fixed inset-x-0 top-[calc(var(--spacing)*6)] z-50 flex justify-center short:top-[calc(var(--spacing)*2)]">
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-pressed={isOpen}
-          className="pointer-events-auto flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 text-sm text-white opacity-80 transition-opacity duration-200 [text-shadow:0_1px_6px_rgb(0_0_0/80%)] hover:opacity-100 motion-reduce:transition-none"
-        >
-          {isOpen ? <EyeOffIcon strokeWidth={1.6} className="size-5" /> : <EyeIcon strokeWidth={1.6} className="size-5" />}
-          <span className="underline underline-offset-4">{isOpen ? t("hideScores") : t("showScores")}</span>
-        </button>
-      </div>
-      <div className="pointer-events-none fixed inset-x-0 bottom-[var(--consent-h,0px)] z-50 flex justify-center">{replayButton}</div>
     </>
   )
 }
