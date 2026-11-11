@@ -23,7 +23,12 @@ const TITLE_CODE = /(^|[^A-Za-z0-9])#[A-Za-z0-9]{3}-[A-Za-z0-9]{3}(?![A-Za-z0-9]
 /** The handle after `/player/` in the address of a profile, up to the end of the path segment: what comes after the segment (`?from=`) is not part of it. */
 const PROFILE_HANDLE = /(\/player\/)[^/?#\s"'<>]+/g
 
+/** What a member typed in the city search of their profile (`/api/hub/cities?q=lyo`, PLT-139), in the address of the request: the first letters of the place they live in, which no analytics keeps. */
+const CITY_SEARCH_TEXT = /(\/api\/hub\/cities\?(?:[^"'\s<>#]*&)?q=)[^&#"'\s<>]*/g
+
 export const CODE_PLACEHOLDER = ":code"
+
+export const QUERY_PLACEHOLDER = ":q"
 
 export const HANDLE_PLACEHOLDER = ":handle"
 
@@ -31,6 +36,7 @@ export const HANDLE_PLACEHOLDER = ":handle"
 export function scrubText(value: string): string {
   let scrubbed = value
   if (scrubbed.includes("/player/")) scrubbed = scrubbed.replace(PROFILE_HANDLE, `$1${HANDLE_PLACEHOLDER}`)
+  if (scrubbed.includes("/api/hub/cities")) scrubbed = scrubbed.replace(CITY_SEARCH_TEXT, `$1${QUERY_PLACEHOLDER}`)
   if (scrubbed.includes("/game")) scrubbed = scrubbed.replace(HUB_TABLE_CODE, `$1${CODE_PLACEHOLDER}`).replace(TABLE_CODE, `$1${CODE_PLACEHOLDER}`)
   if (scrubbed.includes("#")) scrubbed = scrubbed.replace(TITLE_CODE, `$1#${CODE_PLACEHOLDER}`)
   return scrubbed

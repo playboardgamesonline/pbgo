@@ -1,4 +1,4 @@
--- The profiles of the members, end to end (migrations 0015 and 0018): the nickname as a profile keeps it, the nickname an account starts with, the profile the database makes for every new account and the way it follows the account's picture and
+-- The profiles of the members, end to end (migrations 0015, 0018, 0020 and 0021): the nickname as a profile keeps it, the nickname an account starts with, the profile the database makes for every new account and the way it follows the account's picture and
 -- choice to hide its games, the tags (random, free, unique whatever the case of the nickname), the change of nickname and tag and its refusals, the page's lookup by handle, the cascade, the seats that a deleted account leaves, the opponents
 -- of a history, what a profile says of its member (pronouns, country, favourite games, bio: what the table and the writer accept and refuse, one field at a time and all at once), and who may call what.
 --
@@ -300,6 +300,34 @@ begin
   r := r || pg_temp.check_that('a page says the fields of a member who has not hidden their games either', (select bio = 'Gone with the account' and not hide_history from public.profile_by_handle('Pair', 5)), null);
   delete from auth.users where id = ug;
   r := r || pg_temp.check_that('the four fields go with the account', n = 1 and not exists (select 1 from public.profiles where user_id = ug) and (select count(*) from public.profile_by_handle('Pair', 5)) = 0, null);
+
+  -- 15. The city (migrations 0020 and 0021): a name and a country, which has to be the profile's own, and goes with it
+  answer := pg_temp.change(ud, '{"country":null,"city":null}');
+  answer := answer || pg_temp.change(ud, '{"city":{"name":"Lyon","country":"FR"}}');
+  r := r || pg_temp.check_that('a profile with no country refuses a city', answer = 'okinvalid' and (select city_name is null and city_country is null from public.profiles where user_id = ud), answer);
+  answer := pg_temp.change(ud, '{"country":"FR","city":{"name":"Lyon","country":"FR"}}');
+  r := r || pg_temp.check_that('a city is set with its country in one change', answer = 'ok' and (select city_name = 'Lyon' and city_country = 'FR' and country = 'FR' from public.profiles where user_id = ud), answer);
+  r := r || pg_temp.check_that('the lookup says the city, whatever else is hidden', (select city_name = 'Lyon' and city_country = 'FR' and country = 'FR' from public.profile_by_handle('Dee', tag_a)), null);
+  answer := pg_temp.change(ud, '{"bio":"The city stays"}');
+  r := r || pg_temp.check_that('a change that does not say the city leaves it as it is', answer = 'ok' and (select city_name = 'Lyon' and bio = 'The city stays' from public.profiles where user_id = ud), answer);
+  answer := pg_temp.change(ud, '{"country":"BE"}') || pg_temp.change(ud, '{"country":null}');
+  r := r || pg_temp.check_that('the country cannot change or go while its city stays', answer = 'invalidinvalid' and (select country = 'FR' and city_country = 'FR' from public.profiles where user_id = ud), answer);
+  answer := pg_temp.change(ud, '{"country":"BE","city":null}');
+  r := r || pg_temp.check_that('the country changes with the city taken away', answer = 'ok' and (select country = 'BE' and city_name is null and city_country is null from public.profiles where user_id = ud), answer);
+  answer := pg_temp.change(ud, '{"city":{"name":"Lyon","country":"FR"}}');
+  r := r || pg_temp.check_that('a city of another country than the profile says is refused', answer = 'invalid' and (select city_name is null from public.profiles where user_id = ud), answer);
+  answer := pg_temp.change(ud, '{"country":"FR","city":{"name":"Lyon","country":"FR"}}') || pg_temp.change(ud, '{"country":null,"city":null}');
+  r := r || pg_temp.check_that('null takes the city and the country away together', answer = 'okok' and (select country is null and city_name is null and city_country is null from public.profiles where user_id = ud), answer);
+  answer := pg_temp.change(ud, '{"country":"FR"}');
+  r := r || pg_temp.check_that('the shapes below are tried with a country in place, so that only the city is wrong', answer = 'ok', answer);
+  r := r || pg_temp.check_that('a city name is 1 to 100 characters with nothing around it and no control character', pg_temp.change(ud, '{"city":{"name":"","country":"FR"}}') = 'invalid' and pg_temp.change(ud, '{"city":{"name":" Lyon","country":"FR"}}') = 'invalid' and pg_temp.change(ud, '{"city":{"name":"Lyon ","country":"FR"}}') = 'invalid' and pg_temp.change(ud, jsonb_build_object('city', jsonb_build_object('name', repeat('a', 101), 'country', 'FR'))::text) = 'invalid' and pg_temp.change(ud, '{"city":{"name":"Ly\u0007on","country":"FR"}}') = 'invalid' and pg_temp.change(ud, '{"city":{"name":"Ly\u2028on","country":"FR"}}') = 'invalid', null);
+  r := r || pg_temp.check_that('a city is an object of a name and a country and nothing else, both texts', pg_temp.change(ud, '{"city":{"name":"Lyon"}}') = 'invalid' and pg_temp.change(ud, '{"city":{"country":"FR"}}') = 'invalid' and pg_temp.change(ud, '{"city":{"name":"Lyon","country":"FR","id":5}}') = 'invalid' and pg_temp.change(ud, '{"city":{"name":"Lyon","country":"fr"}}') = 'invalid' and pg_temp.change(ud, '{"city":{"name":"Lyon","country":"FRA"}}') = 'invalid' and pg_temp.change(ud, '{"city":{"name":7,"country":"FR"}}') = 'invalid' and pg_temp.change(ud, '{"city":{"name":"Lyon","country":5}}') = 'invalid' and pg_temp.change(ud, '{"city":"Lyon"}') = 'invalid' and pg_temp.change(ud, '{"city":7}') = 'invalid' and pg_temp.change(ud, '{"city":[]}') = 'invalid' and pg_temp.change(ud, '{"city":{}}') = 'invalid', null);
+  r := r || pg_temp.check_that('a refused city changes nothing', (select city_name is null and country = 'FR' from public.profiles where user_id = ud), null);
+  r := r || pg_temp.check_that('the table says the same whoever writes it: the two are all set or all empty, and the country is the profile''s', pg_temp.refused_with(format('update public.profiles set city_name = %L where user_id = %L', 'Lyon', ud), '23514')
+    and pg_temp.refused_with(format('update public.profiles set city_country = %L where user_id = %L', 'FR', ud), '23514')
+    and pg_temp.refused_with(format('update public.profiles set city_name = %L, city_country = %L where user_id = %L', 'Lyon', 'BE', ud), '23514')
+    and pg_temp.refused_with(format('update public.profiles set city_name = %L, city_country = %L where user_id = %L', '', 'FR', ud), '23514'), null);
+  r := r || pg_temp.check_that('the number of GeoNames is gone from the table and from the lookup', not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'city_id') and not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'profile_by_handle' and pg_get_function_result(p.oid) like '%city_id%'), null);
 
   raise exception 'RESULT %', r;
 end

@@ -1,15 +1,17 @@
 import type { ReactNode } from "react"
-import { countryName, initialsOf, pronounsLabel, tagText } from "@pbgo/accounts"
+import { cityText, countryName, initialsOf, pronounsLabel, tagText } from "@pbgo/accounts"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { monthOf } from "@/lib/account-data"
 import type { ProfileHead } from "@/lib/profile-data"
 
 /**
- * The top of a profile, the member's own or anybody's: picture, nickname with tag, the pronouns beside it (muted), the country and since when. `children` are the actions (the edit button on the member's own page, "Add friend", PLT-23). `note` goes before the rest of the line.
+ * The top of a profile, the member's own or anybody's: picture, nickname with tag, the pronouns beside it (muted), since when and where (their city with its country, else their country). `children` are the actions (the edit button on the member's own page, "Add friend", PLT-23). `note` goes before the rest of the line.
  */
 export function ProfileHeader({ head, note, children }: { head: ProfileHead; note?: string; children?: ReactNode }) {
-  const { pronouns, country } = head.details
-  const line = [note, head.memberSince ? `Member since ${monthOf(head.memberSince)}` : null, country ? countryName(country) : null].filter(Boolean).join(" · ")
+  const { pronouns, country, city } = head.details
+  // Where they are: their city with its country, else their country alone
+  const place = city ? cityText(city) : country ? countryName(country) : null
+  const line = [note, head.memberSince ? `Member since ${monthOf(head.memberSince)}` : null, place].filter(Boolean).join(" · ")
   return (
     <header className="flex flex-wrap items-center gap-x-6 gap-y-4">
       <Avatar className="size-20 sm:size-24">

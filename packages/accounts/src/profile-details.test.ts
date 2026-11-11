@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { BIO_LINE_BREAKS_MAX, BIO_MAX, FAVORITES_MAX, PRONOUNS, bioCharactersLeft, checkBio, cleanBio, detailsOf, favoriteGamesOf, hasProfileDetails, isGameSlug, isPronouns, noProfileDetails, parseProfileEdit, pronounsLabel } from "./profile-details"
+import { BIO_LINE_BREAKS_MAX, BIO_MAX, FAVORITES_MAX, PRONOUNS, bioCharactersLeft, checkBio, cityOfRequest, cityText, cleanBio, detailsOf, favoriteGamesOf, hasProfileDetails, isGameSlug, isPronouns, noProfileDetails, parseProfileEdit, pronounsLabel } from "./profile-details"
 
 describe("the pronouns", () => {
   it("are a fixed list, each with a key the database keeps and the words a page writes", () => {
@@ -126,7 +126,7 @@ describe("the favourite games", () => {
 
 describe("detailsOf", () => {
   it("reads what a row of the database says", () => {
-    expect(detailsOf({ pronouns: "they/them", country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "Hello\nthere" })).toEqual({ pronouns: "they/them", country: "FR", favoriteGames: ["courtisans", "flip-7"], bio: "Hello\nthere" })
+    expect(detailsOf({ pronouns: "they/them", country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "Hello\nthere" })).toEqual({ pronouns: "they/them", country: "FR", city: null, favoriteGames: ["courtisans", "flip-7"], bio: "Hello\nthere" })
   })
 
   it("says nothing for a row that has none of it, or no row (the migration is not applied)", () => {
@@ -240,5 +240,43 @@ describe("parseProfileEdit", () => {
     const body = Object.create({ nickname: "Inherited", bio: "Inherited" }) as Record<string, unknown>
     body.tag = 5
     expect(parseProfileEdit(body)).toEqual({ ok: true, edit: { tag: 5 } })
+  })
+})
+
+describe("the city", () => {
+  const row = { country: "FR", city_name: "Lyon", city_country: "FR" }
+
+  it("is written with its country: Lyon, France", () => {
+    expect(cityText({ name: "Lyon", country: "FR" })).toBe("Lyon, France")
+    expect(cityText({ name: "Köln", country: "DE" })).toBe("Köln, Germany")
+  })
+
+  it("is read from the two columns of a row, in the country the profile says", () => {
+    expect(detailsOf(row).city).toEqual({ name: "Lyon", country: "FR" })
+    expect(hasProfileDetails({ ...noProfileDetails(), city: { name: "Lyon", country: "FR" } })).toBe(true)
+  })
+
+  it("is never drawn when it is not what the table keeps: another country than the profile's, no country, a part missing, a bad name", () => {
+    expect(detailsOf({ ...row, country: "BE" }).city).toBeNull()
+    expect(detailsOf({ ...row, country: null }).city).toBeNull()
+    expect(detailsOf({ ...row, city_country: "fr" }).city).toBeNull()
+    expect(detailsOf({ ...row, city_name: null }).city).toBeNull()
+    expect(detailsOf({ ...row, city_name: "" }).city).toBeNull()
+    expect(detailsOf({ ...row, city_name: "a".repeat(101) }).city).toBeNull()
+    expect(detailsOf({ ...row, city_country: null }).city).toBeNull()
+  })
+
+  it("is asked for as a name and a country, cleaned as a profile keeps them", () => {
+    expect(cityOfRequest({ name: "  Saint-Étienne ", country: "fr" })).toEqual({ name: "Saint-Étienne", country: "FR" })
+    expect(cityOfRequest({ name: "Los\n  Angeles", country: "US" })).toEqual({ name: "Los Angeles", country: "US" })
+    expect(parseProfileEdit({ city: { name: "Lyon", country: "fr" } })).toEqual({ ok: true, edit: { city: { name: "Lyon", country: "FR" } } })
+    expect(parseProfileEdit({ city: null })).toEqual({ ok: true, edit: { city: null } })
+    expect(parseProfileEdit({ country: "fr", city: { name: "Lyon", country: "FR" } })).toEqual({ ok: true, edit: { country: "FR", city: { name: "Lyon", country: "FR" } } })
+  })
+
+  it("is refused when it is not a name and a country and nothing else: the shape only, whether it exists is the server's to ask", () => {
+    for (const city of [2996944, "Lyon", [], {}, { name: "Lyon" }, { country: "FR" }, { name: "", country: "FR" }, { name: "   ", country: "FR" }, { name: "a".repeat(101), country: "FR" }, { name: "Lyon", country: "ZZ" }, { name: "Lyon", country: "FRA" }, { name: 7, country: "FR" }, { name: "Lyon", country: 5 }, { name: "Lyon", country: "FR", id: 5 }, { name: "Lyon", country: "FR", region: "x" }, true]) {
+      expect(parseProfileEdit({ city }), JSON.stringify(city)).toEqual({ ok: false })
+    }
   })
 })

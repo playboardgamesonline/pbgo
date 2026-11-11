@@ -17,7 +17,8 @@ import { Input } from "./input"
 // the moment the panel opens (`autoFocus`: React focuses it as it mounts, before anything is painted), except on a screen that is touched, where the keyboard
 // would hide the list. The list has no scrollbar and scrolls all the same (wheel, touch, arrow keys): a row cut by its bottom edge says there is more. It
 // names itself (`aria-label`) and draws nothing around itself: the panel does. `max` limits the picks (1 makes it a single choice: a pick replaces the one before and `onPick` lets the panel close itself; more makes
-// a limited multiple choice: once `max` are picked the other options are off until one is put back), and an option can have a `label` apart from its `value` (a slug and its title) and a small `cover`.
+// a limited multiple choice: once `max` are picked the other options are off until one is put back), and an option can have a `label` apart from its `value` (a slug and its title), a small `cover` and a `description` under its name. With `onQueryChange` the options are
+// the caller's to find (a search on a server): the list shows them as they come, filters nothing, and says `prompt` while nothing was typed and `loading` while the answer is on its way.
 
 type ComboboxOption = {
   /** What names the option, and what is shown and compared unless `label` says another. */
@@ -28,6 +29,8 @@ type ComboboxOption = {
   icon?: React.ComponentProps<typeof HugeiconsIcon>["icon"]
   /** A small picture that stands before the name (`CoverTile`). `null` is an option with no picture in a list that has some: its place is kept. */
   cover?: CoverTileProps | null
+  /** A quiet line under the name: where a city is. */
+  description?: string
 }
 
 type ComboboxProps = Omit<React.ComponentProps<"div">, "children" | "onChange" | "role"> & {
@@ -44,18 +47,25 @@ type ComboboxProps = Omit<React.ComponentProps<"div">, "children" | "onChange" |
   max?: number
   /** Called with the option that was just picked (never when one is put back), after `onValueChange`: a panel that holds one choice closes itself here. */
   onPick?: (value: string) => void
+  /** Called with what is typed, each time it changes: the options are then the caller's to find, and the list filters none. */
+  onQueryChange?: (query: string) => void
+  /** With `onQueryChange`: what the list says while nothing is typed and there is nothing to show ("Type the first letters of your city."). */
+  prompt?: string
+  /** With `onQueryChange`: the answer to what was typed is on its way, so that an empty list is not yet "no match". */
+  loading?: boolean
   /** Names the field and the list: "Categories". */
   "aria-label": string
 }
 
-function Combobox({ options, value, onValueChange, placeholder, empty, max, onPick, className, "aria-label": label, ...props }: ComboboxProps) {
+function Combobox({ options, value, onValueChange, placeholder, empty, max, onPick, onQueryChange, prompt, loading = false, className, "aria-label": label, ...props }: ComboboxProps) {
   const id = React.useId()
   const [query, setQuery] = React.useState("")
   const [active, setActive] = React.useState(0)
   // A screen that is touched does not focus the field: its keyboard would hide the list. Read once, as the panel opens
   const [touched] = React.useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches)
-  const shown = React.useMemo(() => [...new Map(options.map((option) => [option.value, option])).values()].filter((option) => optionMatches(option.label ?? option.value, query)), [options, query])
-  const covers = options.some((option) => option.cover !== undefined)
+  const remote = onQueryChange !== undefined
+  const shown = React.useMemo(() => [...new Map(options.map((option) => [option.value, option])).values()].filter((option) => remote || optionMatches(option.label ?? option.value, query)), [options, query, remote])
+  const tall = options.some((option) => option.cover !== undefined || option.description !== undefined)
   // The picks are all taken: the options that are not picked are off (a single choice always takes another pick in place of the one it has)
   const full = max !== undefined && max > 1 && value.length >= max
   // The option the arrow keys are on: the list can get shorter under it as the text grows
@@ -111,6 +121,7 @@ function Combobox({ options, value, onValueChange, placeholder, empty, max, onPi
             onChange={(event) => {
               setQuery(event.target.value)
               setActive(0)
+              onQueryChange?.(event.target.value)
             }}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
@@ -143,11 +154,14 @@ function Combobox({ options, value, onValueChange, placeholder, empty, max, onPi
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => toggle(option.value)}
                 onPointerMove={() => setActive(index)}
-                className={cn("flex shrink-0 cursor-default items-center gap-3 rounded-2xl px-3 text-sm select-none data-active:bg-input/50 aria-disabled:opacity-50", covers ? "h-12" : "h-9")}
+                className={cn("flex shrink-0 cursor-default items-center gap-3 rounded-2xl px-3 text-sm select-none data-active:bg-input/50 aria-disabled:opacity-50", tall ? "h-12" : "h-9")}
               >
                 {option.icon && <HugeiconsIcon icon={option.icon} strokeWidth={2} aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />}
                 {option.cover !== undefined && <CoverTile className="size-8" {...option.cover} />}
-                <span className="min-w-0 flex-1 truncate">{option.label ?? option.value}</span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate">{option.label ?? option.value}</span>
+                  {option.description !== undefined && <span className="truncate text-xs text-muted-foreground">{option.description}</span>}
+                </span>
                 <span className="flex size-4 shrink-0 items-center justify-center">
                   {picked && <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} className="size-4" />}
                 </span>
@@ -157,7 +171,7 @@ function Combobox({ options, value, onValueChange, placeholder, empty, max, onPi
         </ul>
       ) : (
         <p role="status" className="px-4 py-6 text-center text-sm text-muted-foreground">
-          {empty}
+          {remote && loading ? "Searching..." : remote && query.trim() === "" && prompt !== undefined ? prompt : empty}
         </p>
       )}
     </div>

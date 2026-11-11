@@ -104,6 +104,17 @@ export default function TermsOfUse() {
         <LegalText>
           What you write (a nickname, a bio, a chat message, feedback) stays yours. By sending it you allow us to show it to the people it is meant for, such as your table, and, for feedback, to read it and use it to improve the site, without paying you.
         </LegalText>
+        <LegalText>
+          The cities that you can pick for your profile are found with{" "}
+          <a className={LEGAL_LINK} href="https://www.geoapify.com/">
+            Geoapify
+          </a>
+          , from data of{" "}
+          <a className={LEGAL_LINK} href="https://www.openstreetmap.org/copyright">
+            © OpenStreetMap contributors
+          </a>
+          , which is available under the Open Database Licence.
+        </LegalText>
       </LegalSection>
 
       <LegalSection id="plans" title="Paid plans">

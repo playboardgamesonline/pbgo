@@ -116,3 +116,36 @@ describe("CoverTile", () => {
     expect(render(React.createElement(CoverTile, {}))).not.toContain("<img")
   })
 })
+
+describe("Combobox with options found by the caller", () => {
+  const remote = (props: Partial<React.ComponentProps<typeof Combobox>>) =>
+    render(React.createElement(Combobox, { options: [], value: [], onValueChange: () => {}, onQueryChange: () => {}, placeholder: "Search cities...", empty: "No city matches.", "aria-label": "City", ...props }))
+
+  it("says what to do while nothing is typed and there is nothing to show, and that it is searching while the answer is on its way", () => {
+    expect(remote({ prompt: "Type the first letters." })).toContain("Type the first letters.")
+    expect(remote({ prompt: "Type the first letters." })).not.toContain("No city matches.")
+    expect(remote({ prompt: "Type the first letters.", loading: true })).toContain("Searching...")
+    expect(remote({})).toContain("No city matches.")
+  })
+
+  it("shows the options as they come, each with its description under its name", () => {
+    const html = remote({ options: [{ value: "2996944", label: "Lyon", description: "Auvergne-Rhône-Alpes, France" }] })
+    expect(html).toContain("Lyon")
+    expect(html).toContain("Auvergne-Rhône-Alpes, France")
+    expect(html).toContain("h-12")
+  })
+
+  it("keeps a list that is its own to filter: with no caller it still filters nothing at the start, and the descriptions make the rows tall", () => {
+    const html = render(React.createElement(Combobox, { options: [{ value: "a", description: "x" }, { value: "b" }], value: [], onValueChange: () => {}, placeholder: "Search", empty: "None", "aria-label": "Letters" }))
+    expect(html.match(/role="option"/g)).toHaveLength(2)
+    expect(html).toContain("h-12")
+  })
+})
+
+describe("SearchSelect with a pick the options do not hold", () => {
+  it("says the pick by its own label", () => {
+    const html = render(React.createElement(SearchSelect, { options: [], value: "2996944", selectedLabel: "Lyon, France", onValueChange: () => {}, onQueryChange: () => {}, placeholder: "Not set", searchPlaceholder: "Search cities...", empty: "None", "aria-label": "City" }))
+    expect(html).toContain("Lyon, France")
+    expect(html).not.toContain("Not set")
+  })
+})

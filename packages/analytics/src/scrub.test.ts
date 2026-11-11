@@ -190,3 +190,16 @@ describe("scrubText: the profile of a member", () => {
     expect(scrubDeep({ $elements: [{ tag_name: "a", attr__href: "/player/Alex-0042?from=history" }] })).toEqual({ $elements: [{ tag_name: "a", attr__href: "/player/:handle?from=history" }] })
   })
 })
+
+describe("scrubText and the city search of a profile", () => {
+  it("replaces what was typed in the address of the search, wherever the address appears and whatever else it carries", () => {
+    expect(scrubText("/api/hub/cities?q=lyo")).toBe("/api/hub/cities?q=:q")
+    expect(scrubText("https://playboardgamesonline.app/api/hub/cities?q=Saint-%C3%89tienne&country=FR")).toBe("https://playboardgamesonline.app/api/hub/cities?q=:q&country=FR")
+    expect(scrubText("/api/hub/cities?country=FR&q=lyo")).toBe("/api/hub/cities?country=FR&q=:q")
+    expect(scrubText("GET /api/hub/cities?q=lyo 200")).toBe("GET /api/hub/cities?q=:q 200")
+  })
+
+  it("leaves every other address alone", () => {
+    for (const value of ["/api/hub/profile", "/api/hub/cities", "/api/hub/cities?country=FR", "/games?q=lyo", "/api/other?q=lyo"]) expect(scrubText(value), value).toBe(value)
+  })
+})
