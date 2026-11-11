@@ -70,7 +70,7 @@ export function ProfileSections({ games, own, hideHistory, recent, allGamesHref,
         <Stat label="Games played" value={String(stats.played)} />
         <Stat label="Wins" value={String(stats.wins)} />
         <Stat label="Win rate" value={stats.winRate === null ? "—" : `${stats.winRate}%`} />
-        <Stat label="Favourite game" value={stats.favourite ?? "—"} />
+        <Stat label="Most played" value={stats.favourite ?? "—"} />
       </section>
 
       <section aria-labelledby="per-game">

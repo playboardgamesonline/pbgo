@@ -10,3 +10,9 @@ export function matchOptions(options: readonly string[], query: string): string[
   const needle = fold(query).trim()
   return needle === "" ? [...options] : options.filter((option) => fold(option).includes(needle))
 }
+
+/** Whether one text holds what was typed, wherever it is in it, whatever the case and the accents. Blanks around the text are ignored; no text matches everything. */
+export function optionMatches(option: string, query: string): boolean {
+  const needle = fold(query).trim()
+  return needle === "" || fold(option).includes(needle)
+}

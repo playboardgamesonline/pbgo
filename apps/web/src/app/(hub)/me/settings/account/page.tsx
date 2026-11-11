@@ -12,16 +12,13 @@ import { DevicesRow } from "@/components/devices-row"
 import { EmailRow } from "@/components/email-row"
 import { Connections, SignInMethods } from "@/components/linked-services"
 import { MultiFactorRow } from "@/components/multi-factor-row"
-import { NicknameRow } from "@/components/nickname-row"
 import { PasswordRow } from "@/components/password-row"
 import { SettingsGroup, SettingsPage } from "@/components/settings-page"
-import { ownProfileHead } from "@/lib/profile-data"
 
 export const metadata: Metadata = { title: "Account settings" }
 
 /**
- * The Account section of the settings, the first one, in groups: the account's info (the username with its tag, which the member can change, and the
- * e-mail address), the password and the security (the password, multi-factor authentication, an authenticator app whose code is asked at each sign-in (PLT-129), and the devices that are signed in), the status of the account (where its warnings are told), the personal details they may record (their
+ * The Account section of the settings, the first one, in groups: the account's info (the e-mail address: the username and its tag are the profile's, edited in the window of the Edit profile button), the password and the security (the password, multi-factor authentication, an authenticator app whose code is asked at each sign-in (PLT-129), and the devices that are signed in), the status of the account (where its warnings are told), the personal details they may record (their
  * country or region, kept on the account, and their date of birth, declared once to the server: PLT-125; both optional), the ways to sign in (Google, Discord and Steam when the project or the server has them switched on, the ones the
  * account holds shown as linked: `SignInMethods`), the connections (Twitch: linked for the profile, never a way in: `Connections`, drawn when there is one to show) and the deletion of the account (it closes at once, and an e-mail holds the link that reopens it: `DeleteAccountRow`). The picture is the provider's and is not
  * edited: nothing about it is on this page. The demo account of development is shown every provider, since no project is behind it to say which are on. This page is where the link of the e-mail that confirms a new address, and the way
@@ -35,8 +32,6 @@ export default async function AccountSettingsPage({ searchParams }: { searchPara
   const externalAvailable = demo ? [...EXTERNAL_PROVIDERS] : externalProvidersOn()
   const showConnections = CONNECTION_PROVIDERS.some((provider) => account.linked.some((service) => service.provider === provider) || available.some((candidate) => candidate === provider))
   const hasPassword = account.linked.some((service) => service.provider === "email")
-  // The username the others see goes with its tag, which is the member's profile's (PLT-39); a database without the profiles gives none, and the row edits the username alone
-  const head = await ownProfileHead(account)
   // The date of birth is kept where only the server reads it, not in the account (PLT-125). A database that cannot say is told as no date: the row answers for itself when the member tries to declare one
   const birthdate = demo
     ? null
@@ -48,7 +43,6 @@ export default async function AccountSettingsPage({ searchParams }: { searchPara
   return (
     <SettingsPage title="Account">
       <SettingsGroup title="Account info">
-        <NicknameRow nickname={head.nickname} tag={head.tag} demo={demo} />
         <EmailRow email={account.email} demo={demo} />
       </SettingsGroup>
       <SettingsGroup title="Password & security">

@@ -32,3 +32,13 @@ game-card-a-game-to-come
 ```specimen
 game-card-the-picture-alone
 ```
+
+## Cover tile
+
+Module: `@pbgo/ui/platform/cover-tile`
+
+A small frame for the picture of a game, where a whole card is too much: an option of a list, a chip, a row of favourites. It draws what it is given, as the card does: a `picture` fills it, else a `logo` is contained on it, else it is a plain frame.
+
+```specimen
+cover-tile
+```

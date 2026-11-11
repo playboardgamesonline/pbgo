@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const mocks = vi.hoisted(() => ({ select: vi.fn(), inFilter: vi.fn(), from: vi.fn(), rpc: vi.fn() }))
+const mocks = vi.hoisted(() => ({ select: vi.fn(), inFilter: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn(), from: vi.fn(), rpc: vi.fn() }))
 
 vi.mock("server-only", () => ({}))
 vi.mock("./supabase", () => ({ supabaseAdmin: () => ({ from: mocks.from, rpc: mocks.rpc }) }))
 
-import { ensureProfile, handleOf, pictureUrl, profilesNotApplied, readProfile, readProfileByHandle, readProfiles, saveProfile } from "./profiles"
+import { ensureProfile, handleOf, pictureUrl, profilesNotApplied, readProfile, readProfileByHandle, readProfileDetails, readProfiles, saveProfile } from "./profiles"
 
 const ANN = "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11"
 const BOB = "5c3e1d8a-1f2b-4c47-8a9e-6d0b7e2f4a90"
@@ -15,14 +15,38 @@ const row = (over: Record<string, unknown> = {}) => ({ user_id: ANN, nickname: "
 beforeEach(() => {
   for (const mock of Object.values(mocks)) mock.mockReset()
   mocks.from.mockReturnValue({ select: mocks.select })
-  mocks.select.mockReturnValue({ in: mocks.inFilter })
+  mocks.select.mockReturnValue({ in: mocks.inFilter, eq: mocks.eq })
+  mocks.eq.mockReturnValue({ maybeSingle: mocks.maybeSingle })
 })
 
 describe("readProfileByHandle", () => {
   it("asks the database for the nickname and the tag, which compares them whatever the case", async () => {
     mocks.rpc.mockResolvedValue({ data: [row()], error: null })
-    expect(await readProfileByHandle({ nickname: "ann", tag: 42 })).toEqual({ userId: ANN, nickname: "Ann", tag: 42, avatarUrl: "https://cdn.example/ann.png", hideHistory: false, createdAt: "2026-10-01T09:00:00+00:00" })
+    expect(await readProfileByHandle({ nickname: "ann", tag: 42 })).toEqual({
+      userId: ANN,
+      nickname: "Ann",
+      tag: 42,
+      avatarUrl: "https://cdn.example/ann.png",
+      hideHistory: false,
+      createdAt: "2026-10-01T09:00:00+00:00",
+      details: { pronouns: null, country: null, favoriteGames: [], bio: null },
+    })
     expect(mocks.rpc).toHaveBeenCalledWith("profile_by_handle", { p_nickname: "ann", p_tag: 42 })
+  })
+
+  it("says what the member says of themselves, as the lookup gives it", async () => {
+    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "she/her", country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!" })], error: null })
+    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: "she/her", country: "FR", favoriteGames: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!" })
+  })
+
+  it("draws nothing it does not hold: a pronoun off the list, a country that is no country, a bio that is too long", async () => {
+    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "xe/xem", country: "ZZ", favorite_games: ["Not A Slug"], bio: "b".repeat(201) })], error: null })
+    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: null, country: null, favoriteGames: [], bio: null })
+  })
+
+  it("answers with no details from a database that has the lookup of 0015 and not the fields of 0018 yet", async () => {
+    mocks.rpc.mockResolvedValue({ data: [row()], error: null })
+    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: null, country: null, favoriteGames: [], bio: null })
   })
 
   it("is null when nobody goes by it", async () => {
@@ -101,6 +125,36 @@ describe("readProfile", () => {
   })
 })
 
+describe("readProfileDetails", () => {
+  it("reads the four fields of one account, and only those", async () => {
+    mocks.maybeSingle.mockResolvedValue({ data: { pronouns: "any", country: "BE", favorite_games: ["hanabi"], bio: "Hi" }, error: null })
+    expect(await readProfileDetails(ANN)).toEqual({ pronouns: "any", country: "BE", favoriteGames: ["hanabi"], bio: "Hi" })
+    expect(mocks.from).toHaveBeenCalledWith("profiles")
+    expect(mocks.select).toHaveBeenCalledWith("pronouns, country, favorite_games, bio")
+    expect(mocks.eq).toHaveBeenCalledWith("user_id", ANN)
+  })
+
+  it("says nothing of an account that has no profile", async () => {
+    mocks.maybeSingle.mockResolvedValue({ data: null, error: null })
+    expect(await readProfileDetails(ANN)).toEqual({ pronouns: null, country: null, favoriteGames: [], bio: null })
+  })
+
+  it("asks nothing for what is not an account (the demo account)", async () => {
+    expect(await readProfileDetails("demo")).toEqual({ pronouns: null, country: null, favoriteGames: [], bio: null })
+    expect(mocks.from).not.toHaveBeenCalled()
+  })
+
+  it("says nothing where the migration is not applied yet, a missing column included, and throws the rest", async () => {
+    for (const code of ["42703", "PGRST204", "42P01", "PGRST205"]) {
+      mocks.maybeSingle.mockResolvedValue({ data: null, error: { code, message: "not there" } })
+      expect(await readProfileDetails(ANN), code).toEqual({ pronouns: null, country: null, favoriteGames: [], bio: null })
+    }
+    const error = { code: "57014", message: "canceling statement due to statement timeout" }
+    mocks.maybeSingle.mockResolvedValue({ data: null, error })
+    await expect(readProfileDetails(ANN)).rejects.toBe(error)
+  })
+})
+
 describe("ensureProfile", () => {
   const account = { id: ANN, nickname: "Ann", avatarUrl: "https://cdn.example/ann.png", createdAt: "2026-10-01T09:00:00.000Z", preferences: { hideHistory: true } } as never
 
@@ -149,7 +203,34 @@ describe("saveProfile", () => {
       mocks.rpc.mockResolvedValue({ data: answer, error: null })
       expect(await saveProfile(ANN, { nickname: "Annie", tag: 7 })).toBe(answer)
     }
-    expect(mocks.rpc).toHaveBeenCalledWith("set_profile", { p_user: ANN, p_nickname: "Annie", p_tag: 7 })
+    expect(mocks.rpc).toHaveBeenCalledWith("set_profile", { p_user: ANN, p_changes: { nickname: "Annie", tag: 7 } })
+  })
+
+  it("sends every field of the edit under the name of its column, in one call", async () => {
+    mocks.rpc.mockResolvedValue({ data: "ok", error: null })
+    await saveProfile(ANN, { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", favoriteGames: ["courtisans", "flip-7"], bio: "Hello" })
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("set_profile", {
+      p_user: ANN,
+      p_changes: { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "Hello" },
+    })
+  })
+
+  it("sends only the fields that are there, so that the others stay as they are", async () => {
+    mocks.rpc.mockResolvedValue({ data: "ok", error: null })
+    await saveProfile(ANN, { bio: "Only the bio" })
+    expect(mocks.rpc).toHaveBeenCalledWith("set_profile", { p_user: ANN, p_changes: { bio: "Only the bio" } })
+  })
+
+  it("sends null and an empty list as they are: they take the field away", async () => {
+    mocks.rpc.mockResolvedValue({ data: "ok", error: null })
+    await saveProfile(ANN, { pronouns: null, country: null, favoriteGames: [], bio: null })
+    expect(mocks.rpc).toHaveBeenCalledWith("set_profile", { p_user: ANN, p_changes: { pronouns: null, country: null, favorite_games: [], bio: null } })
+  })
+
+  it("asks nothing for an edit with no field: it is invalid", async () => {
+    expect(await saveProfile(ANN, {})).toBe("invalid")
+    expect(await saveProfile(ANN, { bio: undefined })).toBe("invalid")
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
   it("takes an answer it does not know for a missing profile", async () => {

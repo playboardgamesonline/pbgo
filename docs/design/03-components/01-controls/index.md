@@ -15,3 +15,5 @@ What a visitor presses, types in or picks.
 - [Collapsible](11-collapsible.md)
 - [Inline edit](12-inline-edit.md)
 - [Radio group](13-radio-group.md)
+- [Search select](14-search-select.md)
+- [Multi select](15-multi-select.md)

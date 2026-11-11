@@ -4,10 +4,13 @@ import Link from "next/link"
 import { UserAdd01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { parseProfileSegment, profilePath, profileSourceOf } from "@pbgo/accounts"
+import { isDemoAccount } from "@pbgo/accounts/demo"
 import { getAccount } from "@pbgo/accounts/server"
 import { Button } from "@pbgo/ui/platform/button"
 import { AccountShell } from "@/components/account-shell"
 import { AddFriendButton } from "@/components/add-friend-button"
+import { EditProfileButton } from "@/components/edit-profile-button"
+import { ProfileAbout } from "@/components/profile-about"
 import { ProfileHeader } from "@/components/profile-header"
 import { ProfileSections } from "@/components/profile-sections"
 import { ProfileViewed } from "@/components/profile-viewed"
@@ -21,7 +24,7 @@ const RECENT_GAMES = 10
 
 /**
  * A member's public profile (PLT-39, PLT-111). Anybody can open it. It uses the same parts as `/me` (`ProfileHeader`, `ProfileSections`). Another visitor sees no games when the member hides them. An address that no member goes by is the hub's 404. `?from=` is for analytics.
- * The head has the button that makes friends (PLT-23): for a visitor who is not signed in, Add friend leads to the sign-in and back here; for a member, `AddFriendButton`, which says whether they are friends, a request waits, or the other member had asked first. The member's own profile has Edit profile.
+ * The head has the button that makes friends (PLT-23): for a visitor who is not signed in, Add friend leads to the sign-in and back here; for a member, `AddFriendButton`, which says whether they are friends, a request waits, or the other member had asked first. The member's own profile has Edit profile, which opens the window that edits it.
  */
 export default async function PlayerPage({ params, searchParams }: { params: Promise<{ handle: string }>; searchParams: Promise<{ from?: string | string[] }> }) {
   const [{ handle: segment }, { from }] = await Promise.all([params, searchParams])
@@ -35,11 +38,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
   return (
     <AccountShell>
       <ProfileHeader head={head}>
-        {own && (
-          <Button asChild variant="outline">
-            <Link href="/me/settings/account">Edit profile</Link>
-          </Button>
-        )}
+        {own && <EditProfileButton head={head} demo={viewer !== null && isDemoAccount(viewer)} address="player" />}
         {!own && head.tag !== null && viewer === null && (
           <Button asChild>
             <Link href={`/login?next=${encodeURIComponent(profilePath({ nickname: head.nickname, tag: head.tag }))}`}>
@@ -50,6 +49,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
         )}
         {!own && head.tag !== null && relation !== null && <AddFriendButton handle={{ nickname: head.nickname, tag: head.tag }} relation={relation} />}
       </ProfileHeader>
+      <ProfileAbout details={head.details} />
       <div className="pt-8">
         <ProfileSections games={games} own={own} hideHistory={head.hideHistory} recent={RECENT_GAMES} timeFormat={viewer?.preferences.timeFormat} />
       </div>

@@ -1,12 +1,12 @@
 import "server-only"
-import { TAG_MAX, TAG_MIN, type Account, type Handle } from "@pbgo/accounts"
+import { TAG_MAX, TAG_MIN, detailsOf, noProfileDetails, type Account, type Handle, type ProfileDetails, type ProfileEdit } from "@pbgo/accounts"
 import { isDemoAccount } from "@pbgo/accounts/demo"
-import { isMissingFunction, isMissingTable } from "./db-error"
+import { isMissingColumn, isMissingFunction, isMissingTable } from "./db-error"
 import { supabaseAdmin } from "./supabase"
 
-// The profile of a member (PLT-39, migration 0015): nickname and tag, the provider's picture, when they joined, and whether they hide their games.
-// The database makes it with the account and keeps the picture and the choice to hide in step with it. The nickname and the tag change here (`saveProfile`).
-// Server key only. Without the migration every reader answers as for a member with no profile.
+// The profile of a member (PLT-39, migration 0015): nickname and tag, the provider's picture, when they joined, and whether they hide their games, and what they say of themselves (migration 0018): pronouns, country, favourite games, a bio.
+// The database makes it with the account and keeps the picture and the choice to hide in step with it. What the member says of themselves changes here (`saveProfile`), in one call that is whole or nothing.
+// Server key only. Without a migration every reader answers as for a member with no profile, or with nothing to say of themselves.
 
 /** A member's profile as the database keeps it. The account's id stays on the server: no page sends it to a browser, the others know a member by their handle. */
 export type ProfileRecord = {
@@ -21,10 +21,16 @@ export type ProfileRecord = {
   createdAt: string
 }
 
+/** A profile with what its member says of themselves: what the page of a profile is made of. The details are read apart from the record (`readProfileDetails`) wherever only the identity is needed, which is every other reader of the profiles. */
+export type ProfileWithDetails = ProfileRecord & { details: ProfileDetails }
+
 /** A user of the database is a uuid. The development demo account (`id: "demo"`, in no database) is not one. */
 const USER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const COLUMNS = "user_id, nickname, tag, avatar_url, hide_history, created_at"
+
+// What a member says of themselves is read apart from the identity: the seats, the leaderboards and the histories read the identity of a hundred members at a time and never need it, and a database that has not got migration 0018 yet still answers them
+const DETAIL_COLUMNS = "pronouns, country, favorite_games, bio"
 
 /** A profile of a member, as a handle names it. */
 export const handleOf = (profile: Pick<ProfileRecord, "nickname" | "tag">): Handle => ({ nickname: profile.nickname, tag: profile.tag })
@@ -51,15 +57,31 @@ function recordOf(row: Record<string, unknown> | null | undefined): ProfileRecor
 }
 
 /**
- * The member that goes by this handle (case ignored), or null: nobody, a closed account, or an account that never signed in. Throws what the database says. Without the migration there is nobody.
+ * The member that goes by this handle (case ignored), with what they say of themselves, or null: nobody, a closed account, or an account that never signed in. Throws what the database says. Without migration 0015 there is nobody; without 0018 the lookup
+ * answers with no details.
  */
-export async function readProfileByHandle(handle: Handle): Promise<ProfileRecord | null> {
+export async function readProfileByHandle(handle: Handle): Promise<ProfileWithDetails | null> {
   const { data, error } = await supabaseAdmin().rpc("profile_by_handle", { p_nickname: handle.nickname, p_tag: handle.tag })
   if (error) {
     if (notApplied(error)) return null
     throw error
   }
-  return recordOf(Array.isArray(data) ? (data[0] as Record<string, unknown> | undefined) : null)
+  const row = Array.isArray(data) ? (data[0] as Record<string, unknown> | undefined) : undefined
+  const record = recordOf(row)
+  return record ? { ...record, details: detailsOf(row) } : null
+}
+
+/**
+ * What one account says of itself on its profile: pronouns, country, favourite games, bio. It says nothing for an account that has no profile, for the demo account (which is in no database) and where migration 0018 is not applied. Throws what else the database says.
+ */
+export async function readProfileDetails(userId: string): Promise<ProfileDetails> {
+  if (!USER_ID.test(userId)) return noProfileDetails()
+  const { data, error } = await supabaseAdmin().from("profiles").select(DETAIL_COLUMNS).eq("user_id", userId).maybeSingle()
+  if (error) {
+    if (notApplied(error) || isMissingColumn(error)) return noProfileDetails()
+    throw error
+  }
+  return detailsOf(data as Record<string, unknown> | null)
 }
 
 /** The profiles of these accounts, by the account's id; an account that has none (or that is not a uuid) is not in the map. One read for all of them. */
@@ -106,18 +128,28 @@ export async function ensureProfile(account: Pick<Account, "id" | "nickname" | "
   return readProfile(account.id)
 }
 
-/** What became of a change of nickname and tag: made, or why not (somebody else has the pair; not what a profile can be; the account has no profile). */
+/** What became of a change of a profile: made, or why not (somebody else has the nickname and tag; not what a profile can be; the account has no profile). */
 export type ProfileChange = "ok" | "taken" | "invalid" | "missing"
 
+/** The name of each field of an edit in the object that `set_profile` takes (the columns of the table). */
+const COLUMN_OF: Readonly<Record<keyof ProfileEdit, string>> = { nickname: "nickname", tag: "tag", pronouns: "pronouns", country: "country", favoriteGames: "favorite_games", bio: "bio" }
+
 /**
- * Gives a member this nickname and this tag (`set_profile`: one statement, so that the database decides when two members ask for the same pair at once). The case of the nickname does not matter for a pair to be taken, and a member never finds
- * their own pair taken. The values are judged before this (`checkNickname`, `checkTag`) and again by the database. Throws what the database says, a project without the profiles included: a change that cannot be made is told.
+ * Changes what a member's profile says (`set_profile`, the only writer): the fields of `edit` that are there, all or none, in one statement, so that the database decides when two members ask for the same nickname and tag at once. A field that is not there stays as it is. The
+ * case of the nickname does not matter for a pair to be taken, and a member never finds their own pair taken. The values are judged before this (`parseProfileEdit`) and again by the database. An edit with no field is invalid, and asks nothing. Throws what the database says, a project
+ * without the profiles included: a change that cannot be made is told.
  */
-export async function saveProfile(userId: string, handle: Handle): Promise<ProfileChange> {
-  const { data, error } = await supabaseAdmin().rpc("set_profile", { p_user: userId, p_nickname: handle.nickname, p_tag: handle.tag })
+export async function saveProfile(userId: string, edit: ProfileEdit): Promise<ProfileChange> {
+  const changes: Record<string, unknown> = {}
+  for (const key of Object.keys(COLUMN_OF) as (keyof ProfileEdit)[]) {
+    const value = edit[key]
+    if (value !== undefined) changes[COLUMN_OF[key]] = value
+  }
+  if (Object.keys(changes).length === 0) return "invalid"
+  const { data, error } = await supabaseAdmin().rpc("set_profile", { p_user: userId, p_changes: changes })
   if (error) throw error
   return data === "ok" || data === "taken" || data === "invalid" ? data : "missing"
 }
 
-/** Whether an error is the database saying that the profiles are not there yet (migration 0015 is not applied), for a caller that has to tell a member so. */
+/** Whether an error is the database saying that the profiles are not there yet (migration 0015 is not applied, or 0018, which `set_profile` of now is), for a caller that has to tell a member so. */
 export const profilesNotApplied = (error: unknown): boolean => typeof error === "object" && error !== null && notApplied(error as { code?: string })

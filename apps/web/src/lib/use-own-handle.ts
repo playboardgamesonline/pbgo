@@ -5,7 +5,7 @@ import { ownHandleOf, type Account, type OwnHandle } from "@pbgo/accounts"
 import { DEMO_TAG, isDemoAccount } from "@pbgo/accounts/demo"
 
 // The member's own tag in the browser (PLT-39). The session has the name but not the tag, so the account menu and the panel head ask `GET /api/hub/profile` once per page.
-// The answer is kept in `sessionStorage` for the next pages of the tab, so a page does not paint the name and then the tag. One store serves the menu, the panel head and the Username row.
+// The answer is kept in `sessionStorage` for the next pages of the tab, so a page does not paint the name and then the tag. One store serves the menu, the panel head and the Edit profile window.
 
 const handles = new Map<string, OwnHandle>()
 const asked = new Set<string>()
@@ -36,7 +36,7 @@ function current(id: string): OwnHandle | null {
   return handles.get(id) ?? null
 }
 
-/** Keeps the handle of a member for this page and the next ones of the tab, and tells whoever shows it. The Username row calls it with what the member has just saved. */
+/** Keeps the handle of a member for this page and the next ones of the tab, and tells whoever shows it. The Edit profile window calls it with what the member has just saved. */
 export function rememberOwnHandle(id: string, handle: OwnHandle): void {
   handles.set(id, handle)
   try {

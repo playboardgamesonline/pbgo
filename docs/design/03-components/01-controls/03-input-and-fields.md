@@ -1,6 +1,6 @@
 # Input and fields
 
-Module: `@pbgo/ui/platform/field`, `@pbgo/ui/platform/input`, `@pbgo/ui/platform/textarea`, `@pbgo/ui/platform/input-group`, `@pbgo/ui/platform/password-input`, `@pbgo/ui/platform/input-otp`
+Module: `@pbgo/ui/platform/field`, `@pbgo/ui/platform/input`, `@pbgo/ui/platform/textarea`, `@pbgo/ui/platform/counted-textarea`, `@pbgo/ui/platform/input-group`, `@pbgo/ui/platform/password-input`, `@pbgo/ui/platform/input-otp`
 
 Text entry is `Input` and `Textarea`. In a form, wrap each in a `Field` with its label, help and error. `InputGroup` adds an icon, a prefix or a button to the edge of an input. `PasswordInput` is every password and `InputOTP` every code that is sent to a visitor. Inputs are `text-base` on a phone, so that iOS does not zoom in on focus.
 
@@ -10,6 +10,14 @@ Pass `aria-invalid` for the error state: the field turns red and its ring follow
 
 ```specimen
 input-and-textarea
+```
+
+## Textarea with a counter
+
+`CountedTextarea` is a textarea with the characters that are left in its corner, red once they run out. The caller counts them (`left`), since it knows what is kept and how. The counter is part of the field's description, so a screen reader hears it.
+
+```specimen
+counted-textarea
 ```
 
 ## Field
