@@ -104,6 +104,17 @@ export default function TermsOfUse() {
         <LegalText>
           What you write (a nickname, a bio, a chat message, feedback) stays yours. By sending it you allow us to show it to the people it is meant for, such as your table, and, for feedback, to read it and use it to improve the site, without paying you.
         </LegalText>
+        <LegalText>
+          The list of cities that you pick your city from, for your profile, includes data from{" "}
+          <a className={LEGAL_LINK} href="https://www.geonames.org">
+            GeoNames
+          </a>
+          , used under the{" "}
+          <a className={LEGAL_LINK} href="https://creativecommons.org/licenses/by/4.0/">
+            Creative Commons Attribution 4.0 licence
+          </a>
+          . It is provided as it is, without warranty of its accuracy.
+        </LegalText>
       </LegalSection>
 
       <LegalSection id="plans" title="Paid plans">

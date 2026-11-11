@@ -30,7 +30,7 @@ const USER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const COLUMNS = "user_id, nickname, tag, avatar_url, hide_history, created_at"
 
 // What a member says of themselves is read apart from the identity: the seats, the leaderboards and the histories read the identity of a hundred members at a time and never need it, and a database that has not got migration 0018 yet still answers them
-const DETAIL_COLUMNS = "pronouns, country, favorite_games, bio"
+const DETAIL_COLUMNS = "pronouns, country, favorite_games, bio, city_id, city_name, city_country"
 
 /** A profile of a member, as a handle names it. */
 export const handleOf = (profile: Pick<ProfileRecord, "nickname" | "tag">): Handle => ({ nickname: profile.nickname, tag: profile.tag })
@@ -72,7 +72,7 @@ export async function readProfileByHandle(handle: Handle): Promise<ProfileWithDe
 }
 
 /**
- * What one account says of itself on its profile: pronouns, country, favourite games, bio. It says nothing for an account that has no profile, for the demo account (which is in no database) and where migration 0018 is not applied. Throws what else the database says.
+ * What one account says of itself on its profile: pronouns, country, city, favourite games, bio. It says nothing for an account that has no profile, for the demo account (which is in no database) and where migration 0018 is not applied. Throws what else the database says.
  */
 export async function readProfileDetails(userId: string): Promise<ProfileDetails> {
   if (!USER_ID.test(userId)) return noProfileDetails()
@@ -132,7 +132,7 @@ export async function ensureProfile(account: Pick<Account, "id" | "nickname" | "
 export type ProfileChange = "ok" | "taken" | "invalid" | "missing"
 
 /** The name of each field of an edit in the object that `set_profile` takes (the columns of the table). */
-const COLUMN_OF: Readonly<Record<keyof ProfileEdit, string>> = { nickname: "nickname", tag: "tag", pronouns: "pronouns", country: "country", favoriteGames: "favorite_games", bio: "bio" }
+const COLUMN_OF: Readonly<Record<keyof ProfileEdit, string>> = { nickname: "nickname", tag: "tag", pronouns: "pronouns", country: "country", city: "city", favoriteGames: "favorite_games", bio: "bio" }
 
 /**
  * Changes what a member's profile says (`set_profile`, the only writer): the fields of `edit` that are there, all or none, in one statement, so that the database decides when two members ask for the same nickname and tag at once. A field that is not there stays as it is. The

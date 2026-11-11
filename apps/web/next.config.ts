@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
     "@pbgo/accounts",
     "@pbgo/analytics",
     "@pbgo/catalog",
+    "@pbgo/cities",
     "@pbgo/core",
     "@pbgo/docs",
     "@pbgo/engine-kit",

@@ -23,7 +23,7 @@ import { CodeSpecimen } from "./code-specimen"
 import { ComboboxSpecimen } from "./combobox-specimen"
 import { InlineEditSpecimen, InlineFieldsSpecimen } from "./inline-edit-specimen"
 import { MeterSpecimen } from "./meter-specimen"
-import { CountedTextareaSpecimen, CoverTileSpecimen, MultiSelectSpecimen, SearchSelectSpecimen } from "./picker-specimens"
+import { CountedTextareaSpecimen, CoverTileSpecimen, MultiSelectSpecimen, SearchSelectRemoteSpecimen, SearchSelectSpecimen } from "./picker-specimens"
 import { SingleSliderSpecimen } from "./slider-specimen"
 import { Frame } from "./text"
 
@@ -505,6 +505,26 @@ function SearchSelectInAField() {
   )
 }
 
+function SearchSelectFromAServer() {
+  return (
+    <Frame code={`<SearchSelect
+  options={found}
+  value={city}
+  selectedLabel={cityText}
+  onValueChange={setCity}
+  onQueryChange={search}
+  loading={loading}
+  prompt="Type the first letters."
+  placeholder="Not set"
+  searchPlaceholder="Search cities..."
+  empty="No city matches."
+  aria-label="City"
+/>`}>
+      <SearchSelectRemoteSpecimen />
+    </Frame>
+  )
+}
+
 function MultiSelectLimited() {
   return (
     <Frame code={`<MultiSelect
@@ -701,6 +721,7 @@ export const controlsSpecimens: Specimens = {
   "select-default-and-small": SelectDefaultAndSmall,
   "combobox-in-a-popover": ComboboxInAPopover,
   "search-select": SearchSelectInAField,
+  "search-select-remote": SearchSelectFromAServer,
   "multi-select": MultiSelectLimited,
   "counted-textarea": CountedTextareaField,
   "cover-tile": CoverTileSizes,

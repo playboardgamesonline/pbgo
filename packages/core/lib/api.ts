@@ -74,6 +74,7 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   PROFILE_TAKEN: "Somebody already goes by that username and tag. Choose another tag.",
   PROFILE_INVALID: "Something in this profile is not valid. Check the fields and try again.",
   PROFILE_GAME_UNKNOWN: "One of your favourite games is not on the site any more. Remove it and try again.",
+  PROFILE_CITY_UNKNOWN: "This city is not on the list. Pick one from the list.",
   PROFILE_UNAVAILABLE: "Your profile can't be saved right now, try again later.",
   // What the routes of the friends refuse with (PLT-23). A member who blocked you is never one of these: your request seems to go. No number is in a message: the limits are `lib/friends.ts`'s
   FRIEND_INVALID: "Type a username and a tag, like Alex#0042.",

@@ -1,4 +1,4 @@
-import { parseProfileEdit } from "@pbgo/accounts"
+import { parseProfileEdit, type ProfileCity, type ProfileEdit } from "@pbgo/accounts"
 import { DEMO_TAG, isDemoAccount } from "@pbgo/accounts/demo"
 import { getAccount } from "@pbgo/accounts/server"
 import { ApiError, assertSameOrigin, handle, readJson } from "../../../../server/api"
@@ -11,13 +11,17 @@ import { rateLimit } from "../../../../server/rate-limit"
  */
 export type CatalogCheck = (slugs: readonly string[]) => Promise<{ unknown: readonly string[]; complete: boolean }>
 
+/** Where a city comes from, by the number a client sends: the list that ships with the site (`cityById` of `@pbgo/cities`), which the app hands in. Null for a number that is not a city of the list. */
+export type CityLookup = (id: number) => ProfileCity | null
+
 /**
- * `POST /api/hub/profile`: a signed-in member changes what their profile says (PLT-39). The body holds the fields to change and nothing else, any of `{ "nickname": "Alex", "tag": 42, "pronouns": "they/them", "country": "FR", "favoriteGames": ["flip-7"], "bio": "…" }`: a
+ * `POST /api/hub/profile`: a signed-in member changes what their profile says (PLT-39). The body holds the fields to change and nothing else, any of `{ "nickname": "Alex", "tag": 42, "pronouns": "they/them", "country": "FR", "city": 2996944, "favoriteGames": ["flip-7"], "bio": "…" }`: a
  * field that is missing stays as it is, and `null` takes away the pronouns, the country, the favourite games and the bio. The request must come from this site. Every field is checked here (`parseProfileEdit`, and the favourite games against the catalog, `catalog`) and by
  * the database, which makes the change whole or not at all (`set_profile`). 409 `PROFILE_TAKEN` when another member has the nickname and tag (case ignored), 400 `PROFILE_INVALID` for a field a profile cannot hold, 400 `PROFILE_GAME_UNKNOWN` for a favourite that is not a game
- * of the catalog (503 `PROFILE_UNAVAILABLE` while the catalog cannot be read in full and cannot say). The demo account writes nothing. The answer is `{ "saved": true }` and the fields that were kept, as they were cleaned.
+ * of the catalog (503 `PROFILE_UNAVAILABLE` while the catalog cannot be read in full and cannot say). The city is the GeoNames number of a city of the list (`cityOf`: 400 `PROFILE_CITY_UNKNOWN` for any other, which is never free text): the server takes its name and its country from the list, never from the client, and a city
+ * comes with its country, which becomes the profile's (a request that says another country is invalid). `null` takes the city away. The demo account writes nothing. The answer is `{ "saved": true }` and the fields that were kept, as they were cleaned.
  */
-export const postProfile = (catalog: CatalogCheck) =>
+export const postProfile = (catalog: CatalogCheck, cityOf: CityLookup) =>
   handle(async (request: Request) => {
     assertSameOrigin(request)
     await rateLimit(null, request, "profile")
@@ -25,7 +29,18 @@ export const postProfile = (catalog: CatalogCheck) =>
     if (!account) throw new ApiError("NOT_SIGNED_IN", 401)
     const parsed = parseProfileEdit(await readJson<unknown>(request))
     if (!parsed.ok) throw new ApiError("PROFILE_INVALID")
-    const { edit } = parsed
+    const { cityId, ...rest } = parsed.edit
+    const edit: ProfileEdit = { ...rest }
+    if (cityId === null) edit.city = null
+    else if (cityId !== undefined) {
+      const found = cityOf(cityId)
+      if (!found) throw new ApiError("PROFILE_CITY_UNKNOWN")
+      // Only the three things a profile keeps of a city, as the list says them
+      const city: ProfileCity = { id: found.id, name: found.name, country: found.country }
+      if (edit.country !== undefined && edit.country !== city.country) throw new ApiError("PROFILE_INVALID")
+      edit.city = city
+      edit.country = city.country
+    }
     if (isDemoAccount(account)) return { saved: true, ...edit }
     // Only the games of the catalog can be a favourite: the page draws their covers, and the table cannot tell (a slug is a text)
     if (edit.favoriteGames && edit.favoriteGames.length > 0) {

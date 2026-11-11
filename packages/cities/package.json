@@ -1,0 +1,20 @@
+{
+  "name": "@pbgo/cities",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The cities a member can say they live in: a static list of the places of 5000 inhabitants and more from GeoNames (CC BY 4.0), searched in memory, so that no third party hears what a member types and nothing is loaded into the database. Server only: the list never goes to a browser.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

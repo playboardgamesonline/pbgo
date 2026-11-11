@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { BIO_LINE_BREAKS_MAX, BIO_MAX, FAVORITES_MAX, PRONOUNS, bioCharactersLeft, checkBio, cleanBio, detailsOf, favoriteGamesOf, hasProfileDetails, isGameSlug, isPronouns, noProfileDetails, parseProfileEdit, pronounsLabel } from "./profile-details"
+import { BIO_LINE_BREAKS_MAX, BIO_MAX, FAVORITES_MAX, PRONOUNS, bioCharactersLeft, checkBio, cityText, cleanBio, detailsOf, favoriteGamesOf, hasProfileDetails, isGameSlug, isPronouns, noProfileDetails, parseProfileEdit, pronounsLabel } from "./profile-details"
 
 describe("the pronouns", () => {
   it("are a fixed list, each with a key the database keeps and the words a page writes", () => {
@@ -126,7 +126,7 @@ describe("the favourite games", () => {
 
 describe("detailsOf", () => {
   it("reads what a row of the database says", () => {
-    expect(detailsOf({ pronouns: "they/them", country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "Hello\nthere" })).toEqual({ pronouns: "they/them", country: "FR", favoriteGames: ["courtisans", "flip-7"], bio: "Hello\nthere" })
+    expect(detailsOf({ pronouns: "they/them", country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "Hello\nthere" })).toEqual({ pronouns: "they/them", country: "FR", city: null, favoriteGames: ["courtisans", "flip-7"], bio: "Hello\nthere" })
   })
 
   it("says nothing for a row that has none of it, or no row (the migration is not applied)", () => {
@@ -240,5 +240,39 @@ describe("parseProfileEdit", () => {
     const body = Object.create({ nickname: "Inherited", bio: "Inherited" }) as Record<string, unknown>
     body.tag = 5
     expect(parseProfileEdit(body)).toEqual({ ok: true, edit: { tag: 5 } })
+  })
+})
+
+describe("the city", () => {
+  const row = { country: "FR", city_id: 2996944, city_name: "Lyon", city_country: "FR" }
+
+  it("is written with its country: Lyon, France", () => {
+    expect(cityText({ id: 2996944, name: "Lyon", country: "FR" })).toBe("Lyon, France")
+    expect(cityText({ id: 1, name: "Köln", country: "DE" })).toBe("Köln, Germany")
+  })
+
+  it("is read from the three columns of a row, in the country the profile says", () => {
+    expect(detailsOf(row).city).toEqual({ id: 2996944, name: "Lyon", country: "FR" })
+    expect(hasProfileDetails({ ...noProfileDetails(), city: { id: 1, name: "Lyon", country: "FR" } })).toBe(true)
+  })
+
+  it("is never drawn when it is not what the table keeps: another country than the profile's, no country, a part missing, a bad number or name", () => {
+    expect(detailsOf({ ...row, country: "BE" }).city).toBeNull()
+    expect(detailsOf({ ...row, country: null }).city).toBeNull()
+    expect(detailsOf({ ...row, city_country: "fr" }).city).toBeNull()
+    expect(detailsOf({ ...row, city_id: null }).city).toBeNull()
+    expect(detailsOf({ ...row, city_name: null }).city).toBeNull()
+    expect(detailsOf({ ...row, city_name: "" }).city).toBeNull()
+    expect(detailsOf({ ...row, city_name: "a".repeat(101) }).city).toBeNull()
+    expect(detailsOf({ ...row, city_id: 0 }).city).toBeNull()
+    expect(detailsOf({ ...row, city_id: 1.5 }).city).toBeNull()
+    expect(detailsOf({ ...row, city_id: "2996944" }).city).toBeNull()
+  })
+
+  it("is asked for by its number alone: a client never says a city's name or country", () => {
+    expect(parseProfileEdit({ city: 2996944 })).toEqual({ ok: true, edit: { cityId: 2996944 } })
+    expect(parseProfileEdit({ city: null })).toEqual({ ok: true, edit: { cityId: null } })
+    expect(parseProfileEdit({ country: "fr", city: 2996944 })).toEqual({ ok: true, edit: { country: "FR", cityId: 2996944 } })
+    for (const city of [0, -1, 1.5, 2_147_483_648, "2996944", "Lyon", {}, { id: 2996944 }, [], [2996944], true]) expect(parseProfileEdit({ city }), JSON.stringify(city)).toEqual({ ok: false })
   })
 })

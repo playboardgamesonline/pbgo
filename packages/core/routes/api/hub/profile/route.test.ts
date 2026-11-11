@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   saveProfile: vi.fn(async (_userId: string, _edit: Record<string, unknown>): Promise<"ok" | "taken" | "invalid" | "missing"> => "ok"),
   ensureProfile: vi.fn(async (_account: unknown): Promise<object | null> => ({})),
   catalog: vi.fn(async (_slugs: readonly string[]): Promise<{ unknown: readonly string[]; complete: boolean }> => ({ unknown: [], complete: true })),
+  cityOf: vi.fn((id: number): { id: number; name: string; country: string; region?: string; population?: number } | null => (id === 2996944 ? { id, name: "Lyon", country: "FR", region: "Auvergne-Rhône-Alpes", population: 520774 } : id === 2800866 ? { id, name: "Brussels", country: "BE" } : null)),
 }))
 
 vi.mock("server-only", () => ({}))
@@ -17,7 +18,7 @@ import { setRateLimitStore } from "../../../../server/rate-limit"
 import { MemoryRateLimitStore } from "../../../../server/rate-limiter"
 import { GET, postProfile } from "./route"
 
-const POST = postProfile(mocks.catalog)
+const POST = postProfile(mocks.catalog, mocks.cityOf)
 
 const ANN = "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11"
 
@@ -35,6 +36,7 @@ beforeEach(() => {
   mocks.ensureProfile.mockResolvedValue({})
   mocks.catalog.mockReset()
   mocks.catalog.mockResolvedValue({ unknown: [], complete: true })
+  mocks.cityOf.mockClear()
   setRateLimitStore(new MemoryRateLimitStore())
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
@@ -251,6 +253,88 @@ describe("POST /api/hub/profile", () => {
     })
   })
 
+  describe("the city", () => {
+    it("is asked for by its number, and the server takes its name and its country from the list: only those three are kept, and the country becomes the profile's", async () => {
+      mocks.account = { id: ANN }
+      const response = await send({ city: 2996944 })
+      expect(response.status).toBe(200)
+      const kept = { city: { id: 2996944, name: "Lyon", country: "FR" }, country: "FR" }
+      expect(await response.json()).toEqual({ saved: true, ...kept })
+      expect(mocks.saveProfile).toHaveBeenCalledExactlyOnceWith(ANN, kept)
+    })
+
+    it("is picked together with its own country, in one change with the rest", async () => {
+      mocks.account = { id: ANN }
+      await send({ country: "fr", city: 2996944, bio: "Hi" })
+      expect(mocks.saveProfile).toHaveBeenCalledExactlyOnceWith(ANN, { city: { id: 2996944, name: "Lyon", country: "FR" }, country: "FR", bio: "Hi" })
+    })
+
+    it("refuses a request that puts a city in another country than the one it says, or in no country", async () => {
+      mocks.account = { id: ANN }
+      for (const body of [{ country: "BE", city: 2996944 }, { country: null, city: 2996944 }]) {
+        const response = await send(body)
+        expect(response.status, JSON.stringify(body)).toBe(400)
+        expect(await errorOf(response)).toBe("PROFILE_INVALID")
+      }
+      expect(mocks.saveProfile).not.toHaveBeenCalled()
+    })
+
+    it("refuses a number that is not a city of the list, which is never free text: nothing is kept", async () => {
+      mocks.account = { id: ANN }
+      const response = await send({ nickname: "Alex", tag: 42, city: 12345 })
+      expect(response.status).toBe(400)
+      expect(await errorOf(response)).toBe("PROFILE_CITY_UNKNOWN")
+      expect(mocks.saveProfile).not.toHaveBeenCalled()
+    })
+
+    it("refuses a city that is not a number: a name is not asked, the list is", async () => {
+      mocks.account = { id: ANN }
+      for (const city of ["Lyon", { id: 2996944, name: "Lyon", country: "FR" }, 0, -1, 1.5, [2996944], true]) {
+        const response = await send({ city })
+        expect(response.status, JSON.stringify(city)).toBe(400)
+        expect(await errorOf(response)).toBe("PROFILE_INVALID")
+      }
+      expect(mocks.cityOf).not.toHaveBeenCalled()
+      expect(mocks.saveProfile).not.toHaveBeenCalled()
+    })
+
+    it("takes the city away with null, with the country it left or changed in the same request: the table keeps the two together", async () => {
+      mocks.account = { id: ANN }
+      expect(await (await send({ city: null })).json()).toEqual({ saved: true, city: null })
+      expect(mocks.saveProfile).toHaveBeenLastCalledWith(ANN, { city: null })
+      await send({ country: "BE", city: null })
+      expect(mocks.saveProfile).toHaveBeenLastCalledWith(ANN, { country: "BE", city: null })
+      expect(mocks.cityOf).not.toHaveBeenCalled()
+    })
+
+    it("tells a refusal of the table, a city in another country than the profile's that the request left alone, as an invalid profile", async () => {
+      mocks.account = { id: ANN }
+      mocks.saveProfile.mockResolvedValue("invalid")
+      const response = await send({ country: "BE" })
+      expect(response.status).toBe(400)
+      expect(await errorOf(response)).toBe("PROFILE_INVALID")
+    })
+
+    it("keeps nothing for the demo account, and says the city it would have kept", async () => {
+      mocks.account = { id: "demo" }
+      const response = await send({ city: 2996944 })
+      expect(await response.json()).toEqual({ saved: true, city: { id: 2996944, name: "Lyon", country: "FR" }, country: "FR" })
+      expect(mocks.saveProfile).not.toHaveBeenCalled()
+      expect((await send({ city: 12345 })).status).toBe(400)
+    })
+
+    it("needs the catalog for the games and the list for the city, each only when it is asked about", async () => {
+      mocks.account = { id: ANN }
+      await send({ city: 2996944 })
+      expect(mocks.catalog).not.toHaveBeenCalled()
+      expect(mocks.cityOf).toHaveBeenCalledTimes(1)
+      mocks.cityOf.mockClear()
+      await send({ favoriteGames: ["courtisans"] })
+      expect(mocks.cityOf).not.toHaveBeenCalled()
+      expect(mocks.catalog).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it("says the pair is taken when somebody else has it, as a conflict", async () => {
     mocks.account = { id: ANN }
     mocks.saveProfile.mockResolvedValue("taken")
@@ -341,7 +425,7 @@ describe("POST /api/hub/profile", () => {
   })
 
   it("has a message in the platform's wording for each of its refusals: a member never reads [missing: …]", () => {
-    for (const code of ["NOT_SIGNED_IN", "PROFILE_INVALID", "PROFILE_TAKEN", "PROFILE_GAME_UNKNOWN", "PROFILE_UNAVAILABLE", "CROSS_ORIGIN", "INVALID_REQUEST", "RATE_LIMITED", "SERVER_ERROR"]) expect(CORE_ERROR_MESSAGES[code], code).toBeTruthy()
+    for (const code of ["NOT_SIGNED_IN", "PROFILE_INVALID", "PROFILE_TAKEN", "PROFILE_GAME_UNKNOWN", "PROFILE_CITY_UNKNOWN", "PROFILE_UNAVAILABLE", "CROSS_ORIGIN", "INVALID_REQUEST", "RATE_LIMITED", "SERVER_ERROR"]) expect(CORE_ERROR_MESSAGES[code], code).toBeTruthy()
   })
 })
 

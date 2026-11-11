@@ -14,6 +14,7 @@ import {
   nicknameCharactersLeft,
   profilePath,
   tagText,
+  type ProfileCity,
   type ProfileDetails,
   type ProfileEdit,
   type Pronouns,
@@ -33,6 +34,7 @@ import { SearchSelect } from "@pbgo/ui/platform/search-select"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { toast } from "@pbgo/ui/platform/sonner"
 import { Spinner } from "@pbgo/ui/platform/spinner"
+import { CityField } from "@/components/city-field"
 import { changing } from "@/lib/settings-change"
 import { messageOf } from "@/lib/table-door"
 import { rememberOwnHandle } from "@/lib/use-own-handle"
@@ -41,14 +43,20 @@ import { rememberOwnHandle } from "@/lib/use-own-handle"
 const NO_PRONOUNS = "none"
 
 /** What the analytics are told of a refusal: the ways the profile route says no (a favourite that is not a game is one more way to be invalid). */
-const REFUSALS: Record<string, "taken" | "invalid" | "unavailable"> = { PROFILE_TAKEN: "taken", PROFILE_INVALID: "invalid", PROFILE_GAME_UNKNOWN: "invalid", PROFILE_UNAVAILABLE: "unavailable" }
+const REFUSALS: Record<string, "taken" | "invalid" | "unavailable"> = { PROFILE_TAKEN: "taken", PROFILE_INVALID: "invalid", PROFILE_GAME_UNKNOWN: "invalid", PROFILE_CITY_UNKNOWN: "invalid", PROFILE_UNAVAILABLE: "unavailable" }
 
 const sameList = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((slug, index) => slug === b[index])
 
 type Saved = { nickname: string; tag: number } & ProfileDetails
 
+/** What goes to the server for an edit: a city goes as its number, since the list says its name and its country. */
+function requestOf(edit: ProfileEdit): Record<string, unknown> {
+  const { city, ...rest } = edit
+  return city === undefined ? rest : { ...rest, city: city === null ? null : city.id }
+}
+
 /**
- * The Edit profile window of a member's own profile (`/me` and their public page): their username and tag, their pronouns (a list), their country (searched in a list), up to five favourite games of the catalog (with their covers) and a short bio. One Save sends
+ * The Edit profile window of a member's own profile (`/me` and their public page): their username and tag, their pronouns (a list), their country (searched in a list), their city (searched in the list of cities, never typed: `CityField`), up to five favourite games of the catalog (with their covers) and a short bio. One Save sends
  * what changed, and only that, to `POST /api/hub/profile`, which keeps it whole or not at all: the pair that somebody else has is told in place and nothing else is changed. The window closes on Save and the page behind it is drawn again (on the public page, the new
  * address when the pair changed). The account keeps a copy of the username for the navbar (`saveNickname`). The picture is the provider's and is not edited here. `address` says which page the member is on.
  */
@@ -78,6 +86,7 @@ export function EditProfileDialog({
   const [tagValue, setTagValue] = useState(tagText(tag))
   const [pronouns, setPronouns] = useState<Pronouns | null>(details.pronouns)
   const [country, setCountry] = useState<string | null>(details.country)
+  const [city, setCity] = useState<ProfileCity | null>(details.city)
   const [favorites, setFavorites] = useState<string[]>(details.favoriteGames)
   const [bio, setBio] = useState(details.bio ?? "")
   const [error, setError] = useState<string | null>(null)
@@ -96,6 +105,7 @@ export function EditProfileDialog({
   if (checkedTag.ok && checkedTag.tag !== saved.tag) edit.tag = checkedTag.tag
   if (pronouns !== saved.pronouns) edit.pronouns = pronouns
   if (country !== saved.country) edit.country = country
+  if (city?.id !== saved.city?.id) edit.city = city
   if (!sameList(favorites, saved.favoriteGames)) edit.favoriteGames = favorites
   if (checkedBio.ok && checkedBio.bio !== saved.bio) edit.bio = checkedBio.bio
   const canSave = checkedName.ok && checkedTag.ok && checkedBio.ok && Object.keys(edit).length > 0
@@ -107,6 +117,7 @@ export function EditProfileDialog({
       setTagValue(tagText(saved.tag))
       setPronouns(saved.pronouns)
       setCountry(saved.country)
+      setCity(saved.city)
       setFavorites(saved.favoriteGames)
       setBio(saved.bio ?? "")
       setError(null)
@@ -119,7 +130,7 @@ export function EditProfileDialog({
     setError(null)
     setPending(true)
     try {
-      await gameRequest("/api/hub/profile", { method: "POST", body: JSON.stringify(edit) })
+      await gameRequest("/api/hub/profile", { method: "POST", body: JSON.stringify(requestOf(edit)) })
     } catch (failure) {
       setPending(false)
       const reason = failure instanceof ApiClientError ? REFUSALS[failure.code] : undefined
@@ -132,6 +143,7 @@ export function EditProfileDialog({
       tag: edit.tag ?? saved.tag,
       pronouns: edit.pronouns === undefined ? saved.pronouns : edit.pronouns,
       country: edit.country === undefined ? saved.country : edit.country,
+      city: edit.city === undefined ? saved.city : edit.city,
       favoriteGames: edit.favoriteGames ?? saved.favoriteGames,
       bio: edit.bio === undefined ? saved.bio : edit.bio,
     }
@@ -146,6 +158,7 @@ export function EditProfileDialog({
       tag: edit.tag !== undefined,
       pronouns: edit.pronouns !== undefined,
       country: edit.country !== undefined,
+      city: edit.city !== undefined,
       favorites: edit.favoriteGames !== undefined,
       bio: edit.bio !== undefined,
     })
@@ -261,6 +274,8 @@ export function EditProfileDialog({
                   value={country}
                   onValueChange={(next) => {
                     setCountry(next)
+                    // A city belongs to its country: another country, or none, takes it away
+                    if (city && city.country !== next) setCity(null)
                     setError(null)
                   }}
                   placeholder="Not set"
@@ -269,6 +284,22 @@ export function EditProfileDialog({
                   clearLabel="Clear"
                   disabled={pending}
                   aria-label="Country / region"
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="profile-city">City</FieldLabel>
+                <CityField
+                  id="profile-city"
+                  city={city}
+                  country={country}
+                  disabled={pending}
+                  onCityChange={(next) => {
+                    setCity(next)
+                    // A city comes with its country
+                    if (next) setCountry(next.country)
+                    setError(null)
+                  }}
                 />
               </Field>
 

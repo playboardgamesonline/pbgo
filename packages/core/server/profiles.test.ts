@@ -29,24 +29,24 @@ describe("readProfileByHandle", () => {
       avatarUrl: "https://cdn.example/ann.png",
       hideHistory: false,
       createdAt: "2026-10-01T09:00:00+00:00",
-      details: { pronouns: null, country: null, favoriteGames: [], bio: null },
+      details: { pronouns: null, country: null, city: null, favoriteGames: [], bio: null },
     })
     expect(mocks.rpc).toHaveBeenCalledWith("profile_by_handle", { p_nickname: "ann", p_tag: 42 })
   })
 
   it("says what the member says of themselves, as the lookup gives it", async () => {
-    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "she/her", country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!" })], error: null })
-    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: "she/her", country: "FR", favoriteGames: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!" })
+    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "she/her", country: "FR", city_id: 2996944, city_name: "Lyon", city_country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!" })], error: null })
+    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: "she/her", country: "FR", city: { id: 2996944, name: "Lyon", country: "FR" }, favoriteGames: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!" })
   })
 
   it("draws nothing it does not hold: a pronoun off the list, a country that is no country, a bio that is too long", async () => {
-    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "xe/xem", country: "ZZ", favorite_games: ["Not A Slug"], bio: "b".repeat(201) })], error: null })
-    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: null, country: null, favoriteGames: [], bio: null })
+    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "xe/xem", country: "ZZ", city_id: 1, city_name: "Lyon", city_country: "ZZ", favorite_games: ["Not A Slug"], bio: "b".repeat(201) })], error: null })
+    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null })
   })
 
   it("answers with no details from a database that has the lookup of 0015 and not the fields of 0018 yet", async () => {
     mocks.rpc.mockResolvedValue({ data: [row()], error: null })
-    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: null, country: null, favoriteGames: [], bio: null })
+    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null })
   })
 
   it("is null when nobody goes by it", async () => {
@@ -127,27 +127,27 @@ describe("readProfile", () => {
 
 describe("readProfileDetails", () => {
   it("reads the four fields of one account, and only those", async () => {
-    mocks.maybeSingle.mockResolvedValue({ data: { pronouns: "any", country: "BE", favorite_games: ["hanabi"], bio: "Hi" }, error: null })
-    expect(await readProfileDetails(ANN)).toEqual({ pronouns: "any", country: "BE", favoriteGames: ["hanabi"], bio: "Hi" })
+    mocks.maybeSingle.mockResolvedValue({ data: { pronouns: "any", country: "BE", city_id: 2800866, city_name: "Brussels", city_country: "BE", favorite_games: ["hanabi"], bio: "Hi" }, error: null })
+    expect(await readProfileDetails(ANN)).toEqual({ pronouns: "any", country: "BE", city: { id: 2800866, name: "Brussels", country: "BE" }, favoriteGames: ["hanabi"], bio: "Hi" })
     expect(mocks.from).toHaveBeenCalledWith("profiles")
-    expect(mocks.select).toHaveBeenCalledWith("pronouns, country, favorite_games, bio")
+    expect(mocks.select).toHaveBeenCalledWith("pronouns, country, favorite_games, bio, city_id, city_name, city_country")
     expect(mocks.eq).toHaveBeenCalledWith("user_id", ANN)
   })
 
   it("says nothing of an account that has no profile", async () => {
     mocks.maybeSingle.mockResolvedValue({ data: null, error: null })
-    expect(await readProfileDetails(ANN)).toEqual({ pronouns: null, country: null, favoriteGames: [], bio: null })
+    expect(await readProfileDetails(ANN)).toEqual({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null })
   })
 
   it("asks nothing for what is not an account (the demo account)", async () => {
-    expect(await readProfileDetails("demo")).toEqual({ pronouns: null, country: null, favoriteGames: [], bio: null })
+    expect(await readProfileDetails("demo")).toEqual({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null })
     expect(mocks.from).not.toHaveBeenCalled()
   })
 
   it("says nothing where the migration is not applied yet, a missing column included, and throws the rest", async () => {
     for (const code of ["42703", "PGRST204", "42P01", "PGRST205"]) {
       mocks.maybeSingle.mockResolvedValue({ data: null, error: { code, message: "not there" } })
-      expect(await readProfileDetails(ANN), code).toEqual({ pronouns: null, country: null, favoriteGames: [], bio: null })
+      expect(await readProfileDetails(ANN), code).toEqual({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null })
     }
     const error = { code: "57014", message: "canceling statement due to statement timeout" }
     mocks.maybeSingle.mockResolvedValue({ data: null, error })
@@ -208,10 +208,10 @@ describe("saveProfile", () => {
 
   it("sends every field of the edit under the name of its column, in one call", async () => {
     mocks.rpc.mockResolvedValue({ data: "ok", error: null })
-    await saveProfile(ANN, { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", favoriteGames: ["courtisans", "flip-7"], bio: "Hello" })
+    await saveProfile(ANN, { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", city: { id: 2996944, name: "Lyon", country: "FR" }, favoriteGames: ["courtisans", "flip-7"], bio: "Hello" })
     expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("set_profile", {
       p_user: ANN,
-      p_changes: { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "Hello" },
+      p_changes: { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", city: { id: 2996944, name: "Lyon", country: "FR" }, favorite_games: ["courtisans", "flip-7"], bio: "Hello" },
     })
   })
 

@@ -1,0 +1,7 @@
+{
+  "extends": "@pbgo/tsconfig/library.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src"]
+}
