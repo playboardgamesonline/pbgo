@@ -37,7 +37,7 @@ game-card-the-picture-alone
 
 Module: `@pbgo/ui/platform/cover-tile`
 
-A small frame for the picture of a game, where a whole card is too much: an option of a list, a chip, a row of favourites. It draws what it is given, as the card does: a `picture` fills it, else a `logo` is contained on it, else it is a plain frame.
+A small frame for the picture of a game, where a whole card is too much: an option of a list, a chip, a row of favourites. It draws what it is given, as the card does: a `picture` fills it, else a `logo` is contained on it, else it is a plain frame. Its size is yours and its corner is its own, the tile's (`rounded-tile`).
 
 ```specimen
 cover-tile

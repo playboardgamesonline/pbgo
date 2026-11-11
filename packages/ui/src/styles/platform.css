@@ -169,6 +169,28 @@
 }
 
 /*
+ * Nested corners (`/docs/design/foundations/radius`): a box that sits in a rounded container, a padding away from its edge, has the container's corner less that padding and never more, so that outer = inner + padding and the two corners run
+ * parallel. The container says its corner and its padding once, with `nest-*` (the step, then the padding: `nest-4xl/6` is the corner of `rounded-4xl` and the padding of `p-6`, which it sets: the pair cannot differ from what is drawn; where the sides have different
+ * paddings it takes the smaller and the others are set after it, `nest-2xl/3.5 px-4`), and a box in it takes `rounded-nested`, which reads the pair: the corner less the padding, 0 at the least. A box that has no `nest-*` above it has no pair to read and
+ * stays square, in plain sight. One level: a box that is a padded container in its turn says its own pair.
+ */
+@utility nest-* {
+  --nest-radius: --value(--radius-*);
+  --nest-padding: calc(var(--spacing) * --modifier(number));
+  border-radius: var(--nest-radius);
+  padding: var(--nest-padding);
+}
+
+@utility rounded-nested {
+  border-radius: max(calc(var(--nest-radius) - var(--nest-padding)), 0px);
+}
+
+/* A tile, the picture of a game in a row or a cover (`CoverTile`), has one shape at any size: its corner is a share of its side, a little under a quarter of it (the corner of an app's icon), so that a small tile is not rounder than a large one. */
+@utility rounded-tile {
+  border-radius: 22%;
+}
+
+/*
  * The badge of a table played for the rank (`Badge` `ranked`): the gold of the pieces (`--piece-gold`) with a band of light that crosses it now and then, and the ink of the pieces for its letters, which a gold this light needs. `ranked-shine` moves the band, in `motion-safe:`, so
  * that when the visitor asks for less motion it stands still on the gold, a sheen that is not in the way.
  */

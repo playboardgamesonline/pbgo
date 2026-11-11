@@ -10,11 +10,11 @@ type CoverTileProps = Omit<React.ComponentProps<"span">, "children"> & {
 
 /**
  * A small frame for the picture of a game, where a whole card is too much: an option of a list, a chip, a row of favourites. It draws what it is given and chooses nothing, as the card does (`gamePicture` of the hub): a `picture` fills the frame, else a `logo` is
- * contained on it, else it is a plain frame. Its size and its corners are the caller's (`className`); the picture is a URL, since the package is framework-free.
+ * contained on it, else it is a plain frame. Its size is the caller's (`className`) and its corner is its own, `rounded-tile`: one shape at any size (`/docs/design/foundations/radius`). The picture is a URL, since the package is framework-free.
  */
 function CoverTile({ className, picture, logo, ...props }: CoverTileProps) {
   return (
-    <span data-slot="cover-tile" className={cn("relative inline-block size-10 shrink-0 overflow-hidden rounded-xl bg-muted", className)} {...props}>
+    <span data-slot="cover-tile" className={cn("relative inline-block size-10 shrink-0 overflow-hidden rounded-tile bg-muted", className)} {...props}>
       {picture && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={picture} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover" />
