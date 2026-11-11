@@ -2,12 +2,14 @@ import * as React from "react"
 import { CrownIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "../utils"
+import { QUEUE_MODE_LABELS, type QueueMode } from "../queue"
 import { hostOf, seatCount, type TableAction, type TableSeat, type TableState } from "../tables"
+import { Badge } from "./badge"
 import { OpenSeat } from "./open-seat"
 import { OverLink } from "./over-link"
 import { SeatAvatar } from "./table-card"
 
-// A table in the list of the open tables of a game, as a block of three lines. On the first, how many sit at it of how many it has (a small picture of people, then "3/5"), who opened it ("Hosted by Marly") and how old it is. On the second, what to know before sitting down
+// A table in the list of the open tables of a game, as a block of three lines. On the first, how many sit at it of how many it has (a small picture of people, then "3/5"), who opened it ("Hosted by Marly"), how it counts in a badge beside the host's name ("Normal", and "Ranked" in shiny gold) and how old it is. On the second, what to know before sitting down
 // ("Fast turns · First expansion"): the speed when it is not the usual one, then the expansions, and no line at all when there is nothing to say. On the third, a circle for each seat of the table, all of them, none over another, so that the room that is left is seen at once: a picture and
 // the nickname under it for a person, a crown on the one who opened it, and for a seat nobody has taken a dashed circle with a plus in it, which does what the seat is for (`OpenSeat`: it joins the table, or, at the table the visitor sits at, opens a menu to invite a friend or copy the
 // link). The pictures are large and close together (48px, eight apart). The pointer finds a player's card on their picture, and a press on the row picks it, which the page shows by the panel beside the list (`LobbyDetail`). In a list that has no panel (`to`), the row is a link as a whole: its first line is the link, stretched over the row, so that a press
@@ -21,6 +23,8 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   seats: readonly TableSeat[]
   /** When it was opened, or how long it has been played: already formatted ("Opened 4 min ago"). */
   age: string
+  /** How the table counts: a badge beside the host's name says "Normal", or "Ranked" in shiny gold. None: the row says nothing of it. */
+  mode?: QueueMode
   /** What to know before sitting down ("Fast turns", "First expansion"), already formatted. */
   facts?: readonly string[]
   /** What a visitor may do: `join` makes the free seats a way in, `full` says there is none. None: nothing to do. */
@@ -45,7 +49,7 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   to?: string
 }
 
-function TableEntry({ className, state, seats, age, facts = [], action, href, onJoin, onCopyInvite, mine = false, hostedByYou = false, selected = false, onSelect, controls, to, ...props }: TableEntryProps) {
+function TableEntry({ className, state, seats, age, mode, facts = [], action, href, onJoin, onCopyInvite, mine = false, hostedByYou = false, selected = false, onSelect, controls, to, ...props }: TableEntryProps) {
   const { taken, total } = seatCount(seats)
   const host = hostedByYou ? "you" : (hostOf(seats) ?? "a player who left")
   const full = action === "full"
@@ -62,7 +66,7 @@ function TableEntry({ className, state, seats, age, facts = [], action, href, on
     <>
       {/* What the row says, once, for screen readers: the seats under it name everybody and are read as they are */}
       <span className="ph-mask sr-only">
-        {`Table hosted by ${host}, ${taken} of ${total} seats taken${facts.length > 0 ? `, ${facts.join(", ")}` : ""}. ${age}.`}
+        {`Table hosted by ${host}, ${taken} of ${total} seats taken${mode ? `, ${QUEUE_MODE_LABELS[mode]}` : ""}${facts.length > 0 ? `, ${facts.join(", ")}` : ""}. ${age}.`}
       </span>
       <span aria-hidden="true" className="flex w-full min-w-0 items-center gap-3">
         <span data-slot="table-entry-count" className="inline-flex shrink-0 items-center gap-1.5 text-muted-foreground tabular-nums">
@@ -73,6 +77,11 @@ function TableEntry({ className, state, seats, age, facts = [], action, href, on
           <span className="text-muted-foreground">Hosted by </span>
           <span className="ph-mask">{host}</span>
         </span>
+        {mode && (
+          <Badge data-slot="table-entry-mode" variant={mode === "ranked" ? "ranked" : "secondary"}>
+            {QUEUE_MODE_LABELS[mode]}
+          </Badge>
+        )}
         <span data-slot="table-entry-age" className="ml-auto shrink-0 text-sm text-muted-foreground">
           {full && "Full · "}
           {age}
