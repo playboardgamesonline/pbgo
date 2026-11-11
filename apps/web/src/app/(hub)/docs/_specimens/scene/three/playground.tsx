@@ -21,6 +21,7 @@ import {
   DropZone,
   fan,
   grid,
+  gridCells,
   inFrame,
   lineSpaces,
   NumberField,
@@ -36,6 +37,7 @@ import {
   row,
   Seat,
   seats,
+  Sheet,
   shifted,
   Sketch,
   Slider,
@@ -51,12 +53,13 @@ import {
   Zone,
 } from "@pbgo/table"
 import { useMemo } from "react"
-import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_NAMES, SKETCH_BRUSHES } from "../defaults"
+import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SHEET, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_NAMES, SKETCH_BRUSHES } from "../defaults"
+import { pageFont } from "../color"
 import { back, CARD_SIZE, face, inks, palette } from "./art"
 import { Stage, TableLabel } from "./parts"
 
 // Every component of the table on one table. What the visitor can move, cards and pieces, is added from the controls and dragged anywhere: let one go on a cell of the board and it takes the cell, let it go on the bin and it is gone. The parts that have a
-// place of their own, the board, the track, the counter, the stepper, the slider, the timer, the bag, the cup, the dice tray, the fields, the sketch, the hand, the piles, the stack, the paper and the seats, are on or off. Each is the component of the package as the page of its own shows it, given a place on the table and a state by the controls.
+// place of their own, the board, the track, the counter, the stepper, the slider, the timer, the bag, the cup, the dice tray, the fields, the sketch, the hand, the piles, the stack, the paper, the map, the sheet and the seats, are on or off. Each is the component of the package as the page of its own shows it, given a place on the table and a state by the controls.
 
 /** The view of the table: seen from where a player sits, and from straight above when the controls say so. The distance and the lean are the controls'. */
 const camera = ({ zoom, above, tilt }: Pick<PlayState, "zoom" | "above" | "tilt">): CameraSettings => ({ tilt: above ? 6 : tilt, yaw: 0, distance: zoom, fov: 34, targetX: 0, targetZ: 0.5 })
@@ -86,6 +89,9 @@ const STACK_SIZE = 0.8
 const PAPER_AT = { x: -10.4, z: 8.6, width: 3, height: 1.2 }
 /** The cities of the map stand on a ring round the middle of the map. */
 const CITIES = PLAY_MAP.names.map((_, i) => ({ x: PLAY_MAP.at.x + PLAY_MAP.radius * Math.cos((i * 2 * Math.PI) / PLAY_MAP.names.length - Math.PI / 2), z: PLAY_MAP.at.z + PLAY_MAP.radius * Math.sin((i * 2 * Math.PI) / PLAY_MAP.names.length - Math.PI / 2) }))
+
+/** The boxes of the sheet: a grid of cells under its title. */
+const SHEET_CELLS = gridCells({ columns: PLAY_SHEET.columns, rows: PLAY_SHEET.rows, x: 0.06, y: 0.26, width: 0.88, height: 0.68, gapX: 0.014, gapY: 0.03 })
 
 /** The glows a picked card can wear: one part each, and all four. */
 const GLOWS = defineGlows({
@@ -125,6 +131,7 @@ const zoneOf = (cell: number) => `cell:${cell}`
 
 export function PlaygroundScene({ state, actions }: { state: PlayState; actions: PlayActions }) {
   const colors = palette()
+  const font = pageFont()
   const cardBack = back()
   const paints = [colors.marks[0], colors.marks[1], colors.marks[2], colors.ivory, colors.muted, colors.navy]
   const { things, selected, parts } = state
@@ -378,6 +385,30 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
             onRoad={actions.claim}
           />
           <TableLabel text="Map" x={PLAY_MAP.at.x} z={PLAY_MAP.at.z + PLAY_MAP.radius + 1.3} height={0.45} tone="muted" />
+        </>
+      )}
+      {parts.sheet && (
+        <>
+          <Sheet
+            at={{ x: PLAY_SHEET.x, z: PLAY_SHEET.z }}
+            width={PLAY_SHEET.width}
+            height={PLAY_SHEET.height}
+            cells={SHEET_CELLS}
+            font={font}
+            paper={colors.ivory}
+            ink={colors.ink}
+            accent={colors.marks[2]}
+            printed={(g, { width, height }) => {
+              g.fillStyle = colors.ink
+              g.textBaseline = "middle"
+              g.textAlign = "left"
+              g.font = `900 ${height * 0.1}px ${font}`
+              g.fillText("MARK A BOX", width * 0.06, height * 0.13)
+            }}
+            look={(box) => ({ text: String(box + 1), color: colors.marks[Math.floor(box / PLAY_SHEET.columns) % colors.marks.length], mark: state.sheet.marks[box] ?? undefined })}
+            onCell={actions.mark}
+          />
+          <TableLabel text="Sheet" x={PLAY_SHEET.x} z={PLAY_SHEET.z + PLAY_SHEET.height / 2 + 0.6} height={0.45} tone="muted" />
         </>
       )}
       {parts.seats &&

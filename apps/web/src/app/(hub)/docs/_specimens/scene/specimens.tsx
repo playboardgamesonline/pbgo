@@ -1,17 +1,18 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { addStrokes, allSubmitted, longestTrail, bagSize, createSaveableRng, type Drawing, drawFromBag, drawingPoints, emptyDrawing, EngineError, hexBoard, openSubmissions, reachable, restoreRng, revealSubmissions, shortestPath, squareBoard, type Stroke, submit, submittedFlags, type Submissions, undoStroke } from "@pbgo/engine-kit"
+import { addStrokes, allSubmitted, longestTrail, rerollDice, rollDice, bagSize, createSaveableRng, type Drawing, drawFromBag, drawingPoints, emptyDrawing, EngineError, hexBoard, openSubmissions, reachable, restoreRng, revealSubmissions, shortestPath, squareBoard, type Stroke, submit, submittedFlags, type Submissions, undoStroke } from "@pbgo/engine-kit"
 import { ask, askChoice, askNumber, askText } from "@pbgo/core/components/game/prompt"
 import { PromptHost } from "@pbgo/core/components/game/prompt-host"
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Button } from "@pbgo/ui/platform/button"
 import { Choice, Knob, Option } from "./controls"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
-import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, ISLAND_BUILDS, ISLAND_PLAYERS, type IslandBuild, type IslandPlayer, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, SKETCH_BRUSHES, SKETCH_COLORS, SKETCH_PEN, SKETCH_RULES, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
+import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, ISLAND_BUILDS, ISLAND_PLAYERS, type IslandBuild, type IslandPlayer, SHEET, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, SKETCH_BRUSHES, SKETCH_COLORS, SKETCH_PEN, SKETCH_RULES, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
 import { SceneFrame } from "./frame"
 import { ISLAND_CORNERS } from "./island"
-import { BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
+import { BONUS, CATEGORIES, CATEGORY_OF, ROW_OF, scoreOf, totalOf, upperOf } from "./yahtzee"
+import { BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
 
 // The light half of the 3D specimens of the engine docs: each is the state and the controls of one scene, laid out in a `SceneFrame`, and the scene itself (`lazy.tsx`), which is drawn only when the frame is near the window. The controls
 // are the platform's own and hold every value the scene is given, so they are there, and still, before the scene is and after it is let go; the scene is a function of them and sends back what the pointer did in it.
@@ -624,6 +625,91 @@ export function SceneNumbersSpecimen() {
       }
     >
       <NumbersScene count={count} face={face} bet={bet} onCount={setCount} onFace={setFace} onBet={setBet} onSettle={setSettled} />
+    </SceneFrame>
+  )
+}
+
+export function SceneSheetSpecimen() {
+  // What the board holds: the five dice and which are kept, how many rolls the turn has had, and what each category of the card holds. The dice come from the engine's seeded stream, the kit's `rollDice` and `rerollDice`
+  const [rng] = useState(() => createSaveableRng(SHEET.seed))
+  const [dice, setDice] = useState<number[]>(() => Array.from({ length: SHEET.dice }, () => 1))
+  const [held, setHeld] = useState<boolean[]>(() => Array.from({ length: SHEET.dice }, () => false))
+  const [rolls, setRolls] = useState(0)
+  const [scores, setScores] = useState<(number | null)[]>(() => CATEGORIES.map(() => null))
+  const finished = scores.every((score) => score !== null)
+  const canRoll = rolls < SHEET.rolls && !finished
+  // The categories that can be chosen: the empty ones, once the dice have been rolled
+  const open = rolls > 0 && !finished ? CATEGORIES.flatMap((_, category) => (scores[category] === null ? [category] : [])) : []
+  const best = open.reduce<number | undefined>((top, category) => (top === undefined || scoreOf(category, dice) > scoreOf(top, dice) ? category : top), undefined)
+  const roll = () => {
+    if (!canRoll) return
+    setDice((now) => (rolls === 0 ? rollDice(rng, SHEET.dice) : rerollDice(rng, now, now.flatMap((_, die) => (held[die] ? [] : [die])))))
+    setRolls((count) => count + 1)
+  }
+  const score = (category: number) => {
+    if (!open.includes(category)) return
+    setScores((now) => now.map((had, at) => (at === category ? scoreOf(category, dice) : had)))
+    setRolls(0)
+    setHeld((now) => now.map(() => false))
+  }
+  const keep = (die: number) => rolls > 0 && rolls < SHEET.rolls && setHeld((now) => now.map((was, at) => (at === die ? !was : was)))
+  const { sum, bonus } = upperOf(scores)
+  return (
+    <SceneFrame
+      label="A scorecard of Yahtzee on a table: a paper with the thirteen categories listed down it and a column of boxes beside them, and a column of five numbered tokens, the dice, to its right. A box that can be chosen is ringed and shows in faint ink what the dice would score in it; pressing one writes the score, and pressing a die keeps it for the next roll"
+      tall
+      controls={
+        <>
+          <Button variant="outline" size="sm" disabled={!canRoll} onClick={roll}>
+            {rolls === 0 ? "Roll the dice" : "Roll again"}
+          </Button>
+          <div className="flex flex-col gap-2">
+            <span className="text-sm text-muted-foreground">Keep</span>
+            <ToggleGroup
+              type="multiple"
+              aria-label="Dice to keep"
+              value={held.flatMap((was, die) => (was ? [String(die)] : []))}
+              onValueChange={(values) => rolls > 0 && rolls < SHEET.rolls && setHeld(held.map((_, die) => values.includes(String(die))))}
+            >
+              {held.map((_, die) => (
+                <ToggleGroupItem key={die} value={String(die)} disabled={rolls === 0 || rolls >= SHEET.rolls} aria-label={`Keep the ${["first", "second", "third", "fourth", "fifth"][die]} die`}>
+                  {rolls === 0 ? "?" : dice[die]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+          <Button variant="outline" size="sm" disabled={best === undefined} onClick={() => best !== undefined && score(best)}>
+            Score the best box
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={rolls === 0 && scores.every((had) => had === null)}
+            onClick={() => {
+              setScores((now) => now.map(() => null))
+              setHeld((now) => now.map(() => false))
+              setRolls(0)
+            }}
+          >
+            Start again
+          </Button>
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            {finished ? (
+              <>
+                The card is full: <span className="text-foreground tabular-nums">{totalOf(scores)}</span> in all.
+              </>
+            ) : (
+              <>
+                Roll <span className="text-foreground tabular-nums">{rolls}</span> of {SHEET.rolls}.
+              </>
+            )}{" "}
+            <span className="text-foreground tabular-nums">{scores.filter((had) => had !== null).length}</span> of {CATEGORIES.length} boxes written, the upper section <span className="text-foreground tabular-nums">{sum}</span> of {BONUS.needs}
+            {bonus > 0 ? ", with the bonus." : "."}
+          </p>
+        </>
+      }
+    >
+      <SheetScene dice={dice} rolled={rolls > 0 || scores.some((had) => had !== null)} held={held} scores={scores} rows={open.map((category) => ROW_OF[category]!)} onRow={(row) => CATEGORY_OF[row] !== null && score(CATEGORY_OF[row]!)} onDie={keep} />
     </SceneFrame>
   )
 }

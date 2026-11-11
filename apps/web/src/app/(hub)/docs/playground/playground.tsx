@@ -26,10 +26,12 @@ import {
   PLAY_GLOWS,
   PLAY_LIMITS,
   PLAY_MAP,
+  PLAY_MARKS,
   PLAY_NAMES,
   PLAY_NUMBERS,
   PLAY_PART_NAMES,
   PLAY_PIECES,
+  PLAY_SHEET,
   PLAY_SKETCH,
   PLAY_STACK,
   type PlayActions,
@@ -53,10 +55,10 @@ const SLOTS = Array.from({ length: 24 }, (_, n) => ({ x: -2.4 + (n % 4) * 1.6, z
 const freeSlot = (things: readonly PlayThing[]) => SLOTS.find((slot) => !things.some((thing) => Math.hypot(thing.x - slot.x, thing.z - slot.z) < 1)) ?? { x: 0, z: 0 }
 
 const rollFor = (shape: DiceShape) => Array.from({ length: PLAY_LIMITS.dice }, () => 1 + Math.floor(Math.random() * DICE_SIDES[shape]))
-/** What the playground's sheet is kept under: the engine's own limits, for a palette and brushes of the specimens' sizes */
-const SHEET_RULES = { colors: SKETCH_COLORS.length, widths: SKETCH_BRUSHES.length }
+/** What the playground's sketch is kept under: the engine's own limits, for a palette and brushes of the specimens' sizes */
+const SKETCH_RULES = { colors: SKETCH_COLORS.length, widths: SKETCH_BRUSHES.length }
 /** The parts that lie beyond the rest of the table: the camera backs off to at least this distance when one is switched on */
-const BACK_OFF: Partial<Record<PlayPart, number>> = { seats: 28, sketch: PLAY_SKETCH.zoom, hand: 28, piles: 28, stack: 28, paper: 28, map: 32 }
+const BACK_OFF: Partial<Record<PlayPart, number>> = { seats: 28, sketch: PLAY_SKETCH.zoom, hand: 28, piles: 28, stack: 28, paper: 28, map: 32, sheet: PLAY_SHEET.zoom }
 
 const freshBag = () => ({ counts: [...BAG_START], rng: createSaveableRng(BAG_SEED).save(), drawn: 0 })
 
@@ -118,7 +120,7 @@ const START: PlayState = {
   ],
   nextId: 12,
   selected: null,
-  parts: { board: true, track: true, counter: true, stepper: true, slider: true, timer: true, bag: true, cup: true, dice: true, fields: true, sketch: false, hand: false, piles: false, stack: false, paper: false, map: false, seats: false },
+  parts: { board: true, track: true, counter: true, stepper: true, slider: true, timer: true, bag: true, cup: true, dice: true, fields: true, sketch: false, hand: false, piles: false, stack: false, paper: false, map: false, sheet: false, seats: false },
   counter: 12,
   stepper: PLAY_NUMBERS.stepper.start,
   slider: PLAY_NUMBERS.slider.start,
@@ -147,6 +149,7 @@ const START: PlayState = {
   presses: 0,
   seat: null,
   map: { claimed: PLAY_MAP.roads.map(() => false), city: null },
+  sheet: { marks: Array.from({ length: PLAY_SHEET.columns * PLAY_SHEET.rows }, () => null), mark: "tick" },
   players: 4,
   above: false,
   zoom: PLAY_LIMITS.zoom.start,
@@ -204,11 +207,12 @@ export function Playground() {
     pickSeat: (seat) => set({ seat }),
     claim: (road) => setState((now) => ({ ...now, map: { ...now.map, claimed: now.map.claimed.map((held, i) => (i === road ? !held : held)) } })),
     visit: (city) => setState((now) => ({ ...now, map: { ...now.map, city } })),
+    mark: (box) => setState((now) => ({ ...now, sheet: { ...now.sheet, marks: now.sheet.marks.map((had, at) => (at === box ? (had === now.sheet.mark ? null : now.sheet.mark) : had)) } })),
     // The sheet keeps what the engine keeps: strokes that do not fit are let go, as a board that was told no would
     ink: (incoming) =>
       setState((now) => {
         try {
-          return { ...now, sketch: { ...now.sketch, strokes: addStrokes(now.sketch.strokes, incoming, SHEET_RULES) } }
+          return { ...now, sketch: { ...now.sketch, strokes: addStrokes(now.sketch.strokes, incoming, SKETCH_RULES) } }
         } catch (error) {
           if (error instanceof EngineError) return now
           throw error
@@ -217,7 +221,7 @@ export function Playground() {
   }
   const pen = (patch: Partial<PlayState["sketch"]>) => setState((now) => ({ ...now, sketch: { ...now.sketch, ...patch } }))
 
-  // The seats stand on a ring wider than the rest of the table, and the sheet, the hand, the piles, the stack and the paper lie beyond it, so the camera backs off to see them
+  // The seats stand on a ring wider than the rest of the table, and the sketch, the hand, the piles, the stack, the paper, the map and the sheet lie beyond it, so the camera backs off to see them
   const showPart = (part: PlayPart, on: boolean) => {
     const farthest = BACK_OFF[part]
     set({ parts: { ...parts, [part]: on }, ...(on && farthest !== undefined ? { zoom: Math.max(state.zoom, farthest) } : {}) })
@@ -244,7 +248,7 @@ export function Playground() {
         <main className="min-h-0 flex-1 max-lg:min-h-[45svh]">
           <SceneFrame
             fill
-            label="A card table with every component of the package on it: a board of squares, a track with a marker, a counter, a stepper, a slider, an hourglass, a bag, a cup, a tray of dice, three fields to write and choose in, a sheet of paper to draw on, a hand of cards, a draw pile and a discard pile, a stack of coins, a paper button, a map of cities and roads, and cards and pieces that can be dragged anywhere, onto a cell of the board or into the bin"
+            label="A card table with every component of the package on it: a board of squares, a track with a marker, a counter, a stepper, a slider, an hourglass, a bag, a cup, a tray of dice, three fields to write and choose in, a sheet of paper to draw on, a hand of cards, a draw pile and a discard pile, a stack of coins, a paper button, a map of cities and roads, a sheet of boxes to tick, and cards and pieces that can be dragged anywhere, onto a cell of the board or into the bin"
           >
             <PlaygroundScene state={state} actions={actions} />
           </SceneFrame>
@@ -449,6 +453,15 @@ export function Playground() {
                   <span className="text-sm text-muted-foreground" aria-live="polite">
                     {state.map.city === null ? "No city picked" : <>City: <span className="text-foreground">{PLAY_MAP.names[state.map.city]}</span></>}. Longest route:{" "}
                     <span className="text-foreground tabular-nums">{longestTrail(graph(PLAY_MAP.names.length, PLAY_MAP.roads), state.map.claimed.flatMap((held, road) => (held ? [road] : [])))}</span>
+                  </span>
+                </Part>
+                <Part part="sheet" on={parts.sheet} onChange={(on) => showPart("sheet", on)}>
+                  <Choice label="Mark" value={state.sheet.mark} options={PLAY_MARKS.map((mark) => ({ value: mark, label: mark, description: `A press writes a ${mark}` }))} onChange={(mark) => set({ sheet: { ...state.sheet, mark } })} />
+                  <Button variant="ghost" size="sm" disabled={!state.sheet.marks.some(Boolean)} onClick={() => set({ sheet: { ...state.sheet, marks: state.sheet.marks.map(() => null) } })}>
+                    Clear the sheet
+                  </Button>
+                  <span className="text-sm text-muted-foreground" aria-live="polite">
+                    <span className="text-foreground tabular-nums">{state.sheet.marks.filter(Boolean).length}</span> of {state.sheet.marks.length} boxes marked
                   </span>
                 </Part>
                 <Part part="seats" on={parts.seats} onChange={(on) => showPart("seats", on)}>
