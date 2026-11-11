@@ -53,13 +53,15 @@ import {
   Zone,
 } from "@pbgo/table"
 import { useMemo } from "react"
-import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SHEET, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_NAMES, SKETCH_BRUSHES } from "../defaults"
+import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SHEET, PLAY_TILES, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_NAMES, SKETCH_BRUSHES } from "../defaults"
 import { pageFont } from "../color"
+import { BOX, view } from "../landscape"
 import { back, CARD_SIZE, face, inks, palette } from "./art"
+import { TilesTable } from "./tiles"
 import { Stage, TableLabel } from "./parts"
 
 // Every component of the table on one table. What the visitor can move, cards and pieces, is added from the controls and dragged anywhere: let one go on a cell of the board and it takes the cell, let it go on the bin and it is gone. The parts that have a
-// place of their own, the board, the track, the counter, the stepper, the slider, the timer, the bag, the cup, the dice tray, the fields, the sketch, the hand, the piles, the stack, the paper, the map, the sheet and the seats, are on or off. Each is the component of the package as the page of its own shows it, given a place on the table and a state by the controls.
+// place of their own, the board, the track, the counter, the stepper, the slider, the timer, the bag, the cup, the dice tray, the fields, the sketch, the hand, the piles, the stack, the paper, the map, the sheet, the tiles and the seats, are on or off. Each is the component of the package as the page of its own shows it, given a place on the table and a state by the controls.
 
 /** The view of the table: seen from where a player sits, and from straight above when the controls say so. The distance and the lean are the controls'. */
 const camera = ({ zoom, above, tilt }: Pick<PlayState, "zoom" | "above" | "tilt">): CameraSettings => ({ tilt: above ? 6 : tilt, yaw: 0, distance: zoom, fov: 34, targetX: 0, targetZ: 0.5 })
@@ -135,6 +137,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
   const cardBack = back()
   const paints = [colors.marks[0], colors.marks[1], colors.marks[2], colors.ivory, colors.muted, colors.navy]
   const { things, selected, parts } = state
+  const tiles = useMemo(() => view(state.tiles.laid, BOX, state.tiles.index, state.tiles.spin, PLAY_TILES.table), [state.tiles])
   const cells = useMemo(() => squareCells(squareBoard({ columns: 6, rows: 6 }).coords, { size: 0.95, gap: 0.05, at: BOARD_AT }), [])
   const line = useMemo(() => spacesIn(TRACK_AT, lineSpaces(PLAY_LIMITS.spaces, { gap: 1.1 })), [])
   const ring = seats(state.players, { ...RING, me: 0 })
@@ -410,6 +413,20 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
           />
           <TableLabel text="Sheet" x={PLAY_SHEET.x} z={PLAY_SHEET.z + PLAY_SHEET.height / 2 + 0.6} height={0.45} tone="muted" />
         </>
+      )}
+      {parts.tiles && (
+        <TilesTable
+          laid={state.tiles.laid}
+          hand={tiles.name ? { tile: tiles.name, spin: state.tiles.spin } : null}
+          spots={tiles.spots}
+          fits={tiles.fits}
+          done={tiles.score.tiles}
+          turnable={tiles.options.length > 1}
+          onSpot={actions.layTile}
+          onTurn={actions.turnTile}
+          origin={PLAY_TILES.origin}
+          handAt={PLAY_TILES.hand}
+        />
       )}
       {parts.seats &&
         ring.slice(0, state.players).map((spot, i) => (

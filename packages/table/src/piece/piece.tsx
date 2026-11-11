@@ -42,6 +42,8 @@ export type PieceProps = {
   halo?: string | null
   /** Casts a drop shadow (default true) */
   shadow?: boolean
+  /** How solid the piece is, from 0 to 1 (default 1): a piece that shows where another would go. One that is not solid casts no shadow */
+  opacity?: number
   /** Where the piece comes from when it appears: it flies from there to its place. Without it, and when no piece of the same `id` just left, it appears at its place */
   from?: { x: number; z: number; y?: number } | null
   onClick?: (e: ThreeEvent<MouseEvent>) => void
@@ -87,6 +89,7 @@ export function Piece({
   lift = 0,
   halo = null,
   shadow = true,
+  opacity = 1,
   from,
   onClick,
   onHover,
@@ -141,19 +144,22 @@ export function Piece({
   })
 
   // What a frame reads: the newest props, not the ones of the render that made the frame's closure
-  const latest = useRef({ target, size, y, halo, shadow, onArrive, model })
+  const solid = opacity >= 1
+  const latest = useRef({ target, size, y, halo, shadow: shadow && solid, onArrive, model })
   useEffect(() => {
-    latest.current = { target, size, y, halo, shadow, onArrive, model }
+    latest.current = { target, size, y, halo, shadow: shadow && solid, onArrive, model }
   })
 
   const geometry = useMemo(() => model.geometry(size), [model, size])
   useEffect(() => () => geometry.dispose(), [geometry])
   const materials = useMemo(() => {
-    const edge = new MeshBasicMaterial({ color, vertexColors: true, toneMapped: false })
+    // A piece that is not solid is see-through and writes no depth, so what lies under it shows
+    const seen = { transparent: !solid, opacity: Math.min(1, Math.max(0, opacity)), depthWrite: solid }
+    const edge = new MeshBasicMaterial({ color, vertexColors: true, toneMapped: false, ...seen })
     if (!model.flat) return [edge]
-    const wear = (map?: Texture) => new MeshBasicMaterial({ ...(map ? { map } : { color }), vertexColors: true, toneMapped: false })
+    const wear = (map?: Texture) => new MeshBasicMaterial({ ...(map ? { map } : { color }), vertexColors: true, toneMapped: false, ...seen })
     return [edge, wear(faces?.top), wear(faces?.bottom)]
-  }, [model, color, faces?.top, faces?.bottom])
+  }, [model, color, faces?.top, faces?.bottom, solid, opacity])
   useEffect(() => () => materials.forEach((material: BasicMaterial) => material.dispose()), [materials])
   // The ring is only made for a piece that has one
   const ringed = !!halo

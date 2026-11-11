@@ -45,6 +45,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 | Drawing | Strokes a player draws on a sheet of paper and the others see: lines of points in a colour and a width | `cleanStroke`, `addStrokes`, `undoStroke` and the shared codes `INVALID_DRAWING` and `DRAWING_FULL` | `Sketch` | Built: [Drawing](21-drawing.md) |
 | Map | Places joined by roads: the cities and routes of a map, the corners and sides of a board where a settlement stands and a road runs | `graph`, `cornerGraph`, `longestTrail`, and the searches of the boards along its roads | `RoadMap`, `hexPoints`, `squarePoints`, `edgePlace` | Built: [Maps](22-maps.md) |
 | Sheet | Paper with boxes that players mark and fill: the scorecard of a dice game, the sheet of a roll-and-write. The boxes that can be chosen are ringed, and pressing one names it | An array of what each box holds, and `cleanChoice` for the box a player names | `Sheet`, `gridCells`, `cellAt` | Built: [Sheets](23-sheets.md) |
+| Tiles | A thing with an edge on each side, laid next to the others where the sides match, in one of its turns: the tiles of Carcassonne, dominoes. The roads and cities of the whole layout are joined across them | The tiles that are laid as `{ at, tile, turns }`, `tiling`, `placements`, `turnEdges`, `distinctTurns`, `features` | `Piece` of the model `square` or `hex`, `tileYaw`, a `Board` over the free cells, `anchor` and `opacity` | Built: [Tiles](24-tiles.md) |
 | Drag | Picking a card or a piece up and dropping it on a zone or a cell | Nothing new: a drop is an action, checked like a click | `draggable`, `dropOn` and `onDrop` of `Card` and `Piece`, `DropZone`, `useDrag`, and `drops` of a `Board` | Built: [Dragging](19-dragging.md) |
 
 ## The pages
@@ -73,6 +74,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 - [Drawing](21-drawing.md): the strokes a player draws, kept as bounded data on a grid in the engine, and the sheet of paper that the pointer draws on and the others read on the table.
 - [Maps](22-maps.md): places and roads in the engine, with the corners and the sides of a board, the longest road, and the map on the table that offers what can be chosen.
 - [Sheets](23-sheets.md): boxes to fill on a sheet of paper, kept as an array in the engine, and the sheet on the table that rings the boxes that can be chosen and writes what each holds.
-- [Rules of the board](24-rules-of-the-board.md): what holds for every board, whatever the game.
+- [Tiles](24-tiles.md): tiles with an edge on each side, laid where the sides match in the engine, with where each one fits and the roads and cities of the whole layout, and the tiles on the table with the cells they go on.
+- [Rules of the board](25-rules-of-the-board.md): what holds for every board, whatever the game.
 
 What no tool draws or holds yet is on [Not built yet](../03-not-built-yet.md), with what holds instead. The players and the turn are in [The game](../01-the-game/index.md).

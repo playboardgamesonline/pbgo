@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 // The table and the engine agree on where a cell is by the two numbers that place it: this is the one test that reads the kit, to check they do
 import { hexBoard, squareBoard } from "../../../engine-kit/src/board"
-import { type BoardCell, hexCells, inradius, squareCells } from "./cells"
+import { type BoardCell, hexCells, inradius, squareCells, tileYaw } from "./cells"
 
 const apart = (a: BoardCell, b: BoardCell) => Math.hypot(a.x - b.x, a.z - b.z)
 
@@ -133,6 +133,88 @@ describe("hexCells", () => {
   it("refuses a size that is not above zero and a gap that is not less than it", () => {
     expect(() => hexCells(board.coords, { size: 0 })).toThrow(RangeError)
     expect(() => hexCells(board.coords, { size: 1, gap: 1 })).toThrow(RangeError)
+  })
+})
+
+describe("anchored cells", () => {
+  const board = squareBoard({ columns: 3, rows: 3 })
+
+  it("puts the anchor cell on `at`, and the others where the board puts them round it", () => {
+    const cells = squareCells(board.coords, { size: 2, at: { x: 5, z: -3 }, anchor: [1, 1] })
+    // The middle cell, 4, is the anchor
+    expect([cells[4]!.x, cells[4]!.z]).toEqual([5, -3])
+    expect([cells[0]!.x, cells[0]!.z]).toEqual([3, -5])
+    expect([cells[8]!.x, cells[8]!.z]).toEqual([7, -1])
+  })
+
+  it("leaves the cells where they were when others are added, which centring does not", () => {
+    const [first, second] = [
+      [
+        [0, 0],
+        [1, 0],
+      ],
+      [
+        [0, 0],
+        [1, 0],
+        [2, 0],
+        [0, 1],
+      ],
+    ] as const
+    const [few, many] = [squareCells(first, { size: 1, anchor: [0, 0] }), squareCells(second, { size: 1, anchor: [0, 0] })]
+    expect([few[1]!.x, few[1]!.z]).toEqual([many[1]!.x, many[1]!.z])
+    expect([few[0]!.x, few[0]!.z]).toEqual([0, 0])
+    // Centred, the same cell moves
+    const [centredFew, centredMany] = [squareCells(first, { size: 1 }), squareCells(second, { size: 1 })]
+    expect(centredFew[1]!.x).not.toBe(centredMany[1]!.x)
+  })
+
+  it("does not need the anchor to be one of the cells", () => {
+    const cells = squareCells([[2, 3]], { size: 2, anchor: [0, 0] })
+    expect([cells[0]!.x, cells[0]!.z]).toEqual([4, 6])
+  })
+
+  it("anchors hexagons the same way: the anchor on `at`, neighbours one size from it", () => {
+    const hexes = hexBoard({ radius: 2 })
+    const cells = hexCells(hexes.coords, { size: 2, at: { x: 1, z: 1 }, anchor: [0, 0] })
+    const middle = hexes.at(0, 0)
+    expect([cells[middle]!.x, cells[middle]!.z]).toEqual([1, 1])
+    for (const next of hexes.neighbours(middle)) expect(apart(cells[middle]!, cells[next]!)).toBeCloseTo(2, 12)
+    const [one, other] = [hexCells([[1, 2]], { size: 1, anchor: [0, 0] }), hexCells([[1, 2], [3, 3]], { size: 1, anchor: [0, 0] })]
+    expect([one[0]!.x, one[0]!.z]).toEqual([other[0]!.x, other[0]!.z])
+  })
+
+  it("refuses an anchor that is not a cell", () => {
+    expect(() => squareCells([[0, 0]], { size: 1, anchor: [0] as never })).toThrow(RangeError)
+    expect(() => hexCells([[0, 0]], { size: 1, anchor: [Number.NaN, 0] })).toThrow(RangeError)
+  })
+})
+
+describe("tileYaw", () => {
+  it("is a quarter of a circle for a turn of a square tile, clockwise, which is a negative yaw", () => {
+    expect(tileYaw(0)).toBeCloseTo(0, 12)
+    expect(tileYaw(1)).toBeCloseTo(-Math.PI / 2, 12)
+    expect(tileYaw(2)).toBeCloseTo(-Math.PI, 12)
+    expect(tileYaw(4)).toBeCloseTo(-2 * Math.PI, 12)
+    expect(tileYaw(-1)).toBeCloseTo(Math.PI / 2, 12)
+  })
+
+  it("is a sixth of a circle for a turn of a hexagonal tile", () => {
+    expect(tileYaw(1, 6)).toBeCloseTo(-Math.PI / 3, 12)
+    expect(tileYaw(3, 6)).toBeCloseTo(-Math.PI, 12)
+  })
+
+  it("turns a tile so that its east goes to the south, as the engine says a tile turned once shows on its south what it had on its east", () => {
+    // A Piece turned by `yaw` about the vertical maps its local +x to (cos yaw, -sin yaw) on the table (x to the right, z toward the viewer)
+    const yaw = tileYaw(1)
+    const east = [Math.cos(yaw), -Math.sin(yaw)]
+    expect(east[0]).toBeCloseTo(0, 12)
+    expect(east[1]).toBeCloseTo(1, 12)
+  })
+
+  it("refuses what is not a turn or a tile", () => {
+    expect(() => tileYaw(0.5)).toThrow(RangeError)
+    expect(() => tileYaw(1, 2)).toThrow(RangeError)
+    expect(() => tileYaw(1, 4.5)).toThrow(RangeError)
   })
 })
 

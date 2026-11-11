@@ -69,6 +69,7 @@ The options are `PlaceOptions`:
 | `size` | The distance between the middles of two neighbouring cells, in world units |
 | `gap` | The room left between two cells (default 0): each cell is drawn smaller by it, the way the lines of a board are |
 | `at` | Where the middle of the board lies on the table (default the middle of the table): the board is centred on it |
+| `anchor` | The cell that lies on `at` instead of the middle of all the cells, so that the cells that were there stay where they were when more are added: the table of a game that lays tiles ([Tiles](24-tiles.md)) |
 
 A column goes toward the right and a row toward the viewer, so the first row is the farthest; hexagons have a point up and each row lies half a cell from the one before. Only the cells in `coords` are made, so a board with holes, or one that grows as tiles are laid, is a list that changes (and a list that grows at its end keeps the numbers it had).
 

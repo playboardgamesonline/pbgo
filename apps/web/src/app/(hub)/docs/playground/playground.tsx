@@ -34,6 +34,7 @@ import {
   PLAY_SHEET,
   PLAY_SKETCH,
   PLAY_STACK,
+  PLAY_TILES,
   type PlayActions,
   type PlayCard,
   type PlayPart,
@@ -45,6 +46,7 @@ import {
   SKETCH_COLORS,
 } from "../_specimens/scene/defaults"
 import { SceneFrame } from "../_specimens/scene/frame"
+import { BOX, lay, nextFitting, START as FIRST_TILE, view } from "../_specimens/scene/landscape"
 import { PlaygroundScene, PlaygroundTuning } from "../_specimens/scene/lazy"
 
 // The playground, a page of its own: the table fills the window and the controls are at its side. It holds what lies on the table and which parts of it are on, the controls that change them, and the tuning of every component. The table is the scene (`three/playground.tsx`), a function of this state that sends back what the pointer did
@@ -58,7 +60,7 @@ const rollFor = (shape: DiceShape) => Array.from({ length: PLAY_LIMITS.dice }, (
 /** What the playground's sketch is kept under: the engine's own limits, for a palette and brushes of the specimens' sizes */
 const SKETCH_RULES = { colors: SKETCH_COLORS.length, widths: SKETCH_BRUSHES.length }
 /** The parts that lie beyond the rest of the table: the camera backs off to at least this distance when one is switched on */
-const BACK_OFF: Partial<Record<PlayPart, number>> = { seats: 28, sketch: PLAY_SKETCH.zoom, hand: 28, piles: 28, stack: 28, paper: 28, map: 32, sheet: PLAY_SHEET.zoom }
+const BACK_OFF: Partial<Record<PlayPart, number>> = { seats: 28, sketch: PLAY_SKETCH.zoom, hand: 28, piles: 28, stack: 28, paper: 28, map: 32, sheet: PLAY_SHEET.zoom, tiles: PLAY_TILES.zoom }
 
 const freshBag = () => ({ counts: [...BAG_START], rng: createSaveableRng(BAG_SEED).save(), drawn: 0 })
 
@@ -120,7 +122,7 @@ const START: PlayState = {
   ],
   nextId: 12,
   selected: null,
-  parts: { board: true, track: true, counter: true, stepper: true, slider: true, timer: true, bag: true, cup: true, dice: true, fields: true, sketch: false, hand: false, piles: false, stack: false, paper: false, map: false, sheet: false, seats: false },
+  parts: { board: true, track: true, counter: true, stepper: true, slider: true, timer: true, bag: true, cup: true, dice: true, fields: true, sketch: false, hand: false, piles: false, stack: false, paper: false, map: false, sheet: false, tiles: false, seats: false },
   counter: 12,
   stepper: PLAY_NUMBERS.stepper.start,
   slider: PLAY_NUMBERS.slider.start,
@@ -150,6 +152,7 @@ const START: PlayState = {
   seat: null,
   map: { claimed: PLAY_MAP.roads.map(() => false), city: null },
   sheet: { marks: Array.from({ length: PLAY_SHEET.columns * PLAY_SHEET.rows }, () => null), mark: "tick" },
+  tiles: { laid: [FIRST_TILE], index: nextFitting([FIRST_TILE], BOX, 0, PLAY_TILES.table), spin: 0 },
   players: 4,
   above: false,
   zoom: PLAY_LIMITS.zoom.start,
@@ -207,6 +210,15 @@ export function Playground() {
     pickSeat: (seat) => set({ seat }),
     claim: (road) => setState((now) => ({ ...now, map: { ...now.map, claimed: now.map.claimed.map((held, i) => (i === road ? !held : held)) } })),
     visit: (city) => setState((now) => ({ ...now, map: { ...now.map, city } })),
+    layTile: (place) =>
+      setState((now) => {
+        const here = view(now.tiles.laid, BOX, now.tiles.index, now.tiles.spin, PLAY_TILES.table)
+        const at = here.spots[place]
+        if (!here.name || !at || !here.fits.includes(place)) return now
+        const next = lay(now.tiles.laid, BOX, now.tiles.index, at, here.turns, PLAY_TILES.table)
+        return { ...now, tiles: { laid: next.laid, index: next.index, spin: 0 } }
+      }),
+    turnTile: () => setState((now) => (view(now.tiles.laid, BOX, now.tiles.index, now.tiles.spin, PLAY_TILES.table).options.length > 1 ? { ...now, tiles: { ...now.tiles, spin: now.tiles.spin + 1 } } : now)),
     mark: (box) => setState((now) => ({ ...now, sheet: { ...now.sheet, marks: now.sheet.marks.map((had, at) => (at === box ? (had === now.sheet.mark ? null : now.sheet.mark) : had)) } })),
     // The sheet keeps what the engine keeps: strokes that do not fit are let go, as a board that was told no would
     ink: (incoming) =>
@@ -219,9 +231,18 @@ export function Playground() {
         }
       }),
   }
+  // The tiles: what the table shows of them, and the first way the tile in hand fits, for the button that lays it
+  const tiles = view(state.tiles.laid, BOX, state.tiles.index, state.tiles.spin, PLAY_TILES.table)
+  const layNow = (way: { at: readonly [number, number]; turns: number }) =>
+    setState((now) => {
+      const here = view(now.tiles.laid, BOX, now.tiles.index, now.tiles.spin, PLAY_TILES.table)
+      if (!here.name) return now
+      const next = lay(now.tiles.laid, BOX, now.tiles.index, way.at, way.turns, PLAY_TILES.table)
+      return { ...now, tiles: { laid: next.laid, index: next.index, spin: 0 } }
+    })
   const pen = (patch: Partial<PlayState["sketch"]>) => setState((now) => ({ ...now, sketch: { ...now.sketch, ...patch } }))
 
-  // The seats stand on a ring wider than the rest of the table, and the sketch, the hand, the piles, the stack, the paper, the map and the sheet lie beyond it, so the camera backs off to see them
+  // The seats stand on a ring wider than the rest of the table, and the sketch, the hand, the piles, the stack, the paper, the map, the sheet and the tiles lie beyond it, so the camera backs off to see them
   const showPart = (part: PlayPart, on: boolean) => {
     const farthest = BACK_OFF[part]
     set({ parts: { ...parts, [part]: on }, ...(on && farthest !== undefined ? { zoom: Math.max(state.zoom, farthest) } : {}) })
@@ -248,7 +269,7 @@ export function Playground() {
         <main className="min-h-0 flex-1 max-lg:min-h-[45svh]">
           <SceneFrame
             fill
-            label="A card table with every component of the package on it: a board of squares, a track with a marker, a counter, a stepper, a slider, an hourglass, a bag, a cup, a tray of dice, three fields to write and choose in, a sheet of paper to draw on, a hand of cards, a draw pile and a discard pile, a stack of coins, a paper button, a map of cities and roads, a sheet of boxes to tick, and cards and pieces that can be dragged anywhere, onto a cell of the board or into the bin"
+            label="A card table with every component of the package on it: a board of squares, a track with a marker, a counter, a stepper, a slider, an hourglass, a bag, a cup, a tray of dice, three fields to write and choose in, a sheet of paper to draw on, a hand of cards, a draw pile and a discard pile, a stack of coins, a paper button, a map of cities and roads, a sheet of boxes to tick, a table of tiles, and cards and pieces that can be dragged anywhere, onto a cell of the board or into the bin"
           >
             <PlaygroundScene state={state} actions={actions} />
           </SceneFrame>
@@ -462,6 +483,27 @@ export function Playground() {
                   </Button>
                   <span className="text-sm text-muted-foreground" aria-live="polite">
                     <span className="text-foreground tabular-nums">{state.sheet.marks.filter(Boolean).length}</span> of {state.sheet.marks.length} boxes marked
+                  </span>
+                </Part>
+                <Part part="tiles" on={parts.tiles} onChange={(on) => showPart("tiles", on)}>
+                  <Button variant="outline" size="sm" disabled={tiles.options.length < 2} onClick={actions.turnTile}>
+                    Turn the tile
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={!tiles.ways[0]} onClick={() => tiles.spots.length > 0 && tiles.ways[0] && layNow(tiles.ways[0])}>
+                    Lay it for me
+                  </Button>
+                  <Button variant="ghost" size="sm" disabled={state.tiles.laid.length === 1 && state.tiles.spin === 0} onClick={() => set({ tiles: { laid: [FIRST_TILE], index: nextFitting([FIRST_TILE], BOX, 0, PLAY_TILES.table), spin: 0 } })}>
+                    Clear the table
+                  </Button>
+                  <span className="text-sm text-muted-foreground" aria-live="polite">
+                    {tiles.name ? (
+                      <>
+                        The tile fits on <span className="text-foreground tabular-nums">{tiles.fits.length}</span> {tiles.fits.length === 1 ? "cell" : "cells"} as it is turned.
+                      </>
+                    ) : (
+                      "The box is empty."
+                    )}{" "}
+                    <span className="text-foreground tabular-nums">{state.tiles.laid.length}</span> {state.tiles.laid.length === 1 ? "tile" : "tiles"} laid, <span className="text-foreground tabular-nums">{tiles.score.points}</span> {tiles.score.points === 1 ? "point" : "points"} closed.
                   </span>
                 </Part>
                 <Part part="seats" on={parts.seats} onChange={(on) => showPart("seats", on)}>
