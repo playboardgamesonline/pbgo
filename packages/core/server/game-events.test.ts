@@ -1819,7 +1819,7 @@ describe("leaving a game in progress", () => {
     expect(h.record).not.toHaveBeenCalled()
   })
 
-  it("changes nothing for a player who leaves twice, a stranger, or a table that is over", async () => {
+  it("changes nothing for a player who leaves twice, or a stranger", async () => {
     withLeft(["p1", "p2", "p3"], 0, ["p2"])
     const version = stored().version
     h.playerId = "p2"
@@ -1830,12 +1830,22 @@ describe("leaving a game in progress", () => {
     await call(leave)
     expect(stored().version).toBe(version)
     expect(names()).toEqual([])
+  })
 
+  it("marks the seat of a player who leaves a table that is over and tells PostHog, without playing, writing the game down again or deleting the table", async () => {
     seed({ status: "over", players: [ann, bob], state: { players: ["p1", "p2"], turn: 3, length: 3 }, version: 9 })
     h.playerId = "p1"
+    const answer = await table(await call(leave))
+    expect(answer).toMatchObject({ status: "over", meId: null })
+    expect(stored()).toMatchObject({ status: "over", version: 10 })
+    expect(stored().players).toEqual([{ ...ann, left: true }, bob])
+    expect(tracked()).toEqual([{ event: "game_left", distinctId: "p1", properties: { game: SLUG, phase: "over" } }])
+    await afterResponse()
+    expect(h.takenOver).not.toHaveBeenCalled()
+    expect(h.record).not.toHaveBeenCalled()
+    // Leaving again changes nothing
     await call(leave)
-    expect(stored()).toMatchObject({ status: "over", version: 9 })
-    expect(stored().players).toEqual([ann, bob])
+    expect(stored().version).toBe(10)
   })
 
   it("unseats a player who leaves the lobby, and hands the table to the next one when the host goes", async () => {
@@ -1932,6 +1942,18 @@ describe("the rematch of a table", () => {
     expect(stored().players).toEqual([ann, cy])
     expect((stored().state as TestState).players).toEqual(["p1", "p3"])
     expect(names()).toEqual(["rematch_started"])
+  })
+
+  it("does not wait for a player who went on from the finished game (the leave route): the others' vote begins it without them", async () => {
+    over([ann, bob, cy])
+    h.playerId = "p2"
+    await call(leave)
+    h.playerId = "p1"
+    await call(replay)
+    h.playerId = "p3"
+    await call(replay)
+    expect(stored()).toMatchObject({ status: "playing", replay: [] })
+    expect(stored().players).toEqual([ann, cy])
   })
 
   it("gives the table to the first player who stayed when the host is the one who left", async () => {

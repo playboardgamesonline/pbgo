@@ -60,9 +60,12 @@ describe("leavePatch", () => {
     expect(leavePatch(row(), "p2")).toEqual({ players: [ann, { ...bob, left: true }, cy] })
   })
 
-  it("changes nothing for a table that is over, a player who is not at it, or one who left already", () => {
-    expect(leavePatch(row({ status: "over" }), "p1")).toBeNull()
-    for (const status of ["lobby", "starting", "playing"] as const) {
+  it("marks the seat of a player who leaves a table that is over, so that the others' rematch does not wait for them", () => {
+    expect(leavePatch(row({ status: "over" }), "p1")).toEqual({ players: [{ ...ann, left: true }, bob, cy] })
+  })
+
+  it("changes nothing for a player who is not at the table, or one who left already", () => {
+    for (const status of ["lobby", "starting", "playing", "over"] as const) {
       expect(leavePatch(row({ status }), "nobody")).toBeNull()
       expect(leavePatch(row({ status, players: [ann, { ...bob, left: true }] }), "p2")).toBeNull()
     }
@@ -152,10 +155,10 @@ describe("settleLeavers", () => {
 })
 
 describe("departureOf", () => {
-  it("says where a player was when they left a table that had begun, and nothing for the others", () => {
+  it("says where a player was when they left a table that had begun, and nothing for a lobby", () => {
     expect(departureOf("starting")).toBe("starting")
     expect(departureOf("playing")).toBe("playing")
+    expect(departureOf("over")).toBe("over")
     expect(departureOf("lobby")).toBeNull()
-    expect(departureOf("over")).toBeNull()
   })
 })

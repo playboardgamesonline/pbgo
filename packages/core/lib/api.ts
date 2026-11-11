@@ -4,6 +4,7 @@ import type { ChatMessage, ChatReaction } from "./chat"
 import { missing } from "./missing"
 import { isPreviewWindow } from "./preview"
 import type { Profile } from "./profile"
+import type { RankChange } from "./rank-change"
 import type { TableSettingsInput } from "./table-settings"
 
 /**
@@ -139,6 +140,8 @@ function buildApi(slug: string) {
     /** The countdown of the table's deadline came to 0 (`PublicGame.deadlineInMs`): the server plays the deadline if it has passed, and answers with the table as it is then */
     tick: (code: string) => post(`${games}/${code}/tick`),
     replay: (code: string) => post(`${games}/${code}/replay`),
+    /** What the game that has just ended did to the rank points of the member who asks: it is written down a moment after it ends, so the end screen asks again until it is (`RankChange`) */
+    rank: (code: string) => apiRequest<RankChange>(`${games}/${code}/rank`),
     /** Votes to play for the players the game waits for (`playerIds`, by default all of them): they are played for once every present player has voted */
     takeover: (code: string, playerIds?: string[]) => post(`${games}/${code}/takeover`, { playerIds }),
     /** Route of the game itself (`ROUTES` of its server binding): same translated errors, same neutralization in the preview */

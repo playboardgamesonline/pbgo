@@ -7,9 +7,10 @@ import { Button } from "@pbgo/ui/platform/button"
 import { PrimaryButton, Screen, Paragraph } from "../home/screen"
 import { useApi, useBinding } from "../../lib/binding-context"
 import { failedCheck } from "../../lib/ready-curtain"
-import { gamePath, tablePath } from "../../lib/site-url"
+import { continuePath, gamePath, tablePath } from "../../lib/site-url"
 import { useLiveGame } from "../../lib/use-live-game"
 import { useText } from "../skin-provider"
+import { ContinueProvider } from "./continue-context"
 import { LeaveDialog } from "./leave-dialog"
 import { BoardEntry } from "./ready-screen"
 import { StartScreen } from "./start-screen"
@@ -24,7 +25,8 @@ const FAILED_MS = 3500
  * of a table that has no board for the visitor: one that does not exist, and one that started without them.
  *
  * "Leave" in the menu of the game really leaves (PLT-120): a table in its ready check or a game in progress asks first (`LeaveDialog`), then tells the server (the leave route: the seat is played from then on, and the player may open another
- * game at once), then takes the player to the platform's page of the game; a game that is over has nothing to leave, so the player is taken there at once.
+ * game at once), then takes the player to the platform's page of the game. A game that is over is left without asking, by that menu row and by the "Continue" of the end screen (`ContinueProvider`): the same call marks the seat, so that the
+ * others' rematch no longer waits for the player, and the player goes on to the platform (`continuePath`: a member's home, a guest's public home).
  */
 export function GameClient({ code, data }: { code: string; data?: unknown }) {
   const router = useRouter()
@@ -47,6 +49,19 @@ export function GameClient({ code, data }: { code: string; data?: unknown }) {
   // A check that ends with nobody ready takes the table with it (PLT-21), which is no table to go back to: the player goes to the game's page. Players who pressed are back at the table, and so is one who was unseated.
   const gone = failed === "game"
   const backTo = gone ? gamePath(SLUG) : tablePath(SLUG, code)
+  // A member's seat has a tag, a guest's has none: where they go on to is not the same (`continuePath`)
+  const member = !!game?.players.find((player) => player.id === game.meId)?.tag
+
+  // Where a player goes on to once the game is over, from the "Leave" of the menu or the "Continue" of the end screen: the table is left, and the screen says so until the page is gone, as the leave window's does
+  async function goOn() {
+    setLeft(true)
+    try {
+      await api.leave(code)
+    } catch {
+      // The player goes on anyway: a table they did not leave only goes on waiting for their word to a rematch
+    }
+    router.push(continuePath(member))
+  }
 
   useEffect(() => {
     if (fellThrough) {
@@ -70,7 +85,9 @@ export function GameClient({ code, data }: { code: string; data?: unknown }) {
     const phase = game.status === "starting" ? "starting" : "playing"
     return (
       <>
-        <BoardEntry game={game} receivedAt={receivedAt} reload={reload} data={data} onUpdate={apply} onLeave={() => (game.status === "over" ? router.push(gamePath(SLUG)) : setAsking(true))} />
+        <ContinueProvider value={() => void goOn()}>
+          <BoardEntry game={game} receivedAt={receivedAt} reload={reload} data={data} onUpdate={apply} onLeave={() => (game.status === "over" ? void goOn() : setAsking(true))} />
+        </ContinueProvider>
         <LeaveDialog
           open={asking}
           phase={phase}

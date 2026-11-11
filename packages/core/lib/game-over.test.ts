@@ -1,7 +1,7 @@
 import type { PlayerResult, Results } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
 import type { CoreView } from "./binding"
-import { endingOf, GAME_OVER_TIMING, pointsLine, rowDelay, sectionMotion, signed, splitResults, winnerAnnouncement } from "./game-over"
+import { endingOf, ordinal, placesOf, pointsLine, rankedResults, scoredOf, scoreText, sectionMotion, signed, summaryOf, winnerAnnouncement } from "./game-over"
 import type { PublicGame } from "./game-types"
 import { REDUCED_FADE } from "./motion-preference"
 import { DEFAULT_SKIN } from "./skin"
@@ -71,36 +71,130 @@ describe("winnerAnnouncement", () => {
   })
 })
 
-describe("splitResults", () => {
-  it("makes the winner the hero and the others the ranking", () => {
+describe("rankedResults", () => {
+  it("puts the players from the first place to the last", () => {
     const results: Results = { winners: ["b"], players: [result("a", 4, 3), result("b", 9, 1), result("c", 6, 2)] }
-    const { winners, others } = splitResults(results)
-    expect(winners.map((r) => r.playerId)).toEqual(["b"])
-    expect(others.map((r) => r.playerId)).toEqual(["c", "a"])
+    expect(rankedResults(results).map((r) => r.playerId)).toEqual(["b", "c", "a"])
   })
 
-  it("puts every winner of a tie in the hero", () => {
-    const results: Results = { winners: ["a", "c"], players: [result("a", 7, 1), result("b", 2, 3), result("c", 7, 1)] }
-    const { winners, others } = splitResults(results)
-    expect(winners.map((r) => r.playerId)).toEqual(["a", "c"])
-    expect(others.map((r) => r.playerId)).toEqual(["b"])
-  })
-
-  it("keeps the seat order between players of the same rank", () => {
-    const results: Results = { winners: ["a"], players: [result("a", 9, 1), result("b", 3, 2), result("c", 3, 2), result("d", 3, 2)] }
-    expect(splitResults(results).others.map((r) => r.playerId)).toEqual(["b", "c", "d"])
+  it("keeps the seat order between players of the same place", () => {
+    const results: Results = { winners: ["a", "c"], players: [result("a", 7, 1), result("b", 2, 3), result("c", 7, 1), result("d", 2, 3)] }
+    expect(rankedResults(results).map((r) => r.playerId)).toEqual(["a", "c", "b", "d"])
   })
 
   it("leaves the results untouched", () => {
     const players = [result("a", 4, 2), result("b", 9, 1)]
-    splitResults({ winners: ["b"], players })
+    rankedResults({ winners: ["b"], players })
     expect(players.map((r) => r.playerId)).toEqual(["a", "b"])
   })
+})
 
-  it("has no hero when nobody won, and every player in the ranking", () => {
-    const { winners, others } = splitResults({ winners: [], players: [result("a", 1, 2), result("b", 1, 1)] })
-    expect(winners).toEqual([])
-    expect(others.map((r) => r.playerId)).toEqual(["b", "a"])
+describe("placesOf", () => {
+  const ids = (results: Results) => placesOf(results).map((place) => ({ rank: place.rank, players: place.results.map((r) => r.playerId) }))
+
+  it("makes a place of each player at a table where everybody has a rank of their own", () => {
+    const results: Results = { winners: ["b"], players: [result("a", 4, 3), result("b", 9, 1), result("c", 6, 2)] }
+    expect(ids(results)).toEqual([
+      { rank: 1, players: ["b"] },
+      { rank: 2, players: ["c"] },
+      { rank: 3, players: ["a"] },
+    ])
+  })
+
+  it("gathers the players of a tie on one place, and the next place keeps its rank", () => {
+    const results: Results = { winners: ["a", "c"], players: [result("a", 7, 1), result("b", 2, 3), result("c", 7, 1)] }
+    expect(ids(results)).toEqual([
+      { rank: 1, players: ["a", "c"] },
+      { rank: 3, players: ["b"] },
+    ])
+  })
+
+  it("gathers the members of a team: they have the rank of their team", () => {
+    const results: Results = { winners: ["a", "b"], players: [result("a", 12, 1), result("c", 9, 2), result("b", 12, 1), result("d", 9, 2)] }
+    expect(ids(results)).toEqual([
+      { rank: 1, players: ["a", "b"] },
+      { rank: 2, players: ["c", "d"] },
+    ])
+  })
+
+  it("makes one place of a table that plays together, whether it won or lost", () => {
+    const players = [result("a", 7, 1), result("b", 7, 1), result("c", 7, 1)]
+    expect(ids({ winners: ["a", "b", "c"], players, coop: "won" })).toEqual([{ rank: 1, players: ["a", "b", "c"] }])
+    expect(ids({ winners: [], players, coop: "lost" })).toEqual([{ rank: 1, players: ["a", "b", "c"] }])
+  })
+
+  it("keeps the seat order inside a place, and leaves the results untouched", () => {
+    const players = [result("a", 4, 2), result("b", 9, 1), result("c", 4, 2)]
+    expect(ids({ winners: ["b"], players })[1]!.players).toEqual(["a", "c"])
+    expect(players.map((r) => r.playerId)).toEqual(["a", "b", "c"])
+  })
+})
+
+describe("scoreText", () => {
+  it("writes a score with the unit in the singular for one point", () => {
+    expect([0, 1, -1, 2, 9, -3].map(scoreText)).toEqual(["0 pts", "1 pt", "-1 pt", "2 pts", "9 pts", "-3 pts"])
+  })
+})
+
+describe("ordinal", () => {
+  it("writes a place in words", () => {
+    expect([1, 2, 3, 4, 10].map(ordinal)).toEqual(["1st", "2nd", "3rd", "4th", "10th"])
+  })
+
+  it("says th for the teens and goes on with the units after them", () => {
+    expect([11, 12, 13, 21, 22, 23, 101, 111].map(ordinal)).toEqual(["11th", "12th", "13th", "21st", "22nd", "23rd", "101st", "111th"])
+  })
+})
+
+describe("scoredOf", () => {
+  it("counts points when a player has a score or a line of detail", () => {
+    expect(scoredOf({ winners: ["a"], players: [result("a", 9, 1), result("b", 4, 2)] })).toBe(true)
+    expect(scoredOf({ winners: ["a"], players: [{ ...result("a", 0, 1), detail: [{ key: "cards", points: 0 }] }, result("b", 0, 2)] })).toBe(true)
+  })
+
+  it("does not for a game with nothing to add up", () => {
+    expect(scoredOf({ winners: ["a"], players: [result("a", 0, 1), result("b", 0, 2)] })).toBe(false)
+  })
+})
+
+describe("summaryOf", () => {
+  const four: Results = { winners: ["b"], players: [result("a", 4, 3), result("b", 9, 1), result("c", 6, 2), result("d", 1, 4)] }
+
+  it("tells a winner that they won, with their score", () => {
+    expect(summaryOf(four, "b")).toEqual({ title: "You won", outcome: "win", place: 1, of: 4, points: 9 })
+  })
+
+  it("gives a place to a player who did not win at a table of more than two", () => {
+    expect(summaryOf(four, "c")).toMatchObject({ title: "2nd place", outcome: "loss", place: 2 })
+    expect(summaryOf(four, "d")).toMatchObject({ title: "4th place", place: 4 })
+  })
+
+  it("says lost at a table of two", () => {
+    expect(summaryOf({ winners: ["a"], players: [result("a", 5, 1), result("b", 3, 2)] }, "b")).toMatchObject({ title: "You lost", outcome: "loss", place: 2 })
+  })
+
+  it("calls it a draw when every player is a winner", () => {
+    expect(summaryOf({ winners: ["a", "b"], players: [result("a", 5, 1), result("b", 5, 1)] }, "a")).toMatchObject({ title: "Draw", outcome: "draw", place: 1 })
+  })
+
+  it("says that the first of a tie at the top of a larger table won", () => {
+    expect(summaryOf({ winners: ["a", "c"], players: [result("a", 7, 1), result("b", 2, 3), result("c", 7, 1)] }, "c")).toMatchObject({ title: "You won", outcome: "win", place: 1 })
+  })
+
+  it("tells a table that plays together that it won or lost as one, with no place", () => {
+    const won: Results = { winners: ["a", "b"], players: [result("a", 12, 1), result("b", 12, 1)], coop: "won" }
+    const lost: Results = { winners: [], players: [result("a", 7, 1), result("b", 7, 1)], coop: "lost" }
+    expect(summaryOf(won, "a")).toEqual({ title: "Victory", outcome: "win", place: null, of: 2, points: 12 })
+    expect(summaryOf(lost, "b")).toEqual({ title: "Defeat", outcome: "loss", place: null, of: 2, points: 7 })
+  })
+
+  it("has no score for a game that does not count points", () => {
+    expect(summaryOf({ winners: ["a"], players: [result("a", 0, 1), result("b", 0, 2)] }, "a").points).toBeNull()
+  })
+
+  it("only says it is over to a visitor the results do not name", () => {
+    expect(summaryOf(four, null)).toMatchObject({ title: "Game over", place: null, points: null })
+    expect(summaryOf(four, "zed")).toMatchObject({ title: "Game over" })
   })
 })
 
@@ -122,27 +216,6 @@ describe("signed", () => {
     expect(signed(3)).toBe("+3")
     expect(signed(0)).toBe("0")
     expect(signed(-2)).toBe("-2")
-  })
-})
-
-describe("rowDelay", () => {
-  it("starts the first row once the panel has settled", () => {
-    expect(rowDelay(0)).toBe(GAME_OVER_TIMING.rows)
-  })
-
-  it("brings the rows in one after the other", () => {
-    expect(rowDelay(1)).toBeCloseTo(GAME_OVER_TIMING.rows + GAME_OVER_TIMING.step)
-    expect(rowDelay(2)).toBeGreaterThan(rowDelay(1))
-  })
-
-  it("stops waiting for a long table: the rows past the cap come together", () => {
-    const cap = rowDelay(GAME_OVER_TIMING.maxSteps)
-    expect(rowDelay(GAME_OVER_TIMING.maxSteps + 1)).toBe(cap)
-    expect(rowDelay(40)).toBe(cap)
-  })
-
-  it("never starts before the panel has settled, whatever the index", () => {
-    expect(rowDelay(-1)).toBe(GAME_OVER_TIMING.rows)
   })
 })
 

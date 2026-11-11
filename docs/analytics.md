@@ -28,7 +28,7 @@ Every property is a boolean, a count or a word of a closed list; `game` is a slu
 | `player_joined` | server, player id | game, seat, players, visibility | How full do tables get, public or private? |
 | `game_started` | server, player id | game, players, options, visibility | How many tables begin, public or private? |
 | `game_finished` | server, player id | game, duration_s, players, moves_count | How long do games last, how many end? |
-| `game_left`, `rematch_started`, `chat_message_sent` | server, player id | game, phase or kind | Where do players leave, do they play again, is the chat used? |
+| `game_left`, `rematch_started`, `chat_message_sent` | server, player id | game, phase (starting, playing, over) or kind | Where do players leave (the ready check, a game in progress, the end screen's Continue), do they play again, is the chat used? |
 | `takeover_vote_started`, `takeover_completed`, `turn_auto_played` | server, player id | game | How often is somebody played for? |
 | `table_deleted` | server, no id | game, reason | How do tables end up empty (lobby left, ready check left, game left, nobody ready)? |
 | `feedback_sent` | server, no id | game, type, with_screenshot, with_email | How much feedback, of which kind? |

@@ -69,11 +69,6 @@ const ALLOWED: ReadonlyArray<{ file: string; line: string; why: string }> = [
     why: "the wall of narrow screens covers everything, over the banner too: it holds no button of a game",
   },
   {
-    file: "packages/core/components/game/game-over.tsx",
-    line: "fixed inset-0 z-40 bg-black/80",
-    why: "the backdrop holds nothing and the banner (z-50) stays above it",
-  },
-  {
     file: "packages/core/components/game/hud.tsx",
     line: "relative h-dvh w-full overflow-clip",
     why: "the table fills the window under the banner, which floats over it: its canvas never resizes with the banner; the layer of the HUD and of the overlays inside keeps the room",

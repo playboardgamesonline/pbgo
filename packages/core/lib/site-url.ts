@@ -7,6 +7,12 @@ export const gamePath = (slug: string) => `/game/${slug}`
 /** Path of the hub's page of a table that waits for players: `/game/<slug>/<code>`, where the table's invitation link `/<slug>/game/<code>` leads. */
 export const tablePath = (slug: string, code: string) => `/game/${slug}/${code}`
 
+/**
+ * Where a player goes on to once their game is over, from the "Continue" of the end screen: a member's home, `/home`, and a guest's the public home, `/` (a guest has no home of their own, and `/home` would send them there). The one place that says
+ * where a finished game leads, so that it can lead somewhere else (the group a player is in) without the screen changing.
+ */
+export const continuePath = (member: boolean) => (member ? "/home" : "/")
+
 /** Absolute URL of a game: its page on the hub, `<SITE_URL>/game/<slug>`. */
 export const gameUrl = (slug: string) => `${SITE_URL}${gamePath(slug)}`
 

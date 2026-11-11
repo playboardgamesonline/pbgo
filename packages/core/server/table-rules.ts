@@ -10,6 +10,7 @@ import { withdrawPatch } from "./ready"
  * - A player who leaves a game in progress keeps their seat at the table, marked `left`: the state of the game has a seat for them, so it cannot go. The server plays it from then on (`settleLeavers`), so that the others can finish. A
  *   player who has left takes no part in the table any more: they are not a member of it for the routes, not present, and the table is no longer theirs (`isSeated`).
  * - A table in its ready check or in the lobby has nobody who left: a player who leaves one of those is unseated (`leavePatch`).
+ * - A player who leaves a table that is over (the "Continue" of the end screen) has their seat marked `left` as well, so that the others' rematch no longer waits for their word: it is played by those who stayed.
  */
 
 /** Whether the player left the game while it was in progress. */
@@ -27,14 +28,15 @@ export const sameSeats = (a: readonly Pick<PublicPlayer, "id">[], b: readonly Pi
 
 type Leaving = Pick<GameRow, "status" | "players" | "host_id" | "ready_at" | "ready_deadline">
 
-/** Where a player was when they left: a table that was starting or being played (a lobby is left with no word to say). */
-export type Departure = "starting" | "playing"
+/** Where a player was when they left: a table that was starting, being played or over (a lobby is left with no word to say). */
+export type Departure = "starting" | "playing" | "over"
 
 /**
- * What a player's leaving writes, null when it changes nothing: they do not sit at the table (or already left it), or it is over, which holds nobody.
+ * What a player's leaving writes, null when it changes nothing: they do not sit at the table, or already left it.
  *   - in the lobby they are unseated, and the table has another host if they were it;
  *   - in its ready check they are unseated and the check is over, since the game was set up for the seats it had (`withdrawPatch`, PLT-107);
- *   - in a game in progress their seat is marked `left`, and stays.
+ *   - in a game in progress their seat is marked `left`, and stays;
+ *   - at a table that is over their seat is marked `left` too: nothing is played, the others only stop waiting for them to vote for a rematch.
  */
 export function leavePatch(row: Leaving, playerId: string): Partial<GameRow> | null {
   if (!isSeated(row, playerId)) return null
@@ -46,6 +48,7 @@ export function leavePatch(row: Leaving, playerId: string): Partial<GameRow> | n
     case "starting":
       return withdrawPatch(row, playerId)
     case "playing":
+    case "over":
       return { players: row.players.map((player) => (player.id === playerId ? { ...player, left: true } : player)) }
     default:
       return null
@@ -83,5 +86,5 @@ export function settleLeavers<State>(GAME: AnyGameDefinition, state: State, play
   return { state: current, played, ...(events.length ? { events } : {}) }
 }
 
-/** Where a player left a table from, for the event that says so; null for a lobby or a table that is over. */
-export const departureOf = (status: GameRow["status"]): Departure | null => (status === "starting" || status === "playing" ? status : null)
+/** Where a player left a table from, for the event that says so; null for a lobby. */
+export const departureOf = (status: GameRow["status"]): Departure | null => (status === "starting" || status === "playing" || status === "over" ? status : null)

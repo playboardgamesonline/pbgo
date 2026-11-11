@@ -15,7 +15,7 @@ import { type Departure, departureOf, leavePatch, settleLeavers } from "../../..
  *   - in a game in progress the seat stays, marked `left`, and the server plays it from then on (`GAME.autoPlayFor`, as for an absent player), so that the others can finish. The seat counts for no rating, whoever's move it was, and
  *     the player may open another game at once: a table that holds a player who left holds nobody. If the steps the game now waits for are all theirs, it goes on until it waits for somebody who is there, and if that is the end
  *     of the game the game is written down with the others'. Nothing is played when everybody left: the table is abandoned, not played out alone;
- *   - a table that is over holds nobody and has nothing to leave: nothing changes.
+ *   - at a table that is over (the "Continue" of the end screen) the seat is marked `left` the same way and nothing is played: the others' rematch is played by those who stayed, and the game was written down when it ended.
  * Leaving twice, or leaving a table one does not sit at, changes nothing and answers with the table as it is.
  * The last player who leaves a table (a lobby, a ready check, or a game in progress that everybody left) leaves a table that holds nobody and that nobody can come back to: it is deleted at once, and not by the nightly clean-up (PLT-21,
  * `deleteEmptyTable`). A game that this leave ended is the exception: it is written down from its row after the response, and the nightly job takes it.

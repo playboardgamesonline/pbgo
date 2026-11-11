@@ -67,8 +67,8 @@ export type ServerEvents = {
     ended_by: "natural"
     approximate: true
   }
-  /** A player left a table that had begun, from its ready check or from a game in progress (PLT-120); a lobby that is left is no event. */
-  game_left: { game: string; phase: "starting" | "playing" }
+  /** A player left a table that had begun, from its ready check, from a game in progress (PLT-120) or from a finished game (the "Continue" of the end screen, which is no longer a vote for a rematch); a lobby that is left is no event. */
+  game_left: { game: string; phase: "starting" | "playing" | "over" }
   /**
    * A table that nobody sits at any more went at once (PLT-21), and `reason` says how it came to be empty: the last player left the lobby, its ready check or the game, or a ready check ran out of time with nobody ready.
    * No person is behind it: it is sent with an identifier that is used once.
