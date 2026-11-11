@@ -21,10 +21,15 @@
   "dependencies": {
     "@flip-7/engine": "workspace:*",
     "@pbgo/core": "workspace:*",
+    "@pbgo/table": "workspace:*",
     "@pbgo/ui": "workspace:*",
+    "@react-three/drei": "catalog:",
+    "@react-three/fiber": "catalog:",
     "@sanity/client": "catalog:",
     "next-sanity": "catalog:",
-    "server-only": "catalog:"
+    "server-only": "catalog:",
+    "sonner": "catalog:",
+    "three": "catalog:"
   },
   "peerDependencies": {
     "next": "catalog:",
@@ -39,6 +44,7 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/three": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

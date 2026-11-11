@@ -121,6 +121,7 @@ scene-glows
 - A card wears one glow at a time; a state that needs two looks at once is a glow of its own.
 - Colours, opacities and speeds are read on every frame, so the table's debug panel tunes them live in a folder for each glow (`Glow · name`); `spread` and `blend` are read when the card is drawn. Every glow gets its own part objects: tuning one never moves another. `definedGlows()` lists the glows made so far and `glowNameOf(glow)` tells the name one was defined under, which the panel and the card inspector use.
 - Name a glow for its meaning in the game (`selection`, `gold`), not for its look.
+- A glow is for a card that lies face up: the halo and the outline are behind the card and face its face, and the ring, the shine and the sparkle lie on the face, so a card lying face down shows none of them. A pile that glows to say that it can be pressed turns its top card up with the back for its picture (`top.front` of a [Pile](06-decks-and-piles.md#pile)).
 
 ## From the view to the board
 
