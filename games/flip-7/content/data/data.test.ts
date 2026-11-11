@@ -54,14 +54,15 @@ const TYPES = { number: "numberCard", action: "actionCard", modifier: "modifierC
 describe("the seed documents", () => {
   const count = (type: string) => docs().filter((doc) => doc._type === type).length
 
-  it("are the 24 documents of the Flip 7 seed: 22 cards in three categories, the game and the settings", () => {
-    expect(docs()).toHaveLength(24)
-    expect({ numberCard: count("numberCard"), actionCard: count("actionCard"), modifierCard: count("modifierCard"), game: count("game"), settings: count("settings") }).toEqual({
+  it("are the 25 documents of the Flip 7 seed: 22 cards in three categories, the game, the settings and the texts", () => {
+    expect(docs()).toHaveLength(25)
+    expect({ numberCard: count("numberCard"), actionCard: count("actionCard"), modifierCard: count("modifierCard"), game: count("game"), settings: count("settings"), texts: count("texts") }).toEqual({
       numberCard: 13,
       actionCard: 3,
       modifierCard: 6,
       game: 1,
       settings: 1,
+      texts: 1,
     })
     expect(docs().map((doc) => doc._id)).toEqual([
       ...NUMBERS.map((key) => `number-card-${key}`),
@@ -69,6 +70,7 @@ describe("the seed documents", () => {
       ...MODIFIERS.map((key) => `modifier-card-${key}`),
       "game",
       "settings",
+      "texts",
     ])
   })
 
@@ -285,8 +287,8 @@ describe("the settings", () => {
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    // the names of the 3 action cards and the credits
-    expect(objects).toHaveLength(4)
+    // the names of the 3 action cards, the credits and the 6 words of the engine
+    expect(objects).toHaveLength(10)
     for (const { path, value } of objects) expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
   })
 

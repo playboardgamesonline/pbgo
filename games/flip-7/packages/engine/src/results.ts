@@ -17,11 +17,12 @@ export function results(s: State): Results | null {
       playerId,
       total: totals[seat]!,
       rank: rank[seat]!,
+      // The words of each line are `score.<key>` in the game's Sanity; `scoreLines` of the definition lists the keys
       detail: [
-        { key: "rounds", label: "Manches jouées", points: s.rounds.length },
-        { key: "bestRound", label: "Meilleure manche", points: Math.max(...s.rounds.map((scores) => scores[seat]!)) },
-        { key: "flip7", label: "Flip 7 réussis", points: s.stats[seat]!.flip7 },
-        { key: "busts", label: "Manches ratées", points: s.stats[seat]!.busts },
+        { key: "rounds", points: s.rounds.length },
+        { key: "bestRound", points: Math.max(...s.rounds.map((scores) => scores[seat]!)) },
+        { key: "flip7", points: s.stats[seat]!.flip7 },
+        { key: "busts", points: s.stats[seat]!.busts },
       ],
     }))
     // the sort is stable: a tie keeps the seat order
