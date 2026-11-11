@@ -108,7 +108,7 @@ An engine declares no text. The words of an option (its label, its help, the lab
 | `preset.<id>.label`, `preset.<id>.help` | A preset; the label is required |
 | `score.<key>` | A line of the score, the `key` of a `detail` row; required when the definition lists it in `scoreLines` |
 
-- `optionLabelKey`, `optionHelpKey`, `choiceLabelKey`, `presetLabelKey`, `presetHelpKey` and `scoreLabelKey` of the kit build the keys, and `engineTextKeys(definition)` lists the ones a definition needs, `required` and `optional`.
+- `optionLabelKey`, `optionHelpKey`, `choiceLabelKey`, `presetLabelKey`, `presetHelpKey` and `scoreLabelKey` of the kit build the keys, and `engineTextKeys(definition)` lists the ones a definition needs, `required` and `optional`. `describeTextKey(key)` says a key in words, for the gamemaster's Copy page: `option.mode.choice.fast` is Option "mode": choice "fast".
 - A text is read in the language asked, else in English, else it reads `[missing: <key>]` on the table: the code covers for nothing (`docs/sanity-and-languages.md`). While an engine still carries a `label` or a `help`, it stands in for a text Sanity does not hold, so a game can move its words one at a time.
 - The gamemaster writes them in Setup › Copy › Options, where the required ones are listed (Launch lists those still missing); the Studio's Copy document, tab "Options and scores", holds the same list.
 - A line of score whose words depend on a number gives the number in `values` and the text has the variable: the template's `detail` row is `{ key: "round", values: { n: 2 }, points }` and its text `Round {n}`. A game whose lines come from its data, such as the families of Courtisans, leaves `scoreLines` out and keeps naming its lines itself.

@@ -76,6 +76,7 @@ A hand is the cards a player holds, which only they may read. It is written per 
 - `me` is `null` for a viewer outside the table, and the scene then draws no hand: `view.me?.hand ?? []`. Exploding Kittens gives its eliminated players that view too. Test the view for every kind of viewer ([Hidden information](../01-the-game/10-views.md#hidden-information)).
 - The list is the order on the table, the first card on the left: the engine sets the order and the template's scene does not sort it.
 - An opponent's hand is a count, so the scene draws that many backs in a `Zone` framed on their seat, keyed by position, and a card they play starts from that row (`backFrame`, `backLayout`, `backPose`). The view of Courtisans carries `handCount`, and its board draws no opponent's hand.
+- A hand hidden from its owner (Hanabi) is a view that gives the owner a card for each one they hold and no face, `hand: state.hands[id].map((card) => ({ id: card.id }))` for the viewer and the whole card for the others. The owner reads what the others told them: the state keeps what each card is known to be (`known: { suit?, number? }`) and the view gives it to the owner. The board draws the owner's cards in their frame face down and the others' face up (`face` of the layout helpers), and the clues as marks on the card, in its `children`. A hint is an action that names a player and what is told: the plate of the player pressed ([Seats](03-seats.md)), then a window to choose ([Bets and choices](12-bets-and-choices.md)). The test of the view holds that the owner's hand leaks no face ([Hidden information](../01-the-game/10-views.md#hidden-information)).
 - Cards come in from `enter` (`DECK_POSE`, above the middle of the table), a `stagger` apart.
 - The board keeps the id of the hovered card and lifts its slot with `shifted`; a click calls the handler that posts the play. The template does both on the viewer's turn only, and the engine decides whether the card may be played (`UNKNOWN_CARD`, `NOT_YOUR_TURN`) ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)).
 - Courtisans' hand stays on the screen with the camera, in its own code (`cameraPose` in `games/courtisans/src/components/game3d/scene.tsx`): a click selects a card and a second click on a target plays it. The shared tools lay cards on the table ([what is not built](../03-not-built-yet.md)).
@@ -90,3 +91,23 @@ export function handLayout(n: number, raised: number): Pose[] {
   return slots.map((slot, i) => (i === raised ? shifted(slot, { y: R.hoverLift, z: -0.25 }) : slot))
 }
 ```
+
+## A trick
+
+The cards played to a trick lie in the middle, each toward the seat that played it. A trick is no zone of its own: it is a `Zone` whose layout has one slot for each seat, laid out in the order the cards were played.
+
+```tsx
+// One slot toward each seat, a third of the way from the middle of the table
+const ring = seats(players.length, { radiusX: 6, radiusZ: 4, me: myIndex })
+const slotOf = (seat: number) => onTable(ring[seat].x * 0.34, ring[seat].z * 0.34, { yaw: ring[seat].yaw })
+
+<Zone
+  layout={view.trick.map((play) => slotOf(seatOf(play.playerId)))}
+  size={CARD_SIZE}
+  cards={view.trick.map((play) => ({ key: play.card, id: `card-${play.card}`, front: face(play.card), back }))}
+/>
+```
+
+- The slots come in the order of the plays, not of the seats: the second card played is the second of the list, and lies in front of the seat of its player.
+- Give a card the same `id` in the hand and in the trick: it glides from where the hand held it to its slot ([Poses and motion](05-poses-and-motion.md)).
+- Who takes the trick, and when it ends, is the engine's ([Tricks](../01-the-game/03-turns.md#tricks)). A board that wants the players to read the last trick keeps it in the view until the next one starts, and moves its cards to the pile of the winner then.

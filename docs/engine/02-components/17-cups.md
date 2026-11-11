@@ -57,7 +57,7 @@ view: (state, viewer) => ({
 | `onClick`, `onHover` | Make the cup a click target ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)) |
 | `onReach` | Called once the cup has reached the pose it was sent to, with it: the slam onto the table, the moment to pour. Not called for the pose the cup appeared in |
 
-The poses are `CUP_POSES`:
+The poses are `CUP_POSES`, and a `CupPose` is one of them:
 
 | Pose | The cup |
 | --- | --- |

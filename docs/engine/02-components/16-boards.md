@@ -24,13 +24,13 @@ The state holds the number of a cell where a piece stands, and nothing else: no 
 
 | Export | What it does | Errors |
 | --- | --- | --- |
-| `squareBoard({ columns, rows, diagonals? })` | A board of squares numbered row by row from the top left, so the cell at column `col` and row `row` is `row * columns + col`. With `diagonals` the squares that touch by a corner are next to one another too and a step can go on a diagonal | `RangeError` for a board with no cell |
-| `hexBoard({ radius })`, `hexBoard({ columns, rows })` | A hexagon of hexagons round a middle cell (the radius 2 has 19 cells), or a rectangle whose odd rows are shifted half a cell to the right, numbered like a square board. Axial coordinates `[q, r]` | `RangeError` for a radius or a size that is not a whole number of cells |
-| `reachable(board, from, range, { blocked? })` | The cells that can be reached in `range` steps at the most, never into a blocked cell, each with its distance, nearest first, the start included | `RangeError` for a start that is not a cell and a range that is not a number of steps |
+| `squareBoard({ columns, rows, diagonals? })` (a `SquareBoardOptions`) | A board of squares numbered row by row from the top left, so the cell at column `col` and row `row` is `row * columns + col`. With `diagonals` the squares that touch by a corner are next to one another too and a step can go on a diagonal | `RangeError` for a board with no cell |
+| `hexBoard({ radius })`, `hexBoard({ columns, rows })` (a `HexBoardOptions`) | A hexagon of hexagons round a middle cell (the radius 2 has 19 cells), or a rectangle whose odd rows are shifted half a cell to the right, numbered like a square board. Axial coordinates `[q, r]` | `RangeError` for a radius or a size that is not a whole number of cells |
+| `reachable(board, from, range, { blocked? })` | The cells that can be reached in `range` steps at the most, never into a blocked cell, each with its distance (a `Reached`: `{ cell, distance }`), nearest first, the start included | `RangeError` for a start that is not a cell and a range that is not a number of steps |
 | `shortestPath(board, from, to, { blocked? })` | The way from one cell to another by the fewest steps, ending on the goal; empty when they are the same cell, `null` when there is no way | `RangeError` for cells that are not on the board |
 | `regionOf(board, start, same)` | The cells linked to `start` through cells that are `same` as it: a group of stones, a lake | `RangeError` for a start that is not a cell |
 | `lineBetween(board, from, to)` | The cells a straight line goes through, after the start, the last being the goal: a line of sight | `RangeError` for cells that are not on the board |
-| `rayFrom(board, from, direction, { blocked? })` | The cells a sliding piece sees in one direction: `open`, until the edge or the first blocked cell, which is `stoppedBy` | `RangeError` for a cell or a direction the board does not have |
+| `rayFrom(board, from, direction, { blocked? })` | The cells a sliding piece sees in one direction (a `Ray`): `open`, until the edge or the first blocked cell, which is `stoppedBy` | `RangeError` for a cell or a direction the board does not have |
 
 ```ts
 const BOARD = squareBoard({ columns: 8, rows: 8, diagonals: true })
@@ -48,6 +48,8 @@ const to = cleanChoice(action.to, options)
 events.push({ type: "walked", unit: id, from: state.unit[id], to, path: shortestPath(BOARD, state.unit[id], to, { blocked }) })
 ```
 
+- The corners and the sides of a board, where the settlements and the roads of Catan stand and the stones of Go, are another graph, `cornerGraph(board)` ([Maps](22-maps.md)): the same searches go along it.
+- The searches take the same rules, `BoardRules`: `blocked`, the cells that cannot be entered. A cell has two numbers, a `Coord`: `[col, row]` on a square board and `[q, r]` on a hexagonal one.
 - The cells are numbered row by row from the top, the first row being the farthest from the viewer, so a number means the same cell for the engine and for the table: the table makes its cells from the same `coords`.
 - The steps go clockwise seen from above, from the right: east, south, west, north for squares (and east, south-east, south and so on with `diagonals`, where an even direction is a side and an odd one a corner), and east, south-east, south-west, west, north-west, north-east for hexagons.
 - The searches go through the cells in the order of the directions and of the numbers, so the same board gives the same answer on every machine and a `shortestPath` is the same way each time: it is what a piece walks along, and the game puts it in its event for the board.
@@ -58,7 +60,9 @@ events.push({ type: "walked", unit: id, from: state.unit[id], to, path: shortest
 
 ### Placing the cells
 
-`squareCells(coords, options)` and `hexCells(coords, options)` turn the `coords` of the engine's board into the cells of the table, one for each, in the same order: the number of a cell is its place in the list. A `BoardCell` has `x`, `z` and a `yaw` of 0 like a space of a [track](15-tracks.md), and `corners`, the corners of its shape round its middle, clockwise seen from above. A piece stands on it with `at={cells[i]}`.
+`squareCells(coords, options)` and `hexCells(coords, options)` turn the `coords` of the engine's board (each a `Coord`, which the table package exports too) into the cells of the table, one for each, in the same order: the number of a cell is its place in the list. A `BoardCell` has `x`, `z` and a `yaw` of 0 like a space of a [track](15-tracks.md), and `corners`, the corners of its shape round its middle, clockwise seen from above. A piece stands on it with `at={cells[i]}`.
+
+The options are `PlaceOptions`:
 
 | Option | Role |
 | --- | --- |
@@ -75,7 +79,7 @@ A column goes toward the right and a row toward the viewer, so the first row is 
 | Prop | Role |
 | --- | --- |
 | `cells` | The cells, from `squareCells` or `hexCells`. Keep the list from one render to the next, or compute it in `useMemo`; a list made anew with the same cells costs a comparison and no painting |
-| `look` | `(index) => { color?, label?, ink? }`: what each cell shows, its colour (the two colours of a chessboard, the owner of a territory, the cell that was just played), the label written in its middle and the colour of its ink. It comes from the game's state and the visitor's language |
+| `look` | `(index) => CellLook`, `{ color?, label?, ink? }`: what each cell shows, its colour (the two colours of a chessboard, the owner of a territory, the cell that was just played), the label written in its middle and the colour of its ink. It comes from the game's state and the visitor's language |
 | `color`, `ink` | The colour of the cells and of the ink of the labels that give none |
 | `halo`, `haloColor` | The numbers of the cells that can be chosen, which a ring pulses on, and the colour of the ring |
 | `drops`, `dropId` | The numbers of the cells that pieces can be let go on: each is a zone, named by its number or by what `dropId` makes of it, so the `dropOn` of a piece lists numbers. While a piece is held that may go on them a ring pulses on each, and the cell it is over takes the ring of the pointer. A table with more than one board gives each its own `dropId`, such as `${seat}:${cell}`, so that a cell of one is never taken for a cell of another ([Dragging](19-dragging.md#zones)) |

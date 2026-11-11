@@ -12,8 +12,8 @@ The engine of a game is its rules as pure TypeScript, with no UI and no I/O, in 
 ## The map
 
 - [The game](01-the-game/index.md): what every game has: players, turns and phases, actions, victory, parameters, data, state and views, and the contract.
-- [Components](02-components/index.md): the building blocks a game is made of: cards, piles, zones, dice, a text field, pieces, counters, tracks, boards, cups, bags, dragging, timers, drawing, seats, a score. Each with its side in the engine and its side on the board, and the list of the ones still to build.
-- [Not built yet](03-not-built-yet.md): what games ask for and no tool provides: maps, a filter of what players write or draw, a bar of progress.
+- [Components](02-components/index.md): the building blocks a game is made of: cards, piles, zones, dice, a text field, pieces, counters, tracks, boards, cups, bags, dragging, timers, drawing, maps, seats, a score. Each with its side in the engine and its side on the board, and the list of the ones still to build.
+- [Not built yet](03-not-built-yet.md): what games ask for and no tool provides: the art of a map, a filter of what players write or draw, a bar of progress.
 - [Build a game](04-build-a-game/index.md): from the rules to a playable game, in order.
 - [Examples](05-examples/index.md): the engines of Flip 7 and Courtisans, file by file.
 

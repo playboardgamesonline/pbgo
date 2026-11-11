@@ -1,16 +1,17 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { addStrokes, allSubmitted, bagSize, createSaveableRng, type Drawing, drawFromBag, drawingPoints, emptyDrawing, EngineError, hexBoard, openSubmissions, reachable, restoreRng, revealSubmissions, shortestPath, squareBoard, type Stroke, submit, submittedFlags, type Submissions, undoStroke } from "@pbgo/engine-kit"
+import { addStrokes, allSubmitted, longestTrail, bagSize, createSaveableRng, type Drawing, drawFromBag, drawingPoints, emptyDrawing, EngineError, hexBoard, openSubmissions, reachable, restoreRng, revealSubmissions, shortestPath, squareBoard, type Stroke, submit, submittedFlags, type Submissions, undoStroke } from "@pbgo/engine-kit"
 import { ask, askChoice, askNumber, askText } from "@pbgo/core/components/game/prompt"
 import { PromptHost } from "@pbgo/core/components/game/prompt-host"
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Button } from "@pbgo/ui/platform/button"
 import { Choice, Knob, Option } from "./controls"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
-import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, SKETCH_BRUSHES, SKETCH_COLORS, SKETCH_PEN, SKETCH_RULES, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
+import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, ISLAND_BUILDS, ISLAND_PLAYERS, type IslandBuild, type IslandPlayer, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, SKETCH_BRUSHES, SKETCH_COLORS, SKETCH_PEN, SKETCH_RULES, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
 import { SceneFrame } from "./frame"
-import { BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, SeatScene, SeatsScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
+import { ISLAND_CORNERS } from "./island"
+import { BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
 
 // The light half of the 3D specimens of the engine docs: each is the state and the controls of one scene, laid out in a `SceneFrame`, and the scene itself (`lazy.tsx`), which is drawn only when the frame is near the window. The controls
 // are the platform's own and hold every value the scene is given, so they are there, and still, before the scene is and after it is let go; the scene is a function of them and sends back what the pointer did in it.
@@ -623,6 +624,70 @@ export function SceneNumbersSpecimen() {
       }
     >
       <NumbersScene count={count} face={face} bet={bet} onCount={setCount} onFace={setFace} onBet={setBet} onSettle={setSettled} />
+    </SceneFrame>
+  )
+}
+
+/** What a player has built on the island, in words */
+const builtBy = (who: IslandPlayer, settlements: readonly (IslandPlayer | null)[], roads: readonly (IslandPlayer | null)[]) => {
+  const owned = roads.flatMap((owner, road) => (owner === who ? [road] : []))
+  return { settlements: settlements.filter((owner) => owner === who).length, roads: owned.length, longest: longestTrail(ISLAND_CORNERS, owned, { blocked: (point) => settlements[point] === 1 - who }) }
+}
+
+export function SceneRoadMapSpecimen() {
+  // What the board holds: who has a settlement on each point of the island and who has built each side. The structure is the engine's, the kit's `cornerGraph`
+  const [settlements, setSettlements] = useState<(IslandPlayer | null)[]>(() => Array.from({ length: ISLAND_CORNERS.size }, () => null))
+  const [roads, setRoads] = useState<(IslandPlayer | null)[]>(() => Array.from({ length: ISLAND_CORNERS.edges.length }, () => null))
+  const [player, setPlayer] = useState<IslandPlayer>(0)
+  const [build, setBuild] = useState<IslandBuild>("settlement")
+
+  // A settlement goes on a free point with no settlement next to it, and a road on a free side that leaves a point where the player has a settlement or a road, and not through another player's settlement
+  const places = Array.from({ length: ISLAND_CORNERS.size }, (_, point) => point).filter((point) => settlements[point] === null && ISLAND_CORNERS.neighbours(point).every((next) => settlements[next] === null))
+  const reaches = (point: number) => settlements[point] === player || (settlements[point] === null && ISLAND_CORNERS.edgesAt(point).some((side) => roads[side] === player))
+  const sides = roads.flatMap((owner, side) => (owner === null && ISLAND_CORNERS.edges[side]!.some(reaches) ? [side] : []))
+  const build_ = (what: IslandBuild, where: number) => {
+    if (what === "settlement" && places.includes(where)) setSettlements((now) => now.map((owner, point) => (point === where ? player : owner)))
+    if (what === "road" && sides.includes(where)) setRoads((now) => now.map((owner, side) => (side === where ? player : owner)))
+  }
+  const first = build === "settlement" ? places[0] : sides[0]
+  return (
+    <SceneFrame
+      label="An island of nineteen hexagons seen from above, each with a colour and a number. A ring pulses on every point where a settlement may be built, or a strip on every side where a road may be, and pressing one builds there: the settlement is a cube and the road a wide line, both in the colour of the player"
+      controls={
+        <>
+          <Choice label="Player" value={String(player)} options={ISLAND_PLAYERS.map((name, who) => ({ value: String(who), label: name, description: `${name} builds` }))} onChange={(value) => setPlayer(Number(value) as IslandPlayer)} />
+          <Choice label="Build" value={build} options={ISLAND_BUILDS.map((what) => ({ value: what, label: what, description: `Build a ${what}` }))} onChange={setBuild} />
+          <Button variant="outline" size="sm" disabled={first === undefined} onClick={() => first !== undefined && build_(build, first)}>
+            Build one for me
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={settlements.every((owner) => owner === null) && roads.every((owner) => owner === null)}
+            onClick={() => {
+              setSettlements((now) => now.map(() => null))
+              setRoads((now) => now.map(() => null))
+            }}
+          >
+            Start again
+          </Button>
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            The island has <span className="text-foreground tabular-nums">{ISLAND_CORNERS.size}</span> points and <span className="text-foreground tabular-nums">{ISLAND_CORNERS.edges.length}</span> sides.
+            {ISLAND_PLAYERS.map((name, who) => {
+              const have = builtBy(who as IslandPlayer, settlements, roads)
+              return (
+                <span key={name}>
+                  {" "}
+                  {name}: <span className="text-foreground tabular-nums">{have.settlements}</span> {have.settlements === 1 ? "settlement" : "settlements"}, <span className="text-foreground tabular-nums">{have.roads}</span> {have.roads === 1 ? "road" : "roads"}, longest road{" "}
+                  <span className="text-foreground tabular-nums">{have.longest}</span>.
+                </span>
+              )
+            })}
+          </p>
+        </>
+      }
+    >
+      <RoadMapScene settlements={settlements} roads={roads} halo={{ places: build === "settlement" ? places : [], roads: build === "road" ? sides : [] }} onPlace={(point) => build_("settlement", point)} onRoad={(side) => build_("road", side)} />
     </SceneFrame>
   )
 }

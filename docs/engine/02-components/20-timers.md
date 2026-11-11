@@ -59,7 +59,7 @@ The conformance test of an engine plays a game that has a clock the way the serv
 
 Nothing runs on a timer. The first request that looks at a table whose deadline has passed plays it: the read that every board polls, the board's page, a move, a vote of the takeover, the ready check and the `tick` a board sends when its countdown ends. The write carries the version of the game, so of several requests that look at once one plays the deadline and the others find nothing due.
 
-- Each deadline is played with its own time as the action's `at`, not the time the server got to it. A table nobody looked at for a while catches up one deadline after the other, up to `MAX_DEADLINES` in one call, and ends up as it would have if the server had been there.
+- Each deadline is played with its own time as the action's `at`, not the time the server got to it. A table nobody looked at for a while catches up one deadline after the other, up to `MAX_DEADLINES` in one call, and ends up as it would have if the server had been there. The kit does the playing: `settleDeadlines(game, state, now)` reads the parts of a definition it needs (`DeadlineHooks` for the clock, `StepHooks` for playing an action) and gives a `Settled`, the state after the deadlines it played, the entries they add to the log in order and how many it played.
 - The players the clock played for are recorded as played for, as the players the takeover plays for are, so a game that they did not play moves no rating.
 - A deadline that the game refuses, which is a bug of the game, is written in the log of the server and left: the table can still be read and its players can still move.
 - A table tells its players how long is left, `deadlineInMs`, and not when it ends, so a device whose clock is off does not matter. The board counts it down from the moment it received it and gets `deadlineAt` on the clock of its own page, `performance.now()` (`BoardProps`).
@@ -74,6 +74,8 @@ A game has none of this to write: it gives `begin`, `nextDeadline` and the actio
 ```tsx
 <Timer endsAt={deadlineAt} seconds={view.timer.seconds} at={{ x: 6.6, z: 3.4 }} onEnd={() => play("gong")} />
 ```
+
+The props are `TimerProps`:
 
 | Prop | Role |
 | --- | --- |

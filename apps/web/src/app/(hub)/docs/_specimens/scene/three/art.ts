@@ -49,6 +49,22 @@ export function inks(): string[] {
   return [colors.ink, colors.marks[0], colors.navy, colors.marks[2]]
 }
 
+/** The kinds of tile of the island of the road map specimen, each with its colour: the page's tokens mixed, so that the island changes with them. */
+export const TILE_KINDS = ["forest", "pasture", "field", "hills", "mountains", "desert"] as const
+export type TileKind = (typeof TILE_KINDS)[number]
+let tiles_: Record<TileKind, string> | undefined
+export function tileColors(): Record<TileKind, string> {
+  tiles_ ??= {
+    forest: cssColor("color-mix(in oklab, var(--success) 62%, var(--piece-ink))"),
+    pasture: cssColor("color-mix(in oklab, var(--success) 55%, var(--piece-ivory))"),
+    field: cssColor("color-mix(in oklab, var(--piece-gold) 80%, var(--piece-ivory))"),
+    hills: cssColor("color-mix(in oklab, var(--piece-red) 62%, var(--piece-gold))"),
+    mountains: cssColor("color-mix(in oklab, var(--muted-foreground) 60%, var(--piece-ink))"),
+    desert: cssColor("var(--piece-ivory)"),
+  }
+  return tiles_
+}
+
 /** Where cards are dealt from in the specimens: above the middle of the table, face down. */
 export const DECK = onTable(0, -0.5, { y: 3.2, face: "down", scale: 0.9 })
 

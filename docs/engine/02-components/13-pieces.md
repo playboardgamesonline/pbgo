@@ -12,7 +12,7 @@ scene-pieces
 
 | Part | What it is | Where it comes from |
 | --- | --- | --- |
-| Shape | The solid: how tall it is, how wide a circle it fits in, whether it has two flat faces, and how it is drawn | `pieceModel` gives a disc, a square, a hex, a cube, a sphere and a pawn; `makeFlatPiece` makes a flat piece of any silhouette (a meeple, a standee) from its outline; `makePiece` makes a piece from a solid the game modelled |
+| Shape | The solid: how tall it is, how wide a circle it fits in, whether it has two flat faces, and how it is drawn | `pieceModel` gives a disc, a square, a hex, a cube, a sphere and a pawn (`PIECE_SHAPES` lists them and a `PieceShape` is one of them); `makeFlatPiece` makes a flat piece of any silhouette (a meeple, a standee) from its outline; `makePiece` makes a piece from a solid the game modelled |
 | Colour | The edge of the piece, and its faces that wear no picture | `color` |
 | Pictures | What the top and the bottom of a flat piece show | `faces.top` and `faces.bottom`, textures painted by the game |
 | Place | Where it stands, which way it faces, how high, which face is up | `at`, `y`, `lift`, `face` |
@@ -52,7 +52,7 @@ A `Piece` is shared: `packages/table/src/piece/piece.tsx`. The props are `PieceP
 | `onArrive` | Called when a flight ends |
 | `children` | What the game draws on the top of the piece, as three.js elements: their origin is the middle of the top, x to the right and y away from the viewer. They turn over with the piece |
 
-A `Stack` is `count` pieces of the same kind, one on the other, for a supply of coins or gems:
+A `Stack` (props: `StackProps`, those of a `Piece` but a few) is `count` pieces of the same kind, one on the other, for a supply of coins or gems:
 
 | Prop | Role |
 | --- | --- |
@@ -92,6 +92,7 @@ A flat piece is a silhouette with a thickness: the corners of an outline, seen f
 const meeple = makeFlatPiece({ name: "meeple", outline: fitOutline(corners), height: 0.3 })
 ```
 
+- An outline (`PieceOutline`) is a list of points (`OutlinePoint`, an `[x, y]` pair): the corners of the edge of a flat piece, seen from above and counterclockwise, inside a box one unit wide and high.
 - `regularOutline` makes a regular polygon (a disc is many sides, a hexagon six), `roundedOutline` rounds the corners of an outline, `fitOutline` takes the corners of any drawing, in any size and place, and makes them fit one unit wide, centred, counterclockwise: a game gives the silhouette of its piece and gets the same piece whatever the scale it drew at.
 - `makePiece` is for a piece that is not a silhouette: it takes the geometry of a solid at a size, how tall it is and how wide, and whether it has a top and a bottom. The geometry has the `color` attribute that the piece rewrites as it turns, and one material group for each material.
 - The shapes of the package: the cube has its corners cut, a pawn is turned on a lathe from a profile, the disc, the square and the hexagon are flat with a rounded edge.

@@ -43,6 +43,8 @@ export function seats(ids: string[], meId: string | null): Map<string, SeatSpot>
 scene-seat
 ```
 
+The props are `SeatProps`:
+
 | Prop | Role |
 | --- | --- |
 | `nickname`, `color` | The name, written in capitals in the seat colour, and the colour that the avatar is made of until a picture exists and that the aura is lit in |
@@ -66,7 +68,7 @@ scene-seat
 
 - `PlayerSeat` is the `Seat` of a player of the table. Give it their `id` and it takes the nickname, the colour, the account picture, the seat theme, the crown icon and the font of the seat label from the platform (`useGame()`, `useSeatTheme()` and `useSkin()`), as `PlayerSeatLabel` does for the DOM ([Seat label](../../design/04-in-game/04-seat-label.md)), and what the table says of the player. The canvas of `Table` hands the contexts of the page on to the scene, so it works inside it.
 - A player is therefore named one way in the DOM and on the table: the same avatar, the same seat colour and the same account picture, with no copy to keep in step. `Seat` takes the same values as props, for a scene outside a game such as the example above.
-- The game does not say who has the turn or who won: `seatStateOf` reads it from the table, from what every game already has in `PublicGame` (below). A prop of the same name wins, for a game whose rules say otherwise.
+- The game does not say who has the turn or who won: `seatStateOf` reads it from the table (a `SeatTable`: the status, who is waited for, who is present and the winners), from what every game already has in `PublicGame` (below), and gives a `SeatState`. A prop of the same name wins, for a game whose rules say otherwise.
 - The score is the game's. The `line` is a text of the visitor's language, which the template writes with `pointsShort` of the skin and never with a literal.
 
 | State | When | Read from |
@@ -110,7 +112,7 @@ From `template/src/components/board/scene.tsx`, a seat of the template; the back
 | `turnForce`, `waitingForce`, `hoverForce`, `winnerForce` | How bright the aura is for the player of the turn, for a player expected with others, under the pointer and for a winner |
 | `awayOpacity` | How opaque the plate of a player who is away or out stays |
 
-`SEAT_SETTINGS` is a plain object that the Seat folder of the table's debug panel edits (`SEAT_FIELDS` lists its knobs, and a `Seat` follows them as they move). With the panel's View folder on, every `Seat` also marks its spot on the ring and the middle of its plate. `plateOf`, `auraForce` and `seatStateOf` are the same numbers and rules as pure functions: `placement.test.ts` checks the places against those the template used before the plate moved into the package, and `state.test.ts` checks the states. From `template/src/components/board/scene.tsx`, the folder of the panel:
+`SEAT_SETTINGS` is a plain object (its type is `SeatSettings`) that the Seat folder of the table's debug panel edits (`SEAT_FIELDS` lists its knobs, and a `Seat` follows them as they move). With the panel's View folder on, every `Seat` also marks its spot on the ring and the middle of its plate. `plateOf`, `auraForce` (which takes a `SeatMood`: what lights the aura, whether the seat has the turn, is waited for, is under the pointer or won) and `seatStateOf` are the same numbers and rules as pure functions: `placement.test.ts` checks the places against those the template used before the plate moved into the package, and `state.test.ts` checks the states. From `template/src/components/board/scene.tsx`, the folder of the panel:
 
 ## What stands on a plate
 
