@@ -17,7 +17,8 @@ import { QUEUE_MODE_LABELS, queueGamesLabel, queueProgress } from "@pbgo/ui/queu
 import { unreadOf, type Conversation, type Message } from "@pbgo/ui/social"
 import { cn } from "@pbgo/ui/utils"
 import { AccountMenu } from "@/components/account-menu"
-import { useFriendActions } from "@/components/friend-actions"
+import { changeFriends, useFriendActions } from "@/components/friend-actions"
+import { useReceivedRequestToasts } from "@/components/friend-toasts"
 import { OwnName } from "@/components/own-name"
 import { readFolded, writeFolded } from "@/lib/folded-games"
 import { leaveQueue, useQueue, useQueueSeconds } from "@/lib/matchmaking"
@@ -54,6 +55,8 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
   const [sent, setSent] = useState<Record<string, readonly Message[]>>({})
   const [read, setRead] = useState<ReadonlySet<string>>(new Set())
   const preview = account.id === DEMO_ACCOUNT.id
+  // A toast for each friend request that comes in while the page is open (the demo account has none that come in: its requests are made up)
+  useReceivedRequestToasts(preview ? null : account.id, changeFriends)
   const nothing = () => {}
   // The search for a game that the visitor has begun, wherever they began it (the button of a game's page, the home's Find a game): the bar shows it while the panel is closed, and the panel has a card for it
   const queue = useQueue()

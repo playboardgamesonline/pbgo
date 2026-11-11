@@ -12,21 +12,21 @@ import { Button } from "@pbgo/ui/platform/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@pbgo/ui/platform/dialog"
 import { toast } from "@pbgo/ui/platform/sonner"
 import type { FriendRequest } from "@pbgo/ui/social"
+import { showSentRequest } from "@/components/friend-toasts"
 import { refreshSocial } from "@/lib/social-store"
 import { messageOf } from "@/lib/table-door"
 
 // What a member does with their friends from the screens (PLT-23): send a request, answer one, remove a friend, block somebody, lift a block. Each is one `POST` under `/api/hub/friends` (`changeFriends`), which says what it did in a toast (the names in it are
-// `ph-mask`, as nicknames are everywhere) and reads the social state again either way, so that every list on the page shows what the server says. Removing a friend and blocking ask first, in a window: both are easy to press by mistake and block is not undone by
-// adding them again. The demo account of development is told it is done by the same routes and its lists, which the browser makes up, do not change.
+// `ph-mask`, as nicknames are everywhere) and reads the social state again either way, so that every list on the page shows what the server says. A request that was sent is told by the toast of the person, which takes it back (`friend-toasts.tsx`). Removing a friend and
+// blocking ask first, in a window: both are easy to press by mistake and block is not undone by adding them again. The demo account of development is told it is done by the same routes and its lists, which the browser makes up, do not change.
 
 /** A handle in a text of a toast or a window, masked in the recordings. */
 const Name = ({ who }: { who: Handle }) => <span className="ph-mask">{handleText(who)}</span>
 
-/** What a member is told when a change went through, or nothing: answering a request is seen in the list, where the row leaves. */
+/** What a member is told when a change went through, or nothing: answering a request is seen in the list, where the row leaves, and a request that was sent has the toast of the person. */
 function saidAfter(action: FriendAction, result: FriendResult, who: Handle): ReactNode | null {
   if (result === "friends") return <>You are already friends with <Name who={who} />.</>
   if (result === "accepted") return <>You and <Name who={who} /> are now friends.</>
-  if (action === "request") return <>Request sent to <Name who={who} />.</>
   if (action === "remove") return <>Removed <Name who={who} /> from your friends.</>
   if (action === "block") return <>Blocked <Name who={who} />.</>
   if (action === "unblock") return <>Unblocked <Name who={who} />.</>
@@ -43,6 +43,11 @@ export async function changeFriends(action: FriendAction, who: Handle, source?: 
       method: "POST",
       body: JSON.stringify({ nickname: who.nickname, tag: who.tag, ...(source ? { source } : {}) }),
     })
+    // A request that waits has the toast of the person, with the button that takes it back
+    if (action === "request" && result === "sent") {
+      showSentRequest(who, () => cancelRequest(who))
+      return true
+    }
     const said = saidAfter(action, result, who)
     if (said) toast.success(said)
     return true
@@ -52,6 +57,13 @@ export async function changeFriends(action: FriendAction, who: Handle, source?: 
   } finally {
     refreshSocial()
   }
+}
+
+/** The Cancel of the toast of a request that was sent: it takes the request back, and the toast says that it did (the panel's own Cancel says nothing, its row leaves). True when it was done. */
+async function cancelRequest(who: Handle): Promise<boolean> {
+  const done = await changeFriends("cancel", who)
+  if (done) toast.success(<>Request to <Name who={who} /> cancelled.</>)
+  return done
 }
 
 type Change = { kind: "remove" | "block"; friend: Friend }
