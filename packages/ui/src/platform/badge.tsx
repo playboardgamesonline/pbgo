@@ -15,6 +15,8 @@ const badgeVariants = cva(
         success: "bg-success/20 [a]:hover:bg-success/30 focus-visible:ring-success/40 text-success",
         // A count of what waits for someone (messages not read, requests to answer): solid red, as Discord's, with the text in the colour of the page for contrast
         notification: "bg-destructive text-background",
+        // A table played for the rank: shiny gold, with a band of light that crosses it now and then and stands still when motion is reduced
+        ranked: "ranked-gold motion-safe:animate-[ranked-shine_3.6s_ease-in-out_infinite]",
         outline: "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
         ghost: "hover:bg-muted/50 hover:text-muted-foreground",
         link: "text-primary underline-offset-4 hover:underline",

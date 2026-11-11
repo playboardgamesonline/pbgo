@@ -100,10 +100,10 @@ function unmetLabel(table: Pick<GameTable, "minRank" | "language">, unmet: Unmet
 /** How a table counts, in the word the screens use for it: "Ranked" for a table played for the rank, "Normal" for any other. */
 export const modeOfTable = (table: Pick<GameTable, "ranked">): string => QUEUE_MODE_LABELS[table.ranked ? "ranked" : "normal"]
 
-/** The facts of a table worth saying before sitting down: how it counts, "Normal" or "Ranked", then the pace when it is not the usual one, then the expansions it is played with, then what it asks of its players. */
-function factsOf(table: GameTable, expansions: readonly Expansion[]): string[] {
+/** The facts of a table worth saying before sitting down: how it counts, "Normal" or "Ranked" (a row has a badge for that, and leaves it out here), then the pace when it is not the usual one, then the expansions it is played with, then what it asks of its players. */
+function factsOf(table: GameTable, expansions: readonly Expansion[], withMode = true): string[] {
   const names = table.expansions.flatMap((id) => expansions.find((expansion) => expansion.id === id)?.name ?? [])
-  return [modeOfTable(table), PACE[table.turnTimer], ...names, ...criteriaOf(table)].filter((fact) => fact !== undefined)
+  return [withMode ? modeOfTable(table) : undefined, PACE[table.turnTimer], ...names, ...criteriaOf(table)].filter((fact) => fact !== undefined)
 }
 
 /** The name of a table: its host's, or its code when the host has deleted their account. */
@@ -140,7 +140,8 @@ export function tableEntryProps(table: GameTable, slug: string, now: number = Da
     state: table.status === "lobby" ? "waiting" : "playing",
     seats,
     age: ageOfTable(table, now),
-    facts: factsOf(table, expansions),
+    mode: table.ranked ? "ranked" : "normal",
+    facts: factsOf(table, expansions, false),
     action: unmet && action === "join" ? null : action,
     href: `/${slug}/game/${table.code}`,
     mine,

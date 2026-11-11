@@ -141,12 +141,14 @@ function BadgeVariants() {
 <Badge variant="secondary">Beta</Badge>
 <Badge variant="outline">2–5 players</Badge>
 <Badge variant="destructive">Offline</Badge>
-<Badge variant="notification">3</Badge>`}>
+<Badge variant="notification">3</Badge>
+<Badge variant="ranked">Ranked</Badge>`}>
       <Badge>Live</Badge>
       <Badge variant="secondary">Beta</Badge>
       <Badge variant="outline">2–5 players</Badge>
       <Badge variant="destructive">Offline</Badge>
       <Badge variant="notification">3</Badge>
+      <Badge variant="ranked">Ranked</Badge>
     </Frame>
   )
 }
