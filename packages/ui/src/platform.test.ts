@@ -74,6 +74,19 @@ describe("radius", () => {
     expect(hits, hits.join("\n")).toEqual([])
   })
 
+  it("a box in a padded container has its corner computed from the container's: a pair that the container says, and the corner it gives", () => {
+    const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
+    expect(css).toMatch(/@utility nest-\* \{[^}]*--nest-radius:[^}]*--nest-padding:[^}]*border-radius:[^}]*padding:/)
+    expect(css).toMatch(/@utility rounded-nested \{[^}]*max\(calc\(var\(--nest-radius\) - var\(--nest-padding\)\), 0px\)/)
+  })
+
+  it("a tile is one shape at any size, and a `CoverTile` never has a step of the scale by hand", () => {
+    const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
+    expect(css).toMatch(/@utility rounded-tile \{[^}]*border-radius:\s*[\d.]+%/)
+    const hits = hitsOf(FILES, /<CoverTile\b[^>]*\brounded-/)
+    expect(hits, hits.join("\n")).toEqual([])
+  })
+
   it("every corner is smoothed a little, and a circle keeps its arc", () => {
     const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
     expect(css).toMatch(/--corner-smoothing:\s*[\d.]+/)

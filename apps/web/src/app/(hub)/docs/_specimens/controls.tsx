@@ -553,7 +553,7 @@ function CountedTextareaField() {
 function CoverTileSizes() {
   return (
     <Frame code={`<CoverTile picture={cover} />
-<CoverTile logo={logo} className="size-14 rounded-2xl" />
+<CoverTile logo={logo} className="size-14" />
 <CoverTile />`}>
       <CoverTileSpecimen />
     </Frame>

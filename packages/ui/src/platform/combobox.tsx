@@ -157,7 +157,7 @@ function Combobox({ options, value, onValueChange, placeholder, empty, max, onPi
                 className={cn("flex shrink-0 cursor-default items-center gap-3 rounded-2xl px-3 text-sm select-none data-active:bg-input/50 aria-disabled:opacity-50", tall ? "h-12" : "h-9")}
               >
                 {option.icon && <HugeiconsIcon icon={option.icon} strokeWidth={2} aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />}
-                {option.cover !== undefined && <CoverTile className="size-8 rounded-lg" {...option.cover} />}
+                {option.cover !== undefined && <CoverTile className="size-8" {...option.cover} />}
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate">{option.label ?? option.value}</span>
                   {option.description !== undefined && <span className="truncate text-xs text-muted-foreground">{option.description}</span>}

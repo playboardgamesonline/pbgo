@@ -45,7 +45,7 @@ An engine refuses a move by throwing, and what the request does next depends on 
 
 ### The shared codes
 
-An engine refuses with a code of one vocabulary, `SHARED_ERROR_CODES` of the kit, whenever the refusal means the same in every game. The platform words each of them (`CORE_ERROR_MESSAGES` of core, English in the code), so an engine writes no message for them and its binding lists none.
+An engine refuses with a code of one vocabulary, `SHARED_ERROR_CODES` of the kit (its type is `SharedErrorCode`), whenever the refusal means the same in every game. The platform words each of them (`CORE_ERROR_MESSAGES` of core, English in the code), so an engine writes no message for them and its binding lists none.
 
 | Code | The engine refuses because |
 | --- | --- |

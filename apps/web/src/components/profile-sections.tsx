@@ -78,7 +78,7 @@ export function ProfileSections({ games, own, hideHistory, recent, allGamesHref,
           Games
         </h2>
         {perGame.length > 0 ? (
-          <div className="overflow-hidden rounded-4xl border">
+          <div className="overflow-hidden rounded-2xl border">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -97,7 +97,7 @@ A box is a `SheetCell`: `{ x, y, width, height }`, as parts of the sheet from 0 
 A sheet of another shape lists its boxes: the three streets of Welcome To, each with its own number of houses, are three rows of `gridCells`, put end to end in one list, and the number of a house is its place in it.
 
 - Pressing a box that can be chosen calls `onCell`; pressing the paper between the boxes does nothing and the press goes on to what lies behind. Under the pointer a box that can be chosen is tinted, and the cursor is a pointer.
-- The picture is painted on a canvas, 140 pixels for each unit of the table and never more than 2,048 across, and laid on the table with a soft shadow like the rest of the board. It is painted again at the next frame after anything it shows changed, and again when the font of the writing has loaded. It is unlit and not tone mapped, so the colours are the ones painted ([Rules of the board](24-rules-of-the-board.md)).
+- The picture is painted on a canvas, 140 pixels for each unit of the table and never more than 2,048 across, and laid on the table with a soft shadow like the rest of the board. It is painted again at the next frame after anything it shows changed, and again when the font of the writing has loaded. It is unlit and not tone mapped, so the colours are the ones painted ([Rules of the board](25-rules-of-the-board.md)).
 - The sheet keeps no state: a box holds what `look` says, and a press is only said to the board. Nothing moves by itself, so a visitor who asks for less motion sees no difference.
 - A sheet for each seat is a `Sheet` with an `at` and a `yaw` of its own, which `seats` and `inFrame` give ([Seats](03-seats.md)).
 

@@ -16,6 +16,12 @@ describe("cn", () => {
     expect(cn("h-navbar", "h-10")).toBe("h-10")
   })
 
+  it("merges the two corners that are not a step like any other radius", () => {
+    expect(cn("rounded-xl", "rounded-tile")).toBe("rounded-tile")
+    expect(cn("rounded-full", "rounded-nested")).toBe("rounded-nested")
+    expect(cn("rounded-tile", "rounded-2xl")).toBe("rounded-2xl")
+  })
+
   it("keeps the classes of other groups", () => {
     expect(cn("px-gutter", "py-4")).toBe("px-gutter py-4")
     expect(cn("px-gutter pb-section", "pb-0")).toBe("px-gutter pb-0")
