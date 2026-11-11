@@ -21,7 +21,7 @@ const USER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const text = (value: unknown): string | null => (typeof value === "string" ? value : null)
 const count = (value: unknown): number => (typeof value === "number" && Number.isFinite(value) ? value : Number(value) || 0)
 const maybe = (value: unknown): number | null => (value === null || value === undefined ? null : count(value))
-/** The speed a game was played at, as its result keeps it (`game_results.pace`, migration 0021): a result that does not say was played at the normal one, as every game was until a table could be given another. */
+/** The speed a game was played at, as its result keeps it (`game_results.pace`, migration 0022): a result that does not say was played at the normal one, as every game was until a table could be given another. */
 const paceOf = (value: unknown): Pace => PACES.find((pace) => pace.value === value)?.value ?? "normal"
 
 /**
@@ -213,7 +213,7 @@ export async function readMemberGames(userId: string, limit: number): Promise<Me
     return { data: data as Row[] | null, error }
   }
   let mine = await ask(true)
-  // A project where migration 0021 is not applied yet has no speed to read: every game was played at the normal one
+  // A project where migration 0022 is not applied yet has no speed to read: every game was played at the normal one
   if (isMissingColumn(mine.error)) mine = await ask(false)
   if (mine.error) throw mine.error
   const own = mine.data ?? []

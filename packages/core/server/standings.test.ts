@@ -469,7 +469,7 @@ describe("the accounts that sat in a seat, named by their profile", () => {
     error.mockRestore()
   })
 
-  it("reads the games without their speed where migration 0021 is not applied yet: every game was played at the normal one", async () => {
+  it("reads the games without their speed where migration 0022 is not applied yet: every game was played at the normal one", async () => {
     const log = tables({
       game_participants: [
         { data: null, error: { code: "42703", message: "column game_results_1.pace does not exist" } },
