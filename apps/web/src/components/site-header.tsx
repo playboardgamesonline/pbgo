@@ -28,8 +28,8 @@ const TABS = [
 
 const SITE_TABS = TABS.filter((tab) => tab.id !== "pricing" || PRICING_OPEN)
 
-/** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`, `profile`, `docs`: pages that have the bar and no tab). */
-type SiteCurrent = (typeof TABS)[number]["id"] | "home" | "account" | "profile" | "docs"
+/** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`, `profile`: pages that have the bar and no tab). */
+type SiteCurrent = (typeof TABS)[number]["id"] | "home" | "account" | "profile"
 
 /**
  * The address the bar reads. Once Vercel has regenerated the front page in the background, the server renders it at `/index` (the route in the page's flight data
@@ -43,14 +43,13 @@ const isGamePage = (pathname: string) => pathname.startsWith("/game/") || findGa
 
 /**
  * What the bar marks as current on a page of the hub, from its address: the logo on the front page, a tab on the page of that tab, Games on a
- * game's page on the hub (`/game/<slug>`, or `/<slug>`), and nothing on the pages of an account (`/me`), a public profile (`/player/<nickname>-<tag>`) and the way into the docs (`/docs`), which have the bar and no tab. `null` on a
- * page that has no bar (the sign-in and the sign-up, which are a page of their own with the logo alone (`AuthShell`), the pages of a doc, which have a side menu of their own, the legal pages, the 404).
+ * game's page on the hub (`/game/<slug>`, or `/<slug>`), and nothing on the pages of an account (`/me`), and a public profile (`/player/<nickname>-<tag>`), which have the bar and no tab. `null` on a
+ * page that has no bar (the sign-in and the sign-up, which are a page of their own with the logo alone (`AuthShell`), the way into the docs and the pages of a doc, which are not the platform's and have no navbar (a doc has a side menu of its own), the legal pages, the 404).
  */
 function currentOf(pathname: string): SiteCurrent | null {
   if (pathname === "/" || pathname === "/home") return "home"
   if (pathname === "/me" || pathname.startsWith("/me/")) return "account"
   if (pathname.startsWith("/player/")) return "profile"
-  if (pathname === "/docs") return "docs"
   if (isGamePage(pathname)) return "games"
   return SITE_TABS.find((tab) => tab.href === pathname)?.id ?? null
 }
