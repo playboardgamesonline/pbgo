@@ -53,7 +53,7 @@ async function call(name: string, args: Record<string, unknown>): Promise<Row[]>
 export type BoardRow = { userId: string; name: string | null; avatarUrl: string | null; place: number; rank: Rank; wins: number; gamesPlayed: number; handle?: Handle }
 
 /**
- * The best players of a game, best first, at most `limit`: the players who have rated at least 5 games (`LEADERBOARD_MIN_GAMES` of the hub; the 5 is also in migrations 0007 and 0009). A player whose account is there goes by their profile (nickname, picture, handle);
+ * The best players of a game, best first, at most `limit`: the players who have rated a game (`board_min_games()` of migration 0019: the number was 5 before). A player whose account is there goes by their profile (nickname, picture, handle);
  * the name and picture of their last rated game are used for one that has none.
  */
 export async function readBoard(game: string, limit: number): Promise<BoardRow[]> {
@@ -80,7 +80,7 @@ export type PlayerStanding = {
   ratedWins: number
   name: string | null
   avatarUrl: string | null
-  /** Their place on the board, null while they have rated fewer than 5 games. */
+  /** Their place on the board, null while they have rated no game. */
   place: number | null
   /** Their rank, read from their rank points: null before their first rated game. */
   rank: Rank | null

@@ -125,7 +125,7 @@ export type Standing = {
   /** `ratings.wins` and `ratings.games_played`. */
   wins: number
   gamesPlayed: number
-  /** Their place on the board, 1 for the best, in the order of their rank points. Null while they have played fewer than `LEADERBOARD_MIN_GAMES` ranked games: the board leaves a player out until then (`ratings_board_idx`). */
+  /** Their place on the board, 1 for the best, in the order of their rank points. Null while they have no rated game: a player is on the board from their first one (`board_min_games()`, migration 0019). */
   place: number | null
 }
 
@@ -139,9 +139,6 @@ export type GameStandings = {
 
 /** How many players the leaderboard holds on the page: the board scrolls through them. */
 export const LEADERBOARD_SIZE = 100
-
-/** How many ranked games a player needs before they are on the board. */
-export const LEADERBOARD_MIN_GAMES = 5
 
 /** An achievement a visitor earned in a game. PLT-13's schema has no table for them: this is the shape the page needs, a name, what it was for and when, and it stays empty until there is somewhere to read them. */
 export type Achievement = { id: string; name: string; description: string; earnedAt: string }
@@ -166,7 +163,7 @@ export type PlayerStats = {
   rankProgress: RankProgress | null
   /** Their place on the board, as `Standing.place`: null while they are not on it. */
   place: number | null
-  /** How many players are on the board (the rows of `ratings` of this game with `LEADERBOARD_MIN_GAMES` games), which their place is one of. */
+  /** How many players are on the board (the rows of `ratings` of this game: every player who rated a game), which their place is one of. */
   rankedPlayers: number
   achievements: Achievement[]
   /** How many achievements the game has in all, the earned ones included: what the progress of their achievements is counted against. The page's guess, like `Achievement`: nothing lists a game's achievements yet, so it is 0. */
@@ -310,8 +307,8 @@ export async function getTable(slug: string, code: string, seatsMax: number): Pr
 }
 
 /**
- * The leaderboard of the game: the `LEADERBOARD_SIZE` best players, most rank points first (each comes with a rank), and the standing of the signed-in visitor (`viewerId`, as above). A player is on the board from their fifth
- * ranked game (`LEADERBOARD_MIN_GAMES`); nobody is while no game was ranked, which nothing opens yet (PLT-21). A player goes by their profile's nickname, picture and tag (PLT-39); the tag is 0 without a profile.
+ * The leaderboard of the game: the `LEADERBOARD_SIZE` best players, most rank points first (each comes with a rank), and the standing of the signed-in visitor (`viewerId`, as above). A player is on the board from their first
+ * ranked game (`board_min_games()` of migration 0019); nobody is while no game was rated. A player goes by their profile's nickname, picture and tag (PLT-39); the tag is 0 without a profile.
  */
 export async function getStandings(slug: string, viewerId: string | null): Promise<GameStandings> {
   try {
@@ -331,7 +328,7 @@ export async function getStandings(slug: string, viewerId: string | null): Promi
       gamesPlayed: row.gamesPlayed,
       place: row.place,
     }))
-    // Their own standing, wherever it is: a player who has rated a game has a rank, and a place from the fifth
+    // Their own standing, wherever it is: a player who has rated a game has a rank and a place
     const own: Standing | null =
       viewerId !== null && viewer?.rank
         ? {
