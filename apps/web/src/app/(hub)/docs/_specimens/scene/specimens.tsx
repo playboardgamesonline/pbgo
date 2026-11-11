@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { addStrokes, allSubmitted, longestTrail, rerollDice, rollDice, bagSize, createSaveableRng, type Drawing, drawFromBag, drawingPoints, emptyDrawing, EngineError, hexBoard, openSubmissions, reachable, restoreRng, revealSubmissions, shortestPath, squareBoard, type Stroke, submit, submittedFlags, type Submissions, undoStroke } from "@pbgo/engine-kit"
+import { type Coord, type LaidTile, addStrokes, allSubmitted, longestTrail, rerollDice, rollDice, bagSize, createSaveableRng, type Drawing, drawFromBag, drawingPoints, emptyDrawing, EngineError, hexBoard, openSubmissions, reachable, restoreRng, revealSubmissions, shortestPath, squareBoard, type Stroke, submit, submittedFlags, type Submissions, undoStroke } from "@pbgo/engine-kit"
 import { ask, askChoice, askNumber, askText } from "@pbgo/core/components/game/prompt"
 import { PromptHost } from "@pbgo/core/components/game/prompt-host"
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
@@ -11,8 +11,9 @@ import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, ISLAND_BUILDS, ISLAND_PLAYERS, type IslandBuild, type IslandPlayer, SHEET, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, SKETCH_BRUSHES, SKETCH_COLORS, SKETCH_PEN, SKETCH_RULES, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
 import { SceneFrame } from "./frame"
 import { ISLAND_CORNERS } from "./island"
+import { deal, lay, nextFitting, SEED, START, TABLE, TILES, type TileName, view } from "./landscape"
 import { BONUS, CATEGORIES, CATEGORY_OF, ROW_OF, scoreOf, totalOf, upperOf } from "./yahtzee"
-import { BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
+import { TilesScene, BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
 
 // The light half of the 3D specimens of the engine docs: each is the state and the controls of one scene, laid out in a `SceneFrame`, and the scene itself (`lazy.tsx`), which is drawn only when the frame is near the window. The controls
 // are the platform's own and hold every value the scene is given, so they are there, and still, before the scene is and after it is let go; the scene is a function of them and sends back what the pointer did in it.
@@ -710,6 +711,82 @@ export function SceneSheetSpecimen() {
       }
     >
       <SheetScene dice={dice} rolled={rolls > 0 || scores.some((had) => had !== null)} held={held} scores={scores} rows={open.map((category) => ROW_OF[category]!)} onRow={(row) => CATEGORY_OF[row] !== null && score(CATEGORY_OF[row]!)} onDie={keep} />
+    </SceneFrame>
+  )
+}
+
+export function SceneTilesSpecimen() {
+  // What the table holds: the box in the order the tiles are drawn, the tiles that are laid, which tile of the box is in hand and how many times it was turned (a number that only goes up, so the tile always turns the way it was pressed), and how many
+  // tiles went back in the box for want of a place. The rules are the kit's: where a tile fits, and the roads and the cities that are closed
+  const [box] = useState(() => deal(SEED))
+  const [laid, setLaid] = useState<LaidTile<TileName>[]>(() => [START])
+  const first = useMemo(() => nextFitting([START], box, 0), [box])
+  const [index, setIndex] = useState(first)
+  const [spin, setSpin] = useState(0)
+  const [skipped, setSkipped] = useState(first)
+  const { name, turns, options, spots, fits, ways, score } = useMemo(() => view(laid, box, index, spin), [laid, box, index, spin])
+  const layOn = (at: Coord, turned: number) => {
+    if (!name) return
+    const next = lay(laid, box, index, at, turned)
+    setLaid(next.laid)
+    setSkipped((count) => count + next.skipped)
+    setIndex(next.index)
+    setSpin(0)
+  }
+  const turn = () => options.length > 1 && setSpin((count) => count + 1)
+  const again = () => {
+    setLaid([START])
+    setIndex(first)
+    setSkipped(first)
+    setSpin(0)
+  }
+  const plural = (count: number, one: string, many: string) => (count === 1 ? one : many)
+  return (
+    <SceneFrame
+      label="A table of tiles seen from above: tiles with a road, a city or a field on each side lie side by side, and the next tile of the box lies to the right of them. The cells next to a tile where the next tile fits as it is turned are ringed; pressing one lays the tile there, and pressing the tile turns it a quarter"
+      controls={
+        <>
+          <Button variant="outline" size="sm" disabled={options.length < 2} onClick={turn}>
+            Turn the tile
+          </Button>
+          <Button variant="outline" size="sm" disabled={ways.length === 0} onClick={() => ways[0] && layOn(ways[0].at, ways[0].turns)}>
+            Lay it for me
+          </Button>
+          <Button variant="ghost" size="sm" disabled={laid.length === 1 && spin === 0} onClick={again}>
+            Start again
+          </Button>
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            {name ? (
+              <>
+                Tile <span className="text-foreground tabular-nums">{index + 1}</span> of {box.length}: {TILES[name].label.startsWith("a") || TILES[name].label.startsWith("e") ? "an" : "a"} {TILES[name].label}, which fits on{" "}
+                <span className="text-foreground tabular-nums">{fits.length}</span> {plural(fits.length, "cell", "cells")} as it is turned.
+              </>
+            ) : (
+              <>The box is empty.</>
+            )}{" "}
+            <span className="text-foreground tabular-nums">{laid.length}</span> {plural(laid.length, "tile", "tiles")} laid. Closed: <span className="text-foreground tabular-nums">{score.roads}</span> {plural(score.roads, "road", "roads")} and{" "}
+            <span className="text-foreground tabular-nums">{score.cities}</span> {plural(score.cities, "city", "cities")}, worth <span className="text-foreground tabular-nums">{score.points}</span> {plural(score.points, "point", "points")}.
+            {skipped > 0 && (
+              <>
+                {" "}
+                {skipped} {plural(skipped, "tile", "tiles")} fitted nowhere and went back in the box.
+              </>
+            )}{" "}
+            The table is {2 * TABLE.columns + 1} tiles across and {2 * TABLE.rows + 1} down.
+          </p>
+        </>
+      }
+    >
+      <TilesScene
+        laid={laid}
+        hand={name ? { tile: name, spin } : null}
+        spots={spots}
+        fits={fits}
+        done={score.tiles}
+        turnable={options.length > 1}
+        onSpot={(place) => fits.includes(place) && layOn(spots[place]!, turns)}
+        onTurn={turn}
+      />
     </SceneFrame>
   )
 }

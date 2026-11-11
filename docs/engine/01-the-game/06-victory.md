@@ -23,7 +23,7 @@ The history keeps how a game ended for each player: `win`, `loss`, `draw`, `coop
 
 - A tie for the first place among some of the players is a win for them: they beat the rest, whatever they did to each other. A team that wins puts all its members in `winners` and is read the same way; the results say nothing of the team itself ([Not built yet](../03-not-built-yet.md#what-the-contract-leaves-out)).
 - A player alone at a table has no one to draw with: a win.
-- `abandoned` is not the engine's to say, since only the platform knows that a player gave up ([Leaving a table](02-players.md#leaving-a-table)). `PlayerOutcome` leaves it out, and a test of core keeps it inside `Outcome`.
+- `abandoned` is not the engine's to say, since only the platform knows that a player gave up ([Leaving a table](02-players.md#leaving-a-table)). `PlayerOutcome` leaves it out (`PLAYER_OUTCOMES` lists the five the engine can say), and a test of core keeps it inside `Outcome`.
 
 The end screen tells the same distinction. A table that lost together (`coop` is `"lost"`, `endingOf(results)` of core is `"defeat"`) has nobody to crown, so it is told as a defeat and not as a victory with no winner:
 

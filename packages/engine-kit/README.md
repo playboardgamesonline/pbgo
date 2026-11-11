@@ -316,6 +316,19 @@ A draft: every player picks a card, the picks are revealed together, the hands g
 | `passAround(hands, steps)` | The hands after they were passed `steps` seats on: seat `i` gives its hand to seat `i + steps`, round the table; a negative number passes the other way. `RangeError` for steps that are not a whole number. |
 | `takePicks(hands, picks)` | The hands without the picked cards and what each player took (`taken[seat]`). `RangeError` for picks that are not as many as the hands or not in their hands. |
 
+### Tiles (`tiles.ts`)
+
+Tiles with an edge on each side, laid next to one another where the sides match, in one of their turns: Carcassonne, dominoes (`docs/engine/02-components/24-tiles.md`). The state keeps `{ at, tile, turns }` for each tile that is laid, `at` being the two numbers of a cell (`[col, row]` on squares, `[q, r]` on hexagons) on a grid that has no end; the free cells, where a tile fits and the roads and cities are worked out from it by a `tiling` made at every move. The sides are numbered as the directions of a `Board` (east first, clockwise), and a tile turned once shows on its south what it had on its east.
+
+| | |
+| --- | --- |
+| `sidesOf(lattice)`, `neighbourOf(lattice, at, side)`, `oppositeSide(lattice, side)`, `around(lattice, at)` | The sides of a tile on `"square"` or `"hex"`, the cell across a side, the side that touches it, and the cells that touch a cell (the corners of a square count: eight). `RangeError` for a side or a cell that is not one. |
+| `squareEdges({ north, east, south, west })`, `hexEdges({ … })` | The edges of a tile given by the side they are on, in the order of the sides. |
+| `turnEdges(edges, turns)`, `distinctTurns(edges)` | The edges after `turns` turns clockwise, and the turns, from 0, that show a tile in a new way (one for a tile the same on every side, two for a straight road, four for a corner). |
+| `tiling(lattice, laid, edgesOf)` | The tiles that are laid, seen as a whole: `at(cell)`, `edge(cell, side)`, `spots()` (the free cells that touch a tile, or `[0, 0]` for no tile), `fits(cell, edges, rules?)`, `placements(edges, rules?)` (every free cell with each turn where a tile fits) and `bounds()`. `TileRules` is `matches(laid, against)` (equal by default) and `allowed(cell)`. `RangeError` for two tiles on a cell or edges that are not as many as the sides. |
+| `features(grid, segmentsOf, { slots })` | The roads, cities and fields of a whole layout: the `Segment`s (a `kind` and the `ports` where it touches the sides of its tile) joined across the sides, as `Feature`s with their `parts` and how many of their sides are still `open` (0: closed). A side has `slots` ports, counted clockwise round the tile, and slot `k` meets slot `slots - 1 - k` across. |
+| `segmentProblems(lattice, segments, { slots, complete })` | The mistakes in the segments of one tile, as sentences, to test the game's table of tiles with. |
+
 ## Putting it together
 
 ```ts

@@ -45,6 +45,7 @@ A `Piece` is shared: `packages/table/src/piece/piece.tsx`. The props are `PieceP
 | `lift` | How high the piece is raised above its place: a piece the player holds, or has picked |
 | `halo` | A ring on the table round the piece, in this colour, that pulses: the piece can be chosen |
 | `shadow` | Casts a drop shadow (default true) |
+| `opacity` | How solid the piece is, from 0 to 1 (default 1): a piece that shows where another would go, as a tile does under the pointer ([Tiles](24-tiles.md)). One that is not solid casts no shadow |
 | `from` | Where the piece comes from when it appears: it flies from there to its place |
 | `onClick`, `onHover` | Make the piece a click target ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)) |
 | `draggable` | The player can pick the piece up with the pointer and let it go on the table: it follows the pointer, lifted, with its shadow growing, and goes back to its `at` when it is let go ([Dragging](19-dragging.md)) |

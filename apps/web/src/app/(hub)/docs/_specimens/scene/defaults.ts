@@ -1,6 +1,7 @@
 // What the light half of a specimen (its controls) and the heavy half (its scene) both need to know. Plain numbers only: this file imports no code (a type of the engine kit at the most), so the controls can read it without pulling in three.js.
 
-import type { Drawing } from "@pbgo/engine-kit"
+import type { Drawing, LaidTile } from "@pbgo/engine-kit"
+import type { TileName } from "./landscape"
 
 /** The view the camera specimen starts from, and its reset returns to. The scene adds the point it looks at. */
 export const CAMERA_VIEW = { tilt: 40, yaw: 0, distance: 15, fov: 34 }
@@ -161,9 +162,9 @@ export const DRAG_START: DragCards = { hand: DRAG_HAND.map(({ card }) => card), 
 /** The playground: the things that lie on its table, the parts of the table that can be switched on, and where it starts. */
 export const PLAY_PIECES = ["disc", "square", "hex", "cube", "sphere", "pawn"] as const
 export type PlayPiece = (typeof PLAY_PIECES)[number]
-export const PLAY_PARTS = ["board", "track", "counter", "stepper", "slider", "timer", "bag", "cup", "dice", "fields", "sketch", "hand", "piles", "stack", "paper", "map", "sheet", "seats"] as const
+export const PLAY_PARTS = ["board", "track", "counter", "stepper", "slider", "timer", "bag", "cup", "dice", "fields", "sketch", "hand", "piles", "stack", "paper", "map", "sheet", "tiles", "seats"] as const
 export type PlayPart = (typeof PLAY_PARTS)[number]
-export const PLAY_PART_NAMES: Record<PlayPart, string> = { board: "Board", track: "Track", counter: "Counter", stepper: "Stepper", slider: "Slider", timer: "Timer", bag: "Bag", cup: "Cup", dice: "Dice tray", fields: "Fields", sketch: "Sketch", hand: "Hand", piles: "Piles", stack: "Stack", paper: "Paper button", map: "Map", sheet: "Sheet", seats: "Seats" }
+export const PLAY_PART_NAMES: Record<PlayPart, string> = { board: "Board", track: "Track", counter: "Counter", stepper: "Stepper", slider: "Slider", timer: "Timer", bag: "Bag", cup: "Cup", dice: "Dice tray", fields: "Fields", sketch: "Sketch", hand: "Hand", piles: "Piles", stack: "Stack", paper: "Paper button", map: "Map", sheet: "Sheet", tiles: "Tiles", seats: "Seats" }
 export const PLAY_CUP_POSES = ["covering", "peeking", "lifted", "shaking", "rest", "pouring"] as const
 export type PlayCupPose = (typeof PLAY_CUP_POSES)[number]
 /** The playground's map: six cities, the roads between them (each the two cities it joins), where the map lies on the table and how far its cities are from the middle of it. */
@@ -186,6 +187,8 @@ export const PLAY_MAP = {
 export const PLAY_MARKS = ["tick", "cross", "circle"] as const
 export type PlayMark = (typeof PLAY_MARKS)[number]
 export const PLAY_SHEET = { x: -11.4, z: 5.6, width: 4.2, height: 3.4, columns: 6, rows: 4, zoom: 32 }
+/** The playground's tiles: where the middle cell of the table lies, where the tile in hand lies, how far the table goes from its middle, and how far the camera backs off for it: it lies beyond the rest of the table, on the right at the far side. */
+export const PLAY_TILES = { origin: { x: 10.6, z: -6.2 }, hand: { x: 10.6, z: -10.8 }, table: { columns: 2, rows: 1 }, zoom: 32 }
 /** The names of the players the playground seats, in the order of the seats. */
 export const PLAY_NAMES = ["Alix", "Basile", "Camille", "Dana", "Eli"] as const
 /** A card that is in the hand or on the discard pile and not on the table: the id it has everywhere (so that it keeps its name, and glides, when it changes places), the number its face is painted from, and, when it was just dealt from the draw pile, how many cards the pile held then (where it flies in from). */
@@ -239,6 +242,8 @@ export type PlayState = {
   map: { claimed: boolean[]; city: number | null }
   /** The sheet: the mark in each box, or none, and the mark a press writes */
   sheet: { marks: (PlayMark | null)[]; mark: PlayMark }
+  /** The tiles: the ones that are laid, which tile of the box is in hand and how many times it was turned */
+  tiles: { laid: LaidTile<TileName>[]; index: number; spin: number }
   players: number
   above: boolean
   zoom: number
@@ -271,6 +276,10 @@ export type PlayActions = {
   visit: (city: number | null) => void
   /** A box of the sheet is pressed: it gets the picked mark, or loses it when it held that mark already */
   mark: (box: number) => void
+  /** A free cell of the tiles' table is pressed: the tile in hand is laid there when it fits, as it is turned */
+  layTile: (place: number) => void
+  /** The tile in hand is pressed: it turns a quarter */
+  turnTile: () => void
   /** The plate of a seat is pressed: that player is picked, or nobody when it was the one picked already */
   pickSeat: (seat: number | null) => void
   /** The paper is pressed */

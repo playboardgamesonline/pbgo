@@ -22,28 +22,32 @@ export type PlaceOptions = {
   gap?: number
   /** Where the middle of the board lies on the table (default the middle of the table): the board is centred on it */
   at?: { x: number; z: number }
+  /** The cell that lies on `at` instead of the middle of all the cells, so that cells that are added or taken away leave the others where they were: a layout that grows tile by tile, as the table of Carcassonne does. It need not be one of the cells */
+  anchor?: Coord
 }
 
-function check({ size, gap = 0 }: PlaceOptions): void {
+function check({ size, gap = 0, anchor }: PlaceOptions): void {
   if (!(size > 0) || !Number.isFinite(size)) throw new RangeError(`Neighbouring cells are a size above zero apart, got ${String(size)}`)
   if (!(gap >= 0) || gap >= size) throw new RangeError(`The gap between two cells is at least zero and less than their size, got ${String(gap)} for ${size}`)
+  if (anchor !== undefined && !(Array.isArray(anchor) && anchor.length === 2 && Number.isFinite(anchor[0]) && Number.isFinite(anchor[1]))) throw new RangeError(`The anchor is a cell, two numbers, got ${JSON.stringify(anchor)}`)
 }
 
-/** The cells with these middles and this shape, moved so that the middle of the whole is at `at` */
-function placed(middles: readonly (readonly [number, number])[], corners: readonly Corner[], at: { x: number; z: number }): BoardCell[] {
+/** The cells with these middles and this shape, moved so that the middle of the whole is at `at`, or the `anchor` (the middle of a cell, in the same units as the middles) when there is one */
+function placed(middles: readonly (readonly [number, number])[], corners: readonly Corner[], at: { x: number; z: number }, anchor?: readonly [number, number]): BoardCell[] {
   if (middles.length === 0) return []
   const [xs, zs] = [middles.map(([x]) => x), middles.map(([, z]) => z)]
-  const [centreX, centreZ] = [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2]
+  const [centreX, centreZ] = anchor ?? [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2]
   return middles.map(([x, z]) => ({ x: at.x + x - centreX, z: at.z + z - centreZ, yaw: 0, corners }))
 }
 
 /**
  * The cells of a square board placed on the table, one for each of `coords` in their order (the `coords` of `squareBoard`): a column goes toward the right and a row toward the viewer, so the first row is the farthest. A cell is a square of the
- * `size` of the board less the `gap`. Only the cells that are in `coords` are made, so a board with holes, or one that grows as tiles are laid (Carcassonne), is a list that changes.
+ * `size` of the board less the `gap`. Only the cells that are in `coords` are made, so a board with holes, or one that grows as tiles are laid (Carcassonne), is a list that changes: give it an `anchor`, and the cells that were there stay
+ * where they were when more are added.
  */
 export function squareCells(coords: readonly Coord[], options: PlaceOptions): BoardCell[] {
   check(options)
-  const { size, gap = 0, at = { x: 0, z: 0 } } = options
+  const { size, gap = 0, at = { x: 0, z: 0 }, anchor } = options
   const half = (size - gap) / 2
   const corners: Corner[] = [
     [-half, -half],
@@ -55,6 +59,7 @@ export function squareCells(coords: readonly Coord[], options: PlaceOptions): Bo
     coords.map(([col, row]) => [col * size, row * size] as const),
     corners,
     at,
+    anchor && [anchor[0] * size, anchor[1] * size],
   )
 }
 
@@ -64,7 +69,7 @@ export function squareCells(coords: readonly Coord[], options: PlaceOptions): Bo
  */
 export function hexCells(coords: readonly Coord[], options: PlaceOptions): BoardCell[] {
   check(options)
-  const { size, gap = 0, at = { x: 0, z: 0 } } = options
+  const { size, gap = 0, at = { x: 0, z: 0 }, anchor } = options
   const radius = (size - gap) / Math.sqrt(3)
   // The first corner is the far point, then clockwise seen from above
   const corners: Corner[] = Array.from({ length: 6 }, (_, k) => {
@@ -75,7 +80,18 @@ export function hexCells(coords: readonly Coord[], options: PlaceOptions): Board
     coords.map(([q, r]) => [size * (q + r / 2), size * (Math.sqrt(3) / 2) * r] as const),
     corners,
     at,
+    anchor && [size * (anchor[0] + anchor[1] / 2), size * (Math.sqrt(3) / 2) * anchor[1]],
   )
+}
+
+/**
+ * The yaw a tile has once it has been turned `turns` times clockwise, as the engine counts them (`LaidTile` of the kit): a `Piece` turns counterclockwise seen from above, so a turn clockwise is a yaw of minus one turn's worth of the circle. `sides` is
+ * how many turns make a whole one: 4 for a tile of squares, the default, 6 for a tile of hexagons. Any number of turns counts.
+ */
+export function tileYaw(turns: number, sides = 4): number {
+  if (!Number.isInteger(turns)) throw new RangeError(`A tile is turned a whole number of times, got ${String(turns)}`)
+  if (!Number.isInteger(sides) || sides < 3) throw new RangeError(`A tile has three sides at the least, got ${String(sides)}`)
+  return (-turns * 2 * Math.PI) / sides
 }
 
 /** The radius of the largest circle that fits in a cell, round its middle: how big what is written on it may be */
