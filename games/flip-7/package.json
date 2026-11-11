@@ -22,6 +22,8 @@
     "@flip-7/engine": "workspace:*",
     "@pbgo/core": "workspace:*",
     "@pbgo/ui": "workspace:*",
+    "@sanity/client": "catalog:",
+    "next-sanity": "catalog:",
     "server-only": "catalog:"
   },
   "peerDependencies": {

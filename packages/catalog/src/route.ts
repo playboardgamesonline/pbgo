@@ -2,8 +2,9 @@
 // A game's pictures are files of its game in the platform's Sanity project, and the hub draws them straight from Sanity's image CDN
 // (`pictureUrl`). The address on this site (`logo`, `icon` or `background` for the slot) is only kept for the links that were shared
 // when the pictures were served from here, and sends them to the CDN. A game's cover (PLT-114) came after those links and has no address
-// here: a page draws it from `pictureUrl(game, "cover")`. No picture is not an error page: the answer is a 404 and the page that asked
-// draws a plain frame.
+// here: a page draws it from `pictureUrl(game, "cover")`. A picture that cannot be served is no error for the page that asked, nor for the console of its visitor, which reports every 404 and 503 an
+// `<img>` meets: the answer is a 204, with nothing in it, that an `<img>` takes as a picture that failed (its `error` fires, and the page draws a plain frame or leaves a name alone). A 404 is for an
+// address that nothing points at: a slot that does not exist, a game that is not in the catalog, a publisher that the game does not have.
 // The same address, `publisher-<n>` for a slot, is the icon of the n-th publisher of the game (from 0): its page has no picture of its
 // own, so the server looks for the icon of its website (`favicon.ts`) and serves that, from this site, whose visitors then never meet
 // the publisher's. And `bgg` is the icon of BoardGameGeek, which the game's page draws on its link there, found on BoardGameGeek's website the same way.
@@ -13,20 +14,20 @@ import { fetchFavicon } from "./favicon"
 import { PictureError } from "./picture"
 import { getCatalog, reportOnce } from "./server"
 
-/** What a visitor is told to wait when the catalog could not be read. */
-export const FAILURE_MEMO_MS = 5000
-
-// The answers and what each one may be kept for, by the browser (`max-age`) and by the CDN (`s-maxage`)
+// The answers and what each one may be kept for, by the browser (`max-age`) and by the CDN (`s-maxage`). Vercel's CDN keeps a 200, a 404, a 410 and a redirect and does not keep a 204, so what must not be
+// looked for again after one is remembered by the route itself (`siteIcon`)
 const SHORT = "public, max-age=60, s-maxage=60"
 const REDIRECT = "public, max-age=0, s-maxage=10"
 const PICTURE_REDIRECT = "public, max-age=300, s-maxage=3600"
 const NEVER = "no-store"
-// The icon of a publisher's website changes once in years: a day. A site that has none is looked at again in an hour, not at every page
+// The icon of a publisher's website changes once in years: a day, and so is the answer for a site that has none, which is not looked at again before the day is over
 const ICON_FRESH = "public, max-age=86400, s-maxage=86400"
-const ICON_ABSENT = "public, max-age=3600, s-maxage=3600"
+const ICON_ABSENT = ICON_FRESH
 /** How long a website that could not be reached is left alone: every visit to the page of its game would ask it again, and some would hold a function for the whole time limit. Per server instance. */
 export const SITE_FAILURE_MEMO_MS = 5 * 60_000
-const MAX_FAILED_SITES = 200
+/** How long a website that answered and has no icon is left alone: asking is five requests to a site that has nothing for the server, and nothing but this keeps the answer, a 204 being no CDN's to keep. Per server instance. */
+export const SITE_ABSENT_MEMO_MS = 24 * 60 * 60_000
+const MAX_SKIPPED_SITES = 200
 
 // What the media route sends too: the picture is shown by an <img>, and opened on its own it may not run anything
 const SECURITY_HEADERS = {
@@ -53,11 +54,8 @@ function wantedOf(slot: string): { picture: AddressedSlot } | { publisher: numbe
 
 const notFound = (cache = SHORT) => new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": cache } })
 
-const unavailable = (retryAfterSeconds: number) =>
-  new Response("Try again later", {
-    status: 503,
-    headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": NEVER, "Retry-After": String(Math.max(1, Math.ceil(retryAfterSeconds))) },
-  })
+/** A picture that cannot be served now, and no error: a 204 with nothing in it, that the page that asked hears as a picture that failed and that no console reports. `cache` says what the answer may be kept for. */
+const noPicture = (cache: string) => new Response(null, { status: 204, headers: { "Cache-Control": cache } })
 
 /**
  * The redirect to the address that carries the version of the website the catalog read, or null when the address is that one already: so
@@ -69,39 +67,44 @@ function staleVersion(request: Request, game: Pick<CatalogGame, "slug">, slot: s
   return new Response(null, { status: 307, headers: { Location: `/api/catalog/${game.slug}/${slot}?v=${expected}`, "Cache-Control": REDIRECT } })
 }
 
+/** A website that gave no icon: `until` is when it is looked at again, `cache` what the answer for it may be kept for meanwhile. */
+type Skipped = { until: number; cache: string }
+
 /**
- * The icon of a website, a publisher's or BoardGameGeek's, found there (`fetchFavicon`): a day for the CDN, a 404 for a site that has none, a 503 for one that cannot be reached now, and that
- * site is then left alone for `SITE_FAILURE_MEMO_MS` (`failed`: website → until when), so that a website that is down, or that has a broken certificate, is not asked again
- * by every visit to its game's page. `what` says whose icon it is, for the line that is logged when it cannot be served.
+ * The icon of a website, a publisher's or BoardGameGeek's, found there (`fetchFavicon`): a day for the browser and the CDN, and a 204 for a site that has none or that cannot be reached now. That site is
+ * then left alone (`skipped`: website → what it was left for), for `SITE_ABSENT_MEMO_MS` when it answered and has no icon and for `SITE_FAILURE_MEMO_MS` when it could not be reached (the next try may find the
+ * icon), so that a website that has none, or that is down, or that has a broken certificate, is not asked again by every visit to its game's page. `what` says whose icon it is, for the line that is logged
+ * when it cannot be served.
  */
-async function siteIcon(failed: Map<string, number>, what: string, website: string): Promise<Response> {
-  const until = failed.get(website)
-  if (until !== undefined && Date.now() < until) return unavailable((until - Date.now()) / 1000)
+async function siteIcon(skipped: Map<string, Skipped>, what: string, website: string): Promise<Response> {
+  const known = skipped.get(website)
+  if (known && Date.now() < known.until) return noPicture(known.cache)
   try {
     const icon = await fetchFavicon(website)
     return new Response(icon.bytes, { headers: { ...SECURITY_HEADERS, "Content-Type": icon.type, "Cache-Control": ICON_FRESH } })
   } catch (error) {
     if (!(error instanceof PictureError)) throw error
     reportOnce(`The icon of ${what} cannot be served: ${error.message}`)
-    if (!error.retryable) return notFound(ICON_ABSENT)
-    if (failed.size >= MAX_FAILED_SITES) failed.clear()
-    failed.set(website, Date.now() + SITE_FAILURE_MEMO_MS)
-    return unavailable(SITE_FAILURE_MEMO_MS / 1000)
+    const left: Skipped = error.retryable ? { until: Date.now() + SITE_FAILURE_MEMO_MS, cache: SHORT } : { until: Date.now() + SITE_ABSENT_MEMO_MS, cache: ICON_ABSENT }
+    if (skipped.size >= MAX_SKIPPED_SITES) skipped.clear()
+    skipped.set(website, left)
+    return noPicture(left.cache)
   }
 }
 
 /**
  * `GET /api/catalog/<slug>/<slot>?v=<version>` for `apps/web`. In this order, so that nothing costs more than it has to:
- * 1. The slot is one of the three, `publisher-<n>` or `bgg`, and the slug is a game of the catalog: else 404. A live game that has no game
- *    in the Studio has no picture either (its `registryRow` has none).
- * 2. A picture is sent to its address in the image CDN of the platform's project (308), or is a 404 when the game does not have it.
- * 3. `publisher-<n>`: the game must name an n-th publisher and give it a website, `v` is the version of that website (`iconVersion`): a URL
+ * 1. The slot is one of the three, `publisher-<n>` or `bgg`, else 404.
+ * 2. The catalog could not be read: a 204 that nobody keeps. The game may well exist, and a picture that cannot be served is no error.
+ * 3. The slug is a game of the catalog, else 404. A live game that has no game in the Studio has no picture either (its `registryRow` has none).
+ * 4. A picture is sent to its address in the image CDN of the platform's project (308), or is a 204 when the game does not have it.
+ * 5. `publisher-<n>`: the game must name an n-th publisher and give it a website, else 404, `v` is the version of that website (`iconVersion`): a URL
  *    without it, or with an old one, is sent to the right one (307) before anything is looked for, so that nobody can make the server look
  *    for an icon under a `v` of their own. Then the icon is looked for on that website, whose address is the game's and never the request's.
- * 4. `bgg`: the game must have a page on BoardGameGeek (its id there), and the icon is looked for on BoardGameGeek's website, a constant (`BGG_SITE`), under the same `v` rule.
+ * 6. `bgg`: the game must have a page on BoardGameGeek (its id there), else 404, and the icon is looked for on BoardGameGeek's website, a constant (`BGG_SITE`), under the same `v` rule.
  */
 export function pictureRoute() {
-  const failedSites = new Map<string, number>()
+  const skippedSites = new Map<string, Skipped>()
 
   return async function GET(request: Request, { params }: { params: Promise<{ slug: string; slot: string }> }): Promise<Response> {
     const { slug, slot } = await params
@@ -109,8 +112,8 @@ export function pictureRoute() {
     if (!wanted) return notFound()
 
     const catalog = await getCatalog()
-    // The project did not answer: the game may well exist, it is not known to be missing
-    if (catalog.source === "unavailable") return unavailable(FAILURE_MEMO_MS / 1000)
+    // The project did not answer: the game may well exist, it is not known to be missing, and the answer is not kept
+    if (catalog.source === "unavailable") return noPicture(NEVER)
     const entry = catalog.entries.find((candidate) => candidate.slug === slug)
     if (!entry) return notFound()
     const game = entry.game
@@ -118,15 +121,15 @@ export function pictureRoute() {
     if ("publisher" in wanted) {
       const website = game.publishers[wanted.publisher]?.url
       if (!website) return notFound()
-      return staleVersion(request, game, slot, website) ?? (await siteIcon(failedSites, `the publisher ${wanted.publisher + 1} of "${game.slug}"`, website))
+      return staleVersion(request, game, slot, website) ?? (await siteIcon(skippedSites, `the publisher ${wanted.publisher + 1} of "${game.slug}"`, website))
     }
 
     if ("bgg" in wanted) {
       if (game.bggId === null) return notFound()
-      return staleVersion(request, game, slot, BGG_SITE) ?? (await siteIcon(failedSites, `BoardGameGeek, for "${game.slug}"`, BGG_SITE))
+      return staleVersion(request, game, slot, BGG_SITE) ?? (await siteIcon(skippedSites, `BoardGameGeek, for "${game.slug}"`, BGG_SITE))
     }
 
     const picture = pictureUrl(game, wanted.picture)
-    return picture ? new Response(null, { status: 308, headers: { Location: picture, "Cache-Control": PICTURE_REDIRECT } }) : notFound()
+    return picture ? new Response(null, { status: 308, headers: { Location: picture, "Cache-Control": PICTURE_REDIRECT } }) : noPicture(SHORT)
   }
 }
