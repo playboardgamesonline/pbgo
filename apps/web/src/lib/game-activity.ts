@@ -384,7 +384,7 @@ export async function getHistory(slug: string, viewerId: string | null): Promise
       playerCount: row.playerCount,
       points: row.points,
       durationSeconds: row.durationSeconds,
-      turnTimer: "normal",
+      turnTimer: row.pace,
       score: row.score,
       expansions: Object.entries(row.options).flatMap(([key, value]) => (value === true ? [key] : [])),
       xp: null,

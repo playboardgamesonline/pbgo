@@ -84,6 +84,11 @@ describe("playedGameOf", () => {
     outcome: "win",
     place: 1,
     points: 16,
+    score: null,
+    ranked: false,
+    playerCount: 3,
+    durationSeconds: null,
+    pace: "normal",
     opponents: [
       { name: "Ola", avatarUrl: "https://example.com/o.png" },
       { name: null, avatarUrl: null },
@@ -112,7 +117,26 @@ describe("playedGameOf", () => {
       result: "won",
       rank: 1,
       points: 16,
+      ranked: false,
+      playerCount: 3,
+      pace: "normal",
     })
+  })
+
+  it("says how the table was played: its score where the game counts points, ranked or not, how many sat at it, how long it lasted, its speed and its expansions", () => {
+    const played = playedGameOf(finished({ score: 31, ranked: true, playerCount: 4, durationSeconds: 1680, pace: "fast" }), "Courtisans", ["Diplomats & Confidants"])
+    expect(played).toMatchObject({ score: 31, ranked: true, playerCount: 4, durationSeconds: 1680, pace: "fast", expansions: ["Diplomats & Confidants"] })
+    const plain = playedGameOf(finished(), "Courtisans")
+    expect("score" in plain).toBe(false)
+    expect("durationSeconds" in plain).toBe(false)
+    expect("expansions" in plain).toBe(false)
+  })
+
+  it("gives an opponent's card the record they have in the game, for an account that rated it", () => {
+    const record = { rank: { tier: "Gold", division: 2 }, gamesPlayed: 12, wins: 5 }
+    const { opponents } = playedGameOf(finished({ opponents: [{ name: "Ola", avatarUrl: null, handle: { nickname: "Ola", tag: 7 }, record }, { name: "Guest", avatarUrl: null, record: null }] }), "Courtisans")
+    expect(opponents[0]?.record).toEqual(record)
+    expect(opponents[1]).not.toHaveProperty("record")
   })
 
   it("has the rank points a game gave or took, a loss too, and none where no points applied", () => {

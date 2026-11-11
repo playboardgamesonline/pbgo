@@ -18,6 +18,13 @@ describe("the pronouns", () => {
     expect(pronounsLabel("any")).toBe("any pronouns")
     expect(pronounsLabel("ask")).toBe("ask me")
   })
+
+  it("are written in lower case wherever a page writes them, and what is kept does not change", () => {
+    for (const { value } of PRONOUNS) {
+      expect(pronounsLabel(value)).toBe(pronounsLabel(value).toLowerCase())
+      expect(value).toBe(value.toLowerCase())
+    }
+  })
 })
 
 describe("cleanBio", () => {

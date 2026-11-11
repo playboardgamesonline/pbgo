@@ -27,8 +27,8 @@ const PRONOUN_KEYS: ReadonlySet<string> = new Set(PRONOUNS.map((pronouns) => pro
 /** Whether a value is a key of the list of pronouns. */
 export const isPronouns = (value: unknown): value is Pronouns => typeof value === "string" && PRONOUN_KEYS.has(value)
 
-/** The words a page writes for a member's pronouns ("they/them", "ask me"). */
-export const pronounsLabel = (pronouns: Pronouns): string => PRONOUNS.find((entry) => entry.value === pronouns)?.label ?? pronouns
+/** The words a page writes for a member's pronouns ("they/them", "ask me"): in lower case, as pronouns are written, whatever the list says. */
+export const pronounsLabel = (pronouns: Pronouns): string => (PRONOUNS.find((entry) => entry.value === pronouns)?.label ?? pronouns).toLowerCase()
 
 /** How many characters a bio has at most, as a person counts them (an emoji is one): the table checks the same 200. */
 export const BIO_MAX = 200

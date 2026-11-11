@@ -75,7 +75,7 @@ export function ProfileSections({ games, own, hideHistory, recent, allGamesHref,
 
       <section aria-labelledby="per-game">
         <h2 id="per-game" className="mb-4 font-heading text-2xl">
-          Games
+          Board games
         </h2>
         {perGame.length > 0 ? (
           <div className="overflow-hidden rounded-2xl border">

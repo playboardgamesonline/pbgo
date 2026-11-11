@@ -23,14 +23,19 @@ export type MemberGames = {
 export const NO_GAMES: MemberGames = { games: [], stats: statsFrom([]), perGame: [], ranks: [] }
 
 /**
- * The games of a member as the pages draw them: `rows` are their latest finished games, `totals` what they have done in each game (`player_stats` and `ratings`, every game they finished), `nameOf` names a game by its slug.
- * A game they rated and never finished (no totals) has a rank and no row of its own, and a game with no rated game has no rank.
+ * The games of a member as the pages draw them: `rows` are their latest finished games, `totals` what they have done in each game (`player_stats` and `ratings`, every game they finished), `nameOf` names a game by its slug and `expansionsOf`
+ * names the expansions a game was played with, from the options of the table (none where it is not given). A game they rated and never finished (no totals) has a rank and no row of its own, and a game with no rated game has no rank.
  */
-export function memberGamesOf(rows: readonly MemberGameRow[], totals: readonly MemberGameTotals[], nameOf: (slug: string) => string): MemberGames {
+export function memberGamesOf(
+  rows: readonly MemberGameRow[],
+  totals: readonly MemberGameTotals[],
+  nameOf: (slug: string) => string,
+  expansionsOf: (slug: string, options: Readonly<Record<string, unknown>>) => readonly string[] = () => [],
+): MemberGames {
   const played = totals.filter((row) => row.gamesPlayed > 0).map((row) => ({ slug: row.game, name: nameOf(row.game), played: row.gamesPlayed, wins: row.wins }))
   const ranked = totals.flatMap((row) => (row.rank && row.points !== null ? [{ points: row.points, slug: row.game, name: nameOf(row.game), rank: row.rank, progress: row.rankProgress }] : []))
   return {
-    games: rows.map((row) => playedGameOf(row, nameOf(row.game))),
+    games: rows.map((row) => playedGameOf(row, nameOf(row.game), expansionsOf(row.game, row.options))),
     stats: statsFrom(played),
     perGame: played.sort(mostPlayed),
     ranks: ranked.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name)).map(({ slug, name, rank, progress }) => ({ slug, name, rank, progress })),

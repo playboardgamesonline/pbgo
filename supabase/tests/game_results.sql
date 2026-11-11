@@ -60,9 +60,10 @@ begin
   r := r || pg_temp.check_that('a rematch of the table is another game', id3 is not null and (select count(*) from public.game_results where game = 'zz-test') = 2, null);
 
   -- 2. A ranked table of two accounts: the game counts, and the Elo moves by the rules
-  insert into public.games (game, code, host_id, status, players, member_ids, ranked, created_at) values
-    ('zz-test', 'T2AAAA', 'pa', 'playing', '[{"id":"pa","nickname":"Ann"},{"id":"pb","nickname":"Bob"}]', jsonb_build_object('pa', ua::text, 'pb', ub::text), true, t0);
+  insert into public.games (game, code, host_id, status, players, member_ids, ranked, settings, created_at) values
+    ('zz-test', 'T2AAAA', 'pa', 'playing', '[{"id":"pa","nickname":"Ann"},{"id":"pb","nickname":"Bob"}]', jsonb_build_object('pa', ua::text, 'pb', ub::text), true, '{"pace": "fast"}', t0);
   id1 := public.record_game_result('zz-test', 'T2AAAA', t0, '2026-11-08 10:00:00+00', duel);
+  r := r || pg_temp.check_that('the speed of the table is written with the game, and a table that was given none was played at the normal one (migration 0022)', (select pace = 'fast' from public.game_results where id = id1) and (select pace = 'normal' from public.game_results where game = 'zz-test' and finished_at = '2026-11-08 09:20:00+00'), (select string_agg(pace, ',') from public.game_results where game = 'zz-test'));
   r := r || pg_temp.check_that('the game is ranked and both seats count', (select ranked from public.game_results where id = id1) and (select bool_and(counted_ranked) from public.game_participants where game_result_id = id1), null);
   r := r || pg_temp.check_that('the winner gains 16 and the other loses 16', (select round(rating::numeric, 3) from public.ratings where user_id = ua and game = 'zz-test') = 1516 and (select round(rating::numeric, 3) from public.ratings where user_id = ub and game = 'zz-test') = 1484, (select string_agg(round(rating::numeric, 3)::text, ',') from public.ratings where game = 'zz-test'));
   r := r || pg_temp.check_that('what each game did is kept', (select count(*) from public.rating_changes where game_result_id = id1) = 2, null);

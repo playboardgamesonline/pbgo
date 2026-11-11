@@ -1,6 +1,7 @@
 import "server-only"
 import { perGame, statsOf, type Account } from "@pbgo/accounts"
 import { isDemoAccount } from "@pbgo/accounts/demo"
+import { expansionsOf } from "@pbgo/catalog"
 import { getCatalog } from "@pbgo/catalog/server"
 import { memberGamesOf, NO_GAMES, type MemberGames, type MemberRank } from "@pbgo/core/lib/member-games"
 import { readMemberGames, readMemberTotals } from "@pbgo/core/server/standings"
@@ -28,7 +29,13 @@ export async function memberGames(account: Pick<Account, "id">, limit: number): 
   if (isDemoAccount(account)) return DEMO
   try {
     const [rows, totals, catalog] = await Promise.all([readMemberGames(account.id, limit), readMemberTotals(account.id), getCatalog()])
-    return memberGamesOf(rows, totals, (slug) => catalog.entries.find((entry) => entry.slug === slug)?.game.name ?? slug)
+    return memberGamesOf(
+      rows,
+      totals,
+      (slug) => catalog.entries.find((entry) => entry.slug === slug)?.game.name ?? slug,
+      // The expansions are the options that were switched on and that the game has an expansion of the same name for, as the page of a game says them
+      (slug, options) => expansionsOf(catalog.expansions, slug).flatMap((expansion) => (options[expansion.slug] === true ? [expansion.name] : [])),
+    )
   } catch (error) {
     console.error("The games of a member could not be read", error)
     return NO_GAMES

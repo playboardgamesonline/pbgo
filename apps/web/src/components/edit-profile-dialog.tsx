@@ -305,7 +305,7 @@ export function EditProfileDialog({
               )}
 
               <Field>
-                <FieldLabel id="profile-favorites-label">Favourite games</FieldLabel>
+                <FieldLabel id="profile-favorites-label">Favorite board games</FieldLabel>
                 <MultiSelect
                   options={games}
                   value={favorites}
@@ -314,11 +314,11 @@ export function EditProfileDialog({
                     setError(null)
                   }}
                   max={FAVORITES_MAX}
-                  placeholder="Add a game"
+                  placeholder="Add a board game"
                   searchPlaceholder="Search games..."
                   empty="No game matches."
                   disabled={pending}
-                  aria-label="Favourite games"
+                  aria-label="Favorite board games"
                 />
               </Field>
 
