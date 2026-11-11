@@ -51,8 +51,8 @@ export function CoverTileSpecimen() {
   return (
     <div className="flex items-center gap-3">
       <CoverTile />
-      <CoverTile className="size-14 rounded-2xl" />
-      <CoverTile className="size-20 rounded-3xl" />
+      <CoverTile className="size-14" />
+      <CoverTile className="size-20" />
     </div>
   )
 }

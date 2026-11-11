@@ -79,12 +79,12 @@ function PresenceDot({ status }: { status: FriendStatus }) {
   )
 }
 
-/** The picture of a game, or the initial of its name on a tile. Rounded like the rest (`rounded-md` at this size) and never a circle: only the picture of a person is round. */
+/** The picture of a game, or the initial of its name on a tile (`rounded-tile`: one shape at any size). Never a circle: only the picture of a person is round. */
 function GameIcon({ name, src, className }: { name: string; src?: string; className?: string }) {
   return (
-    <Avatar className={cn("size-6 rounded-md after:hidden", className)}>
-      {src && <AvatarImage src={src} alt="" className="rounded-md" />}
-      <AvatarFallback className="rounded-md text-xs">{initials(name).slice(0, 1)}</AvatarFallback>
+    <Avatar className={cn("size-6 rounded-tile after:hidden", className)}>
+      {src && <AvatarImage src={src} alt="" className="rounded-tile" />}
+      <AvatarFallback className="rounded-tile text-xs">{initials(name).slice(0, 1)}</AvatarFallback>
     </Avatar>
   )
 }

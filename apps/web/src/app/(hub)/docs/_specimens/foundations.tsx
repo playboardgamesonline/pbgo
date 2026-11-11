@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LineColors, NeutralRamp, SemanticColors } from "./colors"
 import { GlassLab } from "./glass-lab"
 import { MotionDemo } from "./motion-demo"
+import { RadiusNesting, RadiusTile } from "./radius-nesting"
 import { RadiusScale } from "./radius-scale"
 import { Code, Frame } from "./text"
 import { TokenTable } from "./token-table"
@@ -205,6 +206,8 @@ export const foundationsSpecimens: Specimens = {
   "type-monospace": Monospace,
   "token-table": TokenTable,
   "radius-scale": RadiusScale,
+  "radius-nesting": RadiusNesting,
+  "radius-tile": RadiusTile,
   "corner-smoothing": CornerSmoothing,
   "layout-gutter": Gutter,
   "layout-widths": Widths,

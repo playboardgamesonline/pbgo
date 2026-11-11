@@ -22,8 +22,8 @@ export async function ProfileAbout({ details }: { details: ProfileDetails }) {
         <ul aria-label="Favourite games" className="flex flex-wrap gap-2">
           {games.map((entry) => (
             <li key={entry.slug}>
-              <Link href={`/game/${entry.slug}`} title={entry.game.name} aria-label={entry.game.name} className="block rounded-2xl outline-none focus-visible:ring-3 focus-visible:ring-ring/30">
-                <CoverTile className="size-14 rounded-2xl ring-1 ring-foreground/10" {...gameThumb(entry.game)} />
+              <Link href={`/game/${entry.slug}`} title={entry.game.name} aria-label={entry.game.name} className="block rounded-tile outline-none focus-visible:ring-3 focus-visible:ring-ring/30">
+                <CoverTile className="size-14 ring-1 ring-foreground/10" {...gameThumb(entry.game)} />
               </Link>
             </li>
           ))}
