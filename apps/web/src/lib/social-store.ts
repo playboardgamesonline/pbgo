@@ -88,6 +88,15 @@ const subscribe = (listener: () => void): (() => void) => {
   return () => listeners.delete(listener)
 }
 
+/** The state the store holds right now, for what is not about an account of its own: the toast of a request that was sent looks in it for the picture of the member the request went to. Null until a read. */
+export function useSocialRead(): SocialState | null {
+  return useSyncExternalStore(
+    subscribe,
+    () => state,
+    () => null,
+  )
+}
+
 /**
  * The social state of the account `id`, kept fresh while the component is on the page: null until it is read (`initial`, when the page has read it already on the server, is shown meanwhile), and always null for no account (`id` null: a guest, or the
  * demo account of development, whose friends the browser makes up).

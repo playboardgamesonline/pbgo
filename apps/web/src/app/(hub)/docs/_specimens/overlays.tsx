@@ -12,7 +12,7 @@ import { UserCard } from "@pbgo/ui/platform/user-card"
 import { seatsOf } from "@pbgo/ui/tables"
 import { CookieBannerDemo } from "./cookie-banner-demo"
 import { MenuDemo } from "./menu-demo"
-import { ToastDemo } from "./toast-demo"
+import { FriendRequestReceivedDemo, FriendRequestSentDemo, GameInvitationDemo, ToastFixedDemo, ToastKindsDemo } from "./toast-demo"
 import { Frame } from "./text"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -113,8 +113,60 @@ function ToastKinds() {
     <Frame code={`import { toast } from "@pbgo/ui/platform/sonner"
 
 toast.success("Invitation link copied")
-toast.error("The table could not be saved")`}>
-      <ToastDemo />
+toast.error("The table could not be saved")
+const id = toast.loading("Opening the table")
+toast.success("The table is open", { id })
+toast.success("Check your e-mail", { description: "We sent a link to confirm your new address." })
+toast.error("The date of birth is needed", { action: { label: "Sign in", onClick } })`}>
+      <ToastKindsDemo />
+    </Frame>
+  )
+}
+
+function ToastFixed() {
+  return (
+    <Frame code={`toast.info("A new version of the site is out", { fixed: true })`}>
+      <ToastFixedDemo />
+    </Frame>
+  )
+}
+
+function ToastFriendRequestSent() {
+  return (
+    <Frame code={`<FriendRequestSentToast person={person} onCancel={takeBack} />
+
+// raised as a toast: it goes by itself, after the time that leaves the button within reach
+toast.custom(
+  (id) => <FriendRequestSentToast person={person} onCancel={takeBack} onDone={() => toast.dismiss(id)} />,
+  { duration: TOAST_DURATION.request },
+)`}>
+      <FriendRequestSentDemo />
+    </Frame>
+  )
+}
+
+function ToastFriendRequestReceived() {
+  return (
+    <Frame code={`showFriendRequestReceived({
+  person,
+  onAccept: () => answer("accept"),
+  onDecline: () => answer("decline"),
+})`}>
+      <FriendRequestReceivedDemo />
+    </Frame>
+  )
+}
+
+function ToastGameInvitation() {
+  return (
+    <Frame code={`showGameInvitation({
+  from: person,
+  game: { name: "Courtisans", iconUrl },
+  onAccept: () => join(),
+  onDecline: () => refuse(),
+  onDismiss: () => forget(),
+})`}>
+      <GameInvitationDemo />
     </Frame>
   )
 }
@@ -210,6 +262,10 @@ export const overlaysSpecimens: Specimens = {
   "popover-header-and-chips": PopoverHeaderAndChips,
   "hover-card-a-players-card": HoverCardAPlayersCard,
   "toast-kinds": ToastKinds,
+  "toast-fixed": ToastFixed,
+  "toast-friend-request-sent": ToastFriendRequestSent,
+  "toast-friend-request-received": ToastFriendRequestReceived,
+  "toast-game-invitation": ToastGameInvitation,
   "cookie-banner-first-visit": CookieBannerFirstVisit,
   "cookie-banner-customize": CookieBannerCustomize,
   "cookie-banner-reopened": CookieBannerReopened,

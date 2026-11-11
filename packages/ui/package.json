@@ -18,6 +18,7 @@
     "./styles/*": "./src/styles/*",
     "./tables": "./src/tables.ts",
     "./theme": "./src/theme.ts",
+    "./toasts": "./src/toasts.ts",
     "./utils": "./src/utils.ts"
   },
   "scripts": {
