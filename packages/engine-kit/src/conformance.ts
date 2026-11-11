@@ -73,8 +73,8 @@ export type ConformanceOptions = {
   maxSteps?: number
   /** The game's own error codes, `ERROR_CODES` of its binding: a refusal with any other code than these and the shared ones is a problem. Without it, any code is accepted */
   errorCodes?: readonly string[]
-  /** What a viewer must never see: the ids and words, in the state, that `viewerId` (`null` for anybody outside the table) is not meant to know. A view whose JSON holds one of them is a leak */
-  secretsFor?: (state: never, viewerId: string | null) => readonly string[]
+  /** What a viewer must never see: the ids and words, in the state, that `viewerId` (`null` for anybody outside the table) is not meant to know, as the view would hold them: the opaque ids of the kit (`ids`) are numbers, a word or an id of a game's own a string. A view whose JSON holds one of them is a leak */
+  secretsFor?: (state: never, viewerId: string | null) => readonly (string | number)[]
   /** A game that still carries words in its options and score lines (the ones that move to its Sanity, `engineTextKeys`) sets it until it has moved them */
   allowTexts?: boolean
 }

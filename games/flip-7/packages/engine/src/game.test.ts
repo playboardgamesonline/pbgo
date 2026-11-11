@@ -1,11 +1,11 @@
-import { createRng, defaultOptions, playStepFor, stepOf, viewLog } from "@pbgo/engine-kit"
+import { createRng, defaultOptions, playStepFor, progressOf, stepOf, viewLog } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
 import { step } from "./actions"
 import { GAME } from "./game"
 import { OPTIONS } from "./options"
 import { setupGame } from "./setup"
 import { CLIENT_ACTIONS, FLIP7_ERROR_CODES } from "./types"
-import { kinds, newState, players, problems, randomAction, reorderKeys, seedOf, waiting } from "./test-utils"
+import { kinds, layout, newState, playRandomly, players, problems, randomAction, reorderKeys, seedOf, waiting } from "./test-utils"
 import { playerView } from "./view"
 
 // The game as the platform reads it: the `GameDefinition` of @pbgo/engine-kit.
@@ -18,6 +18,35 @@ describe("the game definition", () => {
     expect(Object.keys(GAME.options)).toEqual(["targetScore"])
     expect(defaultOptions(GAME.options)).toEqual({ targetScore: 200 })
     expect(GAME.options).toBe(OPTIONS)
+  })
+
+  it("names no text: an option carries no label, and the lines of the score are keys the platform words", () => {
+    for (const option of Object.values(GAME.options)) {
+      expect(option).not.toHaveProperty("label")
+      expect(option).not.toHaveProperty("help")
+    }
+    expect(GAME.scoreLines).toEqual(["rounds", "bestRound", "flip7", "busts"])
+    const finished = playRandomly(newState(3, seedOf(2)), 2).at(-1)!
+    const rows = GAME.view(finished, null).results!.players.flatMap((player) => player.detail ?? [])
+    expect(rows.length).toBeGreaterThan(0)
+    for (const row of rows) {
+      expect(GAME.scoreLines).toContain(row.key)
+      expect(row).not.toHaveProperty("label")
+    }
+  })
+
+  it("says how far the game has come: the best total over the target, 99 at the most until it is over, then 100", () => {
+    expect(progressOf(GAME, layout({}))).toBe(0)
+    expect(progressOf(GAME, layout({ rounds: [[100, 20, 10]] }))).toBe(50)
+    // Two players at the target, tied: the game plays on, and is not 100 yet
+    const tied = layout({ rounds: [[200, 200, 0]] })
+    expect(GAME.isOver(tied)).toBe(false)
+    expect(progressOf(GAME, tied)).toBe(99)
+    const over = layout({ rounds: [[250, 10, 10]] })
+    expect(GAME.isOver(over)).toBe(true)
+    expect(progressOf(GAME, over)).toBe(100)
+    // The target is the table's: the same totals are further along at a lower target
+    expect(progressOf(GAME, layout({ rounds: [[40, 0, 0]], options: { targetScore: 100 } }))).toBe(40)
   })
 
   it("accepts the actions of its clients: hit, stay, target and deal", () => {
