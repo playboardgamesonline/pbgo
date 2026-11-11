@@ -26,7 +26,7 @@ const BINDING: ClientBinding = { ...shared, Logo, Game }
 
 - `@<slug>/engine` exports its definition as `GAME` and re-exports the kit (`export * from "@pbgo/engine-kit"`). It is a dependency of the binding: `src/index.ts` re-exports `GAME` from it, and `src/server.ts` re-exports `./index` and adds `loadSetupData`, `loadGameData` and `ROUTES`.
 - The registry (`@pbgo/games`) imports `@pbgo-game/<slug>/server` on the first request for the game and gives core a `GameModule` (`packages/core/lib/binding.ts`). Core never imports a game.
-- A binding without `GAME` is not playable: its page on the hub says "Coming soon" and its tables and API answer not found. With one, `isPlayable` makes it playable outside production, and in production once it is `live` in the registry.
+- A binding without `GAME` is not playable: its page on the hub says "Coming soon" and its tables and API answer not found. With one, `isPlayable` makes it playable outside production, and in production once it is `live` in the registry. A binding with `GAME` and no `Game` is playable up to a table that never loads: the page of a started table stays on "Loading the table", or, after a normal start, the ready check gives up after a minute and takes the players back to the game's page, since nobody can press "I'm here" without a board.
 - An engine that takes `SetupData` needs a `loadSetupData` ([Data for the engine and the board](#data-for-the-engine-and-the-board)).
 
 From `template/src/index.ts`:
