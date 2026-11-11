@@ -2,7 +2,7 @@ import type { GameDefinition } from "@pbgo/engine-kit"
 import { step } from "./actions"
 import { autoPlayFor, autoPlayStep } from "./autoplay"
 import { debugCommands } from "./debug"
-import { isOver, waitingFor } from "./machine"
+import { isOver, progress, waitingFor } from "./machine"
 import { OPTIONS } from "./options"
 import { MAX_PLAYERS, MIN_PLAYERS, setupGame, setupStep } from "./setup"
 import { type Action, CLIENT_ACTIONS, type Flip7Event, type PlayerView, type State } from "./types"
@@ -15,6 +15,8 @@ export const GAME: GameDefinition<State, Action, PlayerView, undefined, Flip7Eve
   minPlayers: MIN_PLAYERS,
   maxPlayers: MAX_PLAYERS,
   options: OPTIONS,
+  // The lines of the score that the end screen shows for each player, in this order; their words are `score.<key>` in the game's Sanity
+  scoreLines: ["rounds", "bestRound", "flip7", "busts"],
   clientActions: CLIENT_ACTIONS,
   setup: ({ players, options, seed }) => setupGame({ players, options, seed }),
   // The first round is dealt while the game is set up: the log opens with it
@@ -24,6 +26,8 @@ export const GAME: GameDefinition<State, Action, PlayerView, undefined, Flip7Eve
   step,
   view: (state, playerId) => playerView(state, playerId),
   isOver,
+  // The best total over the target score: the platform shows it as how far the game has come
+  progress,
   // The player of the turn, the holder of an action card, or the next dealer between two rounds: always one player
   waitingFor,
   // Absent player: they stay, give the card they hold, or deal the next round

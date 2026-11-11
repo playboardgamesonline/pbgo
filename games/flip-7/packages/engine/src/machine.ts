@@ -164,6 +164,11 @@ export function isOver(s: State): boolean {
   return roundsOutcome(totalsOf(s), rulesOf(s)).over
 }
 
+/** How far the game has come, for the HUD: the best total over the target score, from 0 to 100 (the totals go past the target in a tie that plays on). The kit keeps it under 100 until the game is over (`progressOf`), so that tie stays at 99. */
+export function progress(s: State): number {
+  return Math.min(100, (100 * Math.max(...totalsOf(s))) / targetOf(s))
+}
+
 /** The winners of a finished game, in seat order; nobody while it goes on. */
 export function winnersOf(s: State): string[] {
   const outcome = roundsOutcome(totalsOf(s), rulesOf(s))

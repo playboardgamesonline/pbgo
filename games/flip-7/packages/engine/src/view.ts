@@ -47,6 +47,7 @@ export function playerView(state: State, viewer: string | null): PlayerView {
     options: { ...s.options },
     me: viewer !== null && s.seats.includes(viewer) ? viewer : null,
     players,
+    standings: s.seats.map((playerId, seat) => ({ playerId, score: totals[seat]! })),
     dealer: playerAt(s, s.dealer),
     deck: { size: s.deck.length, counts: deckCounts(s) },
     discard: facesOf(s, s.discard),
