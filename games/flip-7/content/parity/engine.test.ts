@@ -1,4 +1,4 @@
-import { CARDS, DECK, defaultOptions, OPTIONS } from "@flip-7/engine"
+import { CARDS, DECK, defaultOptions, engineTextKeys, GAME, OPTIONS } from "@flip-7/engine"
 import type { CardKind } from "@flip-7/engine"
 import { describe, expect, expectTypeOf, it } from "vitest"
 import { CATEGORIES, CATEGORY_KEYS, titleOf } from "../../apps/studio/schemaTypes/constants.ts"
@@ -71,5 +71,27 @@ describe("the seed against the engine", () => {
   it("reads the score of 200 the rules say, and no other, as the default of the only option", () => {
     // If the engine's default changes, the lobby, the rules text and the share image change with it
     expect(defaultOptions(OPTIONS)).toEqual({ targetScore: 200 })
+  })
+})
+
+describe("the seed's words of the engine", () => {
+  const keysInSeed = () => ((docsById().get("texts")?.engineTexts as { key: string }[] | undefined) ?? []).map((item) => item.key)
+
+  it("hold the keys the engine asks of the game's Sanity, no more and no fewer", () => {
+    const { required, optional } = engineTextKeys(GAME)
+    expect([...keysInSeed()].sort()).toEqual([...required, ...optional].sort())
+  })
+
+  it("name each text once, with a key of its own to merge by", () => {
+    const items = (docsById().get("texts")?.engineTexts ?? []) as { _key: string; key: string }[]
+    expect(new Set(items.map((item) => item._key)).size).toBe(items.length)
+    expect(new Set(items.map((item) => item.key)).size).toBe(items.length)
+  })
+
+  it("leave the engine with no word of its own: an option and a line of the score say none", () => {
+    for (const definition of Object.values(OPTIONS)) {
+      expect(definition).not.toHaveProperty("label")
+      expect(definition).not.toHaveProperty("help")
+    }
   })
 })

@@ -47,6 +47,25 @@ describe("the view of a table", () => {
     expect(view.results).toBeNull()
   })
 
+  it("carries the standings: what each seat has banked, once and in seat order, the same for every viewer", () => {
+    const expected = [
+      { playerId: "ana", score: 10 },
+      { playerId: "bob", score: 20 },
+      { playerId: "cleo", score: 30 },
+    ]
+    for (const viewer of ["ana", "bob", "cleo", null, "stranger"]) expect(viewOf(state, viewer).standings, String(viewer)).toEqual(expected)
+  })
+
+  it("keeps the standings equal to the totals of the players, at every step of whole games", () => {
+    for (const seed of [1, 2, 3]) {
+      for (const now of playRandomly(newState(4, seedOf(seed)), seed)) {
+        const view = viewOf(now, null)
+        expect(view.standings.map((standing) => standing.playerId)).toEqual(view.players.map((player) => player.id))
+        expect(view.standings.map((standing) => standing.score)).toEqual(view.players.map((player) => player.total))
+      }
+    }
+  })
+
   it("shows the discard whole, the top card first", () => {
     expect(viewOf(state, null).discard.map((face) => face.type)).toEqual(["number-12", "freeze"])
   })
