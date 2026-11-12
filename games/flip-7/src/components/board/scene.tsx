@@ -3,13 +3,14 @@
 import type { Face, PlayerView, PublicSeat } from "@flip-7/engine"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import { onTable, Paper, Pile, pile, PlayerSeat, Table, TableText, useSettings, Zone, type ZoneCard } from "@pbgo/table"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { cardName } from "../../lib/cards"
 import type { ClientCatalog } from "../../lib/catalog"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
 import { GLOWS } from "./glows"
 import { CARD, dealtFrom, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, seatSpots, stayPlace } from "./layout"
+import { PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { CARD_SIZE, matTexture, useFaces } from "./textures"
 
 /** The pool of light of the mat: how far across it spreads, in world units. Past it the table is the plain colour it fades into. */
@@ -40,19 +41,24 @@ export type SceneProps = {
   onDeal: () => void
   /** The viewer gives the action card they hold to this player */
   onTarget: (playerId: string) => void
-  /** The start screen is up: the camera's entrance waits for it to go (`held` of the shared `Table`) */
+  /** Seconds that each card turned over by the last move waits before it comes in from the draw pile, by id (`timelineOf`): the three cards of a Flip Three come one after the other */
+  entrances: ReadonlyMap<number, number>
+  /** The last move is still playing out: the seats say what the table said before it, until it has */
+  busy: boolean
+  /** The start screen is up: the camera's entrance waits for it to go (`held` of the shared `Table`), and the cards of the opening deal wait with it */
   held?: boolean
   /** Called once when the table is drawn with everything it waited for (`onLoaded` of the shared `Table`) */
   onLoaded?: () => void
 }
 
 /** The word under a player's line when they are out of the round: bust, frozen or stayed. A player still in has none. */
-const statusOf = (player: PublicSeat, words: ClientCatalog["words"]) =>
-  player.status === "busted" ? words.busted : player.status === "frozen" ? words.frozen : player.status === "stayed" ? words.stayed : undefined
+const statusOf = (status: PublicSeat["status"], words: ClientCatalog["words"]) =>
+  status === "busted" ? words.busted : status === "frozen" ? words.frozen : status === "stayed" ? words.stayed : undefined
 
-function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget }: SceneProps) {
-  // The table's own folders (camera, cards, seats, glows, lights...) are made by the shared `Table`; the game binds the knobs of its layout
+function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, entrances, busy, held }: SceneProps) {
+  // The table's own folders (camera, cards, seats, glows, lights...) are made by the shared `Table`; the game binds the knobs of its layout and of its pace
   useSettings("Layout", LAYOUT_SETTINGS, LAYOUT_FIELDS, { order: 1 })
+  useSettings("Pace", PACE_SETTINGS, PACE_FIELDS, { order: 2 })
   const { theme } = useSiteSettings()
   const faces = useFaces(catalog)
   const { words, names } = catalog
@@ -70,7 +76,19 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget }: S
   const dealing = phase.kind === "between" && phase.dealer === meId
   const dealt = dealtFrom()
 
-  const cardsOf = (list: readonly Face[]): ZoneCard[] => list.map((face) => ({ key: face.id, id: face.id, front: faces.face(face.type), back: faces.back }))
+  // What a seat says, the word under the name and the total, is what the table said before the last move until the move has played out: a player who busts with the third card of a Flip Three is not out before that card has landed
+  const now = useMemo(() => new Map(view.players.map((player) => [player.id, { status: player.status, total: player.total }])), [view.players])
+  const [settled, setSettled] = useState(now)
+  if (!busy && settled !== now) setSettled(now)
+  const said = busy ? settled : now
+
+  // A card the last move turned over comes in from above the draw pile after the time the timeline gives it, so that they come one after the other. Every other card is where it was, or flies from where it lay: the table remembers
+  // where a card with the same id was a moment ago. The cards of the opening deal wait for the start screen to go
+  const cardsOf = (list: readonly Face[]): ZoneCard[] =>
+    (held ? [] : list).map((face) => {
+      const delay = entrances.get(face.id)
+      return { key: face.id, id: face.id, front: faces.face(face.type), back: faces.back, from: delay === undefined ? null : { ...dealt, delay } }
+    })
   // The engine's discard is top first and a pile layout is bottom first
   const discarded = [...view.discard].reverse()
   const ink = { color: theme.foreground }
@@ -82,21 +100,22 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget }: S
         const viewer = player.id === meId
         const pickable = choosing && phase.targets.includes(player.id)
         const heldAt = heldPlace(line, viewer)
+        const seat = said.get(player.id) ?? now.get(player.id)!
         return (
           <group key={player.id}>
             <PlayerSeat
               id={player.id}
               spot={spots.get(player.id)!}
               viewer={viewer}
-              line={pointsText(player.total)}
-              status={statusOf(player, words)}
-              out={player.status === "busted"}
+              line={pointsText(seat.total)}
+              status={statusOf(seat.status, words)}
+              out={seat.status === "busted"}
               onSelect={pickable ? () => onTarget(player.id) : undefined}
             />
             {/* What lies in front of the player: every card is face up, and every line reads upright from the viewer's side, whatever the seat */}
-            <Zone frame={{ x: line.at.x, z: line.at.z }} layout={linePoses(player.cards.length, line)} size={CARD_SIZE} enter={dealt} stagger={0.1} cards={cardsOf(player.cards)} />
+            <Zone frame={{ x: line.at.x, z: line.at.z }} layout={linePoses(player.cards.length, line)} size={CARD_SIZE} cards={cardsOf(player.cards)} />
             {/* The Freeze and Flip Three cards flipped during a Flip Three wait, face up, until its three cards are done */}
-            <Zone frame={{ x: heldAt.x, z: heldAt.z }} layout={heldPoses(player.held.length, line)} size={CARD_SIZE} enter={dealt} stagger={0.1} cards={cardsOf(player.held)} />
+            <Zone frame={{ x: heldAt.x, z: heldAt.z }} layout={heldPoses(player.held.length, line)} size={CARD_SIZE} cards={cardsOf(player.held)} />
           </group>
         )
       })}
@@ -143,12 +162,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget }: S
       {/* The holder of an action card chooses who gets it: the card lies in the middle for everybody, and the plates of the players who can get it are pressable (their seats above) */}
       {phase.kind === "target" && (
         <>
-          <Zone
-            layout={[onTable(0, 0.9, { y: 0.4, scale: 1.2 })]}
-            size={CARD_SIZE}
-            enter={dealt}
-            cards={[{ key: phase.card.id, id: phase.card.id, front: faces.face(phase.card.type), back: faces.back, glow: choosing ? GLOWS.selection : null }]}
-          />
+          <Zone layout={[onTable(0, 0.9, { y: 0.4, scale: 1.2 })]} size={CARD_SIZE} cards={cardsOf([phase.card]).map((card) => ({ ...card, glow: choosing ? GLOWS.selection : null }))} />
           {choosing && <TableText text={fill(words.giveTo, { card: cardName(phase.card.type, names) })} style={{ color: theme.accent }} height={0.6} position={[0, 0.02, 2.6]} />}
         </>
       )}

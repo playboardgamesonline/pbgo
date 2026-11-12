@@ -16,11 +16,16 @@ import type { ClientDebugCommand } from "@pbgo/core/lib/api"
 import { useApi } from "@pbgo/core/lib/binding-context"
 import type { PublicGame } from "@pbgo/core/lib/game-types"
 import { seatsOf } from "@pbgo/core/lib/seat-avatar"
+import { useMotion } from "@pbgo/core/lib/use-motion"
+import { timelineOf } from "../board/pacing"
 import { type ClientCatalog, MISSING_CATALOG } from "../../lib/catalog"
 import { actorsOf, sentenceOf } from "../../lib/history"
 import { fill } from "../../lib/words"
 
 const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
+
+/** No card waits for its turn to come in: the cards of a table that was just opened are where they lie */
+const NO_ENTRANCES: ReadonlyMap<number, number> = new Map()
 
 /** `held` and `onLoaded` are the start screen's (PLT-107): behind it the board is drawn and loads, says so, and holds its opening (the camera's entrance, the start announcement) until the screen goes */
 type Props = {
@@ -63,8 +68,25 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   const { words } = catalog
   // What happened, as the platform keeps it for the table and sends it to this player: the state and the view hold no log
   const log = useGameLog<Flip7Event>()
+  // How long the last move takes to play out (`timelineOf`). The board draws the view at once; what it holds back waits for that time: the cards that come in one after the other, the announcements and the words that say how the move ended.
+  // A table that is opened, or reloaded, is drawn as it is and plays nothing (`openedAt`), but for the opening deal, which is drawn when the start screen goes
+  const motion = useMotion()
+  const timeline = useMemo(() => timelineOf(log, motion === "reduced"), [log, motion])
+  const [openedAt] = useState(() => (held ? 0 : timeline.v))
+  const [playedV, setPlayedV] = useState(openedAt)
+  const busyUntil = useRef(0)
+  const busy = playedV < timeline.v
+  useEffect(() => {
+    // behind the start screen the cards of the opening deal are not drawn: the clock of the deal starts when the screen goes
+    if (held || timeline.v <= playedV) return
+    // a move that comes while another plays out waits for both
+    busyUntil.current = Math.max(busyUntil.current, Date.now() + timeline.settle * 1000)
+    const timer = setTimeout(() => setPlayedV(timeline.v), Math.max(0, busyUntil.current - Date.now()))
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a move that was taken note of is not timed again: only a newer version of the log, or the start screen going, starts a timer
+  }, [timeline.v, held])
   const settings = useAnnouncementSettings()
-  const { announce, element: announcement, current } = useAnnouncements(settings)
+  const { announce, element: announcement, current } = useAnnouncements(settings, { paused: busy })
   const [sending, setSending] = useState(false)
   const previous = useRef<{ round: number; turn: string | null; phase: string } | null>(null)
   const played = useRef<number | null>(null)
@@ -128,6 +150,23 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
     },
     [game.code],
   )
+  // The deck rigged to reach a situation at once (the engine's own debug commands, which act between two plays): the next hit turns over an action card, a number the player holds, or the seventh number of a Flip 7
+  useDebugFolder(
+    {
+      folder: "Rig the deck",
+      tab: "GAME",
+      order: 1,
+      closed: false,
+      schema: ({ button }) => ({
+        "Freeze on top": button(() => runDebugCommand("freezeOnTop")),
+        "Flip Three on top": button(() => runDebugCommand("flipThreeOnTop")),
+        "Second Chance on top": button(() => runDebugCommand("secondChanceOnTop")),
+        "Bust on top": button(() => runDebugCommand("bustOnTop")),
+        "Flip 7 on the next hit": button(() => runDebugCommand("flip7")),
+      }),
+    },
+    [game.code],
+  )
   useDebugFolder({
     folder: "Replay",
     tab: "TRANSITION",
@@ -173,7 +212,7 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
         <>
           {announcement}
           <StalledTurn onUpdate={onUpdate} />
-          {ended && !current && <GameOver onUpdate={onUpdate} />}
+          {ended && !current && !busy && <GameOver onUpdate={onUpdate} />}
           <DebugSlot />
         </>
       }
@@ -186,6 +225,8 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
         onStay={() => void send({ type: "stay" })}
         onDeal={() => void send({ type: "deal" })}
         onTarget={(target) => void send({ type: "target", target })}
+        entrances={timeline.v > openedAt ? timeline.entrances : NO_ENTRANCES}
+        busy={busy}
         held={held}
         onLoaded={onLoaded}
       />

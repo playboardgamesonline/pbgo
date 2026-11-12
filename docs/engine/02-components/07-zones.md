@@ -48,7 +48,7 @@ scene-zones
 
 - A card with no slot is not drawn, and a slot with no card stays empty.
 - A card keeps its `key` from one render to the next, so it glides from slot to slot instead of flying in again. A card that changes zone is a new element: give it the same `id` in both zones, and the [pose memory](05-poses-and-motion.md#pose-memory) does the rest.
-- A card comes in from `enter` a `stagger` after the one before it, counted from the first card of the zone, so a card that joins later waits for its place in the list. Its own `from` wins, `from` set to `null` keeps the zone from adding an entrance, and an entrance only plays when a card mounts.
+- A card comes in from `enter` a `stagger` after the one before it, counted from the first card of the zone, so a card that joins later waits for its place in the list. Its own `from` wins, `from` set to `null` keeps the zone from adding an entrance, and an entrance only plays when a card mounts. For cards that arrive a few at a time among the ones already there, a line that grows, give each its own `from` with a `delay`: the `stagger` of the zone would make a card that comes alone wait for its place in the list.
 - A zone owns no state and is a toolbox the game composes, not a declarative board: the game decides which cards are in it and in what order, one `Zone` per area, with the layout and the cards it computes from its view.
 
 From `template/src/components/board/scene.tsx`, the cards an opponent holds, seen from behind:
