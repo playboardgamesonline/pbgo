@@ -305,7 +305,7 @@ function Board({
       groupTurns<VisibleEvent>(view.log, {
         actor: (e) => (e.type === "gameOver" ? null : e.playerId),
         closes: (e) => e.type === "draw",
-        render: (e) => (e.type === "cardPlayed" || e.type === "cardEliminated" ? <Message event={e} className="justify-end" /> : null),
+        render: (e) => (e.type === "cardPlayed" || e.type === "cardEliminated" ? <Message event={e} className="justify-start" /> : null),
       }),
     [view.log],
   )

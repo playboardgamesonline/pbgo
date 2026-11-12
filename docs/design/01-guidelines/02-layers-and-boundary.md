@@ -4,12 +4,12 @@ Two layers share the same token names (`--background`, `--foreground`, `--primar
 
 | | Platform layer | Game layer |
 | --- | --- | --- |
-| Used by | Hub, account, legal, the docs, 404, the gamemaster | A game's own pages: the table, its board |
+| Used by | Hub, account, legal, the docs, 404, the gamemaster | A game's own pages: the table, its board and every interface around them but the social dock |
 | Components | `@pbgo/ui/platform/*` | `@pbgo/ui/game/*` |
 | Token values | `packages/ui/src/styles/platform.css`, scoped to `.platform` | `:root` of `packages/core/styles/game.css` and the game's stylesheet, overridden at runtime by its Sanity skin (`themeStyle()`) |
 | Who changes them | The design system: a pull request on `packages/ui` | The game: its setup in the gamemaster (Visual, Copy) |
 | Theme | Black and white, dark only | Whatever the game's skin says |
-| `platform` class | On `<html>` (through `PlatformDocument`) and on the root of every portal (select, dropdown, dialog, popover, toast), which React renders outside the wrapper | Never |
+| `platform` class | On `<html>` (through `PlatformDocument`) and on the root of every portal (select, dropdown, dialog, popover, toast), which React renders outside the wrapper | Never, but on the island of the social dock |
 
 ## Rules of the boundary
 

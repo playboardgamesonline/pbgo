@@ -53,6 +53,14 @@
   --color-accent-game: var(--accent-game);
 }
 
+/* Text laid straight on the table, with no card behind it (the log of the turns): a halo in the table's own colour keeps it legible over a felt, a card or a picture, on a dark table and on a light one */
+@utility table-ink {
+  text-shadow:
+    0 1px 2px var(--background),
+    0 0 0.4em var(--background),
+    0 0 1em var(--background);
+}
+
 @layer base {
   body {
     @apply bg-background text-foreground font-sans;

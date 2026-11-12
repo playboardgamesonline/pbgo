@@ -37,6 +37,7 @@ function burst(emoji: string): Particle[] {
 /**
  * Chat of the game, bottom right, against the bottom edge of the screen like the table: the cookie banner floats over it (its `z-50`) until the visitor answers, and does not lift it. Messages show up then fade out; hovering or
  * typing brings the recent history back. It steps aside to the left of the social dock when that opens (`GameHud` is the `group/hud` that sees it).
+ * The messages are text laid on the table with no pill behind them (`table-ink`), in the game's look; the field, the palette of reactions and the toggle are still the platform's (`platform-look.test.ts` lists the chat as not moved yet).
  * Nicknames in the player's color. Realtime broadcast without storage (nothing is kept once the game is left).
  * Sending goes through the chat API route (author = player cookie); the channel is only listened to.
  *
@@ -165,7 +166,7 @@ export function Chat({ className }: { className?: string }) {
     <div
       // what players write is theirs: the recordings and the autocapture leave the whole chat out (`ph-no-capture`)
       className={cn(
-        "platform ph-no-capture pointer-events-none fixed font-sans text-foreground right-[max(1.25rem,env(safe-area-inset-right))] bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-30 flex w-[min(22rem,calc(100vw-2.5rem))] flex-col gap-2 transition-[right] duration-slow ease-standard motion-reduce:transition-none",
+        "ph-no-capture pointer-events-none fixed font-sans text-foreground right-[max(1.25rem,env(safe-area-inset-right))] bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-30 flex w-[min(22rem,calc(100vw-2.5rem))] flex-col gap-2 transition-[right] duration-slow ease-standard motion-reduce:transition-none",
         "short:right-[max(1rem,env(safe-area-inset-right))] short:bottom-[max(0.75rem,env(safe-area-inset-bottom))] short:w-72",
         // The dock of the social panel opens over this corner (20rem wide, 1.5rem from the edge): the chat steps aside to its left
         "group-has-[[data-slot=social-dock][data-state=open]]/hud:right-[22.5rem]",
@@ -205,7 +206,7 @@ export function Chat({ className }: { className?: string }) {
             <li
               key={m.id}
               className={cn(
-                "w-fit max-w-full rounded-2xl border glass px-3 py-1.5 text-sm leading-snug text-foreground transition-opacity duration-700",
+                "table-ink w-fit max-w-full py-0.5 text-sm leading-snug text-foreground transition-opacity duration-700",
                 shown ? "opacity-100" : "hidden opacity-0",
               )}
             >
@@ -225,7 +226,7 @@ export function Chat({ className }: { className?: string }) {
           onSubmit={send}
           onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
           className={cn(
-            "pointer-events-auto flex min-w-0 flex-1 items-center gap-1 rounded-full border glass py-1 pr-1 pl-4 opacity-60 transition-opacity duration-200 focus-within:opacity-100 hover:opacity-100 motion-reduce:transition-none",
+            "platform pointer-events-auto flex min-w-0 flex-1 items-center gap-1 rounded-full border glass py-1 pr-1 pl-4 opacity-60 transition-opacity duration-200 focus-within:opacity-100 hover:opacity-100 motion-reduce:transition-none",
             !open && "short:hidden",
           )}
         >
@@ -275,7 +276,7 @@ export function Chat({ className }: { className?: string }) {
           aria-controls={formId}
           title={t("chat")}
           onClick={() => setOpen((o) => !o)}
-          className="pointer-events-auto hidden size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border glass text-foreground transition-colors hover:bg-muted motion-reduce:transition-none short:flex"
+          className="platform pointer-events-auto hidden size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border glass text-foreground transition-colors hover:bg-muted motion-reduce:transition-none short:flex"
         >
           {open ? <XIcon className="size-4.5" strokeWidth={1.8} /> : <MessageCircleIcon className="size-4.5" strokeWidth={1.8} />}
         </button>

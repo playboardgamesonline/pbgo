@@ -1,13 +1,14 @@
 # In-game rules
 
-A game's screen is drawn in two looks. The table is the game's: its cards, tokens, seat plates, announcements, confetti and the end screen read the game's skin tokens, set by `themeStyle()` and tuned by `UI_THEME` (see [Game themes](../04-in-game/03-game-themes.md)). Everything around the table is the platform's: the corners of the HUD (the state of the game, the social dock with the menu of the game, the players with their scores, the chat) and the windows of that menu take the platform's tokens, Geist and the `.platform` class, from `@pbgo/ui/platform`.
+A game's screen is drawn in the game's look. The table (its cards, tokens, seat plates, announcements, confetti) and everything around it (the state of the game with its log of the turns, the players with their scores, the chat, the windows of the menu of the game, the end screen) read the game's skin tokens, set by `themeStyle()` on the page and tuned by `UI_THEME` where a field exists (see [Game themes](../04-in-game/03-game-themes.md)). The one island of the platform's look is the social dock with its panel and the menu of its picture: the platform's tokens, Geist, the `.platform` class, from `@pbgo/ui/platform`.
 
-- Around the table, nothing of the game's look: no `@pbgo/ui/game`, no `surface`, `accent-game` or `font-display`. The pieces carry the `.platform` class themselves, since a game's page is not `.platform`; `platform-look.test.ts` keeps the rule.
-- On the table, nothing of the platform's: no `@pbgo/ui/platform`, no Geist, no `.platform` class. It reads the game's skin tokens.
-- A game never forks or restyles a shared component: for what is on the table it asks for a field in `UiTheme`, and for what is around it gives its view what the corners read (`standings`, the score of each player).
+- In the game's look, nothing of the platform's: no `@pbgo/ui/platform`, no Geist, no `.platform` class. A game with no skin takes the defaults of `game.css`, a sober palette, so an interface never reads a token that is not there. `platform-look.test.ts` keeps the rule for the files that have moved and names the ones that have not.
+- The social dock and its panel keep the platform's look and carry the `.platform` class themselves, since a game's page is not `.platform`: a game never tunes them, and they never read a game's token.
+- Text laid straight on the table, like the log of the turns and the messages of the chat, has no card, veil or border behind it: it takes `table-ink`, a halo in the table's own colour, so that it reads over a felt, a card or a picture.
+- A game never forks or restyles a shared component: for what it can tune it asks for a field in `UiTheme`, and for what an interface shows it gives its view what it reads (`standings`, the score of each player).
 - No copy in shared components: every label is a `UI_TEXTS` key, in the four languages, or in English only until the language pass for a new one (`ENGLISH_ONLY_TEXTS`).
-- The start screen, between a table that starts and its board (`StartScreen`, PLT-107), was the first piece around the table in the platform's look, in English until the language pass.
-- The end screen (`GameOverCard`) is the table's own: a card centered on the screen, over the board with no veil, in the game's look (`UI_THEME.gameOver`, `UI_THEME.seat`, the skin), in English until the language pass, with its own `short` layout.
+- The screens of a table that starts, between the platform's page and the board (`StartScreen`, `ReadyScreen`, PLT-107), are the platform's own moment: they stay in its look, in English until the language pass.
+- The end screen (`GameOverCard`) is a card centered on the screen, over the board with no veil, in the game's look (`UI_THEME.gameOver`, `UI_THEME.seat`, the skin), in English until the language pass, with its own `short` layout.
 
 ## Room for the cookie banner
 
