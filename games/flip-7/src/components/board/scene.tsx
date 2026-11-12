@@ -3,15 +3,16 @@
 import type { Face, PlayerView, PublicSeat } from "@flip-7/engine"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import { onTable, Paper, Pile, pile, PlayerSeat, Table, TableText, useSettings, Zone, type ZoneCard } from "@pbgo/table"
-import { useMemo, useState } from "react"
+import { useDeferredValue, useMemo, useState } from "react"
 import { cardName } from "../../lib/cards"
 import type { ClientCatalog } from "../../lib/catalog"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
 import { GLOWS } from "./glows"
-import { CARD, dealtFrom, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, seatSpots, stayPlace } from "./layout"
+import { BUTTON_WIDTH, buttonPlace, CARD, dealtFrom, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, seatSpots } from "./layout"
 import { PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { CARD_SIZE, matTexture, useFaces } from "./textures"
+import { useViewport } from "./viewport"
 
 /** The pool of light of the mat: how far across it spreads, in world units. Past it the table is the plain colour it fades into. */
 const MAT_SIZE = 44
@@ -154,10 +155,10 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
       />
 
       {/* The viewer banks their line */}
-      {myTurn && phase.canStay && <Paper text={words.stay} at={stayPlace()} width={2.6} onPress={onStay} paper={theme.foreground} ink={theme.background} accent={theme.accent} />}
+      {myTurn && phase.canStay && <Paper text={words.stay} at={buttonPlace()} width={BUTTON_WIDTH} onPress={onStay} paper={theme.foreground} ink={theme.background} accent={theme.accent} />}
 
-      {/* Between two rounds the dealer deals the next one */}
-      {dealing && <Paper text={words.deal} at={{ x: 0, z: 1.2 }} width={2.6} onPress={onDeal} paper={theme.foreground} ink={theme.background} accent={theme.accent} />}
+      {/* Between two rounds the dealer deals the next one, with the same button in the same place: nothing else lies there */}
+      {dealing && <Paper text={words.deal} at={buttonPlace()} width={BUTTON_WIDTH} onPress={onDeal} paper={theme.foreground} ink={theme.background} accent={theme.accent} />}
 
       {/* The holder of an action card chooses who gets it: the card lies in the middle for everybody, and the plates of the players who can get it are pressable (their seats above) */}
       {phase.kind === "target" && (
@@ -173,8 +174,10 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
 export function Scene(props: SceneProps) {
   const { theme } = useSiteSettings()
   const players = props.view.players.length
-  // The Camera folder of the debug panel edits this object: it is made again only when the number of players changes
-  const camera = useMemo(() => cameraFor(players), [players])
+  // The camera stands where the whole table is in the window and clear of what the platform draws over it (`fitCamera`): a window that is dragged to another size does not fit the camera at every step, it waits. The Camera folder of the
+  // debug panel edits this object: it is made again when the window or the number of players changes
+  const viewport = useDeferredValue(useViewport())
+  const camera = useMemo(() => cameraFor(players, viewport), [players, viewport])
   return (
     <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark }} held={props.held} onLoaded={props.onLoaded}>
       <Mat inner={theme.surface} outer={theme.surfaceDark} />

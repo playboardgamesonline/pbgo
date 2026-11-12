@@ -52,8 +52,9 @@ scene-camera
 ## Rules
 
 - The rig sets the camera on every frame, so nothing else may move it: change the settings, not the camera.
-- A screen narrower than the aspect ratio the table is framed for backs the camera off so the table still fits (`aspectScale`); a wider one keeps the distance.
+- A screen narrower than the aspect ratio the table is framed for backs the camera off so the table still fits (`aspectScale`, which the package exports: the distance of the settings is multiplied by it); a wider one keeps the distance. A game that fits its own camera to the window (below) works out where the camera really stands with it, and gives the settings the distance divided by it.
+- A table that has to stay clear of what the platform draws over it (the log of the turns, the menu, the list of the players) is fitted to the window by the game: the nearest distance, and the offset of the target, at which every footprint of the table is in the window and clear of those boxes. Flip 7 does it in `games/flip-7/src/components/board/camera.ts` (`fitCamera`), with the boxes of the HUD measured in pixels, since nothing publishes them yet.
 - The camera never sinks below `MIN_HEIGHT`, so a flat view still clears the table. A negative `tilt` counts as straight down, where the far side of the table is up on the screen.
 - The `fov` of the settings is applied to the camera, and its projection is refreshed only when the value changes.
 - The share photo places its own camera with the same `placeCamera`, with no entrance and no backing off ([Share photo](01-table.md#share-photo)).
-- `placeCamera`, `aspectScale`, `introRest`, `MIN_HEIGHT` and `CameraRig` are internal; the types and `CAMERA_INTRO` are what the package exports.
+- `placeCamera`, `introRest`, `MIN_HEIGHT` and `CameraRig` are internal; the types, `CAMERA_INTRO` and `aspectScale` are what the package exports.
