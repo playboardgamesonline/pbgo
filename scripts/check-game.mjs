@@ -165,6 +165,14 @@ const CHECKS = [
     },
   ],
   [
+    "board",
+    "browser check",
+    (g) =>
+      exists(g.dir, "check-board.config.mjs")
+        ? ["ok", "check-board.config.mjs says how `pnpm check:board` presses the controls and rigs the cases"]
+        : ["warn", "no check-board.config.mjs: `pnpm check:board` checks the platform's parts (the windows, a reload, the start) and presses nothing; write the game's part (`docs/scripts.md`, the model is games/flip-7)"],
+  ],
+  [
     "content",
     "studio guard",
     (g) => {

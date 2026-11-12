@@ -18,7 +18,7 @@ A job that crosses categories is split: each skill does its part and names the s
 
 ## A game from A to Z
 
-A game goes through six stages, and `pnpm check:game <slug>` says which it has reached from what is in the repo: `scaffold` → `engine` → `binding` → `board` → `content` → `live`. `pnpm check:game <slug> --stage <stage>` is the gate: it exits 1 while a check up to that stage fails, so "ready for the next step" is a command and not an opinion. `pnpm check:game --all` shows every game of the registry and what stops it. The checks it cannot make, the words of the rules, the look of the board, a table played with two seats, are in the skills.
+A game goes through six stages, and `pnpm check:game <slug>` says which it has reached from what is in the repo: `scaffold` → `engine` → `binding` → `board` → `content` → `live`. `pnpm check:game <slug> --stage <stage>` is the gate: it exits 1 while a check up to that stage fails, so "ready for the next step" is a command and not an opinion. `pnpm check:game --all` shows every game of the registry and what stops it. The checks it cannot make, the words of the rules, the look of the board, a table played with two seats, are in the skills; the board itself is checked in a real browser by `pnpm check:board <slug>` (it needs `pnpm dev`, a Chromium in Playwright's cache and ffmpeg, and is no gate: `docs/scripts.md`).
 
 | Step | Skill | Ends when | State |
 | --- | --- | --- | --- |
@@ -43,7 +43,7 @@ The terminal pipeline planned in PLT-97 will run these steps in this order, one 
 
 ### ENGINE
 - `engine-rules` — write a game's engine from its rulebook: the plan first (rules as coded, the cases left open, who sees what, the blocks and the gaps), the slices, the tests and the contract suite, the gate `check:game --stage engine`
-- `engine-board` — (written by the engine lane, carried out by whoever mounts a board, usually the GAME agent) hand an engine to the app and draw its board on `@pbgo/table`: the binding and its three tests, the board from the blocks of the table, tuning, the checks in a browser with two seats and on a phone, the gate `check:game --stage board`
+- `engine-board` — (written by the engine lane, carried out by whoever mounts a board, usually the GAME agent) hand an engine to the app and draw its board on `@pbgo/table`: the binding and its three tests, the board from the blocks of the table, tuning, the checks in a browser (`pnpm check:board <slug>`: the windows, the controls pressed with the mouse, the cases of `GAME.debug` as frames, a reload, the start, a player who is away; two seats and a phone for the rest), the gate `check:game --stage board`
 
 ### PLATFORM
 None yet.
