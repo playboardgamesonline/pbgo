@@ -19,7 +19,7 @@ export default async function ProfileLayout({ children }: Readonly<{ children: R
   const handle = handleOfHead(head)
   return (
     <AccountShell>
-      <ProfileHeader head={head} note={isDemoAccount(account) ? "Demo account (development only)" : undefined}>
+      <ProfileHeader head={head} own note={isDemoAccount(account) ? "Demo account (development only)" : undefined}>
         <EditProfileButton head={head} demo={isDemoAccount(account)} address="me" />
         {handle && (
           <Button asChild variant="outline">

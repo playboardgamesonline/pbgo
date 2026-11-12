@@ -10,6 +10,9 @@ import { memberGames, type MemberGames } from "./member-games"
 // What the pages of a profile say (PLT-39, PLT-111): the member's own (`/me`) and anybody's (`/player/<nickname>-<tag>`). A head (who and since when) and, unless the member hides them, their games.
 // The profile is the database's (`@pbgo/core/server/profiles`), the games are the recorded ones (`member-games.ts`). The demo account is in no database: its profile is made up here.
 
+/** A member's level and the experience toward the next one. The platform stores none yet (no column), so it is null for a real member and only the demo account has one; the head draws what it is given. */
+export type ProfileLevel = { level: number; xp: number; xpForNext: number }
+
 /** What the top of a profile says. */
 export type ProfileHead = {
   nickname: string
@@ -22,9 +25,11 @@ export type ProfileHead = {
   hideHistory: boolean
   /** What they say of themselves, to every visitor: pronouns, country, favourite games, bio. Empty fields are for the page to leave out. */
   details: ProfileDetails
+  /** Their level: a badge with the number to every visitor, the experience gauge to the member alone. Null when not known: nothing is drawn. */
+  level: ProfileLevel | null
 }
 
-const headOf = (record: ProfileWithDetails): ProfileHead => ({ nickname: record.nickname, tag: record.tag, avatarUrl: record.avatarUrl, memberSince: record.createdAt, hideHistory: record.hideHistory, details: record.details })
+const headOf = (record: ProfileWithDetails): ProfileHead => ({ nickname: record.nickname, tag: record.tag, avatarUrl: record.avatarUrl, memberSince: record.createdAt, hideHistory: record.hideHistory, details: record.details, level: null })
 
 /** What the demo account of development says of itself: made up, like its profile, so that a page with everything filled in can be looked at. Games the hub's catalog lists, so that their covers come from it. */
 const DEMO_DETAILS: ProfileDetails = { pronouns: "they/them", country: "FR", city: { name: "Lyon", country: "FR" }, favoriteGames: ["courtisans", "flip-7", "hanabi"], bio: "A made-up member, for the development browser.\nNothing here is kept." }
@@ -33,8 +38,8 @@ const DEMO_DETAILS: ProfileDetails = { pronouns: "they/them", country: "FR", cit
  * The head of a signed-in member's own profile: the profile they have (made on the spot if missing), else their account's name and picture with no tag (migration not applied, or unreadable: the cause is in the log). Read once per request.
  */
 export const ownProfileHead = cache(async (account: Account): Promise<ProfileHead> => {
-  const fallback: ProfileHead = { nickname: account.nickname, tag: null, avatarUrl: account.avatarUrl, memberSince: account.createdAt, hideHistory: account.preferences.hideHistory, details: noProfileDetails() }
-  if (isDemoAccount(account)) return { ...fallback, tag: DEMO_TAG, details: DEMO_DETAILS }
+  const fallback: ProfileHead = { nickname: account.nickname, tag: null, avatarUrl: account.avatarUrl, memberSince: account.createdAt, hideHistory: account.preferences.hideHistory, details: noProfileDetails(), level: null }
+  if (isDemoAccount(account)) return { ...fallback, tag: DEMO_TAG, details: DEMO_DETAILS, level: { level: 12, xp: 640, xpForNext: 1000 } }
   try {
     const record = await ensureProfile(account)
     return record ? headOf({ ...record, details: await readProfileDetails(account.id) }) : fallback
