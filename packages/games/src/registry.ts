@@ -78,7 +78,7 @@ export const GAMES = [
     tagline: "The press-your-luck card game, online.",
     players: { min: 3, max: 8 },
     sanityProjectId: "ky3exlhe",
-    live: false,
+    live: true,
     indexable: false,
   },
   {
