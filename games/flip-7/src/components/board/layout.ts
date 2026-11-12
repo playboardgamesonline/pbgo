@@ -1,4 +1,4 @@
-import { type Field, onTable, type Pose, row, seats as ringOf, type Spot } from "@pbgo/table"
+import { type Field, onTable, type Pose, plateOf, row, SEAT_SETTINGS, seats as ringOf, type Spot } from "@pbgo/table"
 
 /** A seat at the table: where it stands and the yaw that sends what lies there away from the middle */
 export type SeatSpot = Required<Spot>
@@ -11,7 +11,8 @@ export type Place = { x: number; z: number }
  * the seat: the cards do not take the yaw of their seat.
  */
 export const LAYOUT_SETTINGS = {
-  /** The ring the seats stand on (the plates stand out from it), the size of the cards of the opponents and how far the camera stands, for a table of three and for a table of eight: a small table sits close and its cards are big, a full one spreads to the edges of the screen */
+  /** The ring the seats stand on (the plates stand out from it) and the size of the cards of the opponents, for a table of three and for a table of eight: a small table sits close and its cards are big, a full one spreads wide. How far the camera stands is not a knob: it
+   * is fitted to the window (`fitCamera`) */
   radiusX3: 5.4,
   radiusX8: 5,
   radiusZ3: 3.8,
@@ -21,8 +22,6 @@ export const LAYOUT_SETTINGS = {
   margin8: 0.5,
   opponentScale3: 0.95,
   opponentScale8: 0.62,
-  distance3: 17.5,
-  distance8: 22.5,
   /** The viewer's line: how far toward them it lies, how big its cards are and how wide it may spread */
   viewerZ: 3.1,
   viewerScale: 1,
@@ -40,8 +39,8 @@ export const LAYOUT_SETTINGS = {
   pilesX: 1.6,
   pilesZ: 0.5,
   pileScale: 0.9,
-  /** The Stay button lies beside the discard, this far from it: in the middle band of the table, which the cookie banner never covers and no line or plate reaches */
-  stayDX: 3.1,
+  /** The viewer's one button, Stay on a turn and Deal between two rounds, lies beside the discard, this far from it: in the middle band of the table, which the cookie banner never covers and no line or plate reaches */
+  buttonDX: 3.1,
 }
 
 export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
@@ -53,8 +52,6 @@ export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
   margin8: ["ring margin · 8 players", 0, 1.4, 0.01],
   opponentScale3: ["opponent card scale · 3", 0.3, 1.4, 0.01],
   opponentScale8: ["opponent card scale · 8", 0.3, 1.2, 0.01],
-  distance3: ["camera distance · 3", 8, 40, 0.1],
-  distance8: ["camera distance · 8", 12, 50, 0.1],
   viewerZ: ["viewer line z", 0, 8, 0.05],
   viewerScale: ["viewer card scale", 0.4, 1.6, 0.01],
   viewerWidth: ["viewer line width", 4, 20, 0.1],
@@ -66,7 +63,7 @@ export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
   pilesX: ["piles x", 0.5, 5, 0.05],
   pilesZ: ["piles z", -3, 3, 0.05],
   pileScale: ["pile scale", 0.4, 1.4, 0.01],
-  stayDX: ["stay button x from the discard", 1.5, 6, 0.05],
+  buttonDX: ["button x from the discard", 1.5, 6, 0.05],
 }
 
 /** The width and height of a card of the game, in world units: the faces of Sanity are 326 by 512 */
@@ -82,7 +79,6 @@ export function tableOf(n: number) {
     radiusZ: between(R.radiusZ3, R.radiusZ8),
     margin: between(R.margin3, R.margin8),
     opponentScale: between(R.opponentScale3, R.opponentScale8),
-    distance: between(R.distance3, R.distance8),
   }
 }
 
@@ -151,10 +147,45 @@ export function pilePlaces(): { deck: Place; discard: Place } {
   return { deck: { x: -R.pilesX, z: R.pilesZ }, discard: { x: R.pilesX, z: R.pilesZ } }
 }
 
-/** Where the Stay button lies: beside the discard, away from the draw pile that is pressed to hit. */
-export function stayPlace(): Place {
+/** Where the viewer's one button lies, Stay on a turn and Deal between two rounds: beside the discard, away from the draw pile that is pressed to hit. */
+export function buttonPlace(): Place {
   const { discard } = pilePlaces()
-  return { x: discard.x + LAYOUT_SETTINGS.stayDX, z: discard.z }
+  return { x: discard.x + LAYOUT_SETTINGS.buttonDX, z: discard.z }
+}
+
+/** The width of the paper of a button, in world units */
+export const BUTTON_WIDTH = 2.6
+
+/** A rectangle on the table, in world units: x to the right, z toward the viewer */
+export type Footprint = { x0: number; x1: number; z0: number; z1: number }
+
+/**
+ * Where things stand on a table of `n` players, as rectangles: the plate of each seat, a line of three cards for an opponent and of four for the viewer, the piles with their count and their hint, and the button. What the camera has to bring
+ * into the window, and to keep clear of what the platform draws over it (`fitCamera`). Nominal sizes: a longer line spreads, and may reach farther.
+ */
+export function tableFootprints(n: number): Footprint[] {
+  const R = LAYOUT_SETTINGS
+  const ids = Array.from({ length: n }, (_, i) => String(i))
+  const spots = seatSpots(ids, "0")
+  const placed = lines(spots, "0")
+  const out: Footprint[] = []
+  for (const [id, spot] of spots) {
+    const viewer = id === "0"
+    const plate = plateOf(spot, viewer)
+    // the aura is as wide as the plate; the name stands above the plate's centre and the status below the score
+    out.push({ x0: plate.x - SEAT_SETTINGS.auraWidth / 2, x1: plate.x + SEAT_SETTINGS.auraWidth / 2, z0: plate.nameZ - 0.45, z1: plate.statusZ + 0.3 })
+    const line = placed.get(id)!
+    const width = CARD.width * line.scale * (1 + (viewer ? 3 : 2) * R.gap)
+    const depth = CARD.height * line.scale
+    out.push({ x0: line.at.x - width / 2, x1: line.at.x + width / 2, z0: line.at.z - depth / 2, z1: line.at.z + depth / 2 })
+  }
+  const { deck, discard } = pilePlaces()
+  const pile = (CARD.height * R.pileScale) / 2
+  // the hint above the draw pile and its count below it
+  out.push({ x0: deck.x - 0.6 - (CARD.width * R.pileScale) / 2, x1: discard.x + 0.6 + (CARD.width * R.pileScale) / 2, z0: deck.z - pile - 0.9, z1: deck.z + pile + 1.0 })
+  const button = buttonPlace()
+  out.push({ x0: button.x - BUTTON_WIDTH / 2, x1: button.x + BUTTON_WIDTH / 2, z0: button.z - 0.5, z1: button.z + 0.5 })
+  return out
 }
 
 /** Where the cards are dealt from: above the draw pile, face down. */

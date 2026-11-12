@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { CARD, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, seatSpots } from "./layout"
+import { BUTTON_WIDTH, buttonPlace, CARD, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, seatSpots, tableFootprints } from "./layout"
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
 const SIZES = [3, 4, 5, 6, 7, 8]
@@ -115,5 +115,39 @@ describe("the piles", () => {
     expect(deck.x).toBeLessThan(0)
     expect(discard.x).toBeGreaterThan(0)
     expect(deck.z).toBe(discard.z)
+  })
+})
+
+describe("the button", () => {
+  it("lies beside the discard, clear of the two piles and of the viewer's line, the same for Stay and for Deal", () => {
+    const { discard } = pilePlaces()
+    const button = buttonPlace()
+    // right of the discard's right edge, in the middle band, level with the piles
+    expect(button.x - BUTTON_WIDTH / 2).toBeGreaterThan(discard.x + (CARD.width * LAYOUT_SETTINGS.pileScale) / 2)
+    expect(button.z).toBe(discard.z)
+    expect(button.z + 0.5).toBeLessThan(LAYOUT_SETTINGS.viewerZ - CARD.height / 2)
+  })
+})
+
+describe("the footprints of a table", () => {
+  it("are the plate and the line of each seat, the piles and the button, whatever the number of players", () => {
+    for (const n of SIZES) expect(tableFootprints(n), `${n} players`).toHaveLength(2 * n + 2)
+  })
+
+  it("are rectangles with some size", () => {
+    for (const n of SIZES) for (const box of tableFootprints(n)) {
+      expect(box.x1).toBeGreaterThan(box.x0)
+      expect(box.z1).toBeGreaterThan(box.z0)
+    }
+  })
+
+  it("put the viewer's plate nearest to the viewer and the opponents' beyond the middle", () => {
+    for (const n of SIZES) {
+      const boxes = tableFootprints(n)
+      // the plate is the first footprint of a seat, in the order of the seats, the viewer's first
+      const plates = boxes.slice(0, 2 * n).filter((_, i) => i % 2 === 0)
+      expect(plates[0]!.z0, `${n} players`).toBeGreaterThan(0)
+      for (const plate of plates.slice(1)) expect(plate.z1, `${n} players`).toBeLessThan(LAYOUT_SETTINGS.viewerZ)
+    }
   })
 })
