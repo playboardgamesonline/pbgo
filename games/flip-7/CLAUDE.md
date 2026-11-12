@@ -1,6 +1,6 @@
 # Flip 7 · Play Board Games Online
 
-Flip 7 (Eric Olsen, The OP Games), served by `apps/web` at `/flip-7`. The engine is written (ruleset 3.1 of the booklet), so is the Sanity content, and the binding exports `GAME` and the board: a player hits by pressing the draw pile, stays and deals with the papers on the table and gives an action card by pressing a player's plate, and the history, the announcements and the game over are drawn (what is still to do is in "Making it playable"). Outside production a table can be opened and played; in production the home page says "coming soon" and the table pages answer 404 until `live` is set in the registry. Listed nowhere until then. 3 to 8 players, about 20 minutes; the web edition is not official.
+Flip 7 (Eric Olsen, The OP Games), served by `apps/web` at `/flip-7`. The engine is written (ruleset 3.1 of the booklet), so is the Sanity content, and the binding exports `GAME` and the board: a player hits by pressing the draw pile, stays and deals with the papers on the table and gives an action card by pressing a player's plate, and the history, the announcements and the game over are drawn (what is still to do is in "Making it playable"). It has been live in production since 2026-11-12 (`live: true` in the registry, for the owner to test) and is not indexable yet: until the drafts of its Sanity project are published, every word of the board reads `[missing: <key>]` and the card back is a stand-in. 3 to 8 players, about 20 minutes; the web edition is not official.
 
 ## Structure
 - `package.json` — `@pbgo-game/flip-7`, the binding package that `@pbgo/games` loads on demand
@@ -112,7 +112,7 @@ The engine is done, the binding exports it (`GAME`, `ERROR_CODES` and the three 
 - The edges: the phone (below 900 px the platform covers every board with its desktop-only screen, so nothing was seen on one; laptops and tablets, held either way, are fitted) and what the owner reads on the table once the words are published (the length of the announcements and of the sentences)
 - The drafts of the seed, published in the Studio after the owner has deployed the hosted Studio: the words of the engine and of the board and the message of `CANNOT_STAY` (Spanish and German to read), and the `game` and `settings` drafts. Until then every word of the board reads `[missing: <key>]`, which is what every check so far saw
 - The card back, handed over by the owner
-- Then set `live` (and `indexable` once it is ready for search engines) in `packages/games/src/registry.ts`. See `template/CLAUDE.md` ("Adapting to a new game")
+- `live` is set (2026-11-12, to be tested); `indexable` is set once the words and the card back are published and the owner has read the Spanish and German, in `packages/games/src/registry.ts`. See `template/CLAUDE.md` ("Adapting to a new game")
 
 ## Friction (pilot of the process)
 What got in the way while Flip 7 went from its rulebook toward a game that is live, the pilot of the way a game is built: kept here so that the skills and the checks of that process are changed from it (they are in `.claude/skills/README.md`, "A game from A to Z", and `pnpm check:game flip-7` says how far the game has got). One line each, newest last; a line that was fixed says where.

@@ -42,12 +42,16 @@ describe("pnpm catalog:list", () => {
     expect(run.stdout).not.toMatch(/^warning /m)
 
     // the table is the block after the header, its first line the column heads
-    const rows = (run.stdout.split("\n\n")[1] ?? "").split("\n").slice(1)
+    // (a live game of the registry that these games of the Studio do not include is a row of its own, `live (registry)`: another test's business, and which games are live is the registry's to say)
+    const rows = (run.stdout.split("\n\n")[1] ?? "")
+      .split("\n")
+      .slice(1)
+      .filter((line) => !/\blive \(registry\)/.test(line))
     expect(rows.map((line) => line.split(/\s+/)[0])).toEqual(["courtisans", "bravo", "delta", "alpha", "charlie"])
     expect(run.stdout).toMatch(/^slug\s+name\s+kind\s+order\s+pictures\s+text\s+players\s+time\s+weight\s+age\s+categories\s+creators\s+publishers\s+related$/m)
     // a live game shows its game of the Studio, its name and its order included, not what the registry knows of it
     expect(run.stdout).toMatch(/^courtisans\s+Courtisans in the Studio\s+live\s+900\s/m)
-    expect(run.stdout).not.toContain("live (registry)")
+    expect(run.stdout).not.toMatch(/^courtisans\s.*\blive \(registry\)/m)
     expect(run.stdout).toMatch(/^bravo\s+Bravo\s+planned\s+10\s+- - - -\s+-- -- -- --\s.*Ada \(designer\/artist\)\s+Pub\s*$/m)
     expect(run.stdout).toMatch(/^alpha\s+Alpha\s+planned\s+30\s+L - - C\s+-- en -- --\s+2-5\s+30min\s+1\.50\s+8\+\s+Cards\s/m)
     // no order: nothing in the column, the games with none come last
