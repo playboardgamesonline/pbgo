@@ -84,6 +84,20 @@ export async function readProfileDetails(userId: string): Promise<ProfileDetails
   return detailsOf(data as Record<string, unknown> | null)
 }
 
+/**
+ * The experience (XP) of one account (`profiles.xp`, migration 0023), 0 for an account with none to its name, for the demo account (in no database) and where migration 0023 is not applied. Throws what else the database says.
+ */
+export async function readProfileXp(userId: string): Promise<number> {
+  if (!USER_ID.test(userId)) return 0
+  const { data, error } = await supabaseAdmin().from("profiles").select("xp").eq("user_id", userId).maybeSingle()
+  if (error) {
+    if (notApplied(error) || isMissingColumn(error)) return 0
+    throw error
+  }
+  const xp = Number((data as Record<string, unknown> | null)?.xp)
+  return Number.isSafeInteger(xp) && xp > 0 ? xp : 0
+}
+
 /** The profiles of these accounts, by the account's id; an account that has none (or that is not a uuid) is not in the map. One read for all of them. */
 export async function readProfiles(userIds: readonly string[]): Promise<Map<string, ProfileRecord>> {
   const ids = [...new Set(userIds.filter((id) => USER_ID.test(id)))]

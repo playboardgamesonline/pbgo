@@ -91,6 +91,8 @@ export { DELETION_MESSAGES, REOPEN_PATH, deletionDate, deletionMessage, hasMailb
 export type { DeletionAnswer, DeletionRequest } from "./deletion"
 export { PROFILE_PATH, PROFILE_SOURCES, TAG_DIGITS, TAG_MAX, TAG_MIN, checkTag, handleText, ownHandleOf, parseHandleText, parseProfileSegment, profilePath, profileSourceOf, profileViewOf, tagOfRequest, tagText } from "./profile"
 export type { Handle, OwnHandle, ProfileSource } from "./profile"
+export { LEVEL_STEP, levelOf, levelProgress, xpToReach } from "./level"
+export type { Level } from "./level"
 export { BIO_LINE_BREAKS_MAX, BIO_MAX, FAVORITES_MAX, PRONOUNS, bioCharactersLeft, checkBio, cityOfRequest, cityText, cleanBio, detailsOf, favoriteGamesOf, hasProfileDetails, isGameSlug, isPronouns, noProfileDetails, parseProfileEdit, pronounsLabel } from "./profile-details"
 export type { ProfileCity, ProfileDetails, ProfileEdit, Pronouns } from "./profile-details"
 export { mostPlayed, ordinal, perGame, playedGameOf, statsFrom, statsOf } from "./games"

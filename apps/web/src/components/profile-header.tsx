@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { cityText, countryName, initialsOf, pronounsLabel, tagText } from "@pbgo/accounts"
+import { levelProgress, cityText, countryName, initialsOf, pronounsLabel, tagText } from "@pbgo/accounts"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Progress } from "@pbgo/ui/platform/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
@@ -25,17 +25,15 @@ export function ProfileHeader({ head, note, own = false, children }: { head: Pro
       <div className="min-w-0 flex-1 basis-56">
         <div className="flex min-w-0 items-center gap-x-3">
           <ProfileName nickname={head.nickname} tag={head.tag === null ? null : tagText(head.tag)} className="min-w-0 truncate font-heading text-3xl sm:text-5xl" />
-          {head.level && (
-            <Badge variant="secondary" aria-label={`Level ${head.level.level}`} title={`Level ${head.level.level}`} className="h-7 shrink-0 px-2.5 text-sm tabular-nums">
-              {head.level.level}
-            </Badge>
-          )}
+          <Badge variant="secondary" aria-label={`Level ${head.level.level}`} title={`Level ${head.level.level}`} className="h-7 shrink-0 px-2.5 text-sm tabular-nums">
+            {head.level.level}
+          </Badge>
         </div>
         {pronouns && <p className="ph-mask text-muted-foreground sm:text-lg">{pronounsLabel(pronouns)}</p>}
-        {own && head.level && (
+        {own && (
           <Progress
-            value={Math.min(100, Math.max(0, (head.level.xp / head.level.xpForNext) * 100))}
-            aria-label={`Experience: ${head.level.xp} of ${head.level.xpForNext} to level ${head.level.level + 1}`}
+            value={Math.min(100, Math.max(0, levelProgress(head.level) * 100))}
+            aria-label={`Experience: ${head.level.xp} of ${head.level.to} to level ${head.level.level + 1}`}
             className="mt-2 h-1.5 max-w-64"
           />
         )}
