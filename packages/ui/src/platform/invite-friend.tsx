@@ -53,7 +53,7 @@ function InviteRow({ friend, state, onPress }: { friend: Friend; state?: RowStat
         <span
           aria-hidden="true"
           className={cn(
-            "flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs",
+            "flex shrink-0 items-center gap-1 rounded-lg px-3 py-1 text-xs",
             state === undefined ? "bg-secondary text-secondary-foreground group-hover/invite:bg-foreground group-hover/invite:text-background" : "text-muted-foreground",
           )}
         >
