@@ -32,6 +32,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 | Slider | A number in a wide range chosen by dragging a knob along a rail, or pressing the rail | `cleanNumber`, the same rules | `Slider` | Built: [Bets and choices](12-bets-and-choices.md#slider) |
 | Sealed answer | A bid or a vote that is given and not yet known: a card face down at a seat, turned over together with the others | `Submissions`, `submittedFlags`, `revealSubmissions` | A `Card` at the seat of the player, face down until the view gives the answers | Built: [Bets and choices](12-bets-and-choices.md#a-bid-made-with-cards) |
 | Paper | A piece of paper on the table with a few words that can be pressed: what the fields are drawn as, and a button on the table | | `Paper` | Built: [Bets and choices](12-bets-and-choices.md#fields-that-open-a-window) |
+| Floor button | A button drawn flat on the table: a tinted pad with an outline whose borders lift under the pointer or the keyboard focus. Hit and Stay, and the big zones pressed to choose a seat | `onPress`, the `disabled` state | `FloorButton` | Built: [Floor buttons](25-floor-buttons.md) |
 | Seat | A player's place and plate | The players, `waitingFor` | `Seat`, `PlayerSeat` | Built: [Seats](03-seats.md) |
 | Text on the table | Words and numbers written flat | A number or a word in the view | `TableText` | Built: [Score](09-score.md) |
 | Table and camera | The surface everything lies on, and the way it is seen | | `Table` | Built: [Table](01-table.md), [Camera](02-camera.md) |
@@ -75,6 +76,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 - [Maps](22-maps.md): places and roads in the engine, with the corners and the sides of a board, the longest road, and the map on the table that offers what can be chosen.
 - [Sheets](23-sheets.md): boxes to fill on a sheet of paper, kept as an array in the engine, and the sheet on the table that rings the boxes that can be chosen and writes what each holds.
 - [Tiles](24-tiles.md): tiles with an edge on each side, laid where the sides match in the engine, with where each one fits and the roads and cities of the whole layout, and the tiles on the table with the cells they go on.
-- [Rules of the board](25-rules-of-the-board.md): what holds for every board, whatever the game.
+- [Floor buttons](25-floor-buttons.md): buttons and zones drawn flat on the table, whose borders lift under the pointer or the keyboard focus, with a keyboard stand-in and a reduced-motion state.
+- [Rules of the board](26-rules-of-the-board.md): what holds for every board, whatever the game.
 
 What no tool draws or holds yet is on [Not built yet](../03-not-built-yet.md), with what holds instead. The players and the turn are in [The game](../01-the-game/index.md).

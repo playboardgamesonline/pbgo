@@ -13,7 +13,7 @@ import { SceneFrame } from "./frame"
 import { ISLAND_CORNERS } from "./island"
 import { deal, lay, nextFitting, SEED, START, TABLE, TILES, type TileName, view } from "./landscape"
 import { BONUS, CATEGORIES, CATEGORY_OF, ROW_OF, scoreOf, totalOf, upperOf } from "./yahtzee"
-import { TilesScene, BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
+import { FloorButtonsScene, TilesScene, BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
 
 // The light half of the 3D specimens of the engine docs: each is the state and the controls of one scene, laid out in a `SceneFrame`, and the scene itself (`lazy.tsx`), which is drawn only when the frame is near the window. The controls
 // are the platform's own and hold every value the scene is given, so they are there, and still, before the scene is and after it is let go; the scene is a function of them and sends back what the pointer did in it.
@@ -958,6 +958,37 @@ export function SceneTimerSpecimen() {
       }
     >
       <TimerScene endsAt={endsAt} seconds={seconds} rest={rest} digits={digits} onEnd={() => setOuts((count) => count + 1)} />
+    </SceneFrame>
+  )
+}
+
+export function SceneFloorButtonsSpecimen() {
+  const [disabled, setDisabled] = useState(false)
+  const [last, setLast] = useState<string | null>(null)
+  const [presses, setPresses] = useState(0)
+  return (
+    <SceneFrame
+      label="A card table seen from above with two buttons drawn flat on it, Hit in blue-green and Stay in grey, a third that is switched off, and a wide zone below them: under the pointer or the keyboard focus the border of each rises off the table with a shadow and the fill brightens"
+      controls={
+        <>
+          <Option label="Disable them" checked={disabled} onChange={setDisabled} />
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            {last === null ? "Nothing pressed yet." : (
+              <>
+                Last press: <span className="text-foreground">{last}</span>, <span className="text-foreground tabular-nums">{presses}</span> {presses === 1 ? "press" : "presses"} in all.
+              </>
+            )}
+          </p>
+        </>
+      }
+    >
+      <FloorButtonsScene
+        disabled={disabled}
+        onPress={(name) => {
+          setLast(name)
+          setPresses((count) => count + 1)
+        }}
+      />
     </SceneFrame>
   )
 }

@@ -1,15 +1,17 @@
 "use client"
 
 import type { Face, PlayerView, PublicSeat } from "@flip-7/engine"
+import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { onTable, Paper, Pile, pile, PlayerSeat, Table, TableText, useSettings, Zone, type ZoneCard } from "@pbgo/table"
-import { useDeferredValue, useMemo, useState } from "react"
-import { cardName } from "../../lib/cards"
+import { FloorButton, grainTexture, onTable, Pile, pile, PlayerSeat, Table, TableText, useSettings, Zone, type ZoneCard } from "@pbgo/table"
+import { useDeferredValue, useEffect, useMemo, useState } from "react"
+import { AdditiveBlending } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
-import { fill } from "../../lib/words"
+import { FLOOR_TONES } from "../../lib/floor-tones"
+import { fill, type Vocabulary } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
 import { GLOWS } from "./glows"
-import { BUTTON_WIDTH, buttonPlace, CARD, dealtFrom, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, plateAt, seatSpots } from "./layout"
+import { CARD, dealtFrom, fitPrompt, floorPlan, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, plateAt, seatSpots, zones } from "./layout"
 import { PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { CARD_SIZE, matTexture, useFaces } from "./textures"
 import { useViewport } from "./viewport"
@@ -17,13 +19,23 @@ import { useViewport } from "./viewport"
 /** The pool of light of the mat: how far across it spreads, in world units. Past it the table is the plain colour it fades into. */
 const MAT_SIZE = 44
 
-/** The gradient the cards lie on: `surface` of the game's settings in the middle, `surfaceDark` at the edge, which is also the colour of the endless table around it. */
+/** How many world units one repeat of the table's grain covers */
+const GRAIN_TILE = 2
+
+/** The felt of the table: a grain painted in code (`grainTexture` of the kit, a 256-pixel tile) in the edge colour of the table, strong enough to be seen up close and quiet from the camera's distance, so that cards and plates keep their contrast */
+function useGrain(base: string) {
+  const grain = useMemo(() => grainTexture({ base, strength: 0.3 }), [base])
+  useEffect(() => () => grain.dispose(), [grain])
+  return grain
+}
+
+/** The pool of light the cards lie on: `surface` of the game's settings in the middle, falling away to `surfaceDark`, which is the colour of the endless table around it. It is added to the felt (additive blending), not laid over it, so the grain shows through it and it has no edge. */
 function Mat({ inner, outer }: { inner: string; outer: string }) {
   const map = useMemo(() => matTexture(inner, outer), [inner, outer])
   return (
     <mesh rotation-x={-Math.PI / 2} position-y={0.001} renderOrder={-1} raycast={() => null}>
       <planeGeometry args={[MAT_SIZE, MAT_SIZE]} />
-      <meshBasicMaterial map={map} toneMapped={false} depthWrite={false} />
+      <meshBasicMaterial map={map} blending={AdditiveBlending} transparent toneMapped={false} depthWrite={false} />
     </mesh>
   )
 }
@@ -56,19 +68,36 @@ export type SceneProps = {
 const statusOf = (status: PublicSeat["status"], words: ClientCatalog["words"]) =>
   status === "busted" ? words.busted : status === "frozen" ? words.frozen : status === "stayed" ? words.stayed : undefined
 
+/** What the holder of an action card is told, in the game's words: one sentence for each action card */
+const promptOf = (type: string, words: Vocabulary) => (type === "freeze" ? words.targetFreeze : type === "flip-three" ? words.targetFlipThree : words.targetSecondChance)
+
+/** A sentence written flat on the table, in the room beside the action card: broken into lines that fit it, the lines centred in the room */
+function Prompt({ text, plan, color }: { text: string; plan: { x: number; z: number; width: number; depth: number }; color: string }) {
+  const { lines, height, step } = fitPrompt(text, plan.width, plan.depth)
+  return (
+    <>
+      {lines.map((line, i) => (
+        <TableText key={i} text={line} style={{ color, weight: 800, shadow: "rgba(0,0,0,0.6)|10|3" }} height={height} position={[plan.x, 0.02, plan.z + (i - (lines.length - 1) / 2) * step]} />
+      ))}
+    </>
+  )
+}
+
 function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, entrances, busy, held }: SceneProps) {
   // The table's own folders (camera, cards, seats, glows, lights...) are made by the shared `Table`; the game binds the knobs of its layout and of its pace
   useSettings("Layout", LAYOUT_SETTINGS, LAYOUT_FIELDS, { order: 1 })
   useSettings("Pace", PACE_SETTINGS, PACE_FIELDS, { order: 2 })
   const { theme } = useSiteSettings()
   const faces = useFaces(catalog)
-  const { words, names } = catalog
+  const { words } = catalog
   const meId = view.me
   const ids = view.players.map((player) => player.id)
   const key = ids.join("|")
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the ids
   const spots = useMemo(() => seatSpots(ids, meId), [key, meId])
   const placed = useMemo(() => lines(spots, meId), [spots, meId])
+  const pressZones = useMemo(() => zones(spots, placed), [spots, placed])
+  const { nickname } = useGame()
   const R = LAYOUT_SETTINGS
   const { deck, discard } = pilePlaces()
   const phase = view.phase
@@ -76,6 +105,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
   const choosing = phase.kind === "target" && phase.player === meId
   const dealing = phase.kind === "between" && phase.dealer === meId
   const dealt = dealtFrom()
+  const plan = floorPlan()
 
   // What a seat says, the word under the name and the total, is what the table said before the last move until the move has played out: a player who busts with the third card of a Flip Three is not out before that card has landed
   const now = useMemo(() => new Map(view.players.map((player) => [player.id, { status: player.status, total: player.total }])), [view.players])
@@ -115,13 +145,24 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
                 line={pointsText(seat.total)}
                 status={statusOf(seat.status, words)}
                 out={seat.status === "busted"}
-                onSelect={pickable ? () => onTarget(player.id) : undefined}
               />
             </group>
             {/* What lies in front of the player: every card is face up, and the line turns to face its player (`faceSeat`) */}
             <Zone frame={{ x: line.at.x, z: line.at.z, yaw: line.yaw }} layout={linePoses(player.cards.length, line)} size={CARD_SIZE} cards={cardsOf(player.cards)} />
             {/* The Freeze and Flip Three cards flipped during a Flip Three wait, face up, until its three cards are done */}
             <Zone frame={{ x: heldAt.x, z: heldAt.z, yaw: line.yaw }} layout={heldPoses(player.held.length, line)} size={CARD_SIZE} cards={cardsOf(player.held)} />
+            {/* The sector of the table in front of the seat, a floor zone: pressed to give this player the card the viewer holds. It lies only while a target is to be chosen */}
+            {pickable && (
+              <FloorButton
+                at={{ x: pressZones.get(player.id)!.x, z: pressZones.get(player.id)!.z, yaw: pressZones.get(player.id)!.yaw }}
+                width={pressZones.get(player.id)!.halfWidth * 2}
+                depth={pressZones.get(player.id)!.halfDepth * 2}
+                tone={FLOOR_TONES.target}
+                tint={0.3}
+                ariaLabel={fill(words.targetPlayer, { target: nickname(player.id) })}
+                onPress={() => onTarget(player.id)}
+              />
+            )}
           </group>
         )
       })}
@@ -148,7 +189,6 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         }}
       />
       <TableText text={String(view.deck.size)} style={ink} height={0.5} position={[deck.x, 0.02, deck.z + (CARD.height * R.pileScale) / 2 + 0.55]} />
-      {myTurn && <TableText text={words.hit} style={{ color: theme.accent }} height={0.55} position={[deck.x, 0.02, deck.z - (CARD.height * R.pileScale) / 2 - 0.5]} />}
 
       {/* The discard: every card of it keeps its id, so the cards of a line fly there when the next round is dealt */}
       <Zone
@@ -159,17 +199,31 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         cards={cardsOf(discarded)}
       />
 
-      {/* The viewer banks their line */}
-      {myTurn && phase.canStay && <Paper text={words.stay} at={buttonPlace()} width={BUTTON_WIDTH} onPress={onStay} paper={theme.foreground} ink={theme.background} accent={theme.accent} />}
+      {/* On the viewer's turn Hit and Stay lie to the right of the draw pile, side by side and as deep as the pile: floor buttons, one blue-green and one grey with a hint of the same. Stay is there but dim when the viewer holds nothing to bank */}
+      {myTurn && (
+        <>
+          <FloorButton at={plan.hit} width={plan.hit.width} depth={plan.hit.depth} tone={FLOOR_TONES.hit} label={words.hit} onPress={onHit} />
+          <FloorButton
+            at={plan.stay}
+            width={plan.stay.width}
+            depth={plan.stay.depth}
+            tone={FLOOR_TONES.stay}
+            label={words.stay}
+           
+            disabled={!phase.canStay}
+            onPress={onStay}
+          />
+        </>
+      )}
 
-      {/* Between two rounds the dealer deals the next one, with the same button in the same place: nothing else lies there */}
-      {dealing && <Paper text={words.deal} at={buttonPlace()} width={BUTTON_WIDTH} onPress={onDeal} paper={theme.foreground} ink={theme.background} accent={theme.accent} />}
+      {/* Between two rounds the dealer deals the next one, from one pad across the room of the two */}
+      {dealing && <FloorButton at={plan.deal} width={plan.deal.width} depth={plan.deal.depth} tone={FLOOR_TONES.hit} label={words.deal} onPress={onDeal} />}
 
-      {/* The holder of an action card chooses who gets it: the card lies in the middle for everybody, and the plates of the players who can get it are pressable (their seats above) */}
+      {/* An action card drawn lies face up in the place of Hit, for everybody, and for the one who holds it the words beside it, written flat on the table, say what to do: press the zone of a player */}
       {phase.kind === "target" && (
         <>
-          <Zone layout={[onTable(0, 0.9, { y: 0.4, scale: 1.2 })]} size={CARD_SIZE} cards={cardsOf([phase.card]).map((card) => ({ ...card, glow: choosing ? GLOWS.selection : null }))} />
-          {choosing && <TableText text={fill(words.giveTo, { card: cardName(phase.card.type, names) })} style={{ color: theme.accent }} height={0.6} position={[0, 0.02, 2.6]} />}
+          <Zone frame={{ x: plan.card.x, z: plan.card.z }} layout={[onTable(0, 0, { y: 0.05, scale: plan.card.scale })]} size={CARD_SIZE} cards={cardsOf([phase.card]).map((card) => ({ ...card, glow: choosing ? GLOWS.selection : null }))} />
+          {choosing && <Prompt text={promptOf(phase.card.type, words)} plan={plan.prompt} color={theme.accent} />}
         </>
       )}
     </>
@@ -184,8 +238,10 @@ export function Scene(props: SceneProps) {
   const viewport = useDeferredValue(useViewport())
   const seated = props.view.me !== null
   const camera = useMemo(() => cameraFor(players, viewport, seated), [players, viewport, seated])
+  // The endless table beyond the mat is the same felt, in the edge colour, and fades into it with distance
+  const felt = useGrain(theme.surfaceDark)
   return (
-    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark }} held={props.held} onLoaded={props.onLoaded}>
+    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, map: felt, tile: GRAIN_TILE }} held={props.held} onLoaded={props.onLoaded}>
       <Mat inner={theme.surface} outer={theme.surfaceDark} />
       <World {...props} />
     </Table>

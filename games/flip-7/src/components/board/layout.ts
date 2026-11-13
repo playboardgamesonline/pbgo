@@ -40,7 +40,7 @@ export const LAYOUT_SETTINGS = {
   heldDrop: 1.05,
   heldScale: 0.5,
   /** The draw pile and the discard, either side of the middle, with the viewer's one button between them */
-  pilesX: 2.5,
+  pilesX: 3,
   pilesZ: 0.5,
   pileScale: 0.9,
 }
@@ -201,14 +201,83 @@ export function pilePlaces(): { deck: Place; discard: Place } {
   return { deck: { x: -R.pilesX, z: R.pilesZ }, discard: { x: R.pilesX, z: R.pilesZ } }
 }
 
-/** Where the viewer's one button lies, Stay on a turn and Deal between two rounds: between the two piles, in the middle band of the table that no line or plate reaches and the cookie banner never covers. */
-export function buttonPlace(): Place {
-  const { deck, discard } = pilePlaces()
-  return { x: (deck.x + discard.x) / 2, z: discard.z }
+/**
+ * The strip of the table between the two piles, where the viewer's choices and the card to give lie. It is as deep as the piles and its three gaps are one length (`gap`): pile to pad, pad to pad, pad to discard, or pile to card, card to text, text to discard.
+ * Hit and Stay (or Deal alone) stand in it on the viewer's turn, and an action card drawn with its prompt: the two never show at once.
+ */
+export const FLOOR = { gap: 0.3 }
+
+export type Pad = { x: number; z: number; width: number; depth: number }
+
+export type FloorPlan = {
+  /** Hit on the left, Stay on its right, each the width of half the strip less the gaps, and as deep as the piles */
+  hit: Pad
+  stay: Pad
+  /** Deal, for the dealer between two rounds: one pad across the room of the two */
+  deal: Pad
+  /** The action card drawn, face up, in the place of Hit and the size of the piles' cards */
+  card: Place & { scale: number }
+  /** The room for the words beside the card: its left edge, its width and its depth */
+  prompt: Pad
+  /** The whole strip, for the footprints */
+  strip: Pad
 }
 
-/** The width of the paper of a button, in world units */
-export const BUTTON_WIDTH = 2.6
+export function floorPlan(): FloorPlan {
+  const R = LAYOUT_SETTINGS
+  const { deck, discard } = pilePlaces()
+  const cardWidth = CARD.width * R.pileScale
+  const depth = CARD.height * R.pileScale
+  const left = deck.x + cardWidth / 2
+  const right = discard.x - cardWidth / 2
+  const g = FLOOR.gap
+  const padWidth = (right - left - 3 * g) / 2
+  const z = deck.z
+  const hit = { x: left + g + padWidth / 2, z, width: padWidth, depth }
+  const stay = { ...hit, x: hit.x + padWidth + g }
+  const deal = { x: (left + right) / 2, z, width: 2 * padWidth + g, depth }
+  const cardX = left + g + cardWidth / 2
+  const textLeft = cardX + cardWidth / 2 + g
+  const textWidth = right - g - textLeft
+  return {
+    hit,
+    stay,
+    deal,
+    card: { x: cardX, z, scale: R.pileScale },
+    prompt: { x: textLeft + textWidth / 2, z, width: textWidth, depth },
+    strip: { x: (left + right) / 2, z, width: right - left, depth },
+  }
+}
+
+/**
+ * A sentence cut into lines of at most `max` characters, at the spaces, for lettering laid flat: a word longer than a line stays whole on a line of its own. The words are the game's, in the visitor's language, so the length is not known in advance.
+ */
+export function wrapWords(text: string, max: number): string[] {
+  const lines: string[] = []
+  let line = ""
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    if (line && Array.from(`${line} ${word}`).length > max) {
+      lines.push(line)
+      line = word
+    } else line = line ? `${line} ${word}` : word
+  }
+  if (line) lines.push(line)
+  return lines
+}
+
+/**
+ * A sentence laid flat in a room of `width` by `depth`: the lines it breaks into and the size of the letters. It starts at the size asked for and shrinks the letters until the lines fit the depth (each line takes `1.25` times the height), never below `least`.
+ * A letter is about 0.62 of its height wide.
+ */
+export function fitPrompt(text: string, width: number, depth: number, preferred = 0.42, least = 0.24): { lines: string[]; height: number; step: number } {
+  let height = preferred
+  for (;;) {
+    const lines = wrapWords(text, Math.max(1, Math.floor(width / (height * 0.62))))
+    const step = height * 1.25
+    if (lines.length * step <= depth || height <= least) return { lines, height, step }
+    height = Math.max(least, height - 0.02)
+  }
+}
 
 /** A rectangle of the table that is turned: its centre, half its width along its own x axis, half its depth along its own z axis, and the yaw of that frame (the frame of a seat: x runs along a line, +z points outward) */
 export type Box = { x: number; z: number; halfWidth: number; halfDepth: number; yaw: number }
@@ -257,9 +326,87 @@ export function plateBox(spot: SeatSpot, line: Line): Box {
   return { x: place.x + down.x * middle, z: place.z + down.z * middle, halfWidth: SEAT_SETTINGS.auraWidth / 2, halfDepth: (PLATE.drop + PLATE.lift) / 2, yaw: place.yaw }
 }
 
+/** How far a player's zone reaches past its line and its plate, in world units: along the line (neighbours are 0.3 apart at the least, so two zones keep clear), beyond the plate, and toward the middle of the table, where the piles and their count lie close */
+export const ZONE_MARGIN = { side: 0, outer: 0.25, inner: 0 }
+
+/** The widest a zone gets, in world units: the viewer's line may spread across the whole front of the table, and a zone as wide as that would be a band, not the place of a seat */
+export const ZONE_MAX_WIDTH = 7
+
 /**
- * Where things stand on a table of `n` players, as boxes: the plate of each seat and its line (a line of three cards for an opponent and of four for the viewer, or all the room the line may take when `full`), the piles with their count and their hint,
- * and the button. The viewer is the first seat; a spectator (`seated` false) has none.
+ * The zone of a seat that the viewer presses to give it a card: the sector of the table in front of the seat, the rectangle (in the frame of its line) that holds the line, at all the room it may take, and the plate beyond it, and a margin all round.
+ * It is much bigger than a card, so a click or a tap does not have to find the plate's name.
+ */
+export function zoneBox(spot: SeatSpot, line: Line, margin = ZONE_MARGIN): Box {
+  const along = alongOf(line.yaw)
+  const out = outwardOf(line.yaw)
+  const own: Box = { x: line.at.x, z: line.at.z, halfWidth: line.width / 2, halfDepth: (CARD.height * line.scale) / 2, yaw: line.yaw }
+  const points = [...cornersOf(own), ...cornersOf(plateBox(spot, line))]
+  const u = points.map((p) => p.x * along.x + p.z * along.z)
+  const v = points.map((p) => p.x * out.x + p.z * out.z)
+  const [u0, u1, v0, v1] = [Math.min(...u), Math.max(...u), Math.min(...v), Math.max(...v)]
+  // the way out is the frame's +z: the inner edge is its low end
+  const [lo, hi] = [v0 - margin.inner, v1 + margin.outer]
+  const [left, right] = [u0 - margin.side, u1 + margin.side]
+  const middleU = (left + right) / 2
+  const middleV = (lo + hi) / 2
+  return { x: along.x * middleU + out.x * middleV, z: along.z * middleU + out.z * middleV, halfWidth: (right - left) / 2, halfDepth: (hi - lo) / 2, yaw: line.yaw }
+}
+
+/** Whether two turned rectangles overlap, by the separating axis test: they only touch when they share an edge */
+export function boxesOverlap(a: Box, b: Box): boolean {
+  const pa = cornersOf(a)
+  const pb = cornersOf(b)
+  for (const box of [a, b]) {
+    for (const axis of [alongOf(box.yaw), outwardOf(box.yaw)]) {
+      const project = (points: Place[]) => points.map((p) => p.x * axis.x + p.z * axis.z)
+      const [a0, a1, b0, b1] = [Math.min(...project(pa)), Math.max(...project(pa)), Math.min(...project(pb)), Math.max(...project(pb))]
+      if (a1 <= b0 + 1e-9 || b1 <= a0 + 1e-9) return false
+    }
+  }
+  return true
+}
+
+/**
+ * The zone of every seat, by id, for a table in which the seats stand as `spots` and `placed` say. A plate is wider than the line of a crowded table, so the rectangles that hold a line and a plate would run into the next seat's: where two zones overlap
+ * each is narrowed along its line, a little at a time, until they only touch. A zone never gets narrower than its own line, which no other line overlaps.
+ */
+export function zones(spots: ReadonlyMap<string, SeatSpot>, placed: ReadonlyMap<string, Line>): Map<string, Box> {
+  const out = new Map([...spots].map(([id, spot]) => {
+    const box = zoneBox(spot, placed.get(id)!)
+    return [id, { ...box, halfWidth: Math.min(box.halfWidth, ZONE_MAX_WIDTH / 2) }] as const
+  }))
+  const ids = [...out.keys()]
+  const least = (id: string) => Math.min(placed.get(id)!.width, ZONE_MAX_WIDTH) / 2
+  for (let pass = 0; pass < 200; pass++) {
+    let touched = false
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = out.get(ids[i]!)!
+        const b = out.get(ids[j]!)!
+        if (!boxesOverlap(a, b)) continue
+        touched = true
+        for (const id of [ids[i]!, ids[j]!]) {
+          const box = out.get(id)!
+          out.set(id, { ...box, halfWidth: Math.max(least(id), box.halfWidth * 0.97) })
+        }
+      }
+    }
+    if (!touched) break
+  }
+  return out
+}
+
+/** The zone of every seat of a table of `n` players, in turn order from the viewer (the first is the viewer's), for the tests that keep them apart from each other and from the piles */
+export function zoneBoxes(n: number, seated = true): Box[] {
+  const ids = Array.from({ length: n }, (_, i) => String(i))
+  const viewer = seated ? "0" : null
+  const spots = seatSpots(ids, viewer)
+  const all = zones(spots, lines(spots, viewer))
+  return ids.map((id) => all.get(id)!)
+}
+
+/**
+ * Where things stand on a table of `n` players, as boxes: the plate of each seat and its line (a line of three cards for an opponent and of four for the viewer, or all the room the line may take when `full`), the piles with their count, and the strip between them (Hit and Stay, or the action card to give). The viewer is the first seat; a spectator (`seated` false) has none.
  */
 export function tableBoxes(n: number, full = false, seated = true): Box[] {
   const R = LAYOUT_SETTINGS
@@ -276,17 +423,16 @@ export function tableBoxes(n: number, full = false, seated = true): Box[] {
   }
   const { deck, discard } = pilePlaces()
   const pile = (CARD.height * R.pileScale) / 2
-  const half = (CARD.width * R.pileScale) / 2 + 0.6
-  // the hint above the draw pile and its count below it; the discard has its pile alone
-  out.push({ x: deck.x, z: deck.z, halfWidth: half, halfDepth: pile + 0.8, yaw: 0 })
+  // the draw pile with its count below it; the discard has its pile alone
+  out.push({ x: deck.x, z: deck.z, halfWidth: (CARD.width * R.pileScale) / 2, halfDepth: pile + 0.8, yaw: 0 })
   out.push({ x: discard.x, z: discard.z, halfWidth: (CARD.width * R.pileScale) / 2, halfDepth: pile, yaw: 0 })
-  const button = buttonPlace()
-  out.push({ x: button.x, z: button.z, halfWidth: BUTTON_WIDTH / 2, halfDepth: 0.5, yaw: 0 })
+  const { strip } = floorPlan()
+  out.push({ x: strip.x, z: strip.z, halfWidth: strip.width / 2, halfDepth: strip.depth / 2, yaw: 0 })
   return out
 }
 
-/** What the camera has to bring into the window, and to keep clear of what the platform draws over it (`fitCamera`): the corners of each box of the table (`tableBoxes`), at their nominal sizes. A longer line spreads, and may reach farther. */
-export const tableQuads = (n: number, seated = true): Place[][] => tableBoxes(n, false, seated).map(cornersOf)
+/** What the camera has to bring into the window, and to keep clear of what the platform draws over it (`fitCamera`): the corners of each box of the table (`tableBoxes`), at their nominal sizes, and the zones that the viewer presses to give a card (`zoneBoxes`), which reach a little past the plates and must never lie under a box of the platform. A longer line spreads, and may reach farther. */
+export const tableQuads = (n: number, seated = true): Place[][] => [...tableBoxes(n, false, seated), ...zoneBoxes(n, seated)].map(cornersOf)
 
 /** Where the cards are dealt from: above the draw pile, face down. */
 export function dealtFrom(): Pose {

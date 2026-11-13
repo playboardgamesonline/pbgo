@@ -74,9 +74,11 @@ export function useFaces(catalog: ClientCatalog): Faces {
 
 const mats = new Map<string, Texture>()
 
+const channels = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+
 /**
- * The pool of light the table is lit by, painted once for a pair of colours: `inner` in the middle, falling away to `outer`, the colour the endless table is made of, so that the edge of the pool cannot be told from the table around it.
- * Both come from the game's settings (`surface` and `surfaceDark`), so changing them in the gamemaster changes the mat.
+ * The pool of light the table is lit by, painted once for a pair of colours: how much lighter `inner` is than `outer`, in the middle, falling away to nothing at the edge, to be ADDED to the table (additive blending): `outer` is the colour of the endless table, so
+ * the pool is `inner` in the middle and the table's own colour, grain and all, at its edge, with no line between the two. Both come from the game's settings (`surface` and `surfaceDark`), so changing them in the gamemaster changes the mat.
  */
 export function matTexture(inner: string, outer: string): Texture {
   const id = `${inner}|${outer}`
@@ -86,10 +88,11 @@ export function matTexture(inner: string, outer: string): Texture {
   const canvas = document.createElement("canvas")
   canvas.width = canvas.height = size
   const ctx = canvas.getContext("2d")!
+  const [r, g, b] = channels(inner).map((value, i) => Math.max(0, value - channels(outer)[i]!))
   const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
-  gradient.addColorStop(0, inner)
-  gradient.addColorStop(0.3, inner)
-  gradient.addColorStop(1, outer)
+  gradient.addColorStop(0, `rgb(${r},${g},${b})`)
+  gradient.addColorStop(0.3, `rgb(${r},${g},${b})`)
+  gradient.addColorStop(1, "rgb(0,0,0)")
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, size, size)
   const texture = new CanvasTexture(canvas)

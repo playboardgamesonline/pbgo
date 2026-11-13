@@ -47,7 +47,7 @@ The props are `SeatProps`:
 
 | Prop | Role |
 | --- | --- |
-| `nickname`, `color` | The name, written in capitals in the seat colour, and the colour that the avatar is made of until a picture exists and that the aura is lit in |
+| `nickname`, `color` | The name, written in capitals in the seat colour (cut to `NAME_LIMIT` characters, see [Long names](#long-names)), and the colour that the avatar is made of until a picture exists and that the aura is lit in |
 | `imageUrl` | The player's picture; when it is null the avatar is generated |
 | `theme` | The game's `SeatTheme`, `UI_THEME.seat`, read with `useSeatTheme()` |
 | `spot` | The seat's spot on the ring; the plate stands out from it ([Where the plate stands](#where-the-plate-stands)) |
@@ -128,6 +128,19 @@ From `template/src/components/board/scene.tsx`, a seat of the template; the back
 
 - Each piece is exported on its own too: a light on the table is not always a seat's, and `Aura` also lights a zone.
 - The viewer's `Seat` has no zone of backs: their cards are the hand, in front of them and outside the ring ([Zone](07-zones.md#zone)).
+
+## Long names
+
+A nickname is typed by its player, so it can be any length, and a plate, a list of players and a heading must not grow with it. Every place that draws a name on the board or in the HUD draws `shortName(name)` of `@pbgo/core/lib/short-name` (`packages/core/lib/short-name.ts`), once, for every game: the `Seat` plate, the `SeatLabel` (the strip of the players still to play, the game over, the seat labels of the docs), the list of the players of the HUD and the name that heads a turn in the ticker.
+
+| Export | What it does |
+| --- | --- |
+| `NAME_LIMIT` | The one constant: 12, the most characters of a name that are drawn, the ellipsis included |
+| `shortName(name, limit = NAME_LIMIT)` | The name as drawn: unchanged when it fits, else its first `limit - 1` characters, the spaces before the cut dropped, then "…" |
+
+- Characters are counted as the eye counts them, not as JavaScript does: an emoji, a letter with its accent written as a combining mark and a family joined by zero-width joiners are each one character, so a name is never cut in the middle of one. `Intl.Segmenter` does it; a runtime without it counts code points.
+- The full name stays the accessible one: the DOM that draws a short name carries the whole of it in `title`. The canvas of a `Seat` has no DOM, so the plate's name reads as drawn there; the full name is in the list of the players beside the board.
+- Only what is drawn is cut. The state, the log, the chat and the profile keep the name the player typed. To change the limit, change `NAME_LIMIT`: `short-name.test.ts` follows it.
 
 ## The avatar
 

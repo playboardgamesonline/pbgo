@@ -5,6 +5,7 @@ import { type ReactNode, useState } from "react"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSeatTheme } from "@pbgo/core/components/game/seat-label"
 import { useSkin } from "@pbgo/core/components/skin-provider"
+import { shortName } from "@pbgo/core/lib/short-name"
 import { seatFontFamily } from "@pbgo/core/lib/seat-avatar-canvas"
 import type { SeatTheme } from "@pbgo/core/lib/ui-theme"
 import { SeatGizmo } from "../debug/gizmos"
@@ -135,7 +136,7 @@ export function Seat({
         </mesh>
       )}
       <TableText
-        text={nickname.toUpperCase()}
+        text={shortName(nickname).toUpperCase()}
         style={look}
         height={S.nameHeight}
         position={[plate.x, TEXT_Y, plate.nameZ]}

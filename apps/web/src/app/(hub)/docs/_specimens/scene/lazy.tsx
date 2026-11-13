@@ -24,6 +24,7 @@ export const PiecesScene = dynamic(() => import("./three/pieces").then((m) => m.
 export const CounterScene = dynamic(() => import("./three/counter").then((m) => m.CounterScene), { ssr: false })
 export const TrackScene = dynamic(() => import("./three/track").then((m) => m.TrackScene), { ssr: false })
 export const TimerScene = dynamic(() => import("./three/timer").then((m) => m.TimerScene), { ssr: false })
+export const FloorButtonsScene = dynamic(() => import("./three/floor-buttons").then((m) => m.FloorButtonsScene), { ssr: false })
 export const GridScene = dynamic(() => import("./three/grid").then((m) => m.GridScene), { ssr: false })
 export const CupScene = dynamic(() => import("./three/cup").then((m) => m.CupScene), { ssr: false })
 export const PourScene = dynamic(() => import("./three/cup").then((m) => m.PourScene), { ssr: false })
