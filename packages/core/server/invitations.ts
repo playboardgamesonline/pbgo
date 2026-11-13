@@ -13,9 +13,9 @@ import { seatedPlayers } from "./table-rules"
 import { readTableSettingsOf } from "./table-settings"
 import { readMemberTables } from "./tables"
 
-// The invitations to a table (PLT-109, migration 0023). The database decides who may be invited (a friend, only, and never a member who blocked the sender, who is not told), the limits and the answers; what it cannot see is the table, which is read here from its own
+// The invitations to a table (PLT-109, migration 0024). The database decides who may be invited (a friend, only, and never a member who blocked the sender, who is not told), the limits and the answers; what it cannot see is the table, which is read here from its own
 // row: the sender must sit at it, it must still wait for players (a lobby) and have a seat free; and when the friend accepts, it must still exist, wait and have room for them. The code of a table is read from the database when the friend accepts, and only then
-// is it told to the browser, so the list of invitations a member reads never has it. Where migration 0023 is not applied the routes answer that invitations are not available.
+// is it told to the browser, so the list of invitations a member reads never has it. Where migration 0024 is not applied the routes answer that invitations are not available.
 
 type Member = Parameters<typeof ensureProfile>[0]
 
@@ -29,7 +29,7 @@ export type SendInvitationOutcome = (typeof SEND_OUTCOMES)[number]
 const ANSWER_OUTCOMES = ["pending", "accepted", "declined", "expired", "missing"] as const
 export type InvitationAnswer = { result: (typeof ANSWER_OUTCOMES)[number]; game?: string; code?: string }
 
-/** Whether the database does not have the invitations yet: migration 0023 is not applied (or the tables of 0013 that a send reads). */
+/** Whether the database does not have the invitations yet: migration 0024 is not applied (or the tables of 0013 that a send reads). */
 export const invitationsNotApplied = friendsNotApplied
 
 /**

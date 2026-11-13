@@ -11,7 +11,7 @@ const NO_THREAD: ChatThread = { messages: [], unread: 0 }
 /**
  * `GET /api/hub/messages?nickname=Alex&tag=42` (PLT-25): the conversation of the signed-in member with a friend, the last messages, the oldest first, and how many of the friend's they have not read: `{ messages: [{ id, mine, text, at }], unread }`. The chat window asks for it
  * when it opens and again every few seconds while it is open and in view. 401 `NOT_SIGNED_IN`, 400 `FRIEND_INVALID` for a handle that cannot be anybody's, 404 `FRIEND_NOT_FOUND`, 403 `MESSAGE_NOT_FRIEND` (a stranger, a removed friend or a member who blocked them reads
- * nothing: one answer), 429 over the limit (`messagesRead`), 503 `MESSAGES_UNAVAILABLE` where migration 0024 is not applied. The demo account of development is in no database: its conversations are made up by the browser, so this answers none. Never cached.
+ * nothing: one answer), 429 over the limit (`messagesRead`), 503 `MESSAGES_UNAVAILABLE` where migration 0025 is not applied. The demo account of development is in no database: its conversations are made up by the browser, so this answers none. Never cached.
  */
 export const getMessages = handle(async (request: Request): Promise<ChatThread> => {
   await rateLimit(null, request, "messagesRead")
@@ -33,7 +33,7 @@ export const getMessages = handle(async (request: Request): Promise<ChatThread> 
  * The `POST` of one action of the messages (PLT-25), under `/api/hub/messages/<action>`: `send` (`{ nickname, tag, text }`: write to a friend; answers `{ ok: true, message: { id, mine, text, at } }`) and `read` (`{ nickname, tag }`: mark what the friend wrote as read;
  * answers `{ ok: true, read: <how many> }`). The text is cleaned (control characters out, spaces at both ends off) and is 1 to `MESSAGE_MAX_LENGTH` characters: 400 `MESSAGE_INVALID`. The request must come from this site (403 `CROSS_ORIGIN`), 401 `NOT_SIGNED_IN`, 400
  * `FRIEND_INVALID` for a handle that cannot be anybody's, 429 over the limits (`messageSend`, `messageRead`), 404 `FRIEND_NOT_FOUND`, 400 `FRIEND_SELF`, 403 `MESSAGE_NOT_FRIEND` (never friends, removed or blocked: one answer, so a block is not told; a member who blocked the sender
- * never gets anything), 409 `MESSAGE_UNREAD_LIMIT`, 503 `MESSAGES_UNAVAILABLE` where migration 0024 is not applied. The demo account of development is told it is done and nothing is written.
+ * never gets anything), 409 `MESSAGE_UNREAD_LIMIT`, 503 `MESSAGES_UNAVAILABLE` where migration 0025 is not applied. The demo account of development is told it is done and nothing is written.
  */
 export const postMessage = (action: MessageAction) =>
   handle(async (request: Request) => {

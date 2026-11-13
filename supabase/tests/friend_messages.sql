@@ -1,7 +1,7 @@
--- The messages between friends, end to end (migration 0024): who may write (a friend, only; never, removed and blocked are one answer), the text (trimmed, empty, too long), the cap of unread messages, the history of a conversation (both sides, in order, the
+-- The messages between friends, end to end (migration 0025): who may write (a friend, only; never, removed and blocked are one answer), the text (trimmed, empty, too long), the cap of unread messages, the history of a conversation (both sides, in order, the
 -- last ones when there are many), the read state and the unread counts, the list of conversations (current friends only, the latest first, no closed account), what ending a friendship deletes, the cascade of a deleted account, and who may call what.
 --
--- Run it on a throwaway Postgres whose `auth` schema is a stand-in (the migrations 0001 to 0024, then this file) or on `pbgo-preview` once the migration is applied. One `DO` block that ends with `RAISE EXCEPTION 'RESULT …'`: everything it writes is rolled
+-- Run it on a throwaway Postgres whose `auth` schema is a stand-in (the migrations 0001 to 0025, then this file) or on `pbgo-preview` once the migration is applied. One `DO` block that ends with `RAISE EXCEPTION 'RESULT …'`: everything it writes is rolled
 -- back, and the message is the answer. Every check prints `ok` or `FAIL` with what it saw; read the whole line. Never on production.
 -- A function that writes and a query that reads what it wrote cannot share a statement (the query keeps the snapshot it started with): each answer is taken into a variable first.
 

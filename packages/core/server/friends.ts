@@ -32,7 +32,7 @@ export type FriendRecord = Person & { online: boolean; game: string | null; phas
 /** An invitation to a table that waits for the member: who sent it, the game (its slug) and when. The table, with its code, is never read. */
 export type InvitationRecord = { id: string; from: Person; game: string; at: string; expiresAt: string }
 
-/** The whole social state of a member: their friends with their presence, the requests that came in and went out, the members they blocked, the invitations to a table that wait for them (PLT-109, migration 0023) and their conversations, the latest first (PLT-25, migration 0024). */
+/** The whole social state of a member: their friends with their presence, the requests that came in and went out, the members they blocked, the invitations to a table that wait for them (PLT-109, migration 0024) and their conversations, the latest first (PLT-25, migration 0025). */
 export type SocialRecord = { friends: FriendRecord[]; incoming: RequestEntry[]; outgoing: RequestEntry[]; blocked: Person[]; invitations: InvitationRecord[]; conversations: ConversationEntry[] }
 
 export const EMPTY_SOCIAL: SocialRecord = { friends: [], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [] }
@@ -92,7 +92,7 @@ export function socialRecordOf(data: unknown): SocialRecord {
 }
 
 /**
- * The friends, the requests, the blocks, the invitations and the conversations of this account, read together. Throws what the database says, but not for a project where the friends are not there yet, which has none. A project where migration 0023 or 0024 is not
+ * The friends, the requests, the blocks, the invitations and the conversations of this account, read together. Throws what the database says, but not for a project where the friends are not there yet, which has none. A project where migration 0024 or 0025 is not
  * applied has no invitations or no conversations, and the rest is read as ever.
  */
 export async function readSocial(userId: string): Promise<SocialRecord> {

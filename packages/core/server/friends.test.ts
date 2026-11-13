@@ -130,7 +130,7 @@ describe("readSocial", () => {
     expect(record.conversations).toEqual([{ nickname: "Bob", tag: 42, avatarUrl: null, unread: 2, lastText: "hi", lastAt: "2026-11-13T10:00:00+00:00", lastMine: false }])
   })
 
-  it("has the friends and no conversation where migration 0024 is not applied yet, and throws the rest", async () => {
+  it("has the friends and no conversation where migration 0025 is not applied yet, and throws the rest", async () => {
     mocks.rpc.mockImplementation(async (name: string) => (name === "conversations_for" ? { data: null, error: { code: "42883", message: "no function" } } : name === "social_state" ? { data: state(), error: null } : { data: [], error: null }))
     const record = await readSocial(ANN)
     expect(record.friends).toHaveLength(2)
@@ -140,7 +140,7 @@ describe("readSocial", () => {
     await expect(readSocial(ANN)).rejects.toBe(error)
   })
 
-  it("has the friends and no invitation where migration 0023 is not applied yet", async () => {
+  it("has the friends and no invitation where migration 0024 is not applied yet", async () => {
     mocks.rpc.mockImplementation(async (name: string) => (name === "social_state" ? { data: state(), error: null } : { data: null, error: { code: "PGRST202", message: "no function" } }))
     const record = await readSocial(ANN)
     expect(record.friends).toHaveLength(2)

@@ -18,7 +18,7 @@ const isGameSlug = (value: unknown): value is string => typeof value === "string
  * - `accept`: `{ id }`, the invitation's own id (the browser has no table code until now): answers `{ ok: true, result: "accepted", game, code }`, the table to sit down at with the game's own join route. 404 `INVITE_GONE`, 410 `INVITE_EXPIRED`, 404 `INVITE_TABLE_GONE`,
  *   409 `INVITE_TABLE_STARTED`, 409 `INVITE_TABLE_FULL`.
  * - `decline`: `{ id }`; an invitation that is gone is as declined as it can be.
- * The request must come from this site (403 `CROSS_ORIGIN`), 401 `NOT_SIGNED_IN`, 400 `INVITE_INVALID` for a body that is not one, 429 over the limits (`invitationSend`, `invitationAnswer`), 503 `INVITATIONS_UNAVAILABLE` where migration 0023 is not applied. The demo account of
+ * The request must come from this site (403 `CROSS_ORIGIN`), 401 `NOT_SIGNED_IN`, 400 `INVITE_INVALID` for a body that is not one, 429 over the limits (`invitationSend`, `invitationAnswer`), 503 `INVITATIONS_UNAVAILABLE` where migration 0024 is not applied. The demo account of
  * development is told it is done and nothing is written (an acceptance of its made-up invitation leads nowhere).
  */
 export const postInvitation = (action: InvitationAction, deps: InvitationDeps) =>

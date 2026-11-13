@@ -6,12 +6,12 @@ import { friendsNotApplied } from "./friends"
 import { ensureProfile } from "./profiles"
 import { supabaseAdmin } from "./supabase"
 
-// The messages between friends (PLT-25, migration 0024): written and read through the functions of the database, each of which decides in one transaction, with the server key only. A friend is named by their handle; the account's id stays here. The text arrives
-// already cleaned (`cleanMessageText`). Where migration 0024 is not applied the conversations are empty (`readSocial`) and the routes answer that messages are not available.
+// The messages between friends (PLT-25, migration 0025): written and read through the functions of the database, each of which decides in one transaction, with the server key only. A friend is named by their handle; the account's id stays here. The text arrives
+// already cleaned (`cleanMessageText`). Where migration 0025 is not applied the conversations are empty (`readSocial`) and the routes answer that messages are not available.
 
 type Member = Parameters<typeof ensureProfile>[0]
 
-/** Whether the database does not have the messages yet: migration 0024 is not applied. */
+/** Whether the database does not have the messages yet: migration 0025 is not applied. */
 export const messagesNotApplied = friendsNotApplied
 
 const SEND_RESULTS = ["sent", "missing", "self", "not_friends", "empty", "too_long", "too_many"] as const

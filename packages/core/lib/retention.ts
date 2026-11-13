@@ -26,7 +26,7 @@ export const FRIEND_REQUEST_RETENTION_DAYS = 30
 export const INVITATION_RETENTION_DAYS = 1
 
 /**
- * A message between friends (`friend_messages`, PLT-25) goes this many days after it was written, read or not: the nightly clean-up deletes it. A conversation is also deleted at once when the two stop being friends (migration 0024), and with either account.
+ * A message between friends (`friend_messages`, PLT-25) goes this many days after it was written, read or not: the nightly clean-up deletes it. A conversation is also deleted at once when the two stop being friends (migration 0025), and with either account.
  * A default of the owner's to confirm: chats here are for a game night, not an archive.
  */
 export const MESSAGE_RETENTION_DAYS = 30

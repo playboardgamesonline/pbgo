@@ -97,7 +97,7 @@ describe("POST /api/hub/invitations/send", () => {
     expect(await errorOf(response)).toBe(code)
   })
 
-  it("says that invitations are not available where migration 0023 is not applied", async () => {
+  it("says that invitations are not available where migration 0024 is not applied", async () => {
     mocks.account = { id: ANN }
     mocks.sendInvitation.mockRejectedValue({ code: "PGRST202" })
     const response = await post("send", SEND)

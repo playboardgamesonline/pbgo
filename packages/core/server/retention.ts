@@ -188,7 +188,7 @@ async function purgeFriendRequests(cutoff: string, dryRun: boolean): Promise<num
   return count ?? 0
 }
 
-/** The invitations a day old go in one statement (`created_at` has an index). A project where migration 0023 is not applied yet has none. */
+/** The invitations a day old go in one statement (`created_at` has an index). A project where migration 0024 is not applied yet has none. */
 async function purgeInvitations(cutoff: string, dryRun: boolean): Promise<number> {
   const invitations = supabaseAdmin().from("table_invitations")
   const { count, error } = dryRun
@@ -201,7 +201,7 @@ async function purgeInvitations(cutoff: string, dryRun: boolean): Promise<number
   return count ?? 0
 }
 
-/** The messages a month old go in one statement (`created_at` has an index). A project where migration 0024 is not applied yet has none. */
+/** The messages a month old go in one statement (`created_at` has an index). A project where migration 0025 is not applied yet has none. */
 async function purgeMessages(cutoff: string, dryRun: boolean): Promise<number> {
   const messages = supabaseAdmin().from("friend_messages")
   const { count, error } = dryRun

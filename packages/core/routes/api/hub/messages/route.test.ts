@@ -91,7 +91,7 @@ describe("POST /api/hub/messages/send", () => {
     expect(await errorOf(response)).toBe(code)
   })
 
-  it("says that messages are not available where migration 0024 is not applied", async () => {
+  it("says that messages are not available where migration 0025 is not applied", async () => {
     mocks.account = { id: ANN }
     mocks.sendMessage.mockRejectedValue({ code: "PGRST202" })
     const response = await post("send", { ...BOB, text: "x" })

@@ -1,8 +1,8 @@
--- The table invitations of the members, end to end (migration 0023): who may be invited (a friend, only; a member who was never a friend, was removed, or blocked the sender gets the same refusal), a pending invitation that is not sent twice,
+-- The table invitations of the members, end to end (migration 0024): who may be invited (a friend, only; a member who was never a friend, was removed, or blocked the sender gets the same refusal), a pending invitation that is not sent twice,
 -- the caps, the expiry, peeking, accepting and declining (and that nobody else's invitation exists), the list of a member's invitations (never the code, only the friend's own, nothing from a closed account), what removing a friend or a block
 -- takes away, the cascade of a deleted account, and who may call what.
 --
--- Run it on a throwaway Postgres whose `auth` schema is a stand-in (the migrations 0001 to 0023, then this file) or on `pbgo-preview` once the migration is applied. One `DO` block that ends with `RAISE EXCEPTION 'RESULT …'`: everything it writes is rolled
+-- Run it on a throwaway Postgres whose `auth` schema is a stand-in (the migrations 0001 to 0024, then this file) or on `pbgo-preview` once the migration is applied. One `DO` block that ends with `RAISE EXCEPTION 'RESULT …'`: everything it writes is rolled
 -- back, and the message is the answer. Every check prints `ok` or `FAIL` with what it saw; read the whole line. Never on production.
 
 DO $do$
