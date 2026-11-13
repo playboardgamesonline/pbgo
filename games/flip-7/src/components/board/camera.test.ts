@@ -1,7 +1,7 @@
 import type { CameraSettings } from "@pbgo/table"
 import { describe, expect, it } from "vitest"
 import { CAMERA, fitCamera, HUD, overlays, type Rect, standingDistance, type Viewport, windowRectOf } from "./camera"
-import { tableFootprints } from "./layout"
+import { tableQuads } from "./layout"
 
 const PLAYERS = [3, 4, 5, 6, 7, 8]
 /** Windows a laptop or a desktop has, the width and the height of the browser's own content */
@@ -35,19 +35,14 @@ function projected([x, y, z]: [number, number, number], { tilt, distance, fov, t
 const meets = (a: Rect, b: Rect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
 
 describe("the shortcut for the ground", () => {
-  it("lands where the long projection puts the corners of a footprint, for any camera and window", () => {
+  it("lands where the long projection puts the corners of a box of the table, for any camera and window", () => {
     const cameras: CameraSettings[] = [CAMERA, { ...CAMERA, distance: 17.5, targetX: 1.5, targetZ: -0.4 }, { ...CAMERA, tilt: 60, distance: 30, targetZ: 2 }]
     const windows: Viewport[] = [{ width: 1280, height: 800 }, { width: 900, height: 1200 }, { width: 2560, height: 1080 }]
-    const [box] = tableFootprints(5)
+    const box = tableQuads(5)[3]!
     for (const camera of cameras) {
       for (const viewport of windows) {
-        const rect = windowRectOf(box!, camera.distance, camera.targetX, camera.targetZ, camera, viewport)
-        const corners = [
-          projected([box!.x0, 0, box!.z0], camera, viewport),
-          projected([box!.x1, 0, box!.z0], camera, viewport),
-          projected([box!.x0, 0, box!.z1], camera, viewport),
-          projected([box!.x1, 0, box!.z1], camera, viewport),
-        ]
+        const rect = windowRectOf(box, camera.distance, camera.targetX, camera.targetZ, camera, viewport)
+        const corners = box.map(({ x, z }) => projected([x, 0, z], camera, viewport))
         expect(rect.left).toBeCloseTo(Math.min(...corners.map(([x]) => x)), 6)
         expect(rect.right).toBeCloseTo(Math.max(...corners.map(([x]) => x)), 6)
         expect(rect.top).toBeCloseTo(Math.min(...corners.map(([, y]) => y)), 6)
@@ -64,11 +59,29 @@ describe("the camera fitted to a window", () => {
         const { camera, fits } = fitCamera(players, viewport)
         const label = `${players} players in ${viewport.width}x${viewport.height}`
         expect(fits, label).toBe(true)
-        for (const box of tableFootprints(players)) {
+        for (const box of tableQuads(players)) {
           const rect = windowRectOf(box, standingDistance(camera, viewport), camera.targetX, camera.targetZ, camera, viewport)
           expect(rect.left, label).toBeGreaterThanOrEqual(HUD.gap - 1e-6)
           expect(rect.top, label).toBeGreaterThanOrEqual(HUD.gap - 1e-6)
           expect(rect.right, label).toBeLessThanOrEqual(viewport.width - HUD.gap + 1e-6)
+          expect(rect.bottom, label).toBeLessThanOrEqual(viewport.height - HUD.gap + 1e-6)
+          for (const over of overlays(viewport, players)) expect(meets(rect, over), label).toBe(false)
+        }
+      }
+    }
+  })
+
+  it("does as much for a spectator, whose seats are spread round the table with none in front", () => {
+    for (const viewport of DESKTOP) {
+      for (const players of PLAYERS) {
+        const { camera, fits } = fitCamera(players, viewport, CAMERA, false)
+        const label = `${players} players in ${viewport.width}x${viewport.height}, spectator`
+        expect(fits, label).toBe(true)
+        for (const box of tableQuads(players, false)) {
+          const rect = windowRectOf(box, standingDistance(camera, viewport), camera.targetX, camera.targetZ, camera, viewport)
+          expect(rect.left, label).toBeGreaterThanOrEqual(HUD.gap - 1e-6)
+          expect(rect.right, label).toBeLessThanOrEqual(viewport.width - HUD.gap + 1e-6)
+          expect(rect.top, label).toBeGreaterThanOrEqual(HUD.gap - 1e-6)
           expect(rect.bottom, label).toBeLessThanOrEqual(viewport.height - HUD.gap + 1e-6)
           for (const over of overlays(viewport, players)) expect(meets(rect, over), label).toBe(false)
         }
@@ -105,7 +118,7 @@ describe("the camera fitted to a window", () => {
       const room: Rect = { left: HUD.gap, top: HUD.gap, right: viewport.width - HUD.gap, bottom: viewport.height - HUD.gap }
       const area = (r: Rect) => (r.right - r.left) * (r.bottom - r.top)
       const common = (a: Rect, b: Rect) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
-      return tableFootprints(players).reduce((sum, box) => {
+      return tableQuads(players).reduce((sum, box) => {
         const rect = windowRectOf(box, standingDistance(camera, viewport), camera.targetX, camera.targetZ, camera, viewport)
         return sum + (area(rect) - common(rect, room)) + overlays(viewport, players).reduce((s, over) => s + common(rect, over), 0)
       }, 0)

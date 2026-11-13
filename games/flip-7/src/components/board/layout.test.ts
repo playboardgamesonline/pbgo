@@ -1,52 +1,172 @@
 import { describe, expect, it } from "vitest"
-import { BUTTON_WIDTH, buttonPlace, CARD, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, seatSpots, tableFootprints } from "./layout"
+import { BUTTON_WIDTH, type Box, buttonPlace, CARD, cornersOf, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, plateAt, seatAngle, seatSpots, tableBoxes, tableQuads, uprightYaw } from "./layout"
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
 const SIZES = [3, 4, 5, 6, 7, 8]
 
+/** Whether two turned rectangles share any area (the separating axis test), with a hair of tolerance so that boxes that touch do not count */
+function boxesMeet(a: Box, b: Box): boolean {
+  const ca = cornersOf(a)
+  const cb = cornersOf(b)
+  const axes = [ca, cb].flatMap((corners) => [
+    { x: corners[1]!.x - corners[0]!.x, z: corners[1]!.z - corners[0]!.z },
+    { x: corners[2]!.x - corners[1]!.x, z: corners[2]!.z - corners[1]!.z },
+  ])
+  return axes.every((axis) => {
+    const project = (corners: typeof ca) => corners.map((corner) => corner.x * axis.x + corner.z * axis.z)
+    const [pa, pb] = [project(ca), project(cb)]
+    const length = Math.hypot(axis.x, axis.z)
+    return Math.min(Math.max(...pa), Math.max(...pb)) - Math.max(Math.min(...pa), Math.min(...pb)) > 1e-6 * length
+  })
+}
+
+describe("the angle of a seat", () => {
+  const angles = (n: number, seated = true) => Array.from({ length: n }, (_, i) => seatAngle(i, n, seated))
+
+  it("puts the viewer in front and the others around the table, clockwise from them, at every size of table from two to eight", () => {
+    for (const n of [2, ...SIZES]) {
+      const all = angles(n)
+      expect(all[0], `${n} players`).toBe(0)
+      for (let i = 1; i < n; i++) expect(all[i]!, `${n} players, seat ${i}`).toBeGreaterThan(all[i - 1]!)
+      expect(all[n - 1]!, `${n} players`).toBeLessThan(360)
+    }
+  })
+
+  it("is the same on both sides of the viewer: the opponents mirror each other", () => {
+    for (const n of [2, ...SIZES]) {
+      const all = angles(n)
+      for (let i = 1; i < n; i++) expect(all[i]! + all[n - i]!, `${n} players, seats ${i} and ${n - i}`).toBeCloseTo(360)
+    }
+  })
+
+  it("is the table of the arrangement: who sits where", () => {
+    expect(angles(2)).toEqual([0, 180])
+    expect(angles(3)).toEqual([0, 145, 215])
+    expect(angles(4)).toEqual([0, 90, 180, 270])
+    expect(angles(5)).toEqual([0, 90, 150, 210, 270])
+    expect(angles(6).map(Math.round)).toEqual([0, 66, 123, 180, 237, 294])
+    expect(angles(7).map(Math.round)).toEqual([0, 62, 109, 156, 204, 251, 298])
+    expect(angles(8).map(Math.round)).toEqual([0, 60, 100, 140, 180, 220, 260, 300])
+  })
+
+  it("keeps the first and the last opponent off the viewer's sides, further from the front the fewer there are", () => {
+    let before = 360
+    for (const n of [2, ...SIZES]) {
+      const first = seatAngle(1, n)
+      expect(first, `${n} players`).toBeGreaterThanOrEqual(60)
+      expect(first, `${n} players`).toBeLessThan(before + 1e-9)
+      before = first
+    }
+  })
+
+  it("seats a spectator at the places a table with one more player has, the empty chair in front being nobody's", () => {
+    for (const n of [2, ...SIZES]) {
+      const all = angles(n, false)
+      const full = angles(n + 1)
+      expect(all, `${n} players`).toEqual(full.slice(1))
+      expect(all.every((angle) => angle >= 60 && angle <= 300)).toBe(true)
+    }
+  })
+})
+
 describe("the seats", () => {
-  it("put the viewer in front and everybody else on the far half, at every size of table", () => {
+  it("put the viewer in front, upright, and give every other seat the yaw that turns it to face its player", () => {
     for (const n of SIZES) {
       const spots = seatSpots(ids(n), "p1")
       expect(spots.size, `${n} players`).toBe(n)
-      expect(spots.get("p1")!.z, `${n} players: the viewer`).toBeGreaterThan(0)
-      for (const [id, spot] of spots) if (id !== "p1") expect(spot.z, `${n} players: ${id}`).toBeLessThan(0)
+      expect(spots.get("p1"), `${n} players: the viewer`).toMatchObject({ x: 0, yaw: 0 })
+      expect(spots.get("p1")!.z).toBeGreaterThan(0)
+      for (const [id, spot] of spots) {
+        if (id === "p1") continue
+        // a face-up card's top edge points along -z at yaw 0; turned by the yaw it points at the middle of the table, as a seated player reads it
+        const top = { x: -Math.sin(spot.yaw), z: -Math.cos(spot.yaw) }
+        const toMiddle = { x: -spot.x / Math.hypot(spot.x, spot.z), z: -spot.z / Math.hypot(spot.x, spot.z) }
+        expect(top.x, `${n} players: ${id}`).toBeCloseTo(toMiddle.x)
+        expect(top.z, `${n} players: ${id}`).toBeCloseTo(toMiddle.z)
+      }
+    }
+  })
+
+  it("stand one opposite the viewer for two, in the upper corners for three, one on each side for four", () => {
+    const at = (n: number) => [...seatSpots(ids(n), "p0").values()]
+    const [, across] = at(2)
+    expect(across!.x).toBeCloseTo(0)
+    expect(Math.abs(Math.abs(across!.yaw) - Math.PI)).toBeLessThan(1e-9)
+    const [, left3, right3] = at(3)
+    expect(left3!.x).toBeLessThan(0)
+    expect(right3!.x).toBeGreaterThan(0)
+    expect(left3!.z).toBeLessThan(0)
+    expect(right3!.z).toBeLessThan(0)
+    const [, left, top, right] = at(4)
+    expect(left!.yaw).toBeCloseTo(-Math.PI / 2)
+    expect(right!.yaw).toBeCloseTo(Math.PI / 2)
+    expect(Math.abs(top!.yaw)).toBeCloseTo(Math.PI)
+  })
+
+  it("go round on both sides and across, whatever the size of the table: seats on the left half, the right half and the far end", () => {
+    for (const n of SIZES) {
+      const xs = [...seatSpots(ids(n), "p0").values()].slice(1).map((spot) => spot.x)
+      expect(xs.some((x) => x < -1), `${n} players: left`).toBe(true)
+      expect(xs.some((x) => x > 1), `${n} players: right`).toBe(true)
+    }
+  })
+
+  it("make the turn pass to the viewer's left", () => {
+    for (const n of SIZES) {
+      const spots = seatSpots(ids(n), "p0")
+      expect(spots.get("p1")!.x, `${n} players`).toBeLessThan(0)
+      expect(spots.get(`p${n - 1}`)!.x, `${n} players`).toBeGreaterThan(0)
     }
   })
 
   it("seat a spectator, who has no seat, with nobody in front", () => {
-    for (const n of SIZES) for (const spot of seatSpots(ids(n), null).values()) expect(spot.z).toBeLessThanOrEqual(0)
+    for (const n of SIZES) {
+      const spots = [...seatSpots(ids(n), null).values()]
+      expect(spots.some((spot) => Math.abs(spot.x) < 1e-6 && spot.z > 0)).toBe(false)
+      expect(new Set(spots.map((spot) => spot.x.toFixed(3) + spot.z.toFixed(3))).size).toBe(n)
+    }
   })
 })
 
 describe("the lines of the players", () => {
-  it("give every player one, the viewer's in front of them and as wide as the table", () => {
+  it("give every player one, the viewer's in front of them and as wide as the room the seats beside it leave", () => {
     for (const n of SIZES) {
       const all = lines(seatSpots(ids(n), "p0"), "p0")
       expect([...all.keys()].sort()).toEqual(ids(n).sort())
       expect(all.get("p0")!.at.z).toBe(LAYOUT_SETTINGS.viewerZ)
-      expect(all.get("p0")!.width).toBe(LAYOUT_SETTINGS.viewerWidth)
+      expect(all.get("p0")!.yaw).toBe(0)
+      expect(all.get("p0")!.width, `${n} players`).toBeLessThanOrEqual(LAYOUT_SETTINGS.viewerWidth)
+      expect(all.get("p0")!.width, `${n} players`).toBeGreaterThanOrEqual(CARD.width * 4)
     }
   })
 
-  it("keep an opponent's between their seat and the middle of the table", () => {
-    const spots = seatSpots(ids(6), "p0")
-    for (const [id, line] of lines(spots, "p0")) {
-      if (id === "p0") continue
-      const spot = spots.get(id)!
-      expect(Math.abs(line.at.x), id).toBeLessThan(Math.abs(spot.x) + 1e-9)
-      expect(Math.abs(line.at.z), id).toBeLessThan(Math.abs(spot.z))
-      expect(Math.sign(line.at.z), id).toBe(Math.sign(spot.z))
-    }
-  })
-
-  it("never run into each other: no two opponents' lines overlap, whatever the size of the table", () => {
+  it("keep an opponent's on its seat, turned to face its player", () => {
     for (const n of SIZES) {
-      const opponents = [...lines(seatSpots(ids(n), "p0"), "p0")].filter(([id]) => id !== "p0").map(([, line]) => line)
-      opponents.sort((a, b) => a.at.x - b.at.x)
-      for (let i = 1; i < opponents.length; i++) {
-        const gap = opponents[i]!.at.x - opponents[i - 1]!.at.x
-        expect(opponents[i]!.width / 2 + opponents[i - 1]!.width / 2, `${n} players, lines ${i - 1} and ${i}`).toBeLessThanOrEqual(gap + 1e-9)
+      const spots = seatSpots(ids(n), "p0")
+      for (const [id, line] of lines(spots, "p0")) {
+        if (id === "p0") continue
+        expect(line.at, `${n} players: ${id}`).toEqual({ x: spots.get(id)!.x, z: spots.get(id)!.z })
+        expect(line.yaw, `${n} players: ${id}`).toBe(spots.get(id)!.yaw)
+      }
+    }
+  })
+
+  it("lie flat to the viewer when the lines are told not to face their seat", () => {
+    const was = LAYOUT_SETTINGS.faceSeat
+    LAYOUT_SETTINGS.faceSeat = 0
+    try {
+      for (const line of lines(seatSpots(ids(5), "p0"), "p0").values()) expect(line.yaw).toBe(0)
+    } finally {
+      LAYOUT_SETTINGS.faceSeat = was
+    }
+  })
+
+  it("never run into each other, nor into a plate, a pile or the button, even when every line takes all the room it may: no two boxes of the table overlap, at every size of table, for a player and for a spectator", () => {
+    for (const seated of [true, false]) {
+      for (const n of SIZES) {
+        const boxes = tableBoxes(n, true, seated)
+        const names = (i: number) => (i < 2 * n ? `${i % 2 === 0 ? "plate" : "line"} of seat ${Math.floor(i / 2)}` : ["draw pile", "discard", "button"][i - 2 * n]!)
+        for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) expect(boxesMeet(boxes[i]!, boxes[j]!), `${n} players${seated ? "" : ", spectator"}: ${names(i)} and ${names(j)}`).toBe(false)
       }
     }
   })
@@ -54,6 +174,49 @@ describe("the lines of the players", () => {
   it("give a lone opponent all the room of the table", () => {
     const only = lines(seatSpots(ids(2), "p0"), "p0").get("p1")!
     expect(only.width).toBe(LAYOUT_SETTINGS.viewerWidth)
+  })
+
+  it("give an opponent a room for a few cards at least, however full the table", () => {
+    for (const n of SIZES) for (const [id, line] of lines(seatSpots(ids(n), "p0"), "p0")) if (id !== "p0") expect(line.width, `${n} players: ${id}`).toBeGreaterThanOrEqual(CARD.width * line.scale * 2.5)
+  })
+})
+
+describe("the plates", () => {
+  it("turn with their seat but are never read upside down: at most a quarter turn from upright", () => {
+    for (const n of SIZES) for (const spot of seatSpots(ids(n), "p0").values()) expect(Math.abs(uprightYaw(spot.yaw)), `${n} players`).toBeLessThanOrEqual(Math.PI / 2 + 1e-9)
+  })
+
+  it("keep the yaw of a seat that reads upright, and turn back by half a turn one that would not", () => {
+    expect(uprightYaw(0)).toBe(0)
+    expect(uprightYaw(-Math.PI / 2)).toBeCloseTo(-Math.PI / 2)
+    expect(uprightYaw(Math.PI / 2)).toBeCloseTo(Math.PI / 2)
+    expect(uprightYaw(Math.PI)).toBeCloseTo(0)
+    expect(uprightYaw(-Math.PI)).toBeCloseTo(0)
+    expect(uprightYaw((3 * Math.PI) / 4)).toBeCloseTo(-Math.PI / 4)
+  })
+
+  it("stand out from the line, away from the middle of the table", () => {
+    for (const n of SIZES) {
+      const spots = seatSpots(ids(n), "p0")
+      const placed = lines(spots, "p0")
+      for (const [id, spot] of spots) {
+        const line = placed.get(id)!
+        const plate = plateAt(spot, line)
+        expect(Math.hypot(plate.x, plate.z), `${n} players: ${id}`).toBeGreaterThan(Math.hypot(line.at.x, line.at.z))
+      }
+    }
+  })
+
+  it("read upright for everybody when the plates are told not to turn", () => {
+    const was = LAYOUT_SETTINGS.textTurn
+    LAYOUT_SETTINGS.textTurn = 0
+    try {
+      const spots = seatSpots(ids(5), "p0")
+      const placed = lines(spots, "p0")
+      for (const [id, spot] of spots) expect(plateAt(spot, placed.get(id)!).yaw).toBe(0)
+    } finally {
+      LAYOUT_SETTINGS.textTurn = was
+    }
   })
 })
 
@@ -95,9 +258,9 @@ describe("a line of cards", () => {
 
 describe("the cards set aside during a Flip Three", () => {
   it("lie toward the viewer, beyond their own line, and toward the middle for an opponent", () => {
-    const mine = { at: { x: 0, z: 3.1 }, scale: 1, width: 13 }
+    const mine = { at: { x: 0, z: 3.1 }, yaw: 0, scale: 1, width: 13 }
     expect(heldPlace(mine, true).z).toBeGreaterThan(mine.at.z)
-    const theirs = { at: { x: 2, z: -2.6 }, scale: 0.62, width: 2 }
+    const theirs = { at: { x: 2, z: -2.6 }, yaw: Math.PI, scale: 0.62, width: 2 }
     const place = heldPlace(theirs, false)
     expect(Math.hypot(place.x, place.z)).toBeLessThan(Math.hypot(theirs.at.x, theirs.at.z))
   })
@@ -119,35 +282,35 @@ describe("the piles", () => {
 })
 
 describe("the button", () => {
-  it("lies beside the discard, clear of the two piles and of the viewer's line, the same for Stay and for Deal", () => {
-    const { discard } = pilePlaces()
+  it("lies between the two piles, clear of both and of the viewer's line, the same for Stay and for Deal", () => {
+    const { deck, discard } = pilePlaces()
     const button = buttonPlace()
-    // right of the discard's right edge, in the middle band, level with the piles
-    expect(button.x - BUTTON_WIDTH / 2).toBeGreaterThan(discard.x + (CARD.width * LAYOUT_SETTINGS.pileScale) / 2)
+    expect(button.x).toBeCloseTo(0)
+    expect(button.x - BUTTON_WIDTH / 2).toBeGreaterThan(deck.x + (CARD.width * LAYOUT_SETTINGS.pileScale) / 2)
+    expect(button.x + BUTTON_WIDTH / 2).toBeLessThan(discard.x - (CARD.width * LAYOUT_SETTINGS.pileScale) / 2)
     expect(button.z).toBe(discard.z)
     expect(button.z + 0.5).toBeLessThan(LAYOUT_SETTINGS.viewerZ - CARD.height / 2)
   })
 })
 
 describe("the footprints of a table", () => {
-  it("are the plate and the line of each seat, the piles and the button, whatever the number of players", () => {
-    for (const n of SIZES) expect(tableFootprints(n), `${n} players`).toHaveLength(2 * n + 2)
+  it("are the plate and the line of each seat, the two piles and the button, whatever the number of players", () => {
+    for (const n of SIZES) expect(tableQuads(n), `${n} players`).toHaveLength(2 * n + 3)
   })
 
-  it("are rectangles with some size", () => {
-    for (const n of SIZES) for (const box of tableFootprints(n)) {
-      expect(box.x1).toBeGreaterThan(box.x0)
-      expect(box.z1).toBeGreaterThan(box.z0)
+  it("are four corners with some area between them", () => {
+    for (const n of SIZES) for (const quad of tableQuads(n)) {
+      expect(quad).toHaveLength(4)
+      // the shoelace formula: a turned rectangle has the same area whichever way it is turned
+      const area = Math.abs(quad.reduce((sum, corner, i) => sum + corner.x * quad[(i + 1) % 4]!.z - quad[(i + 1) % 4]!.x * corner.z, 0)) / 2
+      expect(area, `${n} players`).toBeGreaterThan(0.5)
     }
   })
 
-  it("put the viewer's plate nearest to the viewer and the opponents' beyond the middle", () => {
+  it("put the viewer's plate nearest to the viewer, below its line", () => {
     for (const n of SIZES) {
-      const boxes = tableFootprints(n)
-      // the plate is the first footprint of a seat, in the order of the seats, the viewer's first
-      const plates = boxes.slice(0, 2 * n).filter((_, i) => i % 2 === 0)
-      expect(plates[0]!.z0, `${n} players`).toBeGreaterThan(0)
-      for (const plate of plates.slice(1)) expect(plate.z1, `${n} players`).toBeLessThan(LAYOUT_SETTINGS.viewerZ)
+      const [plate, line] = tableQuads(n)
+      expect(Math.min(...plate!.map((corner) => corner.z)), `${n} players`).toBeGreaterThanOrEqual(Math.max(...line!.map((corner) => corner.z)) - 1e-9)
     }
   })
 })

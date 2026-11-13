@@ -9,7 +9,7 @@ import type { ClientCatalog } from "../../lib/catalog"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
 import { GLOWS } from "./glows"
-import { BUTTON_WIDTH, buttonPlace, CARD, dealtFrom, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, seatSpots } from "./layout"
+import { BUTTON_WIDTH, buttonPlace, CARD, dealtFrom, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, plateAt, seatSpots } from "./layout"
 import { PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { CARD_SIZE, matTexture, useFaces } from "./textures"
 import { useViewport } from "./viewport"
@@ -102,21 +102,26 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         const pickable = choosing && phase.targets.includes(player.id)
         const heldAt = heldPlace(line, viewer)
         const seat = said.get(player.id) ?? now.get(player.id)!
+        const spot = spots.get(player.id)!
+        const plate = plateAt(spot, line)
         return (
           <group key={player.id}>
-            <PlayerSeat
-              id={player.id}
-              spot={spots.get(player.id)!}
-              viewer={viewer}
-              line={pointsText(seat.total)}
-              status={statusOf(seat.status, words)}
-              out={seat.status === "busted"}
-              onSelect={pickable ? () => onTarget(player.id) : undefined}
-            />
-            {/* What lies in front of the player: every card is face up, and every line reads upright from the viewer's side, whatever the seat */}
-            <Zone frame={{ x: line.at.x, z: line.at.z }} layout={linePoses(player.cards.length, line)} size={CARD_SIZE} cards={cardsOf(player.cards)} />
+            {/* The plate stands beyond its line, turned the way its text reads (never upside down): the seat is drawn in its own frame, with its centre at the plate's */}
+            <group position={[plate.x, 0, plate.z]} rotation-y={plate.yaw}>
+              <PlayerSeat
+                id={player.id}
+                spot={{ x: 0, z: 0, yaw: 0 }}
+                viewer={false}
+                line={pointsText(seat.total)}
+                status={statusOf(seat.status, words)}
+                out={seat.status === "busted"}
+                onSelect={pickable ? () => onTarget(player.id) : undefined}
+              />
+            </group>
+            {/* What lies in front of the player: every card is face up, and the line turns to face its player (`faceSeat`) */}
+            <Zone frame={{ x: line.at.x, z: line.at.z, yaw: line.yaw }} layout={linePoses(player.cards.length, line)} size={CARD_SIZE} cards={cardsOf(player.cards)} />
             {/* The Freeze and Flip Three cards flipped during a Flip Three wait, face up, until its three cards are done */}
-            <Zone frame={{ x: heldAt.x, z: heldAt.z }} layout={heldPoses(player.held.length, line)} size={CARD_SIZE} cards={cardsOf(player.held)} />
+            <Zone frame={{ x: heldAt.x, z: heldAt.z, yaw: line.yaw }} layout={heldPoses(player.held.length, line)} size={CARD_SIZE} cards={cardsOf(player.held)} />
           </group>
         )
       })}
@@ -177,7 +182,8 @@ export function Scene(props: SceneProps) {
   // The camera stands where the whole table is in the window and clear of what the platform draws over it (`fitCamera`): a window that is dragged to another size does not fit the camera at every step, it waits. The Camera folder of the
   // debug panel edits this object: it is made again when the window or the number of players changes
   const viewport = useDeferredValue(useViewport())
-  const camera = useMemo(() => cameraFor(players, viewport), [players, viewport])
+  const seated = props.view.me !== null
+  const camera = useMemo(() => cameraFor(players, viewport, seated), [players, viewport, seated])
   return (
     <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark }} held={props.held} onLoaded={props.onLoaded}>
       <Mat inner={theme.surface} outer={theme.surfaceDark} />
