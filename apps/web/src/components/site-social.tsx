@@ -19,6 +19,7 @@ import { cn } from "@pbgo/ui/utils"
 import { AccountMenu } from "@/components/account-menu"
 import { changeFriends, useFriendActions } from "@/components/friend-actions"
 import { useReceivedRequestToasts } from "@/components/friend-toasts"
+import { useInvitationActions, useReceivedInvitationToasts } from "@/components/invitation-actions"
 import { OwnName } from "@/components/own-name"
 import { readFolded, writeFolded } from "@/lib/folded-games"
 import { leaveQueue, useQueue, useQueueSeconds } from "@/lib/matchmaking"
@@ -31,7 +32,7 @@ const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
 /**
  * What a signed-in visitor has on the navbar, the way the Riot Client has it, in one container on the right (`SocialDock`) that is a bar while it is closed and a real side
  * panel while it is open, the same element changing from one to the other with a transition. Closed, the bar has the friends who are connected, each a small picture with the dot of its presence (three at the most, then "+N", which opens the panel), then the games their friends are in (`FriendsBar`, with the list of a
- * game's friends under the pointer), then, behind a thin line, their picture, with the count of what waits for them on its corner (messages not read, requests to answer), which opens
+ * game's friends under the pointer), then, behind a thin line, their picture, with the count of what waits for them on its corner (messages not read, requests and invitations to answer), which opens
  * the menu of their account (`AccountMenu`), and the button of the social panel (`SocialPanelToggle`: the icon of a panel on the right, which opens it and, once it is open, closes it).
  * Open, the bar is the header of the panel: the games fold away, the picture glides to the start of the bar and says who they are beside it (`SocialDockIdentity`: their name with its tag and
  * their status), the button stays where it was, and the panel (`SocialPanel`: friends game by game, messages, add a friend) is under it. A real account's friends and requests are the database's (PLT-23: `useSocial`, kept fresh while a tab is in view), and
@@ -57,6 +58,9 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
   const preview = account.id === DEMO_ACCOUNT.id
   // A toast for each friend request that comes in while the page is open (the demo account has none that come in: its requests are made up)
   useReceivedRequestToasts(preview ? null : account.id, changeFriends)
+  // The invitations to a table: the card of the panel, a toast for each that comes in while the page is open (the demo account has none that come in), and what sits the visitor down at the table of one they accepted
+  const invitations = useInvitationActions()
+  useReceivedInvitationToasts(preview ? null : account.id, invitations.answer, gameIcon)
   const nothing = () => {}
   // The search for a game that the visitor has begun, wherever they began it (the button of a game's page, the home's Find a game): the bar shows it while the panel is closed, and the panel has a card for it
   const queue = useQueue()
@@ -80,7 +84,7 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
     }
     return all
   }, [social, sent, read])
-  const waiting = unreadOf(conversations) + social.requests.filter((request) => request.direction === "incoming").length
+  const waiting = unreadOf(conversations) + social.requests.filter((request) => request.direction === "incoming").length + social.invitations.length
 
   // Escape folds the dock, unless a menu or a panel of the page is what it closes, and gives the focus back to the button that opened it
   useEffect(() => {
@@ -168,6 +172,8 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
           gameIcon={gameIcon}
           conversations={conversations}
           requests={social.requests}
+          invitations={social.invitations}
+          onAnswerInvitation={(invitation, answer) => invitations.answer(invitation, answer)}
           onOpenChat={preview ? openChat : undefined}
           onViewProfile={friends.viewProfile}
           onRemove={friends.remove}
@@ -210,6 +216,7 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
         )}
       </PanelPresence>
       {friends.dialog}
+      {invitations.joining}
     </>
   )
 }

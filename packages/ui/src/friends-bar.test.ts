@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import type { Friend } from "./friends"
 import { FriendsBar } from "./platform/friends-bar"
+import { InvitationsCard } from "./platform/invitations-card"
 import { InviteFriendList } from "./platform/invite-friend"
 
 // The connected friends in the dock's bar (their own avatars, before the games they are in) and the picker of the friend to invite, by their markup. What happens under the pointer is not here: the bar is read as the server draws it.
@@ -78,5 +79,36 @@ describe("InviteFriendList", () => {
     expect(html).toContain('aria-label="Bob is invited"')
     expect(html).toContain("Invited")
     expect(/<button[^>]*aria-label="Bob is invited"/.exec(html)?.[0]).toContain("disabled")
+  })
+})
+
+describe("InvitationsCard", () => {
+  const invitation = { id: "i1", nickname: "Bob", tag: "0042", avatarUrl: null, game: { slug: "hanabi", name: "Hanabi" }, expiresAt: "2026-11-13T10:30:00.000Z" }
+  const NOW = Date.parse("2026-11-13T10:00:00.000Z")
+  const card = (props: Partial<React.ComponentProps<typeof InvitationsCard>> = {}) => renderToStaticMarkup(React.createElement(InvitationsCard, { invitations: [invitation], now: NOW, ...props }))
+
+  it("is nothing without an invitation", () => {
+    expect(card({ invitations: [] })).toBe("")
+  })
+
+  it("says who invites, to which game and how long is left, with the name masked in a recording", () => {
+    const html = card()
+    expect(html).toContain('<span class="ph-mask">Bob</span> invites you')
+    expect(html).toContain("Hanabi")
+    expect(html).toContain("30 min left")
+  })
+
+  it("has the two buttons only when the page gives a way to answer", () => {
+    expect(card()).not.toContain("<button")
+    const html = card({ onAnswer: nothing })
+    expect(html).toContain('aria-label="Accept the invitation of Bob to Hanabi"')
+    expect(html).toContain('aria-label="Decline the invitation of Bob"')
+  })
+
+  it("can only decline an invitation that has expired", () => {
+    const html = card({ onAnswer: nothing, now: Date.parse("2026-11-13T11:00:00.000Z") })
+    expect(html).toContain("expired")
+    expect(html).not.toContain("Accept the invitation")
+    expect(html).toContain("Decline the invitation of Bob")
   })
 })

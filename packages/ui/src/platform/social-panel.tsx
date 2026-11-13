@@ -6,13 +6,14 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { AnimatePresence, LayoutGroup, motion } from "motion/react"
 import { initials, type Friend } from "../friends"
 import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "../motion"
-import { lastMessage, sortedConversations, timeAgo, unreadOf, type Conversation, type FriendRequest } from "../social"
+import { lastMessage, sortedConversations, timeAgo, unreadOf, type Conversation, type FriendRequest, type TableInvitation } from "../social"
 import { cn } from "../utils"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { AddFriendForm } from "./add-friend-form"
 import { Badge } from "./badge"
 import { Button } from "./button"
 import { FriendsRoster, PresenceDot, type FriendMenuHandlers } from "./friends-panel"
+import { InvitationsCard } from "./invitations-card"
 import { QueueCard, type QueueCardProps } from "./queue"
 import { Tabs, TabsList, TabsTrigger } from "./tabs"
 
@@ -24,7 +25,7 @@ import { Tabs, TabsList, TabsTrigger } from "./tabs"
 // surface of its own it is a column for a page, with a `header` (whatever the page puts at the top, usually a picture, a name and a status); `bare` draws none: it is then the body of the
 // dock of the navbar (`SocialDock`), which is its surface and whose bar holds the button that opens and closes it (`SocialPanelToggle`). It is drawn from what it is given and decides
 // nothing: where the friends, the messages and the requests come from (PLT-23) and what a press does are the page's, and a button whose handler is missing is not drawn (the form that
-// adds a friend is off). The dot of a friend's presence wears its colour (`FriendsRoster`, `PresenceDot`). While the visitor looks for a game the panel has a card for it at the top, over the tabs, whatever tab is open (`QueueCard`).
+// adds a friend is off). The dot of a friend's presence wears its colour (`FriendsRoster`, `PresenceDot`). While the visitor looks for a game the panel has a card for it at the top, over the tabs, whatever tab is open (`QueueCard`), and the invitations to a table that wait for them have one under it (`InvitationsCard`, PLT-109).
 
 export type SocialTab = "friends" | "messages" | "add"
 
@@ -86,6 +87,10 @@ type SocialPanelProps = Omit<React.ComponentProps<"aside">, "children"> & Friend
   gameIcon?: (slug: string) => string | undefined
   conversations: readonly Conversation[]
   requests: readonly FriendRequest[]
+  /** The invitations to a table that wait for the visitor's answer: a card at the top, over the tabs. */
+  invitations?: readonly TableInvitation[]
+  /** What the buttons of an invitation do (accept: sit down at the table; decline). The card has no button without it. */
+  onAnswerInvitation?: (invitation: TableInvitation, answer: "accept" | "decline") => void | boolean | Promise<boolean | void>
   /** The tab it opens on. */
   defaultTab?: SocialTab
   /** What a press on a friend, or on a conversation, does: open the chat with them. */
@@ -230,6 +235,8 @@ function SocialPanel({
   gameIcon,
   conversations,
   requests,
+  invitations = [],
+  onAnswerInvitation,
   tab: controlled,
   defaultTab = "friends",
   onTabChange,
@@ -335,6 +342,8 @@ function SocialPanel({
       {header && <div className="min-w-0">{header}</div>}
 
       {queue && <QueueCard {...queue} />}
+
+      <InvitationsCard invitations={invitations} gameIcon={gameIcon} onAnswer={onAnswerInvitation} />
 
       <Tabs value={tab} onValueChange={(value) => pick(value as SocialTab)} className="min-h-0 flex-1 gap-4">
         <LayoutGroup id={group}>

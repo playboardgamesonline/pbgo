@@ -1,5 +1,6 @@
 import { TAG_MAX, TAG_MIN, checkNickname, tagOfRequest, type Handle } from "@pbgo/accounts"
 import type { FriendRequestSource } from "@pbgo/analytics"
+import { invitationOf, type InvitationEntry } from "./invitations"
 
 /**
  * The friends of the hub (PLT-23): the limits, what the routes are called, what the browser is told and how it reads it. Pure, with nothing of the server in it, so that the routes, the pages and the tests read it the same way
@@ -53,9 +54,9 @@ export type FriendEntry = Person & { online: boolean; game: FriendGame | null; p
 export type RequestEntry = Person & { at: string }
 
 /** The whole social state of a member, as `GET /api/hub/friends` answers it. */
-export type SocialState = { friends: FriendEntry[]; incoming: RequestEntry[]; outgoing: RequestEntry[]; blocked: Person[] }
+export type SocialState = { friends: FriendEntry[]; incoming: RequestEntry[]; outgoing: RequestEntry[]; blocked: Person[]; invitations: InvitationEntry[] }
 
-export const NO_SOCIAL: SocialState = { friends: [], incoming: [], outgoing: [], blocked: [] }
+export const NO_SOCIAL: SocialState = { friends: [], incoming: [], outgoing: [], blocked: [], invitations: [] }
 
 const isTag = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value >= TAG_MIN && value <= TAG_MAX
 
@@ -93,9 +94,10 @@ const listOf = <T>(value: unknown, read: (item: unknown) => T | null): T[] => (A
 /** The state that an answer of `GET /api/hub/friends` says, or null when it is not one: each list drops the entries that are not what they should be. */
 export function socialStateOf(body: unknown): SocialState | null {
   if (typeof body !== "object" || body === null) return null
-  const { friends, incoming, outgoing, blocked } = body as Record<string, unknown>
+  const { friends, incoming, outgoing, blocked, invitations } = body as Record<string, unknown>
   if (!Array.isArray(friends) || !Array.isArray(incoming) || !Array.isArray(outgoing) || !Array.isArray(blocked)) return null
-  return { friends: listOf(friends, friendOf), incoming: listOf(incoming, requestOf), outgoing: listOf(outgoing, requestOf), blocked: listOf(blocked, personOf) }
+  // `invitations` is the newest part of the state (PLT-109): an answer without it is an older server's, which has none
+  return { friends: listOf(friends, friendOf), incoming: listOf(incoming, requestOf), outgoing: listOf(outgoing, requestOf), blocked: listOf(blocked, personOf), invitations: listOf(invitations, invitationOf) }
 }
 
 /** What is between the visitor and a member whose profile they look at: friends, a request that came in or went out, a member they blocked, or nothing. A member who blocked the visitor is nothing, as far as the visitor can tell. */

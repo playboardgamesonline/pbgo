@@ -70,6 +70,10 @@ export const RATE_LIMITS = {
   friendRequest: { limit: 30, windowMs: 10 * 60_000, by: "ip" },
   /** A member answering a request, removing a friend, blocking or unblocking (the other `POST`s of `/api/hub/friends`): one press each, and a list of requests is answered one by one. Per IP, with room for a few members behind one address */
   friendAction: { limit: 60, windowMs: 10 * 60_000, by: "ip" },
+  /** A member inviting a friend to their table (`POST /api/hub/invitations/send`, PLT-109): one press for each friend, a few per table; also limited by the cap of invitations that wait. Per IP, with room for a few members behind one address */
+  invitationSend: { limit: 40, windowMs: 10 * 60_000, by: "ip" },
+  /** A member accepting or declining an invitation (the other `POST`s of `/api/hub/invitations`): one press each. Per IP, with room for a few members behind one address */
+  invitationAnswer: { limit: 60, windowMs: 10 * 60_000, by: "ip" },
   /** Admin login (shared by every game): per IP, whatever the cookies, so a password can't be guessed by a script. A human mistypes it a few times at most */
   adminLogin: { limit: 5, windowMs: 10 * 60_000, by: "ip" },
   /** Ceiling per IP across every limited route (several players behind one NAT stay well below it) */

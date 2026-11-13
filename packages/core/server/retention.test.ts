@@ -235,7 +235,7 @@ describe("tables", () => {
 
   it("tells the moments it measured against", async () => {
     const report = await purgeExpired({ now: NOW })
-    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1), states: daysAgo(1), seats: YEAR_AGO, friendRequests: daysAgo(30) })
+    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1), states: daysAgo(1), seats: YEAR_AGO, friendRequests: daysAgo(30), invitations: daysAgo(1) })
   })
 })
 
@@ -321,6 +321,25 @@ describe("friend requests", () => {
     h.fail.friendRequests = { message: "relation public.friend_requests does not exist", code: "42P01" }
     const report = await purgeExpired({ now: NOW })
     expect(report).toMatchObject({ friendRequests: 0, errors: [] })
+  })
+})
+
+describe("invitations to a table", () => {
+  const invitation = (id: string, daysOld: number) => ({ id, sender: "a", recipient: "b", created_at: new Date(NOW.getTime() - daysOld * DAY).toISOString() })
+  const ids = () => (h.tables.table_invitations ?? []).map((row) => String(row.id))
+
+  it("deletes the invitations more than a day old, whatever became of them, and keeps the others", async () => {
+    h.tables.table_invitations = [invitation("old", 2), invitation("ancient", 30), invitation("fresh", 0)]
+    const report = await purgeExpired({ now: NOW })
+    expect(ids()).toEqual(["fresh"])
+    expect(report).toMatchObject({ invitations: 2, errors: [] })
+  })
+
+  it("counts what it would delete and deletes nothing in a dry run", async () => {
+    h.tables.table_invitations = [invitation("old", 2), invitation("fresh", 0)]
+    const report = await purgeExpired({ now: NOW, dryRun: true })
+    expect(report).toMatchObject({ dryRun: true, invitations: 1, errors: [] })
+    expect(ids()).toEqual(["old", "fresh"])
   })
 })
 

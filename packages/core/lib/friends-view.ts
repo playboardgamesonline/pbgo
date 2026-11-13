@@ -1,7 +1,8 @@
 import { TAG_MAX, TAG_MIN, tagText, type Handle } from "@pbgo/accounts"
 import type { Friend, FriendStatus } from "@pbgo/ui/friends"
-import type { FriendRequest } from "@pbgo/ui/social"
+import type { FriendRequest, TableInvitation } from "@pbgo/ui/social"
 import type { FriendEntry, Person, RequestEntry } from "./friends"
+import type { InvitationEntry } from "./invitations"
 
 // What the panels draw of the social state (PLT-23): the friends and the requests of `@pbgo/ui`, made from what the server says (`./friends`). Pure, so that the panel, the pages and the tests read the state the same way.
 
@@ -34,11 +35,15 @@ export const requestOf = (entry: RequestEntry, direction: FriendRequest["directi
   direction,
 })
 
-/** The friends and the requests of the social state, as the panel draws them: the requests that came in first, then the ones that went out, each the newest first. */
-export function panelOf(state: { friends: readonly FriendEntry[]; incoming: readonly RequestEntry[]; outgoing: readonly RequestEntry[] }): { friends: Friend[]; requests: FriendRequest[] } {
+/** An invitation to a table as the panel draws it: who invited, to which game, until when. */
+export const invitationOfEntry = (entry: InvitationEntry): TableInvitation => ({ id: entry.id, nickname: entry.from.nickname, tag: tagText(entry.from.tag), avatarUrl: entry.from.avatarUrl, game: entry.game, expiresAt: entry.expiresAt })
+
+/** The friends, the requests and the invitations of the social state, as the panel draws them: the requests that came in first, then the ones that went out, each the newest first. */
+export function panelOf(state: { friends: readonly FriendEntry[]; incoming: readonly RequestEntry[]; outgoing: readonly RequestEntry[]; invitations?: readonly InvitationEntry[] }): { friends: Friend[]; requests: FriendRequest[]; invitations: TableInvitation[] } {
   return {
     friends: state.friends.map(friendOf),
     requests: [...state.incoming.map((entry) => requestOf(entry, "incoming")), ...state.outgoing.map((entry) => requestOf(entry, "outgoing"))],
+    invitations: (state.invitations ?? []).map(invitationOfEntry),
   }
 }
 

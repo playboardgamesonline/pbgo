@@ -13,6 +13,7 @@ import type { LobbyAccessValue } from "@pbgo/ui/platform/lobby-access"
 import { LobbyDetail, type LobbyDetailProps } from "@pbgo/ui/platform/lobby-panel"
 import { SPEEDS } from "@pbgo/ui/tables"
 import { useAgeGate } from "./age-gate"
+import { useInviteFriend } from "./invitation-actions"
 
 // The lobby the visitor sits at, in the panel beside the open tables: the details of the table as the page worded them (`ownTableDetail`: the seats, the settings, the button that starts the game or the one that waits for the host, the one that leaves it),
 // and, for the one who opened it, the settings wired to the game's routes (PLT-106, PLT-21). A choice of the settings goes where it is kept: the engine's own options (`games.options`) when its id is the key of one (`engineOptionsOf`, the options route), and
@@ -43,6 +44,8 @@ export function OwnLobby({
 }) {
   const router = useRouter()
   const { guard, demand, fail, dialog } = useAgeGate()
+  // "Invite a friend" in the menu of a free seat opens the picker (PLT-109)
+  const picker = useInviteFriend()
   // The settings of the table as the panel shows them, and the calls that keep them, one after the other
   const kept = useRef<TableSettingsInput>(table)
   const queue = useRef<Promise<unknown>>(Promise.resolve())
@@ -102,11 +105,12 @@ export function OwnLobby({
     onChange: ({ visibility, minRank, language }: LobbyAccessValue) => save({ visibility, minRank, language: language !== null && isPlatformLanguage(language) ? language : null }),
   }
   // The link is the invitation: counting its copies is what the game's own lobby did
-  const invite = detail.invite && { ...detail.invite, onCopy: () => trackClient("invite_link_copied", { game: slug }) }
+  const invite = detail.invite && { ...detail.invite, onCopy: () => trackClient("invite_link_copied", { game: slug }), onInvite: () => picker.invite(slug, code) }
   return (
     <>
       <LobbyDetail key={`${code}:${restart}`} {...detail} settings={settings} access={access} onPlayersChange={detail.playerRange ? (seats) => save({ seats }) : undefined} invite={invite} flat={flat} className={className} />
       {dialog}
+      {picker.dialog}
     </>
   )
 }

@@ -64,7 +64,13 @@ describe("requestOf and panelOf", () => {
   })
 
   it("draw nobody for a state with nobody", () => {
-    expect(panelOf({ friends: [], incoming: [], outgoing: [] })).toEqual({ friends: [], requests: [] })
+    expect(panelOf({ friends: [], incoming: [], outgoing: [] })).toEqual({ friends: [], requests: [], invitations: [] })
+  })
+
+  it("draw the invitations to a table with who invited, the game and the time, and never a code", () => {
+    const invitation = { id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Cat", tag: 3, avatarUrl: null }, game: COURTISANS, at, expiresAt: "2026-11-09T10:30:00.000Z" }
+    const { invitations } = panelOf({ friends: [], incoming: [], outgoing: [], invitations: [invitation] })
+    expect(invitations).toEqual([{ id: invitation.id, nickname: "Cat", tag: "0003", avatarUrl: null, game: COURTISANS, expiresAt: "2026-11-09T10:30:00.000Z" }])
   })
 })
 
