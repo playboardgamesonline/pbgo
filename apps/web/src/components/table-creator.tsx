@@ -13,6 +13,7 @@ import { LobbyAccess, type LanguageOption } from "@pbgo/ui/platform/lobby-access
 import { LobbyPanel } from "@pbgo/ui/platform/lobby-panel"
 import { LobbyPlayers } from "@pbgo/ui/platform/lobby-players"
 import { LobbySettings, type ExpansionOption, type HelperOption, type LobbySettingsValue } from "@pbgo/ui/platform/lobby-settings"
+import { defaultSeats } from "@pbgo/ui/tables"
 import type { AgeRefusal } from "@pbgo/accounts"
 import { useAgeGate } from "./age-gate"
 import { useSitDown } from "./sit-down"
@@ -91,7 +92,7 @@ export function TableCreator({
       </CardHeader>
       <CardContent className="flex flex-col">
         <div className="flex flex-col gap-6 border-t pt-6">
-          <LobbyPlayers range={range} defaultCount={range.max} onCountChange={setSeats} />
+          <LobbyPlayers range={range} defaultCount={defaultSeats(range.min, range.max)} onCountChange={setSeats} />
           <LobbySettings expansions={expansions} helpers={helpers} pace="normal" editable onChange={setSettings} onLockedPick={(_id, locked) => void demand(locked.kind as AgeRefusal)} />
         </div>
       </CardContent>

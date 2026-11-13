@@ -1,10 +1,11 @@
 import * as React from "react"
-import { CrownIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
+import { ArrowRight01Icon, CrownIcon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "../utils"
 import { QUEUE_MODE_LABELS, type QueueMode } from "../queue"
 import { hostOf, seatCount, type TableAction, type TableSeat, type TableState } from "../tables"
 import { Badge } from "./badge"
+import { Button } from "./button"
 import { OpenSeat } from "./open-seat"
 import { OverLink } from "./over-link"
 import { SeatAvatar } from "./table-card"
@@ -13,7 +14,7 @@ import { SeatAvatar } from "./table-card"
 // ("Fast turns · First expansion"): the speed when it is not the usual one, then the expansions, and no line at all when there is nothing to say. On the third, a circle for each seat of the table, all of them, none over another, so that the room that is left is seen at once: a picture and
 // the nickname under it for a person, a crown on the one who opened it, and for a seat nobody has taken a dashed circle with a plus in it, which does what the seat is for (`OpenSeat`: it joins the table, or, at the table the visitor sits at, opens a menu to invite a friend or copy the
 // link). The pictures are large and close together (48px, eight apart). The pointer finds a player's card on their picture, and a press on the row picks it, which the page shows by the panel beside the list (`LobbyDetail`). In a list that has no panel (`to`), the row is a link as a whole: its first line is the link, stretched over the row, so that a press
-// anywhere on it leads to the table, the padding, the names and the pictures included. What the pointer must find above the link (a player's card, a free seat's button or link, its menu) is raised over it, and a press on a picture goes on where the link leads (`OverLink`). Like `TableCard`
+// anywhere on it leads to the table, the padding, the names and the pictures included. A row a visitor may sit at has a "Join" button at the right of its seats (`JOIN_BUTTON`): it is drawn when the pointer is on the row or the keyboard is in it, and always on a screen with no pointer to hover with; it does what a free seat's plus does (`onJoin`, or a link to the table's page). What the pointer must find above the link (a player's card, a free seat's button or link, its menu) is raised over it, and a press on a picture goes on where the link leads (`OverLink`). Like `TableCard`
 // it draws what it is given and decides nothing: the page keeps which row is picked. It is not a client component: a row with no `onSelect` (a list that is only read) is drawn on the server, and then has no handler at all.
 
 type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
@@ -48,6 +49,9 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   /** Where a press on the row leads, for a list that has no panel to show details in (the member's own tables on the home, the Tables tab): the first line is then a link, stretched over the whole row, and `onSelect`, `selected` and `controls` have no part in it. */
   to?: string
 }
+
+/** The row's Join button: hidden until the pointer is on the row or the keyboard is on the row's controls, and always there where nothing can hover (a phone). It keeps its place in the layout while hidden, so the row does not move. Raised over the stretched link of a row that is a link (`z-10`). */
+const JOIN_BUTTON = "relative z-10 mr-4 mb-4 shrink-0 opacity-0 transition-opacity duration-fast group-hover/entry:opacity-100 group-has-focus-visible/entry:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
 
 function TableEntry({ className, state, seats, age, mode, facts = [], action, href, onJoin, onCopyInvite, mine = false, hostedByYou = false, selected = false, onSelect, controls, to, ...props }: TableEntryProps) {
   const { taken, total } = seatCount(seats)
@@ -120,24 +124,48 @@ function TableEntry({ className, state, seats, age, mode, facts = [], action, hr
         </button>
       )}
       {/* A seat is a column 56px wide round a picture of 48px and a name of 52px: no room between the columns, so that the pictures are 8px apart and the names under them 4px, as the comment above says */}
-      <ul data-slot="table-entry-seats" aria-label="Seats" className="flex flex-wrap gap-y-4 px-4 pt-7 pb-4">
-        {seats.map((seat, index) => {
-          const picture = (
-            <>
-              {seat?.host && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3 left-1/2 z-10 size-4 -translate-x-1/2" />}
-              {seat ? <SeatAvatar seat={seat} className="size-12" /> : <OpenSeat join={join} invite={invite} tabbable={index === firstFree} className="size-12" />}
-            </>
-          )
-          // In a row that is a link what the pointer must find is raised over the link: a player's card, a free seat's button or link. A free seat with no way in is only a place, and the link runs under it
-          const raised = to && (seat || join || invite)
-          return (
-            <li key={index} data-slot="table-entry-seat" data-free={seat ? undefined : ""} className="flex w-14 flex-col items-center gap-1.5">
-              {raised ? <OverLink className="relative z-10">{picture}</OverLink> : <span className="relative">{picture}</span>}
-              <span className={cn("w-13 truncate text-center text-xs", seat ? "ph-mask" : "text-muted-foreground")}>{seat ? seat.name : word}</span>
-            </li>
-          )
-        })}
-      </ul>
+      <div className="flex items-end justify-between gap-3">
+        <ul data-slot="table-entry-seats" aria-label="Seats" className="flex min-w-0 flex-1 flex-wrap gap-y-4 px-4 pt-7 pb-4">
+          {seats.map((seat, index) => {
+            const picture = (
+              <>
+                {seat?.host && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3 left-1/2 z-10 size-4 -translate-x-1/2" />}
+                {seat ? <SeatAvatar seat={seat} className="size-12" /> : <OpenSeat join={join} invite={invite} tabbable={index === firstFree} className="size-12" />}
+              </>
+            )
+            // In a row that is a link what the pointer must find is raised over the link: a player's card, a free seat's button or link. A free seat with no way in is only a place, and the link runs under it
+            const raised = to && (seat || join || invite)
+            return (
+              <li key={index} data-slot="table-entry-seat" data-free={seat ? undefined : ""} className="flex w-14 flex-col items-center gap-1.5">
+                {raised ? <OverLink className="relative z-10">{picture}</OverLink> : <span className="relative">{picture}</span>}
+                <span className={cn("w-13 truncate text-center text-xs", seat ? "ph-mask" : "text-muted-foreground")}>{seat ? seat.name : word}</span>
+              </li>
+            )
+          })}
+        </ul>
+        {join && (
+          <Button
+            data-slot="table-entry-join"
+            variant="secondary"
+            size="sm"
+            className={JOIN_BUTTON}
+            asChild={!onJoin}
+            {...(onJoin ? { type: "button" as const, onClick: onJoin, "aria-label": `Join the table hosted by ${host}` } : {})}
+          >
+            {onJoin ? (
+              <>
+                Join
+                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
+              </>
+            ) : (
+              <a href={href} aria-label={`Join the table hosted by ${host}`}>
+                Join
+                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
+              </a>
+            )}
+          </Button>
+        )}
+      </div>
     </li>
   )
 }

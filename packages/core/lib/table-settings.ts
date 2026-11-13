@@ -1,6 +1,6 @@
 import { baseLanguageOf, isPlatformLanguage, type PlatformLanguage } from "@pbgo/accounts/language"
 import { TIERS, type Rank, type Tier } from "@pbgo/ui/ranks"
-import { MAX_SEATS, PACES, SPEEDS, type Pace } from "@pbgo/ui/tables"
+import { defaultSeats, MAX_SEATS, PACES, SPEEDS, type Pace } from "@pbgo/ui/tables"
 
 // The settings of a table (PLT-21, phase B): who may join it, how fast it is played and how many seats it has. A table is a row of `games`, whose columns are the engine's; the host's choices at the top of the lobby's panel are one object kept next to it
 // (`games.settings`, migration 0014), which only the server writes, from the create route and from `POST …/settings`, and which these functions read and check. It is kept sparse: a key is there only when it was set, and a table with none is a private table
@@ -67,9 +67,6 @@ export const modeOf = (settings: Pick<TableSettings, "ranked">): "normal" | "ran
 /** A ranked table is fixed: who may join, the speed, the seats and the options are not changed, and its host cannot start it before it is full. */
 export const isLocked = (settings: Pick<TableSettings, "ranked">): boolean => settings.ranked === true
 
-/** How many players a table that a search opens is set for: the value between the game's least and most (the lower one when there is none in the middle). */
-export const defaultSeats = (min: number, max: number): number => Math.floor((Math.min(min, max) + max) / 2)
-
 /** How many tiers apart a player may be from the one who opened a ranked table, when it has just opened, and how long the table waits before it takes one more. */
 export const RANK_GAP_BASE = 1
 export const RANK_GAP_STEP_MS = 30_000
@@ -123,6 +120,11 @@ export function effectiveSettings(settings: TableSettings, gameMax: number): Eff
   }
 }
 
+/** What a table is opened with when its host sent no settings (a game's own screen creates its table with the profile alone): private, the usual speed and the median of the game's players (`defaultSeats`), as the space that opens a table shows it. */
+export function defaultTableSettings(range: { min: number; max: number }): TableSettings {
+  return { visibility: "private", pace: "normal", seats: defaultSeats(range.min, range.max) }
+}
+
 /** The tier a player has in a game: their rank's, and the lowest for a player with none (a guest, a member who never played it ranked). */
 export const tierOf = (rank: Pick<Rank, "tier"> | null | undefined): Tier => rank?.tier ?? TIERS[0]
 
@@ -159,7 +161,7 @@ export const OPEN_TO_ANYONE: AccessChoice = { visibility: "public", minRank: nul
 
 /**
  * What the host chose before the table existed, as the create route takes it: who may join (the button at the top right of the space that opens a table), the speed and the number of players, each as the panel shows it. A rank that asks for nothing is `null`;
- * a language that is not one the lobby offers is left out (the server would refuse it); a speed the lobby does not offer is the usual one; the number of players that was not picked is the game's most, and one that is not between the game's least and most
+ * a language that is not one the lobby offers is left out (the server would refuse it); a speed the lobby does not offer is the usual one; the number of players that was not picked is the median of the game's players (`defaultSeats`), and one that is not between the game's least and most
  * is brought back to it. `range` is the game's: the table is checked against it all the same on the server (`checkTableSettings`).
  */
 export function creationSettings(access: AccessChoice, pace: Pace, seats: number | null, range: { min: number; max: number }): TableSettingsInput {
@@ -168,6 +170,6 @@ export function creationSettings(access: AccessChoice, pace: Pace, seats: number
     minRank: access.minRank,
     language: isSpoken(access.language) ? access.language : null,
     pace: (SPEEDS as readonly string[]).includes(pace) ? pace : "normal",
-    seats: Math.min(range.max, Math.max(range.min, seats ?? range.max)),
+    seats: Math.min(range.max, Math.max(range.min, seats ?? defaultSeats(range.min, range.max))),
   }
 }

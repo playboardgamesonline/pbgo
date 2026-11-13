@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { cn } from "../utils"
-import { fitSeats, seatCount, type TableSeat } from "../tables"
+import { defaultSeats, fitSeats, seatCount, type TableSeat } from "../tables"
 import { Label } from "./label"
 import { LobbySeats } from "./lobby-seats"
 import type { OpenSeatProps } from "./open-seat"
@@ -20,7 +20,7 @@ type LobbyPlayersProps = Omit<React.ComponentProps<"div">, "children"> & {
   range?: { min: number; max: number }
   /** The number of players is the visitor's to set, but the game it depends on is not chosen yet, so there is no `range`: the select is drawn all the same, empty and disabled, and takes its numbers once a range comes. */
   pending?: boolean
-  /** The number it starts at: the table's own seats, or the game's most for a lobby that is about to be opened. */
+  /** The number it starts at: the table's own seats, or the median of the game's players for a lobby that is about to be opened (`defaultSeats`). */
   defaultCount?: number
   /** Who opened the table, as the line says it ("you", "Marly"). Drawn when the visitor does not set the number of players. */
   createdBy?: string
@@ -36,7 +36,7 @@ type LobbyPlayersProps = Omit<React.ComponentProps<"div">, "children"> & {
 function LobbyPlayers({ seats, range, pending = false, defaultCount, createdBy, actions, join, invite, onCountChange, className, ...props }: LobbyPlayersProps) {
   const selectId = React.useId()
   const { taken, total } = seatCount(seats ?? [])
-  const [count, setCount] = React.useState(defaultCount ?? seats?.length ?? range?.max ?? 0)
+  const [count, setCount] = React.useState(defaultCount ?? seats?.length ?? (range ? defaultSeats(range.min, range.max) : 0))
   // The people who sit are never dropped, so the number is never under them
   const least = Math.max(range?.min ?? 1, taken)
   const shown = Math.min(range?.max ?? Infinity, Math.max(count, least))

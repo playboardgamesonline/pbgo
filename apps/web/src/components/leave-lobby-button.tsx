@@ -1,20 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Logout01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { createApi } from "@pbgo/core/lib/api"
+import { gamePath, tablePath } from "@pbgo/core/lib/site-url"
 import { LobbySideButton } from "@pbgo/ui/platform/lobby-panel"
 import { toast } from "@pbgo/ui/platform/sonner"
 import { messageOf } from "@/lib/table-door"
 
 // The secondary button beside the main one at the bottom of the visitor's lobby, which leaves it, whoever opened it. The game's own route takes them out of the table (`POST /api/<slug>/games/<code>/leave`: another host
 // is made of the first player left, and a table that is being played cannot be left that way, so a game in play has no such button), then the page asks again where the visitor sits. It is an icon alone: its name is for screen readers and for the
-// pointer (`title`).
+// pointer (`title`). A visitor who leaves from the page of a table (`/game/<slug>/<code>`, where an invitation link and the Join button lead) goes back to the game's page: the table may be gone (the last player to leave deletes it) and its page would then be a 404.
 
 export function LeaveLobbyButton({ slug, code }: { slug: string; code: string }) {
   const router = useRouter()
+  const pathname = usePathname()
   const [leaving, setLeaving] = useState(false)
   return (
     <LobbySideButton
@@ -26,12 +28,14 @@ export function LeaveLobbyButton({ slug, code }: { slug: string; code: string })
         setLeaving(true)
         try {
           await createApi(slug).leave(code)
+          // On the table's own page: the game's page, since the table may have been deleted with this leave
+          if (pathname.toLowerCase() === tablePath(slug, code).toLowerCase()) return router.replace(gamePath(slug))
         } catch (error) {
           toast.error(messageOf(error))
         } finally {
           setLeaving(false)
-          router.refresh()
         }
+        router.refresh()
       }}
     >
       <HugeiconsIcon icon={Logout01Icon} strokeWidth={2} aria-hidden="true" />

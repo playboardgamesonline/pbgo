@@ -14,7 +14,7 @@ import { LobbyAccess, type LanguageOption } from "@pbgo/ui/platform/lobby-access
 import { LobbySettings, type ExpansionOption, type HelperOption, type LobbySettingsValue } from "@pbgo/ui/platform/lobby-settings"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { SeatPicker } from "@pbgo/ui/platform/seat-picker"
-import type { Pace } from "@pbgo/ui/tables"
+import { defaultSeats, type Pace } from "@pbgo/ui/tables"
 import { cn } from "@pbgo/ui/utils"
 import { useAgeGate } from "./age-gate"
 
@@ -105,7 +105,7 @@ export function HomeCreateTable({ games, languages, host, className }: { games: 
             pace={pace}
             expansions={game?.expansions}
             helpers={game?.helpers}
-            afterSpeed={<SeatPicker host={host} range={game?.range} count={seats ?? game?.range.max ?? 0} onCountChange={setSeats} disabled={opening} />}
+            afterSpeed={<SeatPicker host={host} range={game?.range} count={seats ?? (game ? defaultSeats(game.range.min, game.range.max) : 0)} onCountChange={setSeats} disabled={opening} />}
             editable
             onChange={(value) => {
               setSettings(value)

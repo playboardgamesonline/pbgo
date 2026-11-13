@@ -246,7 +246,7 @@ describe("the player id", () => {
   it("is what a table shows to anybody, and the secrets of the browsers never leave their cookies", async () => {
     const ann: Jar = new Map()
     const bob: Jar = new Map()
-    const created = await send(ann, create, { nickname: "Ann" }, null)
+    const created = await send(ann, create, { nickname: "Ann", settings: { visibility: "private", minRank: null, language: null, pace: "normal", seats: 3 } }, null)
     const code = created.body.code
     await send(bob, join, { nickname: "Bob" }, code)
     expect((await send(ann, start, {}, code)).status).toBe(200)

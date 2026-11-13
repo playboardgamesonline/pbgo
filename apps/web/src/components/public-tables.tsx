@@ -6,14 +6,15 @@ import { isGameSlug } from "@pbgo/analytics"
 import { trackClient, useSearchReport } from "@pbgo/analytics/client"
 import { Button } from "@pbgo/ui/platform/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
-import { TableEntries, TableEntry } from "@pbgo/ui/platform/table-entry"
+import { TableEntries } from "@pbgo/ui/platform/table-entry"
+import { JoinableTableEntry } from "@/components/join-table"
 import { ListPageHeader } from "@/components/list-page-header"
 import { PageSearch } from "@/components/page-search"
 import type { PublicTableRow } from "@/lib/public-table-rows"
 import { COMING_SOON } from "@/lib/coming-soon"
 
 // The Tables tab (PLT-21): the head of the pages of the tabs (the title, and the search bar of what the page lists) and the public tables under it, the tables that their hosts opened to everyone and that wait for players, the newest first, each as the row
-// of a game's list: which game it is, who hosts it, who sits at it, what it asks and is played with, and how long ago it was opened. A press on a row leads to the table's page, where the visitor sits down. The text of the search narrows the list to the tables
+// of a game's list: which game it is, who hosts it, who sits at it, what it asks and is played with, and how long ago it was opened. A press on a row leads to the table's page, and its Join button, or the plus of a free seat, sits the visitor down at it and takes them there (`JoinableTableEntry`). The text of the search narrows the list to the tables
 // of the games and the hosts it names, in the browser. A page with no table says so, and leads to the games, where one is opened.
 
 /** A press on a row leads to the table's page, `/game/<slug>/<code>`: the game is the second segment of that address, and the code is never read. The page is about to change, so the count leaves at once. */
@@ -23,7 +24,7 @@ function countRowClick(event: MouseEvent<HTMLUListElement>) {
   if (isGameSlug(game)) trackClient("public_table_clicked", { game, from: "tables_tab" }, { instant: true })
 }
 
-export function PublicTables({ rows }: { rows: readonly PublicTableRow[] }) {
+export function PublicTables({ rows, signedIn }: { rows: readonly PublicTableRow[]; signedIn: boolean }) {
   const [query, setQuery] = useState("")
   const text = query.trim().toLowerCase()
   const shown = text === "" ? rows : rows.filter((row) => row.gameName.toLowerCase().includes(text) || row.host.toLowerCase().includes(text))
@@ -38,7 +39,7 @@ export function PublicTables({ rows }: { rows: readonly PublicTableRow[] }) {
         {shown.length > 0 ? (
           <TableEntries aria-label="Tables" className="grid w-full md:grid-cols-2 xl:grid-cols-3" onClick={countRowClick}>
             {shown.map((row) => (
-              <TableEntry key={row.id} {...row.entry} />
+              <JoinableTableEntry key={row.id} game={row.game} code={row.code} signedIn={signedIn} {...row.entry} />
             ))}
           </TableEntries>
         ) : (

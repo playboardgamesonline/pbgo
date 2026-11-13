@@ -16,6 +16,7 @@ import { HomeCreateTable } from "@/components/home-create-table"
 import { HomeTournaments } from "@/components/home-empty-zones"
 import { HomeFindGame } from "@/components/home-find-game"
 import { HomeNews } from "@/components/home-news"
+import { LiveRefresh } from "@/components/live-refresh"
 import { HomeOpenTables, type HomeTableRow } from "@/components/home-open-tables"
 import { HomeYourGames, RECENT_GAMES } from "@/components/home-your-games"
 import { SiteFooter } from "@/components/site-footer"
@@ -134,7 +135,7 @@ export default async function MemberHome() {
       </div>
     </Section>
   )
-  const tablesZone = <HomeOpenTables rows={[...tableRows, ...publicRows.slice(0, PUBLIC_TABLES_MAX).map(({ id, entry }) => ({ id, entry }))]} />
+  const tablesZone = <HomeOpenTables rows={[...tableRows, ...publicRows.slice(0, PUBLIC_TABLES_MAX).map(({ id, game, code, entry }) => ({ id, join: { game, code }, entry }))]} />
 
   // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner), and starts under the fixed navbar (`pt-navbar`)
   return (
@@ -151,6 +152,8 @@ export default async function MemberHome() {
           <HomeNews lines={news} />
         </div>
       </main>
+      {/* The tables open to everyone come and go as hosts open them and people sit down: the page asks for them again now and then, while it is in view */}
+      <LiveRefresh />
       <SiteFooter />
     </div>
   )

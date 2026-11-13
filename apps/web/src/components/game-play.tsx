@@ -85,7 +85,8 @@ export function GamePlay({
       detail: tableDetailProps(table, slug, false, expansions, false, undefined, undefined, unmet),
     }
   }
-  const rows = [...own, ...open.map(rowOf), ...(invited ? [rowOf(invited)] : [])]
+  // The invited table is one of the open ones when it is public: it is listed once, and it is the one that is picked
+  const rows = [...own, ...open.map(rowOf), ...(invited && !open.some((table) => table.id === invited.id) ? [rowOf(invited)] : [])]
   // The tables that wait, the visitor's and the invited one, are watched
   const watched = live ? [viewerTable, invited].flatMap((table) => (table && table.status === "lobby" && table.version !== undefined ? [{ table, member: table === viewerTable }] : [])) : []
   return (

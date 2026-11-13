@@ -8,6 +8,12 @@ export const gamePath = (slug: string) => `/game/${slug}`
 export const tablePath = (slug: string, code: string) => `/game/${slug}/${code}`
 
 /**
+ * Where a player is taken once they sit at a table: the lobby, `/game/<slug>/<code>`, while the table waits, and its board, `/<slug>/game/<code>`, as soon as it has begun (the join that takes the last seat begins a table: `status` is then `starting`).
+ * The one place that says it, for the Join button of every list of tables and for the plus of a free seat.
+ */
+export const seatedPath = (slug: string, code: string, status: string) => (status === "lobby" ? tablePath(slug, code) : `/${slug}/game/${code}`)
+
+/**
  * Where a player goes on to once their game is over, from the "Continue" of the end screen: a member's home, `/home`, and a guest's the public home, `/` (a guest has no home of their own, and `/home` would send them there). The one place that says
  * where a finished game leads, so that it can lead somewhere else (the group a player is in) without the screen changing.
  */
