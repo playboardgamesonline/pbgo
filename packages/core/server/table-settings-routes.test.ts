@@ -281,10 +281,11 @@ describe("a table is opened with settings", () => {
     expect(row.settings).toEqual({ visibility: "public", minRank: "Bronze", pace: "normal", seats: 2 })
   })
 
-  it("opens a table with none when none were chosen, as it always did", async () => {
+  it("opens a private table of the median of the game's players (2 to 3: two) when no settings were sent", async () => {
     const answer = await send(new Map(), create, { nickname: "Ann" }, null)
     expect(answer.status).toBe(200)
-    expect("settings" in (h.rows.get(`${SLUG}:${answer.body.code}`) as StoredRow)).toBe(false)
+    const row = h.rows.get(`${SLUG}:${answer.body.code}`) as StoredRow
+    expect(row.settings).toEqual({ visibility: "private", pace: "normal", seats: 2 })
   })
 
   it("opens nothing when the settings are not valid", async () => {

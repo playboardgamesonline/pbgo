@@ -52,6 +52,16 @@ export function playerRange(min: number | null, max: number | null): { min: numb
 }
 
 /**
+ * How many players a table is set for when nobody picked: the median of the game's range, the value in the middle of `min`..`max`. When the range holds an even number of counts (2 to 5: 2, 3, 4, 5) there is no single middle one and the lower
+ * of the two is taken (3), so a table that is opened without a choice is the one that fills first, never above the middle. 2-4 is 3, 2-5 is 3, 2-6 is 4, 2-8 is 5, 1-4 is 2, and a game that takes one count (4-4) is that count. It is the one place that
+ * decides it: the space that opens a table (the game's page, the home), the seats a table is created with when none are given and the search of Find a game all read it, in the browser and on the server. `max` under `min` is `min`. A table is for more than one player, so a game that takes one player or two (1-2) is two, and only a game that takes no more than one (1-1) is one.
+ */
+export const defaultSeats = (min: number, max: number): number => {
+  const most = Math.max(min, max)
+  return Math.max(Math.min(2, most), Math.floor((min + most) / 2))
+}
+
+/**
  * The seats of a table set for `count` players: the people who sit, in their order, then free seats up to the count. Nobody is dropped to fit a count that is under the people who sit, so a table is never drawn with fewer
  * seats than it has players.
  */

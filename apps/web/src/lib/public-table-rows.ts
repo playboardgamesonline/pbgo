@@ -11,6 +11,8 @@ export type PublicTableRow = {
   /** `<slug>:<code>`: the same table has the same id wherever it is listed. */
   id: string
   game: string
+  /** The table's code, which the Join button of its row sits the visitor down at. */
+  code: string
   gameName: string
   /** The name of the host, for a search to look at. */
   host: string
@@ -39,6 +41,6 @@ export async function publicTableRows({ limit, exclude = new Set<string>() }: { 
     if (!entry || exclude.has(id)) return []
     const row = tableEntryProps(table, table.game, undefined, expansions.get(table.game) ?? [], false)
     const host = table.players.find((player) => player.playerId === table.hostId)?.name ?? ""
-    return [{ id, game: table.game, gameName: entry.game.name, host, entry: { ...row, facts: [entry.game.name, ...(row.facts ?? [])], to: `/game/${table.game}/${table.code}` } }]
+    return [{ id, game: table.game, code: table.code, gameName: entry.game.name, host, entry: { ...row, facts: [entry.game.name, ...(row.facts ?? [])], to: `/game/${table.game}/${table.code}` } }]
   })
 }

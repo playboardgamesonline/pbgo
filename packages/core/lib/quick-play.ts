@@ -1,6 +1,7 @@
 import { QUEUE_MODES, type QueueMode } from "@pbgo/ui/queue"
 import type { Tier } from "@pbgo/ui/ranks"
-import { defaultSeats, effectiveSettings, modeOf, unmetCriteria, type TableSettings, type Viewer } from "./table-settings"
+import { defaultSeats } from "@pbgo/ui/tables"
+import { effectiveSettings, modeOf, unmetCriteria, type TableSettings, type Viewer } from "./table-settings"
 
 // The search of a visitor who presses Play (PLT-21, phase C): for each game they picked they sit at a public lobby that waits for players, or open one, and the table that fills first is the one they play. These are the rules of it, pure and
 // tested, which the server (`server/quick-play.ts`) and the browser (`apps/web/src/lib/matchmaking.ts`) read the same way.

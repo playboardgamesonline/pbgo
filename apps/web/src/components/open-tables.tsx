@@ -1,9 +1,7 @@
 "use client"
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
 import { trackClient } from "@pbgo/analytics/client"
-import { createApi } from "@pbgo/core/lib/api"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
@@ -12,8 +10,7 @@ import { TableEntries, TableEntry, type TableEntryProps } from "@pbgo/ui/platfor
 import { prefersReducedMotion } from "@pbgo/ui/reduced-motion"
 import { ArrowRight01Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useAgeGate } from "./age-gate"
-import { useSitDown } from "./sit-down"
+import { useJoinTable } from "./join-table"
 
 // The open tables of a game and the panel that goes with them, in one container: a card with two sides, on the left the tables as rows, on the right the panel, which shows the details of the row that is selected. The visitor's own table is the first row, whatever it
 // is (a lobby they opened or joined, or a game they play), and it is the selected one when nothing else is picked, so that the panel shows it; a visitor who sits at no table has no row of their own and the panel is the space to open one (`lobby`). A press on another row picks it
@@ -32,7 +29,7 @@ const RUNS_INTO_THE_PANEL = [
 
 /**
  * A row of the list and the details that it opens, both worded by the page. `own` is the visitor's own table: the first row, selected while nothing else is. `joinable` is a table that waits and has a seat free (`code` is its code): the page sits the visitor down at it itself,
- * with the plus of a free seat and with the main button of its details, instead of leading them to the table's page.
+ * with the plus of a free seat and with the main button of its details, and takes them to its page, instead of leading them there to do it.
  */
 export type OpenTableRow = { id: string; code?: string; own?: boolean; joinable?: boolean; entry: Omit<TableEntryProps, "selected" | "onSelect" | "controls">; detail: Omit<LobbyDetailProps, "onClose"> }
 
@@ -67,10 +64,8 @@ export function OpenTables({
   const generatedPanelId = useId()
   const panelId = lobbyId ?? generatedPanelId
   const panel = useRef<HTMLDivElement>(null)
-  const router = useRouter()
-  const { sitDown, dialog } = useSitDown(slug, signedIn)
-  const { guard, fail, dialog: ageDialog } = useAgeGate()
-  const [joining, setJoining] = useState(false)
+  // Sits the visitor down at a table that waits (PLT-106) and takes them to it: the Join button of a row, the plus of a free seat and the main button of the details all do it
+  const { join: sit, joining, dialogs } = useJoinTable(slug, signedIn)
   const [pickedId, setPickedId] = useState<string | null>(defaultPickedId ?? null)
   const ownId = rows.find((row) => row.own)?.id ?? null
   // The visitor's own table is what the panel shows when nothing is picked, so it is never "picked" itself
@@ -86,22 +81,6 @@ export function OpenTables({
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
   }, [picked])
-
-  // Sits the visitor down at a table that waits (PLT-106): the game's own route takes their account's name and picture, or the nickname a guest is asked for first; then the page asks again where the visitor sits, and the panel is their lobby
-  const sit = async (code: string) => {
-    const who = await sitDown()
-    if (!who) return
-    setJoining(true)
-    try {
-      // A table with an expansion for adults asks for the date of birth when it is missing (PLT-125): the visitor gives it, and the join goes on
-      await guard(() => createApi(slug).join(code, who))
-    } catch (error) {
-      fail(error)
-    } finally {
-      setJoining(false)
-      router.refresh()
-    }
-  }
 
   const pick = (id: string) => {
     const next = id === ownId || pickedId === id ? null : id
@@ -182,8 +161,7 @@ export function OpenTables({
           )}
         </div>
       </div>
-      {dialog}
-      {ageDialog}
+      {dialogs}
     </section>
   )
 }

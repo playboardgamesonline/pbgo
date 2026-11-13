@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ageOf, DELETED_PLAYER, fitSeats, hostOf, lasted, MAX_SEATS, namesOf, nicknameOf, PACES, playerRange, seatCount, seatsOf, SPEEDS, tableAction, tagOf, type TableSeat } from "./tables"
+import { ageOf, defaultSeats, DELETED_PLAYER, fitSeats, hostOf, lasted, MAX_SEATS, namesOf, nicknameOf, PACES, playerRange, seatCount, seatsOf, SPEEDS, tableAction, tagOf, type TableSeat } from "./tables"
 
 const NOW = Date.parse("2026-11-01T12:00:00Z")
 const ago = (minutes: number) => new Date(NOW - minutes * 60_000).toISOString()
@@ -154,6 +154,51 @@ describe("playerRange", () => {
     [20, 30, { min: MAX_SEATS, max: MAX_SEATS }],
   ])("is %j to %j players for a game of %j", (min, max, range) => {
     expect(playerRange(min, max)).toEqual(range)
+  })
+})
+
+describe("defaultSeats", () => {
+  it.each([
+    // an odd number of counts has a middle one
+    [2, 4, 3],
+    [2, 6, 4],
+    [3, 5, 4],
+    [2, 8, 5],
+    [1, 7, 4],
+    // an even number of counts has two: the lower one is taken
+    [2, 5, 3],
+    [2, 3, 2],
+    [1, 4, 2],
+    [2, 7, 4],
+    // one count
+    [2, 2, 2],
+    [4, 4, 4],
+    // a most under the least is the least
+    [4, 2, 4],
+    // a table is for two players at least, but for the game that takes one alone
+    [1, 2, 2],
+    [1, 3, 2],
+    [1, 1, 1],
+  ])("is the median of %j to %j players: %j", (min, max, count) => {
+    expect(defaultSeats(min, max)).toBe(count)
+  })
+
+  it("is never the game's most when the game takes more than two players, and always inside its range", () => {
+    for (let min = 1; min <= 6; min++) {
+      for (let max = min; max <= MAX_SEATS; max++) {
+        const count = defaultSeats(min, max)
+        expect(count).toBeGreaterThanOrEqual(min)
+        expect(count).toBeLessThanOrEqual(max)
+        if (max > min && max > 2) expect(count).toBeLessThan(max)
+      }
+    }
+  })
+
+  it("is what playerRange gives a game that says no most or nothing at all", () => {
+    const { min, max } = playerRange(2, null)
+    expect(defaultSeats(min, max)).toBe(8)
+    const none = playerRange(null, null)
+    expect(defaultSeats(none.min, none.max)).toBe(8)
   })
 })
 

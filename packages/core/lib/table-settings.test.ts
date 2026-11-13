@@ -4,7 +4,7 @@ import {
   asksSomething,
   checkTableSettings,
   creationSettings,
-  defaultSeats,
+  defaultTableSettings,
   effectiveSettings,
   isLocked,
   modeOf,
@@ -221,22 +221,6 @@ describe("a ranked table", () => {
   })
 })
 
-describe("defaultSeats", () => {
-  it("is the value between the game's least and most players", () => {
-    expect(defaultSeats(2, 4)).toBe(3)
-    expect(defaultSeats(2, 6)).toBe(4)
-    expect(defaultSeats(3, 5)).toBe(4)
-    expect(defaultSeats(1, 8)).toBe(4)
-  })
-
-  it("is the lower one when there is none in the middle, and the only one for a game that takes one count", () => {
-    expect(defaultSeats(2, 3)).toBe(2)
-    expect(defaultSeats(2, 5)).toBe(3)
-    expect(defaultSeats(2, 2)).toBe(2)
-    expect(defaultSeats(4, 4)).toBe(4)
-  })
-})
-
 describe("asksSomething", () => {
   it("is a public table with a rank or a language", () => {
     expect(asksSomething({ visibility: "public", minRank: "Gold" })).toBe(true)
@@ -255,11 +239,25 @@ describe("ASKABLE_TIERS", () => {
   })
 })
 
+describe("defaultTableSettings", () => {
+  it("is a private table of the usual speed with the median of the game's players for seats", () => {
+    expect(defaultTableSettings({ min: 2, max: 5 })).toEqual({ visibility: "private", pace: "normal", seats: 3 })
+    expect(defaultTableSettings({ min: 2, max: 8 }).seats).toBe(5)
+  })
+
+  it("is what the server accepts", () => {
+    const made = defaultTableSettings({ min: 2, max: 6 })
+    expect(checkTableSettings({ ...made, minRank: null, language: null }, { min: 2, max: 6, seated: 1 })).toMatchObject({ ok: true })
+  })
+})
+
 describe("creationSettings", () => {
   const range = { min: 2, max: 5 }
 
-  it("is what the space that opens a table shows: public, nothing asked, the usual speed and the game's most seats", () => {
-    expect(creationSettings(OPEN_TO_ANYONE, "normal", null, range)).toEqual({ visibility: "public", minRank: null, language: null, pace: "normal", seats: 5 })
+  it("is what the space that opens a table shows: public, nothing asked, the usual speed and the median of the game's players", () => {
+    expect(creationSettings(OPEN_TO_ANYONE, "normal", null, range)).toEqual({ visibility: "public", minRank: null, language: null, pace: "normal", seats: 3 })
+    expect(creationSettings(OPEN_TO_ANYONE, "normal", null, { min: 2, max: 8 }).seats).toBe(5)
+    expect(creationSettings(OPEN_TO_ANYONE, "normal", null, { min: 4, max: 4 }).seats).toBe(4)
   })
 
   it("takes what the host picked, and what it makes is what the server accepts", () => {
