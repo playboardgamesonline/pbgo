@@ -47,10 +47,12 @@ function InvitationRow({ invitation, gameIcon, onAnswer, now }: { invitation: Ta
         <span className="block truncate text-sm text-foreground">
           <span className="ph-mask">{invitation.nickname}</span> invites you
         </span>
-        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <GameIcon name={invitation.game.name} src={gameIcon?.(invitation.game.slug)} className="size-4 shrink-0" />
-          <span className="truncate">{invitation.game.name}</span>
-          <span className="shrink-0">· {left}</span>
+        <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+          <span className="flex min-w-0 items-center gap-1.5">
+            <GameIcon name={invitation.game.name} src={gameIcon?.(invitation.game.slug)} className="size-4 shrink-0" />
+            <span className="truncate">{invitation.game.name}</span>
+          </span>
+          <span className="shrink-0">{left}</span>
         </span>
       </p>
       {onAnswer && (
