@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { activityLine, gamesOf, initials, presenceWord, rosterOf, sectionsOf, statusLine, tablesOf, type Friend } from "./friends"
+import { activityLine, connectedOf, gamesOf, matchingFriends, suggestionsOf, initials, presenceWord, rosterOf, sectionsOf, statusLine, tablesOf, type Friend } from "./friends"
 
 const friend = (id: string, status: Friend["status"], rest: Partial<Friend> = {}): Friend => ({ id, nickname: id, status, ...rest })
 const COURTISANS = { slug: "courtisans", name: "Courtisans" }
@@ -169,5 +169,40 @@ describe("statusLine", () => {
 
   it("has a word for every status", () => {
     for (const status of ["playing", "online", "inactive", "dnd", "offline"] as const) expect(presenceWord({ ...base, status })).not.toBe("")
+  })
+})
+
+describe("connectedOf", () => {
+  it("keeps the friends who are connected, those who play first, and leaves out those who are away", () => {
+    const list = [friend("a", "offline"), friend("b", "online"), friend("c", "playing"), friend("d", "dnd")]
+    expect(connectedOf(list).map((one) => one.id)).toEqual(["c", "b", "d"])
+    expect(connectedOf([friend("a", "offline")])).toEqual([])
+  })
+})
+
+describe("matchingFriends", () => {
+  const list = [friend("Alice", "online", { tag: "0042" }), friend("Bob", "offline", { tag: "0007" })]
+  it("matches the nickname, the tag or the whole handle, whatever the case", () => {
+    expect(matchingFriends(list, "ali").map((one) => one.id)).toEqual(["Alice"])
+    expect(matchingFriends(list, "0007").map((one) => one.id)).toEqual(["Bob"])
+    expect(matchingFriends(list, "@BOB#00").map((one) => one.id)).toEqual(["Bob"])
+  })
+  it("lists everybody for nothing, and nobody for what matches none", () => {
+    expect(matchingFriends(list, "  ")).toHaveLength(2)
+    expect(matchingFriends(list, "zed")).toEqual([])
+  })
+})
+
+describe("suggestionsOf", () => {
+  it("lists the connected friends first, the ones who are free before the ones who play, then the others", () => {
+    const list = [friend("a", "offline"), friend("b", "playing"), friend("c", "online"), friend("d", "dnd"), friend("e", "inactive")]
+    const { online, offline } = suggestionsOf(list)
+    expect(online.map((one) => one.id)).toEqual(["c", "e", "d", "b"])
+    expect(offline.map((one) => one.id)).toEqual(["a"])
+  })
+  it("narrows both lists by the search", () => {
+    const list = [friend("anna", "online"), friend("bert", "online"), friend("annie", "offline")]
+    const { online, offline } = suggestionsOf(list, "ann")
+    expect([online.map((one) => one.id), offline.map((one) => one.id)]).toEqual([["anna"], ["annie"]])
   })
 })

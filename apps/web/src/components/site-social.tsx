@@ -30,7 +30,7 @@ const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
 
 /**
  * What a signed-in visitor has on the navbar, the way the Riot Client has it, in one container on the right (`SocialDock`) that is a bar while it is closed and a real side
- * panel while it is open, the same element changing from one to the other with a transition. Closed, the bar has the games their friends are in (`FriendsBar`, with the list of a
+ * panel while it is open, the same element changing from one to the other with a transition. Closed, the bar has the friends who are connected, each a small picture with the dot of its presence (three at the most, then "+N", which opens the panel), then the games their friends are in (`FriendsBar`, with the list of a
  * game's friends under the pointer), then, behind a thin line, their picture, with the count of what waits for them on its corner (messages not read, requests to answer), which opens
  * the menu of their account (`AccountMenu`), and the button of the social panel (`SocialPanelToggle`: the icon of a panel on the right, which opens it and, once it is open, closes it).
  * Open, the bar is the header of the panel: the games fold away, the picture glides to the start of the bar and says who they are beside it (`SocialDockIdentity`: their name with its tag and
@@ -99,6 +99,13 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
     setChatOpen(true)
     setRead((all) => new Set(all).add(friend.id))
   }
+  // The panel on its friends tab: what the "+N" of the bar opens
+  const showFriends = () => {
+    setTab("friends")
+    setOpen(true)
+  }
+  // A press on a connected friend of the bar: their conversation where there is one (the demo account), else the panel, where they are
+  const showFriend = (friend: Friend) => (preview ? openChat(friend) : showFriends())
   const send = (friend: Friend, text: string) =>
     setSent((all) => ({ ...all, [friend.id]: [...(all[friend.id] ?? []), { id: `${friend.id}-${Date.now()}`, from: "me", text, at: new Date().toISOString() }] }))
 
@@ -121,6 +128,8 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
               friends={social.friends}
               gameIcon={gameIcon}
               onJoin={preview ? nothing : undefined}
+              onOpenFriend={showFriend}
+              onMoreFriends={() => showFriends()}
               onShareLink={copy}
               shareLabel={copied ? "Link copied" : "Invite a friend"}
               shared={copied}

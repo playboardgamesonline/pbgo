@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Tick02Icon, UserAdd01Icon, UserMultipleIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { gamesOf, initials, tablesOf, type Friend, type GameFriends } from "../friends"
+import { connectedOf, gamesOf, initials, presenceWord, statusLine, tablesOf, type Friend, type GameFriends } from "../friends"
 import { cn } from "../utils"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { Button } from "./button"
@@ -15,7 +15,8 @@ import { MovingCard, useMovingCard } from "./moving-card"
 // "Online" (waiting in the game's lobby, the ones who share a table together under it: "Table K7Q · 2/4") and "Playing", each with the picture, the dot of their
 // presence, their name and what they are doing. The pill under the pointer takes the fill of the navbar's current item and a line under it; moving to another
 // pill changes the panel. A friend who is away, or on the hub and in no game, is in none: they are in the list of the page of the friends (`FriendsPanel`).
-// With no friend in a game the bar is the button that invites one. The bar draws no container: it is the top of the dock (`SocialDock`), which holds it with the account's picture and the button
+// The friends who are connected come first, themselves: each is a small picture with the dot of its presence (`MAX_FRIENDS` at the most, fewer on a narrow screen, then "+N" for the others, which opens the panel), and under the pointer a card says who they are and what they are doing; a press on one
+// does what the page decides (`onOpenFriend`: the conversation, or the panel). With no friend connected and none in a game the bar is the button that invites one. The bar draws no container: it is the top of the dock (`SocialDock`), which holds it with the account's picture and the button
 // of the social panel, so that the games, the profile and the panel are one container. While the dock is open the bar is folded away, the profile taking its place. A status is the dot on the picture (a blue disc with a play knocked out for a friend who is playing, a green
 // disc online, an orange-yellow moon inactive, a red disc with a bar do not disturb, a thick grey ring offline) and, under the name, a line of quiet text (only the dot is coloured), and always a word too, never the colour alone.
 //
@@ -26,6 +27,17 @@ import { MovingCard, useMovingCard } from "./moving-card"
 /** The games the bar draws, the most crowded first. */
 const MAX_GAMES = 3
 
+/** The friends the bar draws as themselves, the first ones of `connectedOf`; on a screen under 400px wide there is room for one less. */
+const MAX_FRIENDS = 3
+const NARROW = "(max-width: 399px)"
+const subscribeToNarrow = (notify: () => void) => {
+  const query = window.matchMedia(NARROW)
+  query.addEventListener("change", notify)
+  return () => query.removeEventListener("change", notify)
+}
+const isNarrow = () => window.matchMedia(NARROW).matches
+const notNarrow = () => false
+
 /** Where each pill starts to have room: the first always, the next ones from wider screens. */
 const SHOWN_FROM = ["", "max-[359px]:hidden", "max-[399px]:hidden"] as const
 
@@ -35,6 +47,10 @@ type FriendsBarProps = Omit<React.ComponentProps<"div">, "children"> & {
   gameIcon?: (slug: string) => string | undefined
   /** What the button of a friend who waits at a table that has room does: join them. Not drawn without it. */
   onJoin?: (friend: Friend) => void
+  /** What a press on a connected friend does: open the conversation with them, or the panel. The card under the pointer is all there is without it (a touch screen opens it with a press). */
+  onOpenFriend?: (friend: Friend) => void
+  /** What the "+N" of the friends who do not fit does: open the panel. Not drawn without it. */
+  onMoreFriends?: () => void
   /** What the button of a bar with no pill does: copy a link that brings a friend here. The bar has no button without it. */
   onShareLink?: () => void
   /** What that button says: "Invite a friend", then, for a moment after it was pressed, what it did. */
@@ -72,6 +88,15 @@ function BarFriend({ friend, onJoin }: { friend: Friend; onJoin?: (friend: Frien
         </Button>
       )}
     </li>
+  )
+}
+
+/** What the card of a connected friend says: who they are and what they are doing, in the style of a friend of a game's list. */
+function FriendCard({ friend, onJoin }: { friend: Friend; onJoin?: (friend: Friend) => void }) {
+  return (
+    <ul>
+      <BarFriend friend={{ ...friend, activity: statusLine(friend) }} onJoin={onJoin} />
+    </ul>
   )
 }
 
@@ -129,6 +154,8 @@ function FriendsBar({
   friends,
   gameIcon,
   onJoin,
+  onOpenFriend,
+  onMoreFriends,
   onShareLink,
   shareLabel = "Invite a friend",
   shared = false,
@@ -141,13 +168,20 @@ function FriendsBar({
   const touched = React.useRef(false)
   // One panel for all the pills: it moves from a game to the next and says what is about the one under the pointer. A press on the bar is not a press away from the panel: the pill decides
   const card = useMovingCard((node) => bar.current?.contains(node) ?? false)
-  const onPill = games.find((game) => game.game.slug === card.target?.key) ?? null
-  // The panel keeps the last game it drew while it closes, so that it does not empty as it fades
-  const [last, setLast] = React.useState<GameFriends | null>(null)
-  if (onPill && onPill !== last) setLast(onPill)
-  const shown = onPill ?? last
+  const connected = React.useMemo(() => connectedOf(friends), [friends])
+  const narrow = React.useSyncExternalStore(subscribeToNarrow, isNarrow, notNarrow)
+  const room = narrow ? MAX_FRIENDS - 1 : MAX_FRIENDS
+  const faces = connected.slice(0, room)
+  const hidden = connected.length - faces.length
+  const onPill = games.find((game) => `game:${game.game.slug}` === card.target?.key) ?? null
+  const onFace = connected.find((friend) => `friend:${friend.id}` === card.target?.key) ?? null
+  // The panel keeps the last thing it drew while it closes, so that it does not empty as it fades
+  const [last, setLast] = React.useState<{ game: GameFriends } | { friend: Friend } | null>(null)
+  if (onPill && !(last && "game" in last && last.game === onPill)) setLast({ game: onPill })
+  else if (!onPill && onFace && !(last && "friend" in last && last.friend === onFace)) setLast({ friend: onFace })
+  const shown = onPill ? { game: onPill } : onFace ? { friend: onFace } : last
 
-  if (games.length === 0) {
+  if (games.length === 0 && connected.length === 0) {
     if (!onShareLink) return null
     return (
       <div data-slot="friends-bar" className={cn("flex items-center gap-1", className)} {...props}>
@@ -162,7 +196,7 @@ function FriendsBar({
     <>
       <div
         role="group"
-        aria-label="Friends in a game"
+        aria-label="Friends online and in a game"
         {...props}
         ref={bar}
         data-slot="friends-bar"
@@ -172,8 +206,58 @@ function FriendsBar({
           if (!event.currentTarget.contains(event.relatedTarget)) card.hide()
         }}
       >
+        {faces.map((friend) => {
+          const key = `friend:${friend.id}`
+          const isOpen = card.target?.key === key
+          return (
+            <button
+              key={key}
+              type="button"
+              aria-label={`${friend.nickname}: ${presenceWord(friend)}`}
+              aria-haspopup={onOpenFriend ? undefined : "true"}
+              aria-expanded={onOpenFriend ? undefined : isOpen}
+              data-slot="friends-bar-friend"
+              data-status={friend.status}
+              data-open={isOpen ? "" : undefined}
+              className="relative flex size-10 items-center justify-center rounded-lg outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30 data-open:bg-muted"
+              onPointerEnter={(event) => {
+                if (event.pointerType !== "touch") card.show(key, event.currentTarget, true)
+              }}
+              onPointerDown={(event) => {
+                touched.current = event.pointerType === "touch"
+              }}
+              onClick={(event) => {
+                if (onOpenFriend) {
+                  card.close()
+                  onOpenFriend(friend)
+                } else if (touched.current && isOpen) card.close()
+                else card.show(key, event.currentTarget, true)
+              }}
+              onFocus={(event) => {
+                if (event.target.matches(":focus-visible")) card.show(key, event.currentTarget, true)
+              }}
+            >
+              <Avatar>
+                {friend.avatarUrl && <AvatarImage src={friend.avatarUrl} alt="" referrerPolicy="no-referrer" />}
+                <AvatarFallback>{initials(friend.nickname)}</AvatarFallback>
+                <PresenceDot status={friend.status} />
+              </Avatar>
+            </button>
+          )
+        })}
+        {hidden > 0 && onMoreFriends && (
+          <button
+            type="button"
+            data-slot="friends-bar-more"
+            aria-label={`${hidden} more ${hidden === 1 ? "friend" : "friends"} online`}
+            className="flex h-10 items-center rounded-lg px-2 text-sm text-muted-foreground tabular-nums outline-none transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/30"
+            onClick={onMoreFriends}
+          >
+            +{hidden}
+          </button>
+        )}
         {games.map((item, index) => {
-          const isOpen = card.target?.key === item.game.slug
+          const isOpen = card.target?.key === `game:${item.game.slug}`
           return (
             <button
               key={item.game.slug}
@@ -185,18 +269,18 @@ function FriendsBar({
               className={cn(PILL, SHOWN_FROM[index])}
               // A touch has no hover: it presses the pill, which opens its panel, and presses it again to close it
               onPointerEnter={(event) => {
-                if (event.pointerType !== "touch") card.show(item.game.slug, event.currentTarget, true)
+                if (event.pointerType !== "touch") card.show(`game:${item.game.slug}`, event.currentTarget, true)
               }}
               onPointerDown={(event) => {
                 touched.current = event.pointerType === "touch"
               }}
               onClick={(event) => {
                 if (touched.current && isOpen) card.close()
-                else card.show(item.game.slug, event.currentTarget, true)
+                else card.show(`game:${item.game.slug}`, event.currentTarget, true)
               }}
               // Only the focus a keyboard gives opens it, not the one a click leaves
               onFocus={(event) => {
-                if (event.target.matches(":focus-visible")) card.show(item.game.slug, event.currentTarget, true)
+                if (event.target.matches(":focus-visible")) card.show(`game:${item.game.slug}`, event.currentTarget, true)
               }}
             >
               <GameIcon name={item.game.name} src={gameIcon?.(item.game.slug)} />
@@ -209,14 +293,14 @@ function FriendsBar({
       {shown && (
         <MovingCard
           card={card}
-          contentKey={shown.game.slug}
+          contentKey={"game" in shown ? `game:${shown.game.game.slug}` : `friend:${shown.friend.id}`}
           width={240}
           // 2px under the pill: it overlaps the bar a little (the pill is 8px from the bottom of the bar), covering its padding and none of its pills
           placement={{ side: "bottom", align: "center", offset: 2 }}
-          label={`Friends in ${shown.game.name}`}
+          label={"game" in shown ? `Friends in ${shown.game.game.name}` : statusLine(shown.friend)}
           contentClassName="flex flex-col gap-6 p-4"
         >
-          <FriendsBarList entry={shown} onJoin={onJoin} />
+          {"game" in shown ? <FriendsBarList entry={shown.game} onJoin={onJoin} /> : <FriendCard friend={shown.friend} onJoin={onJoin} />}
         </MovingCard>
       )}
     </>

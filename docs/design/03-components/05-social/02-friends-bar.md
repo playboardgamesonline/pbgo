@@ -2,7 +2,7 @@
 
 Module: `@pbgo/ui/platform/friends-bar`
 
-`FriendsBar` is the start of the dock's bar: a chip for each game some friends are in, with the picture of the game (`GameIcon`) and how many friends are in it. It draws up to three, the most crowded first, and fewer on a narrow screen. A friend who is away, or in no game, is in none of them: they are in the friends tab of the social panel. With no friend in a game the bar is the button that invites one. It draws no container of its own: the dock is the one that holds it.
+`FriendsBar` is the start of the dock's bar. First the friends who are connected (`connectedOf`: playing, then online, inactive and do not disturb), each as their picture with the [dot of their presence](03-the-dots-of-presence.md), three at the most and two on a screen narrower than 400px, then "+N" for the others, which opens the social panel; under the pointer a card says who the friend is and what they are doing, and a press does what the page decides (`onOpenFriend`). Then a chip for each game some friends are in, with the picture of the game (`GameIcon`) and how many friends are in it. It draws up to three, the most crowded first, and fewer on a narrow screen. A friend who is away, or in no game, is in none of them: they are in the friends tab of the social panel. With no friend connected and none in a game the bar is the button that invites one. It draws no container of its own: the dock is the one that holds it.
 
 ## On the navbar, with friends and with none
 
