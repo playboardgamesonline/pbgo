@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({ select: vi.fn(), inFilter: vi.fn(), eq: vi.fn(
 vi.mock("server-only", () => ({}))
 vi.mock("./supabase", () => ({ supabaseAdmin: () => ({ from: mocks.from, rpc: mocks.rpc }) }))
 
-import { ensureProfile, handleOf, pictureUrl, profilesNotApplied, readProfile, readProfileByHandle, readProfileDetails, readProfiles, saveProfile } from "./profiles"
+import { ensureProfile, handleOf, pictureUrl, profilesNotApplied, readProfile, readProfileByHandle, readProfileDetails, readProfileXp, readProfiles, saveProfile } from "./profiles"
 
 const ANN = "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11"
 const BOB = "5c3e1d8a-1f2b-4c47-8a9e-6d0b7e2f4a90"
@@ -264,5 +264,26 @@ describe("the small helpers", () => {
     expect(profilesNotApplied(new Error("x"))).toBe(false)
     expect(profilesNotApplied(null)).toBe(false)
     expect(profilesNotApplied("PGRST202")).toBe(false)
+  })
+})
+
+describe("readProfileXp", () => {
+  it("reads the points of an account", async () => {
+    mocks.maybeSingle.mockResolvedValue({ data: { xp: 640 }, error: null })
+    expect(await readProfileXp(ANN)).toBe(640)
+    expect(mocks.select).toHaveBeenCalledWith("xp")
+    expect(mocks.eq).toHaveBeenCalledWith("user_id", ANN)
+  })
+  it("is 0 for a profile with none, for an id that is no account (the demo) and where the column is not there", async () => {
+    mocks.maybeSingle.mockResolvedValueOnce({ data: null, error: null })
+    expect(await readProfileXp(ANN)).toBe(0)
+    expect(await readProfileXp("demo")).toBe(0)
+    expect(mocks.from).toHaveBeenCalledTimes(1)
+    mocks.maybeSingle.mockResolvedValueOnce({ data: null, error: { code: "42703" } })
+    expect(await readProfileXp(BOB)).toBe(0)
+  })
+  it("throws what else the database says", async () => {
+    mocks.maybeSingle.mockResolvedValue({ data: null, error: { code: "XX000", message: "down" } })
+    await expect(readProfileXp(ANN)).rejects.toMatchObject({ code: "XX000" })
   })
 })

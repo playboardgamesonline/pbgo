@@ -37,7 +37,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
 
   return (
     <AccountShell>
-      <ProfileHeader head={head}>
+      <ProfileHeader head={head} own={own}>
         {own && <EditProfileButton head={head} demo={viewer !== null && isDemoAccount(viewer)} address="player" />}
         {!own && head.tag !== null && viewer === null && (
           <Button asChild>
