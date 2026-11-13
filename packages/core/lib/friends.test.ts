@@ -65,12 +65,14 @@ describe("socialStateOf", () => {
     incoming: [{ nickname: "Cat", tag: 3, avatarUrl: null, at: "2026-11-09T10:00:00.000Z" }],
     outgoing: [{ nickname: "Dan", tag: 4, avatarUrl: null, at: "2026-11-08T10:00:00.000Z" }],
     blocked: [{ nickname: "Eve", tag: 5, avatarUrl: null }],
+    conversations: [{ nickname: "Gus", tag: 8, avatarUrl: null, unread: 3, lastText: "hi", lastAt: "2026-11-13T10:00:00.000Z", lastMine: false }],
     invitations: [{ id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Fay", tag: 6, avatarUrl: null }, game: { slug: "hanabi", name: "Hanabi" }, at: "2026-11-13T10:00:00.000Z", expiresAt: "2026-11-13T10:30:00.000Z" }],
   }
 
-  it("reads an answer of a server that has no invitations as one with none", () => {
-    const { invitations: _, ...older } = good
+  it("reads an answer of a server that has no invitations or conversations as one with none", () => {
+    const { invitations: _, conversations: __, ...older } = good
     expect(socialStateOf(older)?.invitations).toEqual([])
+    expect(socialStateOf(older)?.conversations).toEqual([])
   })
 
   it("leaves out an invitation that is not one", () => {

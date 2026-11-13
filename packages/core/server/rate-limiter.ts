@@ -74,6 +74,12 @@ export const RATE_LIMITS = {
   invitationSend: { limit: 40, windowMs: 10 * 60_000, by: "ip" },
   /** A member accepting or declining an invitation (the other `POST`s of `/api/hub/invitations`): one press each. Per IP, with room for a few members behind one address */
   invitationAnswer: { limit: 60, windowMs: 10 * 60_000, by: "ip" },
+  /** The conversation with a friend (`GET /api/hub/messages`, PLT-25): the chat window asks when it opens and about every 5 s while it is open and in view, so per IP with room for a few members and tabs behind one address */
+  messagesRead: { limit: 240, windowMs: 60_000, by: "ip" },
+  /** A member writing to a friend (`POST /api/hub/messages/send`): a message a few seconds apart in a chat, a burst now and then. Per IP, with room for a few members behind one address */
+  messageSend: { limit: 60, windowMs: 60_000, by: "ip" },
+  /** A member marking a conversation as read (`POST /api/hub/messages/read`): once when a chat opens and when something arrives in it. Per IP */
+  messageRead: { limit: 120, windowMs: 60_000, by: "ip" },
   /** Admin login (shared by every game): per IP, whatever the cookies, so a password can't be guessed by a script. A human mistypes it a few times at most */
   adminLogin: { limit: 5, windowMs: 10 * 60_000, by: "ip" },
   /** Ceiling per IP across every limited route (several players behind one NAT stay well below it) */

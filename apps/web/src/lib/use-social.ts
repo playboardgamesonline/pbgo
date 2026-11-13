@@ -16,8 +16,7 @@ const NOBODY: Social = { friends: [], requests: [], conversations: [], invitatio
 
 /**
  * The friends, the conversations and the requests of a signed-in visitor, for the social panel that every page of the hub has (`SiteSocial`). The pages are static and the panel is in the browser, so they are asked for here and not by the page: a real account's
- * friends, with whether they are online and the game they are at, and the requests, come from `GET /api/hub/friends`, read when the panel is on the page and again every 20 s while a tab is in view (`social-store.ts`); there are no conversations until
- * the messages exist (PLT-25), and the invitations to a table that wait for the member come with the state (PLT-109). The demo account of development has made-up ones (`demo-data.ts`), loaded only in development: the check on `NODE_ENV` is the build's, which drops the import from a deployment. A page that has read the state on the server
+ * friends, with whether they are online and the game they are at, and the requests, come from `GET /api/hub/friends`, read when the panel is on the page and again every 20 s while a tab is in view (`social-store.ts`); the conversations (the last message of each and what is not read) and the invitations to a table that wait for the member come with the state (PLT-109). The demo account of development has made-up ones (`demo-data.ts`), loaded only in development: the check on `NODE_ENV` is the build's, which drops the import from a deployment. A page that has read the state on the server
  * (`social-state.ts`) gives it as `initial`, which is shown until the browser has read it.
  */
 export function useSocial(account: Pick<Account, "id"> | null, initial?: SocialState | null): Social {
@@ -26,8 +25,8 @@ export function useSocial(account: Pick<Account, "id"> | null, initial?: SocialS
   const state = useSocialState(account && !isDemo ? account.id : null, initial)
   const real = useMemo<Social>(() => {
     if (!state) return NOBODY
-    const { friends, requests, invitations } = panelOf(state)
-    return { friends, requests, conversations: [], invitations }
+    const { friends, requests, invitations, conversations } = panelOf(state)
+    return { friends, requests, conversations, invitations }
   }, [state])
 
   useEffect(() => {

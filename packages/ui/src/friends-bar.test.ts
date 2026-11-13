@@ -2,6 +2,7 @@ import * as React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import type { Friend } from "./friends"
+import { ChatWindow } from "./platform/chat-window"
 import { FriendsBar } from "./platform/friends-bar"
 import { InvitationsCard } from "./platform/invitations-card"
 import { InviteFriendList } from "./platform/invite-friend"
@@ -110,5 +111,27 @@ describe("InvitationsCard", () => {
     expect(html).toContain("expired")
     expect(html).not.toContain("Accept the invitation")
     expect(html).toContain("Decline the invitation of Bob")
+  })
+})
+
+describe("ChatWindow", () => {
+  const messages = [
+    { id: "1", from: "me" as const, text: "<b>hi</b>\nthere", at: "2026-11-13T10:00:00.000Z" },
+    { id: "2", from: "them" as const, text: "hello", at: "2026-11-13T10:01:00.000Z" },
+  ]
+  const chat = (props: Partial<React.ComponentProps<typeof ChatWindow>> = {}) => renderToStaticMarkup(React.createElement(ChatWindow, { friend: friend("Bob", "online"), messages, onSend: nothing, onClose: nothing, ...props }))
+
+  it("draws a message as text, never as markup, masked in a recording, keeping its line breaks", () => {
+    const html = chat()
+    expect(html).toContain("&lt;b&gt;hi&lt;/b&gt;\nthere")
+    expect(html).not.toContain("<b>hi</b>")
+    expect(html.match(/ph-mask max-w-11\/12/g)).toHaveLength(2)
+    expect(html).toContain("whitespace-pre-wrap")
+  })
+
+  it("limits the field to what the page says and masks what is typed in it", () => {
+    const html = chat({ maxLength: 1000 })
+    expect(html).toContain('maxLength="1000"')
+    expect(/<input[^>]*class="[^"]*ph-mask/.test(html)).toBe(true)
   })
 })

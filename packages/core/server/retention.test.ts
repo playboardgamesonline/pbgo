@@ -235,7 +235,7 @@ describe("tables", () => {
 
   it("tells the moments it measured against", async () => {
     const report = await purgeExpired({ now: NOW })
-    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1), states: daysAgo(1), seats: YEAR_AGO, friendRequests: daysAgo(30), invitations: daysAgo(1) })
+    expect(report.cutoffs).toEqual({ tables: daysAgo(30), feedback: YEAR_AGO, presence: daysAgo(1), states: daysAgo(1), seats: YEAR_AGO, friendRequests: daysAgo(30), invitations: daysAgo(1), messages: daysAgo(30) })
   })
 })
 
@@ -340,6 +340,25 @@ describe("invitations to a table", () => {
     const report = await purgeExpired({ now: NOW, dryRun: true })
     expect(report).toMatchObject({ dryRun: true, invitations: 1, errors: [] })
     expect(ids()).toEqual(["old", "fresh"])
+  })
+})
+
+describe("messages between friends", () => {
+  const message = (id: string, daysOld: number) => ({ id, sender: "a", recipient: "b", created_at: new Date(NOW.getTime() - daysOld * DAY).toISOString() })
+  const ids = () => (h.tables.friend_messages ?? []).map((row) => String(row.id))
+
+  it("deletes the messages more than 30 days old, read or not, and keeps the others", async () => {
+    h.tables.friend_messages = [message("old", 31), message("fresh", 29), message("today", 0)]
+    const report = await purgeExpired({ now: NOW })
+    expect(ids()).toEqual(["fresh", "today"])
+    expect(report).toMatchObject({ messages: 1, errors: [] })
+  })
+
+  it("keeps a message that is exactly 30 days old and counts without deleting in a dry run", async () => {
+    h.tables.friend_messages = [message("edge", 30), message("old", 40)]
+    const report = await purgeExpired({ now: NOW, dryRun: true })
+    expect(report).toMatchObject({ dryRun: true, messages: 1, errors: [] })
+    expect(ids()).toEqual(["edge", "old"])
   })
 })
 

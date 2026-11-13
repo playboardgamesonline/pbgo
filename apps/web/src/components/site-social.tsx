@@ -23,6 +23,8 @@ import { useInvitationActions, useReceivedInvitationToasts } from "@/components/
 import { OwnName } from "@/components/own-name"
 import { readFolded, writeFolded } from "@/lib/folded-games"
 import { leaveQueue, useQueue, useQueueSeconds } from "@/lib/matchmaking"
+import { MESSAGE_MAX_LENGTH } from "@pbgo/core/lib/messages"
+import { useChatThread } from "@/lib/use-chat-thread"
 import { useCopied } from "@/lib/use-copied"
 import { useSocial } from "@/lib/use-social"
 
@@ -36,8 +38,7 @@ const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
  * the menu of their account (`AccountMenu`), and the button of the social panel (`SocialPanelToggle`: the icon of a panel on the right, which opens it and, once it is open, closes it).
  * Open, the bar is the header of the panel: the games fold away, the picture glides to the start of the bar and says who they are beside it (`SocialDockIdentity`: their name with its tag and
  * their status), the button stays where it was, and the panel (`SocialPanel`: friends game by game, messages, add a friend) is under it. A real account's friends and requests are the database's (PLT-23: `useSocial`, kept fresh while a tab is in view), and
- * what the buttons do is `useFriendActions`'s: the form that adds a friend, the answers to a request, and the menu of a friend (their profile, remove, block). A press on a friend opens nothing for a real account: its conversations wait for the messages (PLT-25),
- * and the card that opens under the pointer says who the friend is and where. The demo account of development has made-up friends and conversations: a press on a friend opens the chat (`ChatWindow`) next to the panel, where a message sent is kept for as long as the page is open.
+ * what the buttons do is `useFriendActions`'s: the form that adds a friend, the answers to a request, and the menu of a friend (their profile, remove, block). A press on a friend, or on a conversation, opens the chat (`ChatWindow`) next to the panel: a real account's is read from the server while it is open and what is written is kept (PLT-25, `useChatThread`); the demo account of development has made-up friends and conversations, and a message it sends is kept for as long as the page is open.
  * While the visitor looks for a game (the button of a game's page, `lib/matchmaking.ts`), the closed bar has a small pill for it before the games, and the panel a card at the top, over the tabs. Joining a friend and inviting one are not drawn for a real account (PLT-109);
  * the demo account has the buttons, and they do nothing. A visitor with no friend at a game has the button that invites a friend in the bar, which copies the address of the sign-in, where a friend can come and sign in.
  */
@@ -69,6 +70,8 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
 
   // The conversations as the visitor has made them in this page: what they sent is in them, what they opened is read, and a friend they wrote to first has one
   const conversations = useMemo<Conversation[]>(() => {
+    // A real account's conversations are the server's: the last message of each, and what is not read
+    if (!preview) return [...social.conversations]
     const known = new Set<string>()
     const all: Conversation[] = social.conversations.map((conversation) => {
       known.add(conversation.friend.id)
@@ -83,7 +86,7 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
       if (!known.has(friend.id) && messages.length > 0) all.push({ id: `new-${friend.id}`, friend, unread: 0, messages })
     }
     return all
-  }, [social, sent, read])
+  }, [social, sent, read, preview])
   const waiting = unreadOf(conversations) + social.requests.filter((request) => request.direction === "incoming").length + social.invitations.length
 
   // Escape folds the dock, unless a menu or a panel of the page is what it closes, and gives the focus back to the button that opened it
@@ -103,13 +106,16 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
     setChatOpen(true)
     setRead((all) => new Set(all).add(friend.id))
   }
+  // A real account's chat: the friend as the list shows them now (their presence changes), the conversation read from the server while the window is open, and what the member writes
+  const chatFriend = chatWith && (social.friends.find((friend) => friend.id === chatWith.id) ?? chatWith)
+  const thread = useChatThread(preview ? null : chatFriend, { active: chatOpen, onGone: () => setChatOpen(false) })
   // The panel on its friends tab: what the "+N" of the bar opens
   const showFriends = () => {
     setTab("friends")
     setOpen(true)
   }
-  // A press on a connected friend of the bar: their conversation where there is one (the demo account), else the panel, where they are
-  const showFriend = (friend: Friend) => (preview ? openChat(friend) : showFriends())
+  // A press on a connected friend of the bar opens their conversation
+  const showFriend = (friend: Friend) => openChat(friend)
   const send = (friend: Friend, text: string) =>
     setSent((all) => ({ ...all, [friend.id]: [...(all[friend.id] ?? []), { id: `${friend.id}-${Date.now()}`, from: "me", text, at: new Date().toISOString() }] }))
 
@@ -174,7 +180,7 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
           requests={social.requests}
           invitations={social.invitations}
           onAnswerInvitation={(invitation, answer) => invitations.answer(invitation, answer)}
-          onOpenChat={preview ? openChat : undefined}
+          onOpenChat={openChat}
           onViewProfile={friends.viewProfile}
           onRemove={friends.remove}
           onBlock={friends.block}
@@ -201,17 +207,18 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
           open ? "md:right-[22.5rem]" : "md:right-6"
         )}
       >
-        {chatWith && (
+        {chatWith && chatFriend && (
           <ChatWindow
             className="h-full"
-            friend={chatWith}
-            messages={conversations.find((conversation) => conversation.friend.id === chatWith.id)?.messages ?? []}
-            onSend={(text) => send(chatWith, text)}
+            friend={chatFriend}
+            messages={preview ? (conversations.find((conversation) => conversation.friend.id === chatWith.id)?.messages ?? []) : thread.messages}
+            maxLength={MESSAGE_MAX_LENGTH}
+            onSend={(text) => (preview ? send(chatWith, text) : thread.send(text))}
             onClose={() => setChatOpen(false)}
             onJoin={preview ? nothing : undefined}
             onInvite={preview ? nothing : undefined}
-            onRemove={preview ? nothing : undefined}
-            onBlock={preview ? nothing : undefined}
+            onRemove={preview ? nothing : (friend) => friends.remove(friend)}
+            onBlock={preview ? nothing : (friend) => friends.block(friend)}
           />
         )}
       </PanelPresence>

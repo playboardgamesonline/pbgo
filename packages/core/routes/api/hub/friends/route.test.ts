@@ -332,6 +332,7 @@ describe("GET /api/hub/friends", () => {
     incoming: [{ nickname: "Eve", tag: 1, avatarUrl: null, at: "2026-11-09T10:00:00+00:00" }],
     outgoing: [],
     blocked: [{ nickname: "Fay", tag: 5, avatarUrl: null }],
+    conversations: [{ nickname: "Dan", tag: 9, avatarUrl: null, unread: 1, lastText: "hello", lastAt: "2026-11-13T10:00:00+00:00", lastMine: false }],
     invitations: [{ id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Eve", tag: 1, avatarUrl: null }, game: "courtisans", at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }],
   }
 
@@ -348,6 +349,7 @@ describe("GET /api/hub/friends", () => {
     // An invitation is told with the name of its game, never the table
     expect(state.invitations).toEqual([{ id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Eve", tag: 1, avatarUrl: null }, game: { slug: "courtisans", name: "Courtisans" }, at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }])
     expect(JSON.stringify(state)).not.toContain("code")
+    expect(state.conversations).toEqual([{ nickname: "Dan", tag: 9, avatarUrl: null, unread: 1, lastText: "hello", lastAt: "2026-11-13T10:00:00+00:00", lastMine: false }])
   })
 
   it("says a friend is online and nothing more where the hub has no name for the game", async () => {
@@ -384,7 +386,7 @@ describe("GET /api/hub/friends", () => {
 
   it("has nobody for the demo account of development, whose friends the browser makes up", async () => {
     mocks.account = { id: "demo" }
-    expect(await (await get()).json()).toEqual({ friends: [], incoming: [], outgoing: [], blocked: [], invitations: [] })
+    expect(await (await get()).json()).toEqual({ friends: [], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [] })
     expect(mocks.readSocial).not.toHaveBeenCalled()
   })
 
@@ -417,6 +419,6 @@ describe("stateOf", () => {
   })
 
   function record() {
-    return { friends: [{ nickname: "Bob", tag: 1, avatarUrl: null, online: true, game: "courtisans", phase: "playing" as const }], incoming: [], outgoing: [], blocked: [], invitations: [] }
+    return { friends: [{ nickname: "Bob", tag: 1, avatarUrl: null, online: true, game: "courtisans", phase: "playing" as const }], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [] }
   }
 })

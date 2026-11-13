@@ -14,6 +14,7 @@ import {
   type SocialState,
 } from "../lib/friends"
 import { isInvitationId } from "../lib/invitations"
+import { MAX_CONVERSATIONS, type ConversationEntry } from "../lib/messages"
 import { isMissingFunction, isMissingTable } from "./db-error"
 import { ensureProfile } from "./profiles"
 import { supabaseAdmin } from "./supabase"
@@ -31,10 +32,10 @@ export type FriendRecord = Person & { online: boolean; game: string | null; phas
 /** An invitation to a table that waits for the member: who sent it, the game (its slug) and when. The table, with its code, is never read. */
 export type InvitationRecord = { id: string; from: Person; game: string; at: string; expiresAt: string }
 
-/** The whole social state of a member: their friends with their presence, the requests that came in and went out, the members they blocked, and the invitations to a table that wait for them (PLT-109, migration 0023). */
-export type SocialRecord = { friends: FriendRecord[]; incoming: RequestEntry[]; outgoing: RequestEntry[]; blocked: Person[]; invitations: InvitationRecord[] }
+/** The whole social state of a member: their friends with their presence, the requests that came in and went out, the members they blocked, the invitations to a table that wait for them (PLT-109, migration 0023) and their conversations, the latest first (PLT-25, migration 0024). */
+export type SocialRecord = { friends: FriendRecord[]; incoming: RequestEntry[]; outgoing: RequestEntry[]; blocked: Person[]; invitations: InvitationRecord[]; conversations: ConversationEntry[] }
 
-export const EMPTY_SOCIAL: SocialRecord = { friends: [], incoming: [], outgoing: [], blocked: [], invitations: [] }
+export const EMPTY_SOCIAL: SocialRecord = { friends: [], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [] }
 
 /** Whether the database does not have the friends yet: migration 0017 is not applied. */
 export const friendsNotApplied = (error: unknown): boolean => typeof error === "object" && error !== null && (isMissingTable(error as { code?: string }) || isMissingFunction(error as { code?: string }))
@@ -67,6 +68,15 @@ function invitationOfRow(row: Record<string, unknown>): InvitationRecord | null 
 /** The invitations that `invitations_for` answers, as records: an entry that is not what it should be is left out. */
 export const invitationRecordsOf = (data: unknown): InvitationRecord[] => objectsOf(data).flatMap((row) => invitationOfRow(row) ?? [])
 
+function conversationOfRow(row: Record<string, unknown>): ConversationEntry | null {
+  const person = personOfRow(row)
+  if (!person || typeof row.unread !== "number" || !Number.isInteger(row.unread) || row.unread < 0 || typeof row.last_text !== "string" || typeof row.last_at !== "string" || Number.isNaN(Date.parse(row.last_at)) || typeof row.last_mine !== "boolean") return null
+  return { ...person, unread: row.unread, lastText: row.last_text, lastAt: row.last_at, lastMine: row.last_mine }
+}
+
+/** The conversations that `conversations_for` answers, as entries: one that is not what it should be is left out. */
+export const conversationRecordsOf = (data: unknown): ConversationEntry[] => objectsOf(data).flatMap((row) => conversationOfRow(row) ?? [])
+
 /** The state that `social_state` answers, as a record: an entry that is not what it should be is left out, and an answer that is not an object is nobody's state. */
 export function socialRecordOf(data: unknown): SocialRecord {
   if (typeof data !== "object" || data === null) return EMPTY_SOCIAL
@@ -77,22 +87,32 @@ export function socialRecordOf(data: unknown): SocialRecord {
     outgoing: objectsOf(outgoing).flatMap((row) => requestOfRow(row) ?? []),
     blocked: objectsOf(blocked).flatMap((row) => personOfRow(row) ?? []),
     invitations: [],
+    conversations: [],
   }
 }
 
 /**
- * The friends, the requests, the blocks and the invitations of this account, read together. Throws what the database says, but not for a project where the friends are not there yet, which has none. A project where migration 0023 is not applied has
- * no invitations, and the rest is read as ever.
+ * The friends, the requests, the blocks, the invitations and the conversations of this account, read together. Throws what the database says, but not for a project where the friends are not there yet, which has none. A project where migration 0023 or 0024 is not
+ * applied has no invitations or no conversations, and the rest is read as ever.
  */
 export async function readSocial(userId: string): Promise<SocialRecord> {
   const db = supabaseAdmin()
-  const [state, invitations] = await Promise.all([db.rpc("social_state", { p_user: userId }), db.rpc("invitations_for", { p_user: userId })])
+  const [state, invitations, conversations] = await Promise.all([
+    db.rpc("social_state", { p_user: userId }),
+    db.rpc("invitations_for", { p_user: userId }),
+    db.rpc("conversations_for", { p_user: userId, p_limit: MAX_CONVERSATIONS }),
+  ])
   if (state.error) {
     if (friendsNotApplied(state.error)) return EMPTY_SOCIAL
     throw state.error
   }
   if (invitations.error && !friendsNotApplied(invitations.error)) throw invitations.error
-  return { ...socialRecordOf(state.data), invitations: invitations.error ? [] : invitationRecordsOf(invitations.data) }
+  if (conversations.error && !friendsNotApplied(conversations.error)) throw conversations.error
+  return {
+    ...socialRecordOf(state.data),
+    invitations: invitations.error ? [] : invitationRecordsOf(invitations.data),
+    conversations: conversations.error ? [] : conversationRecordsOf(conversations.data),
+  }
 }
 
 /** The social state as the browser is told it: each friend's game with its name (the hub's, which the app gives), or none when the hub has no name for it. The tables, and the accounts, are not in it. */
