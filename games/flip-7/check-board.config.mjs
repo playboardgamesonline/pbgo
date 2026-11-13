@@ -49,8 +49,8 @@ const config = {
     },
   },
 
-  // What the viewer presses, in the order the game offers it: the draw pile (hit), a plate to give an action card to (the first hit is rigged to turn a Freeze over, so that there is one to give), the Stay paper and, once it is the viewer's
-  // to deal, the Deal paper. Everything else the viewer does is played through the API, to come to the next of these
+  // What the viewer presses, in the order the game offers it: the draw pile (hit), a zone of a seat to give an action card to (the first hit is rigged to turn a Freeze over, so that there is one to give), the Stay floor button and, once it is the viewer's
+  // to deal, the Deal one. Everything else the viewer does is played through the API, to come to the next of these
   presses: {
     expect: ["hit", "target", "stay", "deal"],
     max: 40,
@@ -68,12 +68,14 @@ const config = {
       if (phase.kind === "between" && phase.dealer === me) return exercised.has("deal") ? null : { label: "deal" }
       return null
     },
-    // Where the controls lie, from what the board offers: the draw pile is left of the middle of the table, the Stay and Deal paper in the middle between the two piles, a plate is any other pressable (the plates of the seats stand all round the table, so the paper is the pressable nearest the middle)
+    // Where the controls lie, from what the board offers: the draw pile is far left of the middle (x -3), and to the right of it, in the strip between the two piles (z 0.5, `pilesZ`), lie the floor buttons: Hit left of the middle, Stay right of it, and Deal
+    // alone in the middle. The zones of the seats, which are pressed to give an action card, are the other pressables (the viewer's own lies in front of them, in the middle: so the strip is told by its z)
     find({ label, pressables }) {
-      const left = (pressable) => pressable.world !== null && pressable.world[0] < -1
-      const middle = (pressable) => pressable.world !== null && Math.abs(pressable.world[0]) <= 1
-      if (label === "hit") return pressables.find(left)
-      if (label === "stay" || label === "deal") return pressables.find(middle)
+      const strip = (pressable) => pressable.world !== null && Math.abs(pressable.world[2] - 0.5) < 0.3
+      const at = (low, high) => (pressable) => strip(pressable) && pressable.world[0] > low && pressable.world[0] < high
+      if (label === "hit") return pressables.find(at(-2, -0.5))
+      if (label === "stay") return pressables.find(at(0.5, 2.5))
+      if (label === "deal") return pressables.find(at(-0.5, 0.5))
       if (label === "target") return pressables.find((pressable) => pressable.reachable) ?? pressables[0]
       return undefined
     },

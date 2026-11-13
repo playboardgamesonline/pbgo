@@ -3,6 +3,7 @@
 import { useMemo, type ReactNode } from "react"
 import { cn } from "@pbgo/ui/utils"
 import { useOptionalBinding } from "../../lib/binding-context"
+import { shortName } from "../../lib/short-name"
 import { seatAvatar, type SeatAvatar } from "../../lib/seat-avatar"
 import { seatTheme, type SeatTheme } from "../../lib/ui-theme"
 
@@ -108,8 +109,8 @@ export function SeatLabel({ nickname, color, imageUrl, theme, size = "md", name,
         {corner}
       </SeatAvatarMark>
       {/* a nickname is typed by its player: session recordings show it masked (`ph-mask`) */}
-      <span className={cn("ph-mask truncate", nameClassName)} style={(name ?? resolved.name) === "seat" ? { color } : undefined}>
-        {nickname}
+      <span className={cn("ph-mask truncate", nameClassName)} style={(name ?? resolved.name) === "seat" ? { color } : undefined} title={nickname}>
+        {shortName(nickname)}
       </span>
       {children}
     </span>

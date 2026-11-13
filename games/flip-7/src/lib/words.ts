@@ -1,14 +1,17 @@
 // The words of Flip 7's board, plain data with no import: read by the board (through the catalog), and by the tests that keep it equal to the Studio's `texts` and to the seed.
 
 /**
- * The fields of the "Board" tab of the `texts` document in Sanity, under the same names: the buttons, the status of a player, the two announcements that are the game's own and the sentences of
+ * The fields of the "Board" tab of the `texts` document in Sanity, under the same names: the buttons (`hit`, `stay`, `deal`), what is written on the table beside the card to give (`target…`, one for each action card, and `targetPlayer`, the accessible name of a player's zone), the status of a player, the two announcements that are the game's own and the sentences of
  * the history. Every one is written in Sanity, in every language; a word it does not have reads `[missing: <key>]`.
  */
 export const WORD_FIELDS = [
   "hit",
   "stay",
   "deal",
-  "giveTo",
+  "targetFreeze",
+  "targetFlipThree",
+  "targetSecondChance",
+  "targetPlayer",
   "round",
   "firstTo",
   "busted",

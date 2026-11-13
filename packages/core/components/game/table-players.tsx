@@ -10,6 +10,7 @@ import { PresenceDot } from "@pbgo/ui/platform/friends-panel"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@pbgo/ui/platform/hover-card"
 import { cn } from "@pbgo/ui/utils"
 import type { PublicPlayer } from "../../lib/game-types"
+import { shortName } from "../../lib/short-name"
 import { useText } from "../skin-provider"
 import { useGame } from "./context"
 
@@ -57,8 +58,8 @@ function PlayerRow({ player, seat, score, waiting, away, me, host }: { player: P
         <HoverCardTrigger asChild>
           <div className={cn("flex items-center gap-3 rounded-2xl py-1.5 pr-3 pl-2 transition-colors", waiting && "bg-muted", away && "opacity-60")}>
             {picture()}
-            <span className="ph-mask min-w-0 flex-1 truncate text-base leading-tight">
-              {player.nickname}
+            <span className="ph-mask min-w-0 flex-1 truncate text-base leading-tight" title={player.nickname}>
+              {shortName(player.nickname)}
               {me && <span className="ml-1.5 text-muted-foreground">{t("you")}</span>}
             </span>
             {score !== undefined && <span className="text-lg leading-none font-strong tabular-nums">{score}</span>}

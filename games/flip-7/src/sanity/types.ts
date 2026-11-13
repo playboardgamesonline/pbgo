@@ -259,7 +259,10 @@ export type Texts = {
   hit?: LocaleString;
   stay?: LocaleString;
   deal?: LocaleString;
-  giveTo?: LocaleString;
+  targetFreeze?: LocaleString;
+  targetFlipThree?: LocaleString;
+  targetSecondChance?: LocaleString;
+  targetPlayer?: LocaleString;
   round?: LocaleString;
   firstTo?: LocaleString;
   busted?: LocaleString;
@@ -694,7 +697,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../../src/sanity/queries.ts
 // Variable: CATALOG_QUERY
-// Query: {  "game": *[_id == "game"][0]{ cardBack },  "texts": *[_id == "texts"][0]{    hit, stay, deal, giveTo, round, firstTo, busted, frozen, stayed, start, flip7,    eventRound, eventDeal, eventHit, eventFlip, eventStay, eventBust, eventSaved, eventPlay, eventKeep,    eventDiscarded, eventReshuffle, eventFlip7, eventEnd, eventOver  },  "numbers": *[_type == "numberCard"]{ key, image },  "actions": *[_type == "actionCard"]{ key, name, image },  "modifiers": *[_type == "modifierCard"]{ key, image }}
+// Query: {  "game": *[_id == "game"][0]{ cardBack },  "texts": *[_id == "texts"][0]{    hit, stay, deal, targetFreeze, targetFlipThree, targetSecondChance, targetPlayer, round, firstTo, busted, frozen, stayed, start, flip7,    eventRound, eventDeal, eventHit, eventFlip, eventStay, eventBust, eventSaved, eventPlay, eventKeep,    eventDiscarded, eventReshuffle, eventFlip7, eventEnd, eventOver  },  "numbers": *[_type == "numberCard"]{ key, image },  "actions": *[_type == "actionCard"]{ key, name, image },  "modifiers": *[_type == "modifierCard"]{ key, image }}
 export type CATALOG_QUERY_RESULT = {
   game:
     | {
@@ -715,7 +718,10 @@ export type CATALOG_QUERY_RESULT = {
         hit: null;
         stay: null;
         deal: null;
-        giveTo: null;
+        targetFreeze: null;
+        targetFlipThree: null;
+        targetSecondChance: null;
+        targetPlayer: null;
         round: null;
         firstTo: null;
         busted: null;
@@ -742,7 +748,10 @@ export type CATALOG_QUERY_RESULT = {
         hit: LocaleString | null;
         stay: LocaleString | null;
         deal: LocaleString | null;
-        giveTo: LocaleString | null;
+        targetFreeze: LocaleString | null;
+        targetFlipThree: LocaleString | null;
+        targetSecondChance: LocaleString | null;
+        targetPlayer: LocaleString | null;
         round: LocaleString | null;
         firstTo: LocaleString | null;
         busted: LocaleString | null;
@@ -817,7 +826,7 @@ export type CATALOG_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "game": *[_id == "game"][0]{ cardBack },\n  "texts": *[_id == "texts"][0]{\n    hit, stay, deal, giveTo, round, firstTo, busted, frozen, stayed, start, flip7,\n    eventRound, eventDeal, eventHit, eventFlip, eventStay, eventBust, eventSaved, eventPlay, eventKeep,\n    eventDiscarded, eventReshuffle, eventFlip7, eventEnd, eventOver\n  },\n  "numbers": *[_type == "numberCard"]{ key, image },\n  "actions": *[_type == "actionCard"]{ key, name, image },\n  "modifiers": *[_type == "modifierCard"]{ key, image }\n}': CATALOG_QUERY_RESULT;
+    '{\n  "game": *[_id == "game"][0]{ cardBack },\n  "texts": *[_id == "texts"][0]{\n    hit, stay, deal, targetFreeze, targetFlipThree, targetSecondChance, targetPlayer, round, firstTo, busted, frozen, stayed, start, flip7,\n    eventRound, eventDeal, eventHit, eventFlip, eventStay, eventBust, eventSaved, eventPlay, eventKeep,\n    eventDiscarded, eventReshuffle, eventFlip7, eventEnd, eventOver\n  },\n  "numbers": *[_type == "numberCard"]{ key, image },\n  "actions": *[_type == "actionCard"]{ key, name, image },\n  "modifiers": *[_type == "modifierCard"]{ key, image }\n}': CATALOG_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

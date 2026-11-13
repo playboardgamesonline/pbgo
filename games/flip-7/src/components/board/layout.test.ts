@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { BUTTON_WIDTH, type Box, buttonPlace, CARD, cornersOf, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, plateAt, seatAngle, seatSpots, tableBoxes, tableQuads, uprightYaw } from "./layout"
+import { type Box, boxesOverlap, CARD, FLOOR, fitPrompt, floorPlan, wrapWords, zoneBoxes, cornersOf, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, plateAt, seatAngle, seatSpots, tableBoxes, tableQuads, uprightYaw } from "./layout"
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
 const SIZES = [3, 4, 5, 6, 7, 8]
@@ -281,21 +281,149 @@ describe("the piles", () => {
   })
 })
 
-describe("the button", () => {
-  it("lies between the two piles, clear of both and of the viewer's line, the same for Stay and for Deal", () => {
+describe("the floor between the piles", () => {
+  const plan = floorPlan()
+  const { deck, discard } = pilePlaces()
+  const pile = (CARD.width * LAYOUT_SETTINGS.pileScale) / 2
+  const edges = (pad: { x: number; width: number }) => [pad.x - pad.width / 2, pad.x + pad.width / 2] as const
+
+  it("has Hit and Stay side by side, as deep as the piles", () => {
+    const depth = CARD.height * LAYOUT_SETTINGS.pileScale
+    expect(plan.hit.depth).toBeCloseTo(depth)
+    expect(plan.stay.depth).toBeCloseTo(depth)
+    expect(plan.hit.z).toBe(deck.z)
+    expect(plan.stay.z).toBe(deck.z)
+    expect(plan.hit.x).toBeLessThan(plan.stay.x)
+    expect(plan.hit.width).toBeCloseTo(plan.stay.width)
+  })
+
+  it("keeps one gap, the same length, between the draw pile and Hit, Hit and Stay, and Stay and the discard", () => {
+    const [hitLeft, hitRight] = edges(plan.hit)
+    const [stayLeft, stayRight] = edges(plan.stay)
+    expect(hitLeft - (deck.x + pile)).toBeCloseTo(FLOOR.gap)
+    expect(stayLeft - hitRight).toBeCloseTo(FLOOR.gap)
+    expect(discard.x - pile - stayRight).toBeCloseTo(FLOOR.gap)
+  })
+
+  it("has Deal across the room of the two, as deep as they are", () => {
+    const [left] = edges(plan.hit)
+    const [, right] = edges(plan.stay)
+    const [dealLeft, dealRight] = edges(plan.deal)
+    expect(dealLeft).toBeCloseTo(left)
+    expect(dealRight).toBeCloseTo(right)
+    expect(plan.deal.depth).toBeCloseTo(plan.hit.depth)
+  })
+
+  it("puts the action card where Hit is and the words after it, with the same gaps, and nothing runs into the discard", () => {
+    const [hitLeft] = edges(plan.hit)
+    expect(plan.card.x - (CARD.width * plan.card.scale) / 2).toBeCloseTo(hitLeft)
+    const [promptLeft, promptRight] = edges(plan.prompt)
+    expect(promptLeft - (plan.card.x + (CARD.width * plan.card.scale) / 2)).toBeCloseTo(FLOOR.gap)
+    expect(discard.x - pile - promptRight).toBeCloseTo(FLOOR.gap)
+    expect(plan.prompt.width).toBeGreaterThan(2)
+  })
+
+  it("lies clear of the viewer's line, in the middle band", () => {
+    expect(plan.strip.z + plan.strip.depth / 2).toBeLessThan(LAYOUT_SETTINGS.viewerZ - (CARD.height * LAYOUT_SETTINGS.viewerScale) / 2)
+  })
+})
+
+describe("wrapWords", () => {
+  it("breaks at the spaces into lines of at most the length", () => {
+    expect(wrapWords("Choose the player who gets this Freeze", 14)).toEqual(["Choose the", "player who", "gets this", "Freeze"])
+    for (const line of wrapWords("Choose the player who gets this Second Chance", 16)) expect(Array.from(line).length).toBeLessThanOrEqual(16)
+  })
+  it("keeps a word longer than a line whole, and says nothing for nothing", () => {
+    expect(wrapWords("Supercalifragilistic go", 6)).toEqual(["Supercalifragilistic", "go"])
+    expect(wrapWords("   ", 10)).toEqual([])
+  })
+})
+
+describe("fitPrompt", () => {
+  it("keeps the size asked for when the sentence fits the room, and writes it on lines that fit the width", () => {
+    const { lines, height } = fitPrompt("Choose the player who gets this Freeze", 3.2, 1.7)
+    expect(height).toBeLessThanOrEqual(0.42)
+    for (const line of lines) expect(Array.from(line).length * height * 0.62).toBeLessThanOrEqual(3.2 + 1e-9)
+  })
+  it("shrinks the letters, to a least, for a long sentence in a small room", () => {
+    const long = "Elige al jugador que recibe esta carta Segunda oportunidad ahora mismo"
+    const { lines, height, step } = fitPrompt(long, 2, 1.9)
+    expect(height).toBeLessThan(0.42)
+    expect(height).toBeGreaterThanOrEqual(0.24)
+    expect(lines.length * step).toBeLessThanOrEqual(1.9 + 1e-9)
+  })
+  it("fits the three English prompts into the room beside the action card", () => {
+    const { prompt } = floorPlan()
+    for (const text of ["Choose the player who gets this Freeze", "Choose the player who gets this Flip Three", "Choose the player who gets this Second Chance"]) {
+      const { lines, step } = fitPrompt(text, prompt.width, prompt.depth)
+      expect(lines.length * step, text).toBeLessThanOrEqual(prompt.depth + 1e-9)
+    }
+  })
+})
+
+describe("the zones the viewer presses to give a card", () => {
+  const overlap = boxesOverlap
+  const fixed = () => {
+    const { strip } = floorPlan()
     const { deck, discard } = pilePlaces()
-    const button = buttonPlace()
-    expect(button.x).toBeCloseTo(0)
-    expect(button.x - BUTTON_WIDTH / 2).toBeGreaterThan(deck.x + (CARD.width * LAYOUT_SETTINGS.pileScale) / 2)
-    expect(button.x + BUTTON_WIDTH / 2).toBeLessThan(discard.x - (CARD.width * LAYOUT_SETTINGS.pileScale) / 2)
-    expect(button.z).toBe(discard.z)
-    expect(button.z + 0.5).toBeLessThan(LAYOUT_SETTINGS.viewerZ - CARD.height / 2)
+    const pile = (CARD.width * LAYOUT_SETTINGS.pileScale) / 2
+    const depth = (CARD.height * LAYOUT_SETTINGS.pileScale) / 2
+    return [
+      { x: strip.x, z: strip.z, halfWidth: strip.width / 2, halfDepth: strip.depth / 2, yaw: 0 },
+      { x: deck.x, z: deck.z, halfWidth: pile, halfDepth: depth + 0.8, yaw: 0 },
+      { x: discard.x, z: discard.z, halfWidth: pile, halfDepth: depth, yaw: 0 },
+    ] satisfies Box[]
+  }
+
+  it("never overlap each other, from 3 to 8 players, for a player and for a spectator", () => {
+    for (const seated of [true, false]) for (const n of SIZES) {
+      const zones = zoneBoxes(n, seated)
+      zones.forEach((a, i) => zones.slice(i + 1).forEach((b, j) => expect(overlap(a, b), `${n} players, seated ${seated}: zones ${i} and ${i + 1 + j}`).toBe(false)))
+    }
+  })
+
+  it("never overlap the piles or the strip of the buttons", () => {
+    for (const seated of [true, false]) for (const n of SIZES) {
+      zoneBoxes(n, seated).forEach((zone, i) => fixed().forEach((other, j) => expect(overlap(zone, other), `${n} players, seated ${seated}: zone ${i} and fixed box ${j}`).toBe(false)))
+    }
+  })
+
+  it("are big: wider and deeper than a card, and as much as a thumb is wide across the shorter side", () => {
+    for (const n of SIZES) for (const zone of zoneBoxes(n)) {
+      expect(zone.halfWidth * 2, `${n} players`).toBeGreaterThan(CARD.width * 1.6)
+      expect(zone.halfDepth * 2, `${n} players`).toBeGreaterThan(CARD.height * 0.62 + 1)
+    }
+  })
+
+  it("hold the line and the plate of their seat", () => {
+    for (const n of SIZES) {
+      const ids = Array.from({ length: n }, (_, i) => String(i))
+      const spots = seatSpots(ids, "0")
+      const placed = lines(spots, "0")
+      zoneBoxes(n).forEach((zone, i) => {
+        const line = placed.get(String(i))!
+        const own = cornersOf({ x: line.at.x, z: line.at.z, halfWidth: Math.min(line.width, CARD.width * line.scale * 3) / 2, halfDepth: (CARD.height * line.scale) / 2, yaw: line.yaw })
+        const quad = cornersOf(zone)
+        // every corner of a line of three cards is inside the zone: its centre is, and the zone is wider than the line
+        const centre = { x: line.at.x, z: line.at.z }
+        const inside = (p: { x: number; z: number }) => {
+          const dx = p.x - zone.x
+          const dz = p.z - zone.z
+          const u = dx * Math.cos(zone.yaw) - dz * Math.sin(zone.yaw)
+          const v = dx * Math.sin(zone.yaw) + dz * Math.cos(zone.yaw)
+          return Math.abs(u) <= zone.halfWidth + 1e-9 && Math.abs(v) <= zone.halfDepth + 1e-9
+        }
+        expect(inside(centre), `${n} players, zone ${i}`).toBe(true)
+        for (const corner of own) expect(inside(corner), `${n} players, zone ${i}`).toBe(true)
+        expect(quad).toHaveLength(4)
+      })
+    }
   })
 })
 
 describe("the footprints of a table", () => {
-  it("are the plate and the line of each seat, the two piles and the button, whatever the number of players", () => {
-    for (const n of SIZES) expect(tableQuads(n), `${n} players`).toHaveLength(2 * n + 3)
+  it("are the plate and the line of each seat, the two piles, the strip between them and the zone of each seat, whatever the number of players", () => {
+    for (const n of SIZES) expect(tableQuads(n), `${n} players`).toHaveLength(2 * n + 3 + n)
   })
 
   it("are four corners with some area between them", () => {

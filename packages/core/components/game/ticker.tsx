@@ -4,6 +4,7 @@ import { motion } from "motion/react"
 import { Fragment, useState } from "react"
 import { EASE_STANDARD, fade, travel } from "../../lib/motion-preference"
 import { useMotion } from "../../lib/use-motion"
+import { shortName } from "../../lib/short-name"
 import { useText } from "../skin-provider"
 import { useGame } from "./context"
 
@@ -39,8 +40,8 @@ export function PlayerName({ id }: { id: string }) {
   const { nickname, color } = useGame()
   return (
     // a nickname is typed by its player: session recordings show it masked (`ph-mask`)
-    <span className="ph-mask font-semibold brightness-150" style={{ color: color(id) }}>
-      {nickname(id)}
+    <span className="ph-mask font-semibold brightness-150" style={{ color: color(id) }} title={nickname(id)}>
+      {shortName(nickname(id))}
     </span>
   )
 }
