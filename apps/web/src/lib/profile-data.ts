@@ -36,7 +36,7 @@ const DEMO_DETAILS: ProfileDetails = { pronouns: "they/them", country: "FR", cit
  */
 export const ownProfileHead = cache(async (account: Account): Promise<ProfileHead> => {
   const fallback: ProfileHead = { nickname: account.nickname, tag: null, avatarUrl: account.avatarUrl, memberSince: account.createdAt, hideHistory: account.preferences.hideHistory, details: noProfileDetails(), level: levelOf(0) }
-  if (isDemoAccount(account)) return { ...fallback, tag: DEMO_TAG, details: DEMO_DETAILS, level: levelOf(640) }
+  if (isDemoAccount(account)) return { ...fallback, tag: DEMO_TAG, details: DEMO_DETAILS, level: levelOf(0) }
   try {
     const record = await ensureProfile(account)
     if (!record) return fallback
