@@ -68,11 +68,12 @@ const config = {
       if (phase.kind === "between" && phase.dealer === me) return exercised.has("deal") ? null : { label: "deal" }
       return null
     },
-    // Where the controls lie, from what the board offers: the draw pile is left of the middle of the table, the Stay and Deal paper right of it, a plate is any other pressable
+    // Where the controls lie, from what the board offers: the draw pile is left of the middle of the table, the Stay and Deal paper in the middle between the two piles, a plate is any other pressable (the plates of the seats stand all round the table, so the paper is the pressable nearest the middle)
     find({ label, pressables }) {
-      const left = (pressable) => pressable.world[0] < 0
+      const left = (pressable) => pressable.world !== null && pressable.world[0] < -1
+      const middle = (pressable) => pressable.world !== null && Math.abs(pressable.world[0]) <= 1
       if (label === "hit") return pressables.find(left)
-      if (label === "stay" || label === "deal") return pressables.find((pressable) => !left(pressable))
+      if (label === "stay" || label === "deal") return pressables.find(middle)
       if (label === "target") return pressables.find((pressable) => pressable.reachable) ?? pressables[0]
       return undefined
     },

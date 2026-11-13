@@ -1,5 +1,5 @@
 import { aspectScale, type CameraSettings } from "@pbgo/table"
-import { tableFootprints, type Footprint } from "./layout"
+import { type Place, tableQuads } from "./layout"
 
 /**
  * Where the camera looks at the table from, before the window is looked at: `fitCamera` stands it where the table fits (how far, and a little to the side). The Camera folder of the debug panel edits the object that `fitCamera` gave; it is
@@ -49,16 +49,11 @@ function screenOf(x: number, z: number, d: number, tx: number, tz: number, { til
   return [width / 2 + ((x - tx) / (depth * half * (width / height))) * (width / 2), height / 2 + (((z - tz) * Math.cos(t)) / (depth * half)) * (height / 2)]
 }
 
-/** The smallest rectangle of the window that holds a footprint of the table */
-export function windowRectOf(box: Footprint, d: number, tx: number, tz: number, camera: CameraSettings, viewport: Viewport): Rect {
-  const corners = [
-    screenOf(box.x0, box.z0, d, tx, tz, camera, viewport),
-    screenOf(box.x1, box.z0, d, tx, tz, camera, viewport),
-    screenOf(box.x0, box.z1, d, tx, tz, camera, viewport),
-    screenOf(box.x1, box.z1, d, tx, tz, camera, viewport),
-  ]
-  const xs = corners.map(([x]) => x)
-  const ys = corners.map(([, y]) => y)
+/** The smallest rectangle of the window that holds a four-cornered shape lying on the table: a box of the table, turned as it is */
+export function windowRectOf(quad: readonly Place[], d: number, tx: number, tz: number, camera: CameraSettings, viewport: Viewport): Rect {
+  const points = quad.map(({ x, z }) => screenOf(x, z, d, tx, tz, camera, viewport))
+  const xs = points.map(([x]) => x)
+  const ys = points.map(([, y]) => y)
   return { left: Math.min(...xs), top: Math.min(...ys), right: Math.max(...xs), bottom: Math.max(...ys) }
 }
 
@@ -83,8 +78,8 @@ const SLACK = 3
  * A window too small for that, a full table in a small window, gets the farthest camera that still reads, stood where the table is the least under the platform's boxes (`fits` is false).
  * The rig of the table backs the camera off on a window narrower than 16:10 (`aspectScale`): the distances worked out here are where the camera really stands, and the `distance` of the camera given back is that divided by it.
  */
-export function fitCamera(players: number, viewport: Viewport, base: CameraSettings = CAMERA): { camera: CameraSettings; fits: boolean } {
-  const boxes = tableFootprints(players)
+export function fitCamera(players: number, viewport: Viewport, base: CameraSettings = CAMERA, seated = true): { camera: CameraSettings; fits: boolean } {
+  const boxes = tableQuads(players, seated)
   const avoid = overlays(viewport, players)
   const { gap } = HUD
   const room: Rect = { left: gap, top: gap, right: viewport.width - gap, bottom: viewport.height - gap }
@@ -159,5 +154,5 @@ export function fitCamera(players: number, viewport: Viewport, base: CameraSetti
 /** How far the camera really stands for a window: the `distance` of its settings, backed off by the rig on a narrow window */
 export const standingDistance = (camera: CameraSettings, { width, height }: Viewport) => camera.distance * aspectScale(width / height)
 
-/** The camera for a table of `n` players in a window (`fitCamera`) */
-export const cameraFor = (n: number, viewport: Viewport): CameraSettings => fitCamera(n, viewport).camera
+/** The camera for a table of `n` players in a window (`fitCamera`); a spectator has no seat in front */
+export const cameraFor = (n: number, viewport: Viewport, seated = true): CameraSettings => fitCamera(n, viewport, CAMERA, seated).camera
