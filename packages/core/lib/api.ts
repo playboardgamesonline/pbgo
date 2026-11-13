@@ -89,6 +89,23 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   FRIEND_REQUEST_GONE: "This request is no longer there.",
   FRIEND_BLOCK_LIMIT: "You can't block more players. Unblock one first.",
   FRIENDS_UNAVAILABLE: "Friends can't be used right now, try again later.",
+  // What the routes of the invitations to a table refuse with (PLT-109). A friend who blocked you is never one of these: your invitation seems to go. No number is in a message: the limits are `lib/invitations.ts`'s
+  INVITE_INVALID: "This invitation isn't valid.",
+  INVITE_NOT_FRIEND: "You can only invite your friends.",
+  INVITE_NOT_AT_TABLE: "You can only invite friends to a table you sit at.",
+  INVITE_LIMIT: "You have too many invitations waiting. Wait for answers.",
+  INVITE_UNAVAILABLE: "This player can't receive invitations right now.",
+  INVITE_GONE: "This invitation is no longer there.",
+  INVITE_EXPIRED: "This invitation has expired.",
+  INVITE_TABLE_GONE: "This table doesn't exist any more.",
+  INVITE_TABLE_STARTED: "This game has already started.",
+  INVITE_TABLE_FULL: "This table is full now.",
+  INVITATIONS_UNAVAILABLE: "Invitations can't be used right now, try again later.",
+  // What the routes of the messages between friends refuse with (PLT-25). A member who blocked you is never one of these: you are only told that you can't write to them, as you are for a friend who was removed
+  MESSAGE_INVALID: "Write a message that is not empty or too long.",
+  MESSAGE_NOT_FRIEND: "You can only write to your friends.",
+  MESSAGE_UNREAD_LIMIT: "Wait for your friend to read your messages before writing more.",
+  MESSAGES_UNAVAILABLE: "Messages can't be used right now, try again later.",
   CROSS_ORIGIN: "This request did not come from this site.",
 }
 

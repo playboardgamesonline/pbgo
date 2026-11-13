@@ -40,6 +40,8 @@ describe("socialRecordOf", () => {
       incoming: [{ nickname: "Dan", tag: 1, avatarUrl: null, at: "2026-11-09T10:00:00+00:00" }],
       outgoing: [{ nickname: "Eve", tag: 9999, avatarUrl: "https://cdn.example/eve.png", at: "2026-11-08T10:00:00+00:00" }],
       blocked: [{ nickname: "Fay", tag: 5, avatarUrl: null }],
+      invitations: [],
+      conversations: [],
     })
   })
 
@@ -82,10 +84,73 @@ describe("socialRecordOf", () => {
 
 describe("readSocial", () => {
   it("asks for the state of the account in one call", async () => {
-    mocks.rpc.mockResolvedValue({ data: state(), error: null })
+    mocks.rpc.mockImplementation(async (name: string) => (name === "social_state" ? { data: state(), error: null } : { data: [], error: null }))
     const record = await readSocial(ANN)
-    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("social_state", { p_user: ANN })
+    expect(mocks.rpc).toHaveBeenCalledWith("social_state", { p_user: ANN })
     expect(record.friends).toHaveLength(2)
+  })
+
+  it("reads the invitations that wait for the account with the state, and leaves out an entry that is not one", async () => {
+    const ID = "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e"
+    mocks.rpc.mockImplementation(async (name: string) =>
+      name === "social_state"
+        ? { data: state(), error: null }
+        : {
+            data: [
+              { id: ID, nickname: "Bob", tag: 42, avatar_url: null, game: "hanabi", at: "2026-11-13T10:00:00+00:00", expires_at: "2026-11-13T10:30:00+00:00" },
+              { id: "not-an-id", nickname: "Cat", tag: 7, avatar_url: null, game: "hanabi", at: "2026-11-13T10:00:00+00:00", expires_at: "2026-11-13T10:30:00+00:00" },
+              { id: ID, nickname: "Dan", tag: 1, avatar_url: null, game: "", at: "2026-11-13T10:00:00+00:00", expires_at: "2026-11-13T10:30:00+00:00" },
+              { id: ID, nickname: "Eve", tag: 1, avatar_url: null, game: "hanabi", at: "yesterday", expires_at: "2026-11-13T10:30:00+00:00" },
+            ],
+            error: null,
+          },
+    )
+    const record = await readSocial(ANN)
+    expect(mocks.rpc).toHaveBeenCalledWith("invitations_for", { p_user: ANN })
+    expect(record.invitations).toEqual([{ id: ID, from: { nickname: "Bob", tag: 42, avatarUrl: null }, game: "hanabi", at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }])
+  })
+
+  it("reads the conversations with the state, the latest first as the database gives them, and leaves out an entry that is not one", async () => {
+    mocks.rpc.mockImplementation(async (name: string) =>
+      name === "social_state"
+        ? { data: state(), error: null }
+        : name === "conversations_for"
+          ? {
+              data: [
+                { nickname: "Bob", tag: 42, avatar_url: null, unread: 2, last_text: "hi", last_at: "2026-11-13T10:00:00+00:00", last_mine: false },
+                { nickname: "Cat", tag: 7, avatar_url: null, unread: -1, last_text: "x", last_at: "2026-11-13T10:00:00+00:00", last_mine: true },
+                { nickname: "Dan", tag: 1, avatar_url: null, unread: 0, last_text: 3, last_at: "2026-11-13T10:00:00+00:00", last_mine: true },
+              ],
+              error: null,
+            }
+          : { data: [], error: null },
+    )
+    const record = await readSocial(ANN)
+    expect(mocks.rpc).toHaveBeenCalledWith("conversations_for", { p_user: ANN, p_limit: 50 })
+    expect(record.conversations).toEqual([{ nickname: "Bob", tag: 42, avatarUrl: null, unread: 2, lastText: "hi", lastAt: "2026-11-13T10:00:00+00:00", lastMine: false }])
+  })
+
+  it("has the friends and no conversation where migration 0025 is not applied yet, and throws the rest", async () => {
+    mocks.rpc.mockImplementation(async (name: string) => (name === "conversations_for" ? { data: null, error: { code: "42883", message: "no function" } } : name === "social_state" ? { data: state(), error: null } : { data: [], error: null }))
+    const record = await readSocial(ANN)
+    expect(record.friends).toHaveLength(2)
+    expect(record.conversations).toEqual([])
+    const error = { code: "57014", message: "timeout" }
+    mocks.rpc.mockImplementation(async (name: string) => (name === "conversations_for" ? { data: null, error } : name === "social_state" ? { data: state(), error: null } : { data: [], error: null }))
+    await expect(readSocial(ANN)).rejects.toBe(error)
+  })
+
+  it("has the friends and no invitation where migration 0024 is not applied yet", async () => {
+    mocks.rpc.mockImplementation(async (name: string) => (name === "social_state" ? { data: state(), error: null } : { data: null, error: { code: "PGRST202", message: "no function" } }))
+    const record = await readSocial(ANN)
+    expect(record.friends).toHaveLength(2)
+    expect(record.invitations).toEqual([])
+  })
+
+  it("throws what the database says of the invitations when it is not a missing migration", async () => {
+    const error = { code: "57014", message: "timeout" }
+    mocks.rpc.mockImplementation(async (name: string) => (name === "social_state" ? { data: state(), error: null } : { data: null, error }))
+    await expect(readSocial(ANN)).rejects.toBe(error)
   })
 
   it("has nobody where migration 0017 is not applied yet, and throws the rest", async () => {

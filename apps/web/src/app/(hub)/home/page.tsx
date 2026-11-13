@@ -96,7 +96,7 @@ export default async function MemberHome() {
         if (!entry) return null
         const row = tableEntryProps(tableOfMember(table, entry.game.players?.max ?? table.players.length, settingsOf.get(`${table.game}:${table.code}`)), table.game, undefined, await getExpansions(table.game), table.status === "lobby")
         // Which game it is, first; the free seats of a table that is played are no way in, and the row leads to the table: a lobby's page, or the board of a game in progress (`/<slug>/game/<code>` sends a lobby to its page)
-        return { id: `${table.game}:${table.code}`, entry: { ...row, facts: [entry.game.name, ...(row.facts ?? [])], hostedByYou: table.hostId === table.seat, to: row.href } }
+        return { id: `${table.game}:${table.code}`, ...(table.status === "lobby" ? { invite: { game: table.game, code: table.code } } : {}), entry: { ...row, facts: [entry.game.name, ...(row.facts ?? [])], hostedByYou: table.hostId === table.seat, to: row.href } }
       }),
     )
   ).filter((row) => row !== null)

@@ -1,7 +1,9 @@
 import { TAG_MAX, TAG_MIN, tagText, type Handle } from "@pbgo/accounts"
 import type { Friend, FriendStatus } from "@pbgo/ui/friends"
-import type { FriendRequest } from "@pbgo/ui/social"
+import type { Conversation, FriendRequest, Message, TableInvitation } from "@pbgo/ui/social"
 import type { FriendEntry, Person, RequestEntry } from "./friends"
+import type { InvitationEntry } from "./invitations"
+import type { ChatMessage, ConversationEntry } from "./messages"
 
 // What the panels draw of the social state (PLT-23): the friends and the requests of `@pbgo/ui`, made from what the server says (`./friends`). Pure, so that the panel, the pages and the tests read the state the same way.
 
@@ -34,11 +36,38 @@ export const requestOf = (entry: RequestEntry, direction: FriendRequest["directi
   direction,
 })
 
-/** The friends and the requests of the social state, as the panel draws them: the requests that came in first, then the ones that went out, each the newest first. */
-export function panelOf(state: { friends: readonly FriendEntry[]; incoming: readonly RequestEntry[]; outgoing: readonly RequestEntry[] }): { friends: Friend[]; requests: FriendRequest[] } {
+/** An invitation to a table as the panel draws it: who invited, to which game, until when. */
+export const invitationOfEntry = (entry: InvitationEntry): TableInvitation => ({ id: entry.id, nickname: entry.from.nickname, tag: tagText(entry.from.tag), avatarUrl: entry.from.avatarUrl, game: entry.game, expiresAt: entry.expiresAt })
+
+/** A message of a conversation as the chat window draws it: `mine` is "me", the friend's is "them". Its id is the database's, which orders it. */
+export const messageOfChat = (message: ChatMessage): Message => ({ id: String(message.id), from: message.mine ? "me" : "them", text: message.text, at: message.at })
+
+/**
+ * The conversations of the social state, as the panel draws them: the last message of each is what the list shows (the whole conversation is read when its window opens), and how many of the friend's are not read. A conversation with somebody who is not in the list of
+ * friends is left out (the server only tells those of current friends, so this is a state that changed between two reads).
+ */
+export function conversationsOf(entries: readonly ConversationEntry[], friends: readonly Friend[]): Conversation[] {
+  const byKey = new Map(friends.map((friend) => [friend.id, friend]))
+  return entries.flatMap((entry) => {
+    const friend = byKey.get(personKey(entry))
+    if (!friend) return []
+    return [{ id: `chat:${friend.id}`, friend, unread: entry.unread, messages: [{ id: `last:${friend.id}`, from: entry.lastMine ? "me" : "them", text: entry.lastText, at: entry.lastAt } satisfies Message] }]
+  })
+}
+
+/** The friends, the requests and the invitations of the social state, as the panel draws them: the requests that came in first, then the ones that went out, each the newest first. */
+export function panelOf(state: { friends: readonly FriendEntry[]; incoming: readonly RequestEntry[]; outgoing: readonly RequestEntry[]; invitations?: readonly InvitationEntry[]; conversations?: readonly ConversationEntry[] }): {
+  friends: Friend[]
+  requests: FriendRequest[]
+  invitations: TableInvitation[]
+  conversations: Conversation[]
+} {
+  const friends = state.friends.map(friendOf)
   return {
-    friends: state.friends.map(friendOf),
+    friends,
+    conversations: conversationsOf(state.conversations ?? [], friends),
     requests: [...state.incoming.map((entry) => requestOf(entry, "incoming")), ...state.outgoing.map((entry) => requestOf(entry, "outgoing"))],
+    invitations: (state.invitations ?? []).map(invitationOfEntry),
   }
 }
 

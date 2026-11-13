@@ -7,6 +7,7 @@ import { Avatar, AvatarCount, AvatarFallback, AvatarImage } from "@pbgo/ui/platf
 import { ChatWindow } from "@pbgo/ui/platform/chat-window"
 import { FriendsBar, FriendsBarList } from "@pbgo/ui/platform/friends-bar"
 import { PresenceDot } from "@pbgo/ui/platform/friends-panel"
+import { InviteFriendList } from "@pbgo/ui/platform/invite-friend"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { SocialDock, SocialDockIdentity } from "@pbgo/ui/platform/social-dock"
 import { SocialPanel, SocialPanelToggle, type SocialTab } from "@pbgo/ui/platform/social-panel"
@@ -120,6 +121,15 @@ export function BarListSpecimen() {
   return (
     <div className="flex w-60 flex-col gap-6 rounded-4xl glass p-4 text-popover-foreground shadow-float ring-1 ring-foreground/10">
       <FriendsBarList entry={entry} onJoin={() => {}} />
+    </div>
+  )
+}
+
+/** The picker of the friend to invite, on its own, in the box of the window that holds it: the connected friends first, then the others, a search over them. A press marks a friend invited, and sends nothing. */
+export function InvitePickerSpecimen() {
+  return (
+    <div className="w-full max-w-md rounded-4xl bg-popover p-6 text-popover-foreground shadow-overlay ring-1 ring-foreground/10">
+      <InviteFriendList friends={FRIENDS} onInvite={() => true} />
     </div>
   )
 }

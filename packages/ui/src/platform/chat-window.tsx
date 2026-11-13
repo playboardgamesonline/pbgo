@@ -23,6 +23,7 @@ function ChatWindow({
   friend,
   messages,
   onSend,
+  maxLength,
   onClose,
   onJoin,
   onInvite,
@@ -35,8 +36,10 @@ function ChatWindow({
   friend: Friend
   /** The messages, the oldest first. */
   messages: readonly Message[]
-  /** What the field does with what was written, once it is not empty. */
-  onSend: (text: string) => void
+  /** What the field does with what was written, once it is not empty. It may answer `false`, or a promise of it, for a message that was refused: what was written is then kept, to be sent again. */
+  onSend: (text: string) => void | boolean | Promise<boolean | void>
+  /** The most characters the field takes (the server's limit, PLT-25). */
+  maxLength?: number
   /** What the button that closes the chat does. */
   onClose: () => void
   /** What the entries of the menu do: join the friend (when they play or wait at a table that has room), invite them (when they are online), remove them, block them. */
@@ -48,6 +51,7 @@ function ChatWindow({
   autoFocus?: boolean
 }) {
   const [text, setText] = React.useState("")
+  const [sending, setSending] = React.useState(false)
   // The same rule as the row of the friend in the list: a friend who plays can be joined, so can one who waits at a table that has room; one who is online anywhere else can be invited
   const joinable = friend.status === "playing" || (friend.status === "online" && friend.table !== undefined && friend.table.size < friend.table.max)
   const play = joinable ? onJoin : friend.status === "online" ? onInvite : undefined
@@ -109,7 +113,7 @@ function ChatWindow({
           <p
             key={message.id}
             className={cn(
-              "max-w-11/12 rounded-xl px-3 py-2 text-sm wrap-break-word",
+              "ph-mask max-w-11/12 rounded-xl px-3 py-2 text-sm wrap-break-word whitespace-pre-wrap",
               message.from === "me" ? "self-end bg-primary text-primary-foreground" : "self-start bg-muted text-foreground"
             )}
           >
@@ -120,18 +124,20 @@ function ChatWindow({
 
       <form
         className="border-t p-3"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault()
           const sent = text.trim()
-          if (sent === "") return
-          onSend(sent)
-          setText("")
+          if (sent === "" || sending) return
+          setSending(true)
+          const kept = (await Promise.resolve(onSend(sent)).catch(() => false)) === false
+          setSending(false)
+          if (!kept) setText("")
         }}
       >
         <InputGroup>
-          <InputGroupInput value={text} onChange={(event) => setText(event.target.value)} placeholder="Message" aria-label={`Message ${friend.nickname}`} autoComplete="off" autoFocus={autoFocus} />
+          <InputGroupInput className="ph-mask" value={text} maxLength={maxLength} onChange={(event) => setText(event.target.value)} placeholder="Message" aria-label={`Message ${friend.nickname}`} autoComplete="off" autoFocus={autoFocus} />
           <InputGroupAddon align="inline-end">
-            <Button type="submit" size="icon-xs" variant="ghost" aria-label="Send" title="Send" disabled={text.trim() === ""}>
+            <Button type="submit" size="icon-xs" variant="ghost" aria-label="Send" title="Send" disabled={text.trim() === "" || sending}>
               <HugeiconsIcon icon={SentIcon} strokeWidth={2} />
             </Button>
           </InputGroupAddon>

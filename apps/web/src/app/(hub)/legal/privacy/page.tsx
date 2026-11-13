@@ -3,11 +3,14 @@ import Link from "next/link"
 import { ConsentLink } from "@pbgo/analytics/client"
 import { ANALYTICS_ENABLED } from "@pbgo/analytics/config"
 import { MAX_BLOCKS, MAX_FRIENDS } from "@pbgo/core/lib/friends"
+import { INVITATION_TTL_MINUTES } from "@pbgo/core/lib/invitations"
 import {
   ACCOUNT_DELETION_GRACE_DAYS,
   FEEDBACK_RETENTION_MONTHS,
   FINISHED_STATE_RETENTION_HOURS,
   FRIEND_REQUEST_RETENTION_DAYS,
+  INVITATION_RETENTION_DAYS,
+  MESSAGE_RETENTION_DAYS,
   PRESENCE_RETENTION_DAYS,
   TABLE_RETENTION_DAYS,
   UNRANKED_SEAT_RETENTION_MONTHS,
@@ -156,7 +159,11 @@ export default function PrivacyPolicy() {
             },
             {
               name: "Your friends",
-              text: `You can add other members as friends, by their username and tag or from their profile. For each pair of friends we keep that they are friends and since when; for each request that waits, who sent it to whom and when; and for each member you block, that you blocked them and when. Your friends can see whether you are online, which means that our server saw you in the last two minutes, in a tab of the site or at a table, and the game you are at, and whether you wait in its lobby or are playing. They never see a table or its code, and they see no other time: not when you were last online. Nobody who is not your friend sees any of it. If you block a member, you stop being friends, the requests between you are deleted, they can no longer send you any and they are not told: a request they send seems to go, and nothing is kept. A member who is blocked sees nothing about you, and you are no longer in their list of friends. You can have up to ${MAX_FRIENDS} friends and block up to ${MAX_BLOCKS} members. A request nobody answers is deleted after ${FRIEND_REQUEST_RETENTION_DAYS} days, and one that is answered is not kept: accepting makes you friends, and declining or cancelling leaves nothing. Your friends and the members you block stay until you remove or unblock them, or until one of the accounts is deleted. While your account is closed (see "Deleting your account") you are in nobody's list.`,
+              text: `You can add other members as friends, by their username and tag or from their profile. For each pair of friends we keep that they are friends and since when; for each request that waits, who sent it to whom and when; and for each member you block, that you blocked them and when. Your friends can see whether you are online, which means that our server saw you in the last two minutes, in a tab of the site or at a table, and the game you are at, and whether you wait in its lobby or are playing. They never see a table or its code, and they see no other time: not when you were last online. Nobody who is not your friend sees any of it. If you block a member, you stop being friends, the requests between you are deleted, they can no longer send you any and they are not told: a request they send seems to go, and nothing is kept. A member who is blocked sees nothing about you, and you are no longer in their list of friends. You can have up to ${MAX_FRIENDS} friends and block up to ${MAX_BLOCKS} members. A request nobody answers is deleted after ${FRIEND_REQUEST_RETENTION_DAYS} days, and one that is answered is not kept: accepting makes you friends, and declining or cancelling leaves nothing. Your friends and the members you block stay until you remove or unblock them, or until one of the accounts is deleted. While your account is closed (see "Deleting your account") you are in nobody's list. You can invite a friend to the lobby you sit at: for each invitation we keep who sent it to whom, the game and the code of the table, when it was sent and when it expires, and what became of it (waiting, accepted, declined, expired). Only your friends can be invited, and only the one invited sees it, with your name and the game: the code of the table is told to them when they accept. Invitations expire after ${INVITATION_TTL_MINUTES} minutes and are deleted ${INVITATION_RETENTION_DAYS} day after they were sent, whatever became of them; they are deleted at once if you stop being friends or one of you blocks the other, and a member who blocked you is never told of an invitation you send.`,
+            },
+            {
+              name: "Your messages",
+              text: `You can write to your friends, and only to them. For each message we keep who wrote it to whom, the text, when it was written and when the other person read it. Only the two of you see a conversation: the other person sees your username, your tag and your picture, and the last message of each conversation is shown in the list of the social panel. Messages are not end-to-end encrypted: our servers read them to deliver them, and our database holds the text. We do not read them otherwise, we do not use them to measure anything, and our analytics never sees them (what you type in a message is hidden from the recordings). A message is deleted ${MESSAGE_RETENTION_DAYS} days after it was written, whether it was read or not, and at once, both sides, if you remove the friend or block them (a member you blocked, or who blocked you, can no longer write to you or read the conversation, and the one who blocked is not told); they are deleted with your account too. You cannot send more than a limited number of messages that the other person has not read.`,
             },
             {
               name: "Your games, your totals and your rank",

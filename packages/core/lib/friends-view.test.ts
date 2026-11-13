@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { friendOf, handleOfPerson, panelOf, personKey, requestOf } from "./friends-view"
+import { conversationsOf, friendOf, handleOfPerson, messageOfChat, panelOf, personKey, requestOf } from "./friends-view"
 import type { FriendEntry, RequestEntry } from "./friends"
 
 const person = { nickname: "Bob", tag: 42, avatarUrl: "https://cdn.example/bob.png" }
@@ -64,7 +64,13 @@ describe("requestOf and panelOf", () => {
   })
 
   it("draw nobody for a state with nobody", () => {
-    expect(panelOf({ friends: [], incoming: [], outgoing: [] })).toEqual({ friends: [], requests: [] })
+    expect(panelOf({ friends: [], incoming: [], outgoing: [] })).toEqual({ friends: [], requests: [], invitations: [], conversations: [] })
+  })
+
+  it("draw the invitations to a table with who invited, the game and the time, and never a code", () => {
+    const invitation = { id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Cat", tag: 3, avatarUrl: null }, game: COURTISANS, at, expiresAt: "2026-11-09T10:30:00.000Z" }
+    const { invitations } = panelOf({ friends: [], incoming: [], outgoing: [], invitations: [invitation] })
+    expect(invitations).toEqual([{ id: invitation.id, nickname: "Cat", tag: "0003", avatarUrl: null, game: COURTISANS, expiresAt: "2026-11-09T10:30:00.000Z" }])
   })
 })
 
@@ -79,5 +85,31 @@ describe("handleOfPerson", () => {
     for (const bad of [{ nickname: "Bob" }, { nickname: "Bob", tag: null }, { nickname: "Bob", tag: "" }, { nickname: "Bob", tag: "0000" }, { nickname: "Bob", tag: "10000" }, { nickname: "Bob", tag: "4.2" }, { nickname: "Bob", tag: "x" }, { nickname: "", tag: "0042" }]) {
       expect(handleOfPerson(bad)).toBeNull()
     }
+  })
+})
+
+describe("conversationsOf", () => {
+  const bob = friendOf(entry())
+  const last = { ...person, unread: 2, lastText: "see you", lastAt: "2026-11-13T10:00:00.000Z", lastMine: false }
+
+  it("draws a conversation with its friend, the count of what is not read and the last message, who wrote it said", () => {
+    expect(conversationsOf([last], [bob])).toEqual([{ id: "chat:bob#42", friend: bob, unread: 2, messages: [{ id: "last:bob#42", from: "them", text: "see you", at: "2026-11-13T10:00:00.000Z" }] }])
+    expect(conversationsOf([{ ...last, lastMine: true }], [bob])[0]?.messages[0]?.from).toBe("me")
+  })
+
+  it("leaves out a conversation with somebody who is not a friend of the list, and keeps the order it was given", () => {
+    const cat = { ...last, nickname: "Cat", tag: 7 }
+    expect(conversationsOf([cat, last], [bob]).map((conversation) => conversation.friend.id)).toEqual(["bob#42"])
+  })
+
+  it("comes with the state of the panel", () => {
+    expect(panelOf({ friends: [entry()], incoming: [], outgoing: [], conversations: [last] }).conversations).toHaveLength(1)
+  })
+})
+
+describe("messageOfChat", () => {
+  it("is the message the chat window draws, its id as text", () => {
+    expect(messageOfChat({ id: 5, mine: true, text: "x", at: "2026-11-13T10:00:00.000Z" })).toEqual({ id: "5", from: "me", text: "x", at: "2026-11-13T10:00:00.000Z" })
+    expect(messageOfChat({ id: 6, mine: false, text: "y", at: "2026-11-13T10:00:00.000Z" }).from).toBe("them")
   })
 })

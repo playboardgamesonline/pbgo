@@ -33,3 +33,13 @@ Under the pointer a friend has a card to the left of the panel: their picture an
 ```specimen
 chat-window
 ```
+
+## The invitations card
+
+Module: `@pbgo/ui/platform/invitations-card`
+
+The invitations to a table that wait for the visitor (PLT-109) are a card at the top of the panel, over the tabs, whatever tab is open, as the search for a game is: the friend's picture, who invites and, under it, the game (its picture and its name) and how long is left; a white button to accept and a grey one to decline. The card draws nothing with no invitation, decides nothing (`onAnswer` does the work and may answer `false`, or a promise of it, for a refusal) and has no button without it; an invitation past its time says "expired" and can only be declined. `SocialPanel` takes `invitations` and `onAnswerInvitation`; the count is on the corner of the picture like the rest of what waits. A new invitation is also the toast that stays (`GameInvitationToast`).
+
+## The chat window and real messages
+
+`ChatWindow` draws a message as text in a bubble that keeps its line breaks and is masked in a recording (`ph-mask`); its field takes `maxLength` and keeps what was written when `onSend` answers `false` (or a promise of it), so that a refused message is not lost. The hub reads the conversation from the server while the window is open (`useChatThread`, PLT-25).

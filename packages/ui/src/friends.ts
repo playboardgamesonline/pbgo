@@ -130,3 +130,29 @@ export function initials(nickname: string): string {
       .toLocaleUpperCase() || "?"
   )
 }
+
+/**
+ * The friends who are connected, in the order the dock's bar draws them: those who are playing, then those who wait online, inactive ones and those who do not want to be disturbed, each group in the order the friends came in (the server's, by name).
+ * A friend who is away is not in it.
+ */
+export function connectedOf(friends: readonly Friend[]): Friend[] {
+  return sectionsOf(friends.filter((friend) => friend.status !== "offline")).flatMap((section) => section.friends)
+}
+
+/** The friends who match what was typed in a search (nickname, tag, or `nickname#tag`, whatever the case): all of them for nothing but spaces. */
+export function matchingFriends(friends: readonly Friend[], query: string): Friend[] {
+  const wanted = query.trim().replace(/^@/, "").toLocaleLowerCase()
+  if (wanted === "") return [...friends]
+  return friends.filter((friend) => `${friend.nickname}#${friend.tag ?? ""}`.toLocaleLowerCase().includes(wanted))
+}
+
+/**
+ * The friends a visitor may invite, as the picker lists them: the connected ones first, as suggestions (those who are free first, then those who do not want to be disturbed, then those who are playing, since a game in progress keeps them), then those who are away, each list narrowed by `query`. A friend who is
+ * not connected is listed too: the invitation waits for them, and is seen when they come back (it expires).
+ */
+export function suggestionsOf(friends: readonly Friend[], query = ""): { online: Friend[]; offline: Friend[] } {
+  const found = matchingFriends(friends, query)
+  const free: FriendStatus[] = ["online", "inactive", "dnd", "playing"]
+  const online = connectedOf(found).sort((a, b) => free.indexOf(a.status) - free.indexOf(b.status))
+  return { online, offline: found.filter((friend) => friend.status === "offline") }
+}

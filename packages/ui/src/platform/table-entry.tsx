@@ -36,6 +36,8 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
   onJoin?: () => void
   /** What is done once the visitor has copied the table's link from the menu of a free seat (`mine`): a page counts it. */
   onCopyInvite?: () => void
+  /** What "Invite a friend" does in the menu of a free seat of the visitor's own table (`mine`): the page opens the picker of the friend (PLT-109). The item is off without it. */
+  onInvite?: () => void
   /** Whether the visitor sits at this table: a free seat then opens the menu to invite someone, instead of joining it. */
   mine?: boolean
   /** Whether the visitor opened it: the row then says "Hosted by you". */
@@ -53,13 +55,13 @@ type TableEntryProps = Omit<React.ComponentProps<"li">, "children"> & {
 /** The row's Join button: hidden until the pointer is on the row or the keyboard is on the row's controls, and always there where nothing can hover (a phone). It keeps its place in the layout while hidden, so the row does not move. Raised over the stretched link of a row that is a link (`z-10`). */
 const JOIN_BUTTON = "relative z-10 mr-4 mb-4 shrink-0 opacity-0 transition-opacity duration-fast group-hover/entry:opacity-100 group-has-focus-visible/entry:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
 
-function TableEntry({ className, state, seats, age, mode, facts = [], action, href, onJoin, onCopyInvite, mine = false, hostedByYou = false, selected = false, onSelect, controls, to, ...props }: TableEntryProps) {
+function TableEntry({ className, state, seats, age, mode, facts = [], action, href, onJoin, onCopyInvite, onInvite, mine = false, hostedByYou = false, selected = false, onSelect, controls, to, ...props }: TableEntryProps) {
   const { taken, total } = seatCount(seats)
   const host = hostedByYou ? "you" : (hostOf(seats) ?? "a player who left")
   const full = action === "full"
   const firstFree = seats.indexOf(null)
   const join = !mine && (href || onJoin) && action === "join" ? { href, onJoin } : undefined
-  const invite = mine && href ? { link: href, onCopy: onCopyInvite } : undefined
+  const invite = mine && href ? { link: href, onCopy: onCopyInvite, onInvite } : undefined
   const word = mine ? "Invite" : join ? "Join" : "Open"
   // The first line is what a press picks (a button, which has its own focus ring), or, in a list with nothing to pick it for, where the row leads (a link). The link is stretched over the whole row by its `::after`, which is also what shows the focus ring, so that
   // the keyboard has one stop and the ring is round the row; the row is `relative` for that and `isolate`, so that what is raised over the link (`z-10`) stays inside the row's own layer

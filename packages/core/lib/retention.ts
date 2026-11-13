@@ -20,6 +20,18 @@ export const PRESENCE_RETENTION_DAYS = 1
 export const FRIEND_REQUEST_RETENTION_DAYS = 30
 
 /**
+ * An invitation to a table (`table_invitations`, PLT-109) goes this many days after it was sent, whatever became of it (waiting, accepted, declined, expired): it lasts `INVITATION_TTL_MINUTES` (`lib/invitations.ts`), so a day is more than it needs.
+ * The nightly clean-up deletes them; a send also clears the old ones of its pair.
+ */
+export const INVITATION_RETENTION_DAYS = 1
+
+/**
+ * A message between friends (`friend_messages`, PLT-25) goes this many days after it was written, read or not: the nightly clean-up deletes it. A conversation is also deleted at once when the two stop being friends (migration 0025), and with either account.
+ * A default of the owner's to confirm: chats here are for a game night, not an archive.
+ */
+export const MESSAGE_RETENTION_DAYS = 30
+
+/**
  * The state of a table that is over (the hidden information of the game: hands, decks) goes this many hours after the table was last written, once the game it played is written down (`game_results`). The end screen and the
  * rematch need it for a while, nothing needs it after a day. The owner's rule of 11 October 2026 (PLT-13): the state is deleted once the result is recorded.
  */
@@ -50,6 +62,16 @@ export function tableCutoff(now: Date = new Date()): Date {
 /** A friend request whose `created_at` is strictly before this instant has waited longer than `FRIEND_REQUEST_RETENTION_DAYS`: it is old enough to delete. */
 export function friendRequestCutoff(now: Date = new Date()): Date {
   return new Date(now.getTime() - FRIEND_REQUEST_RETENTION_DAYS * DAY_MS)
+}
+
+/** An invitation whose `created_at` is strictly before this instant is old enough to delete (`INVITATION_RETENTION_DAYS`). */
+export function invitationCutoff(now: Date = new Date()): Date {
+  return new Date(now.getTime() - INVITATION_RETENTION_DAYS * DAY_MS)
+}
+
+/** A message whose `created_at` is strictly before this instant is old enough to delete (`MESSAGE_RETENTION_DAYS`). */
+export function messageCutoff(now: Date = new Date()): Date {
+  return new Date(now.getTime() - MESSAGE_RETENTION_DAYS * DAY_MS)
 }
 
 /** A member whose `seen_at` is strictly before this instant has not been seen for longer than `PRESENCE_RETENTION_DAYS`: their row is old enough to delete. */

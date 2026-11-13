@@ -10,6 +10,7 @@ import { TableEntries, TableEntry, type TableEntryProps } from "@pbgo/ui/platfor
 import { prefersReducedMotion } from "@pbgo/ui/reduced-motion"
 import { ArrowRight01Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { useInviteFriend } from "./invitation-actions"
 import { useJoinTable } from "./join-table"
 
 // The open tables of a game and the panel that goes with them, in one container: a card with two sides, on the left the tables as rows, on the right the panel, which shows the details of the row that is selected. The visitor's own table is the first row, whatever it
@@ -66,6 +67,8 @@ export function OpenTables({
   const panel = useRef<HTMLDivElement>(null)
   // Sits the visitor down at a table that waits (PLT-106) and takes them to it: the Join button of a row, the plus of a free seat and the main button of the details all do it
   const { join: sit, joining, dialogs } = useJoinTable(slug, signedIn)
+  // "Invite a friend" in the menu of a free seat of the visitor's own table opens the picker (PLT-109)
+  const picker = useInviteFriend()
   const [pickedId, setPickedId] = useState<string | null>(defaultPickedId ?? null)
   const ownId = rows.find((row) => row.own)?.id ?? null
   // The visitor's own table is what the panel shows when nothing is picked, so it is never "picked" itself
@@ -110,6 +113,7 @@ export function OpenTables({
                     {...entry}
                     onJoin={joinable && code ? () => void sit(code) : undefined}
                     onCopyInvite={() => trackClient("invite_link_copied", { game: slug })}
+                    onInvite={entry.mine && code ? () => picker.invite(slug, code) : undefined}
                     selected={id === selectedId}
                     controls={panelId}
                     onSelect={() => pick(id)}
@@ -162,6 +166,7 @@ export function OpenTables({
         </div>
       </div>
       {dialogs}
+      {picker.dialog}
     </section>
   )
 }

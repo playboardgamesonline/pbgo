@@ -19,6 +19,24 @@ export type FriendRequest = {
   direction: "incoming" | "outgoing"
 }
 
+/** An invitation to a table that waits for the visitor's answer (PLT-109): who invited them, to which game, and until when (an ISO date). The table itself is not named: its code is the server's. */
+export type TableInvitation = {
+  id: string
+  nickname: string
+  tag: string
+  avatarUrl?: string | null
+  game: { slug: string; name: string }
+  expiresAt: string
+}
+
+/** How long an invitation has left, in the one unit that fits, for its row: "2 min left", "under a minute left", "expired" once it has passed. `now` is a parameter so that it is tested. */
+export function timeLeft(expiresAt: string, now: number = Date.now()): string {
+  const seconds = Math.round((Date.parse(expiresAt) - now) / 1000)
+  if (!(seconds > 0)) return "expired"
+  if (seconds < 60) return "under a minute left"
+  return `${Math.floor(seconds / 60)} min left`
+}
+
 /** The last message of a conversation, if it has any. */
 export const lastMessage = (conversation: Conversation): Message | undefined => conversation.messages.at(-1)
 

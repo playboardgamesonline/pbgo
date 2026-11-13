@@ -1,7 +1,7 @@
 // The live specimens of the social pages of the design docs (`docs/design`): one component for each piece the markdown shows, registered by name below. The words around them are the page's.
 
 import type { Specimens } from "@pbgo/docs/markdown"
-import { BarListSpecimen, BarSpecimen, ChatSpecimen, DockSpecimen, PresenceLegend, SocialSpecimen } from "./friends-specimen"
+import { BarListSpecimen, BarSpecimen, ChatSpecimen, DockSpecimen, InvitePickerSpecimen, PresenceLegend, SocialSpecimen } from "./friends-specimen"
 import { Frame } from "./text"
 
 function PresenceDotsFrame() {
@@ -109,6 +109,19 @@ function ChatWindowFrame() {
   )
 }
 
+function InvitePickerFrame() {
+  return (
+    <Frame code={`<InviteFriendDialog
+  open={open}
+  onOpenChange={setOpen}
+  friends={friends}
+  onInvite={async (friend) => sendInvitation(friend)}
+/>`}>
+      <InvitePickerSpecimen />
+    </Frame>
+  )
+}
+
 export const socialSpecimens: Specimens = {
   "presence-dots": PresenceDotsFrame,
   "friends-bar": FriendsBarFrame,
@@ -116,4 +129,5 @@ export const socialSpecimens: Specimens = {
   "social-dock": SocialDockFrame,
   "social-tabs": SocialTabsFrame,
   "chat-window": ChatWindowFrame,
+  "invite-friend": InvitePickerFrame,
 }

@@ -13,6 +13,8 @@ import {
   type RequestEntry,
   type SocialState,
 } from "../lib/friends"
+import { isInvitationId } from "../lib/invitations"
+import { MAX_CONVERSATIONS, type ConversationEntry } from "../lib/messages"
 import { isMissingFunction, isMissingTable } from "./db-error"
 import { ensureProfile } from "./profiles"
 import { supabaseAdmin } from "./supabase"
@@ -27,10 +29,13 @@ type Member = Parameters<typeof ensureProfile>[0]
 /** A friend as the database says: whether they are online, and the game (its slug) and the phase of the table they are at, when they are online and at one. The table, with its code, is never read. */
 export type FriendRecord = Person & { online: boolean; game: string | null; phase: FriendPhase | null }
 
-/** The whole social state of a member: their friends with their presence, the requests that came in and went out, the members they blocked. */
-export type SocialRecord = { friends: FriendRecord[]; incoming: RequestEntry[]; outgoing: RequestEntry[]; blocked: Person[] }
+/** An invitation to a table that waits for the member: who sent it, the game (its slug) and when. The table, with its code, is never read. */
+export type InvitationRecord = { id: string; from: Person; game: string; at: string; expiresAt: string }
 
-export const EMPTY_SOCIAL: SocialRecord = { friends: [], incoming: [], outgoing: [], blocked: [] }
+/** The whole social state of a member: their friends with their presence, the requests that came in and went out, the members they blocked, the invitations to a table that wait for them (PLT-109, migration 0024) and their conversations, the latest first (PLT-25, migration 0025). */
+export type SocialRecord = { friends: FriendRecord[]; incoming: RequestEntry[]; outgoing: RequestEntry[]; blocked: Person[]; invitations: InvitationRecord[]; conversations: ConversationEntry[] }
+
+export const EMPTY_SOCIAL: SocialRecord = { friends: [], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [] }
 
 /** Whether the database does not have the friends yet: migration 0017 is not applied. */
 export const friendsNotApplied = (error: unknown): boolean => typeof error === "object" && error !== null && (isMissingTable(error as { code?: string }) || isMissingFunction(error as { code?: string }))
@@ -53,6 +58,25 @@ function friendOfRow(row: Record<string, unknown>): FriendRecord | null {
   return { ...person, online: row.online, game: row.online && game && phase ? game : null, phase: row.online && game && phase ? phase : null }
 }
 
+function invitationOfRow(row: Record<string, unknown>): InvitationRecord | null {
+  const from = personOfRow(row)
+  if (!from || !isInvitationId(row.id) || typeof row.game !== "string" || row.game === "") return null
+  if (typeof row.at !== "string" || Number.isNaN(Date.parse(row.at)) || typeof row.expires_at !== "string" || Number.isNaN(Date.parse(row.expires_at))) return null
+  return { id: row.id, from, game: row.game, at: row.at, expiresAt: row.expires_at }
+}
+
+/** The invitations that `invitations_for` answers, as records: an entry that is not what it should be is left out. */
+export const invitationRecordsOf = (data: unknown): InvitationRecord[] => objectsOf(data).flatMap((row) => invitationOfRow(row) ?? [])
+
+function conversationOfRow(row: Record<string, unknown>): ConversationEntry | null {
+  const person = personOfRow(row)
+  if (!person || typeof row.unread !== "number" || !Number.isInteger(row.unread) || row.unread < 0 || typeof row.last_text !== "string" || typeof row.last_at !== "string" || Number.isNaN(Date.parse(row.last_at)) || typeof row.last_mine !== "boolean") return null
+  return { ...person, unread: row.unread, lastText: row.last_text, lastAt: row.last_at, lastMine: row.last_mine }
+}
+
+/** The conversations that `conversations_for` answers, as entries: one that is not what it should be is left out. */
+export const conversationRecordsOf = (data: unknown): ConversationEntry[] => objectsOf(data).flatMap((row) => conversationOfRow(row) ?? [])
+
 /** The state that `social_state` answers, as a record: an entry that is not what it should be is left out, and an answer that is not an object is nobody's state. */
 export function socialRecordOf(data: unknown): SocialRecord {
   if (typeof data !== "object" || data === null) return EMPTY_SOCIAL
@@ -62,23 +86,44 @@ export function socialRecordOf(data: unknown): SocialRecord {
     incoming: objectsOf(incoming).flatMap((row) => requestOfRow(row) ?? []),
     outgoing: objectsOf(outgoing).flatMap((row) => requestOfRow(row) ?? []),
     blocked: objectsOf(blocked).flatMap((row) => personOfRow(row) ?? []),
+    invitations: [],
+    conversations: [],
   }
 }
 
-/** The friends, the requests and the blocks of this account, read in one call. Throws what the database says, but not for a project where the friends are not there yet, which has none. */
+/**
+ * The friends, the requests, the blocks, the invitations and the conversations of this account, read together. Throws what the database says, but not for a project where the friends are not there yet, which has none. A project where migration 0024 or 0025 is not
+ * applied has no invitations or no conversations, and the rest is read as ever.
+ */
 export async function readSocial(userId: string): Promise<SocialRecord> {
-  const { data, error } = await supabaseAdmin().rpc("social_state", { p_user: userId })
-  if (error) {
-    if (friendsNotApplied(error)) return EMPTY_SOCIAL
-    throw error
+  const db = supabaseAdmin()
+  const [state, invitations, conversations] = await Promise.all([
+    db.rpc("social_state", { p_user: userId }),
+    db.rpc("invitations_for", { p_user: userId }),
+    db.rpc("conversations_for", { p_user: userId, p_limit: MAX_CONVERSATIONS }),
+  ])
+  if (state.error) {
+    if (friendsNotApplied(state.error)) return EMPTY_SOCIAL
+    throw state.error
   }
-  return socialRecordOf(data)
+  if (invitations.error && !friendsNotApplied(invitations.error)) throw invitations.error
+  if (conversations.error && !friendsNotApplied(conversations.error)) throw conversations.error
+  return {
+    ...socialRecordOf(state.data),
+    invitations: invitations.error ? [] : invitationRecordsOf(invitations.data),
+    conversations: conversations.error ? [] : conversationRecordsOf(conversations.data),
+  }
 }
 
 /** The social state as the browser is told it: each friend's game with its name (the hub's, which the app gives), or none when the hub has no name for it. The tables, and the accounts, are not in it. */
 export function stateOf(record: SocialRecord, names: ReadonlyMap<string, string>): SocialState {
   return {
     ...record,
+    // An invitation is for a game that the hub names; one for a game it does not list (it was taken down) is not shown, since the table cannot be joined from here
+    invitations: record.invitations.flatMap((invitation) => {
+      const name = names.get(invitation.game)
+      return name ? [{ id: invitation.id, from: invitation.from, game: { slug: invitation.game, name }, at: invitation.at, expiresAt: invitation.expiresAt }] : []
+    }),
     friends: record.friends.map((friend) => {
       const name = friend.game ? names.get(friend.game) : undefined
       return friend.game && name ? { ...friend, game: { slug: friend.game, name } } : { ...friend, game: null, phase: null }

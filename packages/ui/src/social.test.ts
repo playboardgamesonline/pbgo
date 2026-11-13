@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Friend } from "./friends"
-import { lastMessage, sortedConversations, timeAgo, unreadOf, type Conversation } from "./social"
+import { lastMessage, sortedConversations, timeAgo, timeLeft, unreadOf, type Conversation } from "./social"
 
 const NOW = Date.parse("2026-10-29T12:00:00Z")
 const friend: Friend = { id: "f", nickname: "Marly", status: "online" }
@@ -48,5 +48,19 @@ describe("lastMessage and unreadOf", () => {
     expect(lastMessage(conversation("b", []))).toBeUndefined()
     expect(unreadOf([conversation("a", [1], 2), conversation("b", [2], 0), conversation("c", [3], 5)])).toBe(7)
     expect(unreadOf([])).toBe(0)
+  })
+})
+
+describe("timeLeft", () => {
+  const NOW = Date.parse("2026-11-13T10:00:00.000Z")
+  it("counts the minutes an invitation has left, and says so under a minute", () => {
+    expect(timeLeft("2026-11-13T10:30:00.000Z", NOW)).toBe("30 min left")
+    expect(timeLeft("2026-11-13T10:01:30.000Z", NOW)).toBe("1 min left")
+    expect(timeLeft("2026-11-13T10:00:40.000Z", NOW)).toBe("under a minute left")
+  })
+  it("says expired once the time has come, and for a date that is not one", () => {
+    expect(timeLeft("2026-11-13T10:00:00.000Z", NOW)).toBe("expired")
+    expect(timeLeft("2026-11-13T09:00:00.000Z", NOW)).toBe("expired")
+    expect(timeLeft("never", NOW)).toBe("expired")
   })
 })
