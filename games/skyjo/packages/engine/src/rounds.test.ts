@@ -21,7 +21,7 @@ describe("three equal cards in a column (page 2)", () => {
     // 6, 6, 6 on top, over the card that was in the cell, over the 9 that was under the 6
     expect(values(state, state.discard)).toEqual([6, 6, 6, hidden, 9])
     expect(kinds(result)).toEqual(["place", "column"])
-    expect(result.events[1]!.event).toMatchObject({ kind: "column", by: "ana", column: 0, value: 6 })
+    expect(result.events[1]!.event).toMatchObject({ kind: "column", by: "ana", column: 0, value: 6, cards: [{ type: "card-6" }, { type: "card-6" }, { type: "card-6" }] })
     expect(problems(state)).toEqual([])
     expect(state.stats[0]!.columns).toBe(1)
   })

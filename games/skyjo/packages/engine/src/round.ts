@@ -3,6 +3,7 @@ import {
   type Ctx,
   allUp,
   emit,
+  faceOf,
   fullScore,
   gridOf,
   isOver,
@@ -82,7 +83,7 @@ export function dropColumn(ctx: Ctx, seat: number, column: number): boolean {
   for (const position of columnCells(column)) grid[position] = null
   s.discard.unshift(...cards)
   s.stats[seat]!.columns += 1
-  emit(ctx, { kind: "column", by: playerAt(s, seat), column, value: valueOf(s, cards[0]!) })
+  emit(ctx, { kind: "column", by: playerAt(s, seat), column, value: valueOf(s, cards[0]!), cards: cards.map((card) => faceOf(s, card)) })
   return true
 }
 

@@ -194,7 +194,7 @@ export type PlayerView = {
  * - `draw`: `by` drew a card from the pile. Only `by` reads which one: the others read the masked entry, with no `card`.
  * - `place`: `by` put the card `card` in `position`; `replaced` is the card that was there, now on the discard (`replacedUp`: it was face up).
  * - `discard`: `by` threw the card they drew onto the discard.
- * - `column`: three equal cards in `column` of `by` were thrown away (`value` is what they were).
+ * - `column`: three equal cards in `column` of `by` were thrown away (`value` is what they were, `cards` the three, top of the column first).
  * - `last`: `by` turned their last card over: everyone else plays one last turn.
  * - `reshuffle`: the draw pile ran out and the discard was shuffled into a new one.
  */
@@ -205,7 +205,7 @@ export type SkyjoEvent =
   | { kind: "draw"; by: string; card?: Face }
   | { kind: "place"; by: string; position: number; card: Face; replaced: Face; replacedUp: boolean }
   | { kind: "discard"; by: string; card: Face }
-  | { kind: "column"; by: string; column: number; value: number }
+  | { kind: "column"; by: string; column: number; value: number; cards: Face[] }
   | { kind: "start"; by: string; sum: number }
   | { kind: "last"; by: string }
   | { kind: "reshuffle" }

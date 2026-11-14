@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Skyjo for apps/web: site constants, logo and default look. No engine yet, so its home page says \"coming soon\".",
+  "description": "Skyjo for apps/web: site constants, logo, default look, the engine (GAME) and the board.",
   "exports": {
     ".": "./src/index.ts",
     "./ui": "./src/ui.tsx",
@@ -12,14 +12,24 @@
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p content && tsc --noEmit -p content/parity",
+    "test": "vitest run",
+    "content:seed": "node --disable-warning=ExperimentalWarning content/seed.ts",
     "dev:studio": "pnpm --filter skyjo-studio dev",
     "deploy:studio": "pnpm --filter skyjo-studio run deploy"
   },
   "dependencies": {
     "@pbgo/core": "workspace:*",
+    "@pbgo/table": "workspace:*",
     "@pbgo/ui": "workspace:*",
-    "server-only": "catalog:"
+    "@react-three/drei": "catalog:",
+    "@react-three/fiber": "catalog:",
+    "@sanity/client": "catalog:",
+    "@skyjo/engine": "workspace:*",
+    "next-sanity": "catalog:",
+    "server-only": "catalog:",
+    "sonner": "catalog:",
+    "three": "catalog:"
   },
   "peerDependencies": {
     "next": "catalog:",
@@ -27,13 +37,18 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@pbgo/content-kit": "workspace:*",
+    "@pbgo/engine-kit": "workspace:*",
+    "@pbgo/studio-kit": "workspace:*",
     "@pbgo/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/three": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
