@@ -231,10 +231,10 @@ export function uprightYaw(yaw: number): number {
   return Math.abs(turn) <= Math.PI / 2 + 1e-9 ? turn : turn - Math.sign(turn) * Math.PI
 }
 
-/** What a plate occupies in its own frame (the aura's width, and from above the name to below the status), measured from its centre: along z, from -`lift` to `drop` */
-const PLATE = { lift: SEAT_SETTINGS.nameLift + 0.45, drop: SEAT_SETTINGS.statusDrop + 0.3 }
+/** What a plate occupies in its own frame (the aura's width, and from above the name to below the info line), measured from its centre: along z, from -`lift` to `drop` */
+const PLATE = { lift: SEAT_SETTINGS.nameLift + 0.45, drop: SEAT_SETTINGS.lineDrop + 0.3 }
 
-/** Where the plate of a seat stands, and the yaw of its frame (the way its text reads: name, then score, then status, going down the frame's +z). It stands beyond the grid, out from the middle of the table, clear of it by `plateGap`. */
+/** Where the plate of a seat stands, and the yaw of its frame (the way its text reads: name, then the info line (score and status), going down the frame's +z). It stands beyond the grid, out from the middle of the table, clear of it by `plateGap`. */
 export function plateAt(spot: SeatSpot, grid: Grid): Place & { yaw: number } {
   const R = LAYOUT_SETTINGS
   const yaw = R.textTurn ? uprightYaw(spot.yaw) : 0
