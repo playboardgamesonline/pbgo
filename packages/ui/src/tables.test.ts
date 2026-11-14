@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ageOf, defaultSeats, DELETED_PLAYER, fitSeats, hostOf, lasted, MAX_SEATS, namesOf, nicknameOf, PACES, playerRange, seatCount, seatsOf, SPEEDS, tableAction, tagOf, type TableSeat } from "./tables"
+import { ageOf, DEFAULT_SEATS_CAP, defaultSeats, DELETED_PLAYER, fitSeats, hostOf, lasted, MAX_SEATS, namesOf, nicknameOf, PACES, playerRange, seatCount, seatsOf, SPEEDS, tableAction, tagOf, type TableSeat } from "./tables"
 
 const NOW = Date.parse("2026-11-01T12:00:00Z")
 const ago = (minutes: number) => new Date(NOW - minutes * 60_000).toISOString()
@@ -183,6 +183,17 @@ describe("defaultSeats", () => {
     expect(defaultSeats(min, max)).toBe(count)
   })
 
+  it("is capped at DEFAULT_SEATS_CAP, but never under the game's own least players", () => {
+    expect(DEFAULT_SEATS_CAP).toBe(6)
+    expect(defaultSeats(2, 12)).toBe(6)
+    expect(defaultSeats(2, 10)).toBe(6)
+    expect(defaultSeats(1, 12)).toBe(6)
+    expect(defaultSeats(2, 8)).toBe(5)
+    expect(defaultSeats(6, 10)).toBe(6)
+    expect(defaultSeats(7, 9)).toBe(7)
+    expect(defaultSeats(8, 8)).toBe(8)
+  })
+
   it("is never the game's most when the game takes more than two players, and always inside its range", () => {
     for (let min = 1; min <= 6; min++) {
       for (let max = min; max <= MAX_SEATS; max++) {
@@ -196,9 +207,9 @@ describe("defaultSeats", () => {
 
   it("is what playerRange gives a game that says no most or nothing at all", () => {
     const { min, max } = playerRange(2, null)
-    expect(defaultSeats(min, max)).toBe(8)
+    expect(defaultSeats(min, max)).toBe(6)
     const none = playerRange(null, null)
-    expect(defaultSeats(none.min, none.max)).toBe(8)
+    expect(defaultSeats(none.min, none.max)).toBe(6)
   })
 })
 
