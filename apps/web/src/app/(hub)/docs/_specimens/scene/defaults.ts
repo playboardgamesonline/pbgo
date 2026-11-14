@@ -195,11 +195,11 @@ export const PLAY_NAMES = ["Alix", "Basile", "Camille", "Dana", "Eli", "Farah", 
 export const PLAY_PLAYERS = { min: 2, max: 8 }
 export const PLAY_SEAT_COLORS = [
   "var(--piece-red)",
-  "color-mix(in oklab, var(--piece-navy) 82%, var(--piece-ink))",
+  "color-mix(in oklab, var(--piece-navy) 40%, white)",
   "color-mix(in oklab, var(--piece-gold) 72%, var(--piece-ink))",
   "var(--piece-ivory)",
   "var(--muted-foreground)",
-  "var(--piece-navy)",
+  "color-mix(in oklab, var(--piece-navy) 55%, white)",
   "var(--success)",
   "var(--piece-gold)",
 ] as const
@@ -352,3 +352,8 @@ export const PLAY_CLOCK = { seconds: 12 }
 export const PLAY_SKETCH = { x: 11.4, z: 6.2, width: 4.8, height: 3.6, zoom: 32 }
 /** How many things the table holds at the most, how many tokens the track has, and the most the counter reaches. */
 export const PLAY_LIMITS = { things: 24, spaces: 8, counter: 99, dice: 6, zoom: { min: 14, max: 34, start: 22 }, tilt: { min: 0, max: 60, start: 34 } }
+
+/** The table of the card scenes, Flip 7's felt: the colour of the endless table and of the pool of light in its middle. They are `SETTINGS_DEFAULTS.theme.surfaceDark` and `.surface` of `games/flip-7/src/index.ts`, kept here because a game's settings are not a package of the docs. */
+export const PLAY_TABLE = { surface: "#2f7683", surfaceDark: "#1c4a55" } as const
+/** The tones of the floor buttons, Flip 7's (`FLOOR_TONES` of `games/flip-7/src/lib/floor-tones.ts`): Hit and Deal, Stay, and the zone of a seat. */
+export const PLAY_FLOOR_TONES = { hit: "#4fe0c0", stay: "#b4c6d8", target: "#a6efe0" } as const

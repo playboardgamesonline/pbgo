@@ -26,7 +26,9 @@ const useSeatColors = (): string[] =>
  */
 export function Scoreboard({ state, onPick }: { state: PlayState; onPick: (seat: number) => void }) {
   const colors = useSeatColors()
-  const [open, setOpen] = useState(true)
+  // A crowded ring leaves the list shut until it is asked for: it would stand over the seats on the right
+  const [chosen, setChosen] = useState<boolean | null>(null)
+  const open = chosen ?? state.players <= 4
   const top = leader(state)
   // Many players: the rows are smaller, so the list leaves room for the seats on the right of the table
   const compact = state.players > 4
@@ -34,7 +36,7 @@ export function Scoreboard({ state, onPick }: { state: PlayState; onPick: (seat:
   return (
     <ul aria-label="Players" className="platform pointer-events-auto absolute top-3 right-3 z-10 flex w-52 flex-col gap-0.5 rounded-3xl border glass p-1.5 font-sans text-foreground shadow-surface sm:w-60">
       <li>
-        <button type="button" onClick={() => setOpen((now) => !now)} aria-expanded={open} className="flex w-full items-center justify-between gap-2 rounded-xl px-3 pt-1 pb-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground motion-reduce:transition-none">
+        <button type="button" onClick={() => setChosen(!open)} aria-expanded={open} className="flex w-full items-center justify-between gap-2 rounded-xl px-3 pt-1 pb-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground motion-reduce:transition-none">
           <span>Round {state.score.round}</span>
           <span className="flex items-center gap-1.5">
             {top === null ? "no points yet" : `${PLAY_NAMES[top]} leads`}

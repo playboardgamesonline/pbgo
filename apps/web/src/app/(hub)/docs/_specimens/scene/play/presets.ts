@@ -107,7 +107,7 @@ function build(id: PresetId): PlayState {
           counter: 0,
           score: { round: 1, points: [0, 0, 0, 0, 0, 0, 0, 0], total: [18, 24, 11, 0, 0, 0, 0, 0] },
           log: ["Dice game: roll the dice, then tick a box of the sheet"],
-          zoom: 27,
+          zoom: 30,
         },
         parts,
       )

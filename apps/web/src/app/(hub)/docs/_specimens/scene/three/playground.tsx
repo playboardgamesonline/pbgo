@@ -21,6 +21,7 @@ import {
   DropZone,
   fan,
   FloorButton,
+  grainTexture,
   grid,
   gridCells,
   hexCells,
@@ -56,9 +57,9 @@ import {
   Zone,
 } from "@pbgo/table"
 import { useFrame, useThree } from "@react-three/fiber"
-import { type ReactNode, useMemo, useState } from "react"
-import { type Camera, Vector3 } from "three"
-import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SHEET, PLAY_TILES, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_NAMES, PLAY_SEAT_COLORS, SKETCH_BRUSHES } from "../defaults"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
+import { AdditiveBlending, type Camera, CanvasTexture, SRGBColorSpace, Vector3 } from "three"
+import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SHEET, PLAY_TILES, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_FLOOR_TONES, PLAY_NAMES, PLAY_SEAT_COLORS, PLAY_TABLE, SKETCH_BRUSHES } from "../defaults"
 import { cssColor, pageFont } from "../color"
 import { cellAt, cellCentres, cornerFrame, coordsOf, floorPads, heldFrame, LOOP_CELLS, PILE_PLACES_AT, planOf, ringOf, ringRadius } from "../play/geometry"
 import { leader, nameOf } from "../play/state"
@@ -173,16 +174,45 @@ function ScreenSpot({ at, children }: { at: readonly [number, number]; children:
   return spot ? <>{children(spot)}</> : null
 }
 
+/** The felt of the card scenes: Flip 7's table colour with the kit's grain, and the pool of light in the middle added to it (additive, so the grain shows through). One texture of each, made once and let go with the scene */
+const GRAIN_TILE = 2
+const MAT_SIZE = 44
+function useFelt() {
+  const grain = useMemo(() => grainTexture({ base: PLAY_TABLE.surfaceDark, strength: 0.3 }), [])
+  const mat = useMemo(() => {
+    const canvas = document.createElement("canvas")
+    canvas.width = canvas.height = 256
+    const g = canvas.getContext("2d")!
+    const channel = (hex: string, at: number) => parseInt(hex.slice(1 + at * 2, 3 + at * 2), 16)
+    const [r, gr, b] = [0, 1, 2].map((i) => Math.max(0, channel(PLAY_TABLE.surface, i) - channel(PLAY_TABLE.surfaceDark, i)))
+    const gradient = g.createRadialGradient(128, 128, 0, 128, 128, 128)
+    gradient.addColorStop(0, `rgb(${r},${gr},${b})`)
+    gradient.addColorStop(0.3, `rgb(${r},${gr},${b})`)
+    gradient.addColorStop(1, "rgb(0,0,0)")
+    g.fillStyle = gradient
+    g.fillRect(0, 0, 256, 256)
+    const texture = new CanvasTexture(canvas)
+    texture.colorSpace = SRGBColorSpace
+    return texture
+  }, [])
+  useEffect(() => () => (grain.dispose(), mat.dispose()), [grain, mat])
+  return { grain, mat }
+}
+
 const topOfStack = (count: number) => ({ x: STACK_AT.x, z: STACK_AT.z, y: count * pieceModel("disc").height * STACK_SIZE })
 
 const zoneOf = (cell: number) => `cell:${cell}`
 
 export function PlaygroundScene({ state, actions }: { state: PlayState; actions: PlayActions }) {
   const colors = palette()
+  const felt = useFelt()
   const font = pageFont()
   const cardBack = back()
   const paints = [colors.marks[0], colors.marks[1], colors.marks[2], colors.ivory, colors.muted, colors.navy]
   const { things, selected, parts } = state
+  // The card scenes (a ring of seats) are on Flip 7's teal; the others keep the specimens' felt
+  const teal = parts.seats || parts.floor
+  const tealSurface = useMemo(() => ({ color: PLAY_TABLE.surfaceDark, map: felt.grain, tile: GRAIN_TILE }), [felt.grain])
   const tiles = useMemo(() => view(state.tiles.laid, BOX, state.tiles.index, state.tiles.spin, PLAY_TILES.table), [state.tiles])
   const { shape, centre } = state.board
   const plan = useMemo(() => planOf({ shape, centre }), [shape, centre])
@@ -200,6 +230,8 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
   // The cells that have something on them
   const taken = useMemo(() => new Set(things.map((one) => cellAt(centres, one, plan.size * 0.45)).filter((cell) => cell >= 0)), [things, centres, plan.size])
   const [draw, discard] = [PILE_PLACES_AT[state.layout.piles].draw, PILE_PLACES_AT[state.layout.piles].discard]
+  // The discard pile draws its last cards only: a card under three others is never seen, and each card is a mesh with its own shadow and shine
+  const discardShown = state.piles.discard.slice(-4)
   const seatColors = PLAY_SEAT_COLORS.map((expression) => cssColor(expression))
   const players = Math.min(state.players, PLAY_NAMES.length)
   const ringLine = ringOf(players)
@@ -270,7 +302,13 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
   )
 
   return (
-    <Stage id="scene-playground" camera={camera(state)} playIntro={false}>
+    <Stage id="scene-playground" camera={camera(state)} playIntro={false} surface={teal ? tealSurface : undefined}>
+      {teal && (
+        <mesh rotation-x={-Math.PI / 2} position-y={0.001} renderOrder={-1} raycast={() => null}>
+          <planeGeometry args={[MAT_SIZE, MAT_SIZE]} />
+          <meshBasicMaterial map={felt.mat} blending={AdditiveBlending} transparent toneMapped={false} depthWrite={false} />
+        </mesh>
+      )}
       {/* What the visitor moves */}
       {things.map((thing) => {
         const chosen = selected === thing.id
@@ -428,14 +466,14 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
       {parts.hand && (state.layout.hand === "corner" ? <CornerHand>{(frame) => handView(frame, frame.scale)}</CornerHand> : handView({ ...HAND_AT }, 1))}
       {parts.piles && (
         <>
-          <Pile frame={draw} count={PLAY_DECK.size - state.piles.drawn} size={CARD_SIZE} back={cardBack} {...PILE_LOOK} limit={PILE_LIMIT} top={{ id: "draw-top", onClick: (event) => (event.stopPropagation(), actions.deal()) }} />
+          <Pile frame={draw} count={PLAY_DECK.size - state.piles.drawn} size={CARD_SIZE} back={cardBack} {...PILE_LOOK} limit={state.layout.piles === "middle" ? 6 : PILE_LIMIT} top={{ id: "draw-top", onClick: (event) => (event.stopPropagation(), actions.deal()) }} />
           <TableLabel text="Draw pile" x={draw.x} z={draw.z + 2.1} height={0.45} tone="muted" />
           <DropZone id="discard" shape={rectShape(discard.x, discard.z, 2.4, 3.2)} show="always" />
           <Zone
             frame={discard}
-            layout={pile(state.piles.discard.length, { face: "up", step: 0.03, lean: "discard", leanAmplitude: 0.12 })}
+            layout={pile(discardShown.length, { face: "up", step: 0.03, lean: "discard", leanAmplitude: 0.12 })}
             size={CARD_SIZE}
-            cards={state.piles.discard.map((entry) => ({ key: entry.id, id: `thing-${entry.id}`, front: face(entry.card), back: cardBack }))}
+            cards={discardShown.map((entry) => ({ key: entry.id, id: `thing-${entry.id}`, front: face(entry.card), back: cardBack }))}
           />
           <TableLabel text="Discard pile" x={discard.x} z={discard.z + 2.4} height={0.45} tone="muted" />
         </>
@@ -508,7 +546,11 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
       {parts.seats &&
         ring.map((spot, i) => {
           const points = state.score.points[i] ?? 0
-          const heldHere = state.held.filter((one) => one.seat === i)
+          const heldAll = state.held.filter((one) => one.seat === i)
+          // Few cards are drawn for a seat that holds many (two when the ring is crowded): the rest are a count in the plate's trailing slot, not a mesh each
+          const heldHere = heldAll.slice(-(players > 5 ? 2 : 3))
+          const top = leader(state) === i
+          const mark = `${top ? "★ " : ""}${i > 0 && heldAll.length > heldHere.length ? `×${heldAll.length}` : ""}`.trim()
           return (
             <group key={i}>
               <Seat
@@ -520,6 +562,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
                 active={state.turn === i}
                 waiting={state.seat === i}
                 line={`${state.score.total[i] ?? 0} pts`}
+                trailing={mark ? <TableText text={mark} style={{ color: colors.text, weight: 700 }} height={0.4} position={[0.35, 0, 0]} /> : undefined}
                 status={state.seat === i ? "Picked" : parts.scoreboard && points > 0 ? `+${points} this round` : undefined}
               />
               {i > 0 && heldHere.length > 0 && (
@@ -537,8 +580,8 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
         <>
           {(() => {
             const pads = floorPads(draw)
-            const hitTone = cssColor("var(--success)")
-            const stayTone = cssColor("color-mix(in oklab, var(--success) 25%, var(--muted-foreground))")
+            const hitTone = PLAY_FLOOR_TONES.hit
+            const stayTone = PLAY_FLOOR_TONES.stay
             const off = state.floor.disabled
             const empty = state.piles.drawn >= PLAY_DECK.size
             return (
@@ -552,16 +595,17 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
           {state.floor.zones &&
             parts.seats &&
             ring.map((spot, i) => {
-              const at = heldFrame(spot)
+              const at = heldFrame(spot, 0.93, 0.93)
               const width = Math.min(3.2, 20 / players)
               return (
                 <FloorButton
                   key={i}
                   at={at}
                   width={width}
-                  depth={2.2}
-                  tone={cssColor("var(--success)")}
+                  depth={3.4}
+                  tone={PLAY_FLOOR_TONES.target}
                   tint={0.3}
+                  hitY={0.35}
                   ariaLabel={`Give a card to ${nameOf(i)}`}
                   onPress={() => actions.give(i)}
                   disabled={state.floor.disabled || state.piles.drawn >= PLAY_DECK.size}

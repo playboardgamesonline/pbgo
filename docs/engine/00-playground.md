@@ -44,14 +44,18 @@ Each part is the component of the package as the page of its own shows it, given
 | Map | Switch it on and the camera backs off to show six cities and the roads between them, on the left of the table: press a city to pick it and a road to claim it, and the longest route of the claimed roads is counted | [Maps](02-components/22-maps.md) |
 | Sheet | Switch it on and the camera backs off to show a sheet of twenty-four numbered boxes on the left of the table: pick a tick, a cross or a circle, press a box to write it and press it again to take it off | [Sheets](02-components/23-sheets.md) |
 | Tiles | Switch it on and the camera backs off to show a small table of tiles at the far right: press the tile in hand to turn it, press a ringed cell to lay it where it fits, or let the button lay it, and the closed roads and cities are counted | [Tiles](02-components/24-tiles.md) |
-| Seats | Seat two to eight players round the table (`seats` of the kit), the viewer at the bottom, each plate turned to face its player, the crown on the turn, the cards the others hold face down in front of them; press a plate to pick that player |
+| Seats | Seat two to eight players round the table (`seats` of the kit), the viewer at the bottom, each plate (avatar, name, points and status, a ★ and a count in its `trailing` slot) turned to face its player, the crown on the turn, the cards the others hold face down in front of them (two or three are drawn, the rest is a count). The plate does not react to the pointer, as in a game: pick a player from the scoreboard list |
 | Scoreboard | The players' list at the top right (the look of `TablePlayers`, drawn from the playground's state since `TablePlayers` reads a game), the points under each plate, the round and a ticker of the log | [Score](02-components/09-score.md) |
-| Floor buttons | Hit, Stay and Deal beside the draw pile and a zone at each seat that gives it a card; the rim lifts under the pointer or the keyboard | [Floor buttons](02-components/25-floor-buttons.md) | [Seats](02-components/03-seats.md) |
+| Floor buttons | Hit, Stay and Deal beside the draw pile and, as in Flip 7, one zone for each player that contains the plate and its cards and gives it a card; the rim lifts under the pointer or the keyboard. Flip 7's tones | [Floor buttons](02-components/25-floor-buttons.md) | [Seats](02-components/03-seats.md) |
 | Camera | Move it back or forward, look from above | [Camera](02-components/02-camera.md) |
 
 ## Tuning
 
 The Tuning tab has a slider for every number a component reads on every frame, made from the lists of fields that the debug panel is made from, so a component that gains a setting gains its slider here. They are the same objects the debug panel edits ([Tuning](04-build-a-game/07-tuning.md)); the playground puts back what it found when the page is left.
+
+## The table
+
+The scenes with seats or floor buttons lie on Flip 7's teal felt: the kit's `grainTexture` in `surfaceDark` with the pool of light in `surface` added over it (`PLAY_TABLE` in the specimens' `defaults.ts`, the values of Flip 7's `SETTINGS_DEFAULTS`; the floor tones are `PLAY_FLOOR_TONES`, its `FLOOR_TONES`). The other scenes and every other docs specimen keep the specimens' own felt. The scoreboard list starts shut above four players, so it never stands over the seats on the right; press its header to open it.
 
 ## Transitions
 
