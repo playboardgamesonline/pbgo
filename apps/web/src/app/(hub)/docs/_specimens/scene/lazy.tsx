@@ -38,3 +38,5 @@ export const BagScene = dynamic(() => import("./three/bag").then((m) => m.BagSce
 export const DragScene = dynamic(() => import("./three/drag").then((m) => m.DragScene), { ssr: false })
 export const PlaygroundScene = dynamic(() => import("./three/playground").then((m) => m.PlaygroundScene), { ssr: false })
 export const PlaygroundTuning = dynamic(() => import("./three/tuning").then((m) => m.Tuning), { ssr: false })
+export const PlaygroundGuard = dynamic(() => import("./three/tuning").then((m) => m.TuningGuard), { ssr: false })
+export const PlaygroundMotion = dynamic(() => import("./three/motion").then((m) => m.MotionControls), { ssr: false })

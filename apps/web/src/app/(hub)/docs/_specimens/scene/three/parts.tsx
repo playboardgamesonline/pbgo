@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, type CameraIntro, type CameraSettings, onTable, type Pose, Table } from "@pbgo/table"
+import { Card, type CameraIntro, type CameraSettings, onTable, type Pose, type SurfaceProps, Table } from "@pbgo/table"
 import { useFrame } from "@react-three/fiber"
 import { type ReactNode, useRef } from "react"
 import { useSceneReady } from "../frame"
@@ -26,16 +26,19 @@ export function Stage({
   camera,
   intro,
   playIntro,
+  surface,
   children,
 }: {
   id: string
   camera: CameraSettings
   intro?: CameraIntro
   playIntro?: boolean
+  /** The felt of the table, when a scene has one of its own (default: the specimens' felt) */
+  surface?: SurfaceProps
   children: ReactNode
 }) {
   return (
-    <Table id={id} camera={camera} intro={intro} playIntro={playIntro} surface={{ color: palette().felt, map: felt() }}>
+    <Table id={id} camera={camera} intro={intro} playIntro={playIntro} surface={surface ?? { color: palette().felt, map: felt() }}>
       <Ready />
       {children}
     </Table>

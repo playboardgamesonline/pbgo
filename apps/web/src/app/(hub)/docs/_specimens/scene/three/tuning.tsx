@@ -32,6 +32,7 @@ import {
 } from "@pbgo/table"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@pbgo/ui/platform/collapsible"
 import { useEffect, useState } from "react"
+import { docHref, matches, TUNING_DOCS } from "../play/catalog"
 import { Knob } from "../controls"
 
 // The knobs of the debug panel, on the page. Every component of the table reads one settings object on every frame, and says in a list of fields which of its numbers can be tuned and between what ends: the controls are made from those lists, so a component that
@@ -64,27 +65,52 @@ function knobsOf({ settings, fields }: Group) {
   })
 }
 
-export function Tuning() {
-  // The sliders read the settings objects, which a slider changes: it asks for a new render to read what it wrote
-  const [, redraw] = useState(0)
+/** What the settings were when this chunk loaded, which is when the playground opened: the package's own values */
+const FOUND = GROUPS.map(({ settings }) => ({ ...settings }))
+
+/** The way back to them: the objects are the ones every table of the page reads, so what the visitor changed, with the tuning or with the motion controls, is put back when the page is left (and by Reset) */
+export function TuningGuard({ apiRef }: { apiRef: { current: { restore: () => void } | null } }) {
   useEffect(() => {
-    const found = GROUPS.map(({ settings }) => ({ ...settings }))
-    return () => {
-      GROUPS.forEach(({ settings }, i) => Object.assign(settings, found[i]))
+    const restore = () => {
+      GROUPS.forEach(({ settings }, i) => Object.assign(settings, FOUND[i]))
       notifySettings()
     }
-  }, [])
+    apiRef.current = { restore }
+    return () => {
+      apiRef.current = null
+      restore()
+    }
+  }, [apiRef])
+  return null
+}
+
+/** How many of the group's settings differ from the package's own */
+const changedIn = (group: Group, found: Record<string, unknown>) => knobsOf(group).filter(({ key }) => group.settings[key] !== found[key]).length
+
+export function Tuning({ query = "" }: { query?: string }) {
+  // The sliders read the settings objects, which a slider changes: it asks for a new render to read what it wrote
+  const [, redraw] = useState(0)
+  const groups = GROUPS.map((group, index) => ({ group, index, knobs: knobsOf(group).filter(({ label }) => matches(query, group.name, label)) })).filter(({ group, knobs }) => (query.trim() === "" ? true : knobs.length > 0 || matches(query, group.name)))
+  if (groups.length === 0) return <p className="text-sm text-muted-foreground">No setting matches “{query}”.</p>
   return (
     <div className="@container flex flex-col gap-2">
-      {GROUPS.map((group) => (
-        <Collapsible key={group.name} className="rounded-2xl border">
+      {groups.map(({ group, index, knobs }) => (
+        <Collapsible key={group.name} className="rounded-2xl border" defaultOpen={query.trim() !== ""}>
           <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm">
             <span>{group.name}</span>
-            <span className="text-muted-foreground">{knobsOf(group).length} settings</span>
+            <span className="text-muted-foreground">
+              {changedIn(group, FOUND[index] ?? {}) > 0 && <span className="mr-2 text-foreground">{changedIn(group, FOUND[index] ?? {})} changed</span>}
+              {knobs.length} settings
+            </span>
           </CollapsibleTrigger>
           <CollapsibleContent>
+            {TUNING_DOCS[group.name] && (
+              <a href={docHref(TUNING_DOCS[group.name]!)} target="_blank" rel="noreferrer" className="mx-4 mb-3 inline-block text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                {group.name} in the docs
+              </a>
+            )}
             <div className="grid gap-x-8 gap-y-5 px-4 pt-1 pb-5 @lg:grid-cols-2 @3xl:grid-cols-3">
-              {knobsOf(group).map(({ key, label, min, max, step }) => (
+              {knobs.map(({ key, label, min, max, step }) => (
                 <Knob
                   key={key}
                   label={label}
