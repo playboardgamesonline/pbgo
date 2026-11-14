@@ -162,9 +162,9 @@ export const DRAG_START: DragCards = { hand: DRAG_HAND.map(({ card }) => card), 
 /** The playground: the things that lie on its table, the parts of the table that can be switched on, and where it starts. */
 export const PLAY_PIECES = ["disc", "square", "hex", "cube", "sphere", "pawn"] as const
 export type PlayPiece = (typeof PLAY_PIECES)[number]
-export const PLAY_PARTS = ["board", "track", "counter", "stepper", "slider", "timer", "bag", "cup", "dice", "fields", "sketch", "hand", "piles", "stack", "paper", "map", "sheet", "tiles", "seats"] as const
+export const PLAY_PARTS = ["board", "track", "counter", "stepper", "slider", "timer", "bag", "cup", "dice", "fields", "sketch", "hand", "piles", "stack", "paper", "map", "sheet", "tiles", "seats", "scoreboard", "floor"] as const
 export type PlayPart = (typeof PLAY_PARTS)[number]
-export const PLAY_PART_NAMES: Record<PlayPart, string> = { board: "Board", track: "Track", counter: "Counter", stepper: "Stepper", slider: "Slider", timer: "Timer", bag: "Bag", cup: "Cup", dice: "Dice tray", fields: "Fields", sketch: "Sketch", hand: "Hand", piles: "Piles", stack: "Stack", paper: "Paper button", map: "Map", sheet: "Sheet", tiles: "Tiles", seats: "Seats" }
+export const PLAY_PART_NAMES: Record<PlayPart, string> = { board: "Board", track: "Track", counter: "Counter", stepper: "Stepper", slider: "Slider", timer: "Timer", bag: "Bag", cup: "Cup", dice: "Dice tray", fields: "Fields", sketch: "Sketch", hand: "Hand", piles: "Piles", stack: "Stack", paper: "Paper button", map: "Map", sheet: "Sheet", tiles: "Tiles", seats: "Seats", scoreboard: "Scoreboard", floor: "Floor buttons" }
 export const PLAY_CUP_POSES = ["covering", "peeking", "lifted", "shaking", "rest", "pouring"] as const
 export type PlayCupPose = (typeof PLAY_CUP_POSES)[number]
 /** The playground's map: six cities, the roads between them (each the two cities it joins), where the map lies on the table and how far its cities are from the middle of it. */
@@ -190,7 +190,32 @@ export const PLAY_SHEET = { x: -11.4, z: 5.6, width: 4.2, height: 3.4, columns: 
 /** The playground's tiles: where the middle cell of the table lies, where the tile in hand lies, how far the table goes from its middle, and how far the camera backs off for it: it lies beyond the rest of the table, on the right at the far side. */
 export const PLAY_TILES = { origin: { x: 10.6, z: -6.2 }, hand: { x: 10.6, z: -10.8 }, table: { columns: 2, rows: 1 }, zoom: 32 }
 /** The names of the players the playground seats, in the order of the seats. */
-export const PLAY_NAMES = ["Alix", "Basile", "Camille", "Dana", "Eli"] as const
+export const PLAY_NAMES = ["Alix", "Basile", "Camille", "Dana", "Eli", "Farah", "Gaspard", "Hana"] as const
+/** How many players the seats ring takes, and the colour of each seat as a CSS expression of the page's own tokens (the table's scene and the scoreboard of the page read the same ones). */
+export const PLAY_PLAYERS = { min: 2, max: 8 }
+export const PLAY_SEAT_COLORS = [
+  "var(--piece-red)",
+  "color-mix(in oklab, var(--piece-navy) 82%, var(--piece-ink))",
+  "color-mix(in oklab, var(--piece-gold) 72%, var(--piece-ink))",
+  "var(--piece-ivory)",
+  "var(--muted-foreground)",
+  "var(--piece-navy)",
+  "var(--success)",
+  "var(--piece-gold)",
+] as const
+/** The shapes the board takes: the squares of a chessboard, the hexagons of a map, and a ring of spaces to walk round. */
+export const BOARD_SHAPES = ["grid", "hex", "loop"] as const
+export type BoardShape = (typeof BOARD_SHAPES)[number]
+/** Where the hand lies: along the near edge of the table, or in the bottom left corner of the screen. */
+export const HAND_PLACES = ["edge", "corner"] as const
+export type HandPlace = (typeof HAND_PLACES)[number]
+/** Where the draw and discard piles lie: along the near edge, or in the middle of the table. */
+export const PILE_PLACES = ["edge", "middle"] as const
+export type PilePlace = (typeof PILE_PLACES)[number]
+/** A card held face down at a seat of the ring: the id it keeps when it is passed on, the number its face is painted from, the seat, and how many cards the draw pile held when it was dealt from it. */
+export type PlayHeld = { id: number; card: number; seat: number; from?: number }
+/** The most lines the log keeps. */
+export const PLAY_LOG_MAX = 40
 /** A card that is in the hand or on the discard pile and not on the table: the id it has everywhere (so that it keeps its name, and glides, when it changes places), the number its face is painted from, and, when it was just dealt from the draw pile, how many cards the pile held then (where it flies in from). */
 export type PlayCard = { id: number; card: number; from?: number }
 /** Where a card can be sent: the hand, the discard pile, a place on the table, or away. */
@@ -245,6 +270,20 @@ export type PlayState = {
   /** The tiles: the ones that are laid, which tile of the box is in hand and how many times it was turned */
   tiles: { laid: LaidTile<TileName>[]; index: number; spin: number }
   players: number
+  /** The board: its shape, whether it is the middle of the table (and larger) or at the side, and how many times a piece has hopped across it */
+  board: { shape: BoardShape; centre: boolean; hops: number }
+  /** Where the hand and the piles lie */
+  layout: { hand: HandPlace; piles: PilePlace }
+  /** The seat whose turn it is */
+  turn: number
+  /** The score: the round's points and the banked totals of each seat, and the round that is played */
+  score: { round: number; points: number[]; total: number[] }
+  /** The cards the other seats hold face down */
+  held: PlayHeld[]
+  /** The floor buttons: whether each seat has its zone to press, and whether they are all disabled */
+  floor: { zones: boolean; disabled: boolean }
+  /** What happened, the newest first */
+  log: string[]
   above: boolean
   zoom: number
   /** How far the camera leans from straight above, in degrees: the more, the more the table is seen from the side. */
