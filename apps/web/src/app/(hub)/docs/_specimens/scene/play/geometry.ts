@@ -43,7 +43,7 @@ export function cellCentres({ shape, at, size }: BoardPlan): Place[] {
 }
 
 /** The radius of the ring of a board of this size */
-export const ringRadius = (size: number) => size * 3.2
+export const ringRadius = (size: number) => size * 2.8
 
 /** The cells next to a cell */
 export function neighboursOf(shape: BoardShape, cell: number): number[] {

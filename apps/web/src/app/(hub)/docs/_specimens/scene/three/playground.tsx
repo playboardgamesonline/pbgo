@@ -191,7 +191,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
     if (plan.shape === "grid") return squareCells(coordsOf("grid"), { size: plan.size, gap, at: plan.at })
     if (plan.shape === "hex") return hexCells(coordsOf("hex"), { size: plan.size, gap, at: plan.at })
     // A ring of squares: the spaces of a loop, each a cell with the corners of a square
-    const half = plan.size * 0.45
+    const half = plan.size * 0.4
     const corners = [[-half, -half], [half, -half], [half, half], [-half, half]] as const
     return loopSpaces(LOOP_CELLS, { radiusX: ringRadius(plan.size) }).map((space) => ({ ...space, yaw: 0, corners }))
   }, [plan])
@@ -314,7 +314,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
       {parts.board && (
         <>
           <Board key={shape} cells={cells} look={cellLook} drops={dropCells} dropId={zoneOf} />
-          <TableLabel text={`Board · ${shape}`} x={plan.at.x} z={plan.at.z + (shape === "hex" ? 2.7 : plan.size * (shape === "loop" ? 4.1 : 3.5))} height={0.45} tone="muted" />
+          <TableLabel text={`Board · ${shape === "loop" ? "ring" : shape}`} x={plan.at.x} z={Math.max(...centres.map((cell) => cell.z)) + plan.size * 0.5 + 1.1} height={0.45} tone="muted" />
         </>
       )}
       {parts.track && (

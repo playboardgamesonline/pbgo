@@ -3,6 +3,7 @@
 
 import { BOARD_SHAPES, type BoardShape, HAND_PLACES, type HandPlace, LAYOUTS, type LayoutName, PILE_PLACES, type PilePlace, PLAY_LIMITS, PLAY_PARTS, PLAY_PLAYERS, type PlayPart, type PlayState } from "../defaults"
 import { DEFAULT_PRESET, PRESET_IDS, type PresetId, presetState } from "./presets"
+import { ringZoom } from "./geometry"
 import { reshapeBoard } from "./state"
 
 const SEPARATOR = "."
@@ -46,7 +47,12 @@ export function decodeScene(hash: string): { state: PlayState; scene: PresetId }
   for (const part of parts("on")) next.parts[part] = true
   for (const part of parts("off")) next.parts[part] = false
   const players = number(params.get("pl"))
-  if (players !== undefined) next.players = clamp(Math.round(players), PLAY_PLAYERS.min, PLAY_PLAYERS.max)
+  if (players !== undefined) {
+    next.players = clamp(Math.round(players), PLAY_PLAYERS.min, PLAY_PLAYERS.max)
+    next.turn = next.turn % next.players
+    next.held = next.held.filter((one) => one.seat < next.players)
+    next.zoom = Math.max(next.zoom, ringZoom(next.players))
+  }
   const layout: LayoutName | undefined = pick(LAYOUTS, params.get("hl"))
   if (layout) next.hand = { ...next.hand, layout }
   const handAt: HandPlace | undefined = pick(HAND_PLACES, params.get("hp"))

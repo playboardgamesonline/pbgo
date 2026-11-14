@@ -196,7 +196,7 @@ export function PartControls({ part, controls }: { part: PlayPart; controls: Con
             label="Place"
             value={state.layout.hand}
             options={HAND_PLACES.map((value) => ({ value, label: value === "edge" ? "near edge" : "bottom left", description: value === "edge" ? "Along the near edge of the table" : "In the bottom left corner of the screen" }))}
-            onChange={(hand) => set({ layout: { ...state.layout, hand } })}
+            onChange={(hand) => update((now) => ({ ...now, layout: { ...now.layout, hand }, zoom: hand === "edge" ? Math.max(now.zoom, 26) : now.zoom }))}
           />
           <Button variant="outline" size="sm" disabled={state.hand.cards.length >= PLAY_DECK.hand} onClick={() => update((now) => ({ ...now, nextId: now.nextId + 1, hand: { ...now.hand, cards: [...now.hand.cards, { id: now.nextId, card: (now.nextId * 7) % 36 }] } }))}>
             Add a card
@@ -216,7 +216,7 @@ export function PartControls({ part, controls }: { part: PlayPart; controls: Con
             label="Place"
             value={state.layout.piles}
             options={PILE_PLACES.map((value) => ({ value, label: value === "edge" ? "near edge" : "middle", description: value === "edge" ? "Along the near edge of the table" : "In the middle of the table" }))}
-            onChange={(piles) => set({ layout: { ...state.layout, piles } })}
+            onChange={(piles) => update((now) => ({ ...now, layout: { ...now.layout, piles }, zoom: piles === "edge" ? Math.max(now.zoom, 26) : now.zoom }))}
           />
           <Button variant="outline" size="sm" disabled={state.piles.drawn >= PLAY_DECK.size} onClick={actions.deal}>
             Deal a card

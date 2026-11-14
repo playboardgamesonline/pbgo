@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { PLAY_DECK, PLAY_LIMITS, PLAY_LOG_MAX, type PlayState } from "../defaults"
 import { cellAt, cellCentres, planOf } from "./geometry"
 import { presetState } from "./presets"
-import { addPoints, addThing, deal, dealRound, discardOne, endRound, flip, freeSlot, giveTo, HELD_MOST, leader, movePiece, newCard, nextTurn, passCards, playFromHand, reshapeBoard, say, sendCard, showParts, take } from "./state"
+import { addPoints, addThing, deal, dealRound, discardOne, endRound, flip, freeSlot, giveTo, HELD_MOST, leader, movePiece, newCard, nextTurn, passCards, playFromHand, reshapeBoard, rollDice, say, sendCard, showParts, stay, hit, take } from "./state"
 
 const card = () => presetState("card")
 const countCards = (s: PlayState) => s.things.filter((t) => t.kind === "card").length + s.hand.cards.length + s.held.length + s.piles.discard.length
@@ -171,11 +171,31 @@ describe("the table", () => {
     expect(showParts(s, ["floor"], false).parts.floor).toBe(false)
   })
 
-  it("reshapeBoard re-seats the pieces on the cells with the same number", () => {
-    const s = presetState("board")
-    const hex = reshapeBoard(s, { shape: "hex" })
-    const centres = cellCentres(planOf(hex.board))
-    for (const t of hex.things) expect(cellAt(centres, t, 0.1)).toBeGreaterThanOrEqual(0)
+  it("reshapeBoard re-seats the pieces on cells, never two on one, whichever way the shape goes", () => {
+    let s = presetState("board")
+    for (const shape of ["hex", "loop", "grid", "loop"] as const) {
+      s = reshapeBoard(s, { shape })
+      const centres = cellCentres(planOf(s.board))
+      const cells = s.things.map((t) => cellAt(centres, t, 0.1))
+      expect(cells.every((cell) => cell >= 0), shape).toBe(true)
+      expect(new Set(cells).size, shape).toBe(cells.length)
+    }
+  })
+
+  it("stay banks the points of the seat whose turn it is and passes the turn; hit gives it a card and a point", () => {
+    const s = stay(card())
+    expect(s.score.total[0]).toBe(15)
+    expect(s.score.points[0]).toBe(0)
+    expect(s.turn).toBe(1)
+    const hit1 = hit(card())
+    expect(hit1.score.points[0]).toBe(4)
+    expect(hit1.hand.cards).toHaveLength(6)
+  })
+
+  it("rollDice rolls the tray and switches it on", () => {
+    const s = rollDice(presetState("empty"))
+    expect(s.parts.dice).toBe(true)
+    expect(s.dice.rolls).toBe(1)
   })
 
   it("say keeps the newest lines first and no more than the limit", () => {

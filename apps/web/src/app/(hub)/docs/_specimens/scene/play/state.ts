@@ -303,15 +303,22 @@ export const newPiece = (shape: PlayPiece) => (id: number, at: Place): PlayThing
 /** Takes the thing that is picked off the table */
 export const removeThing = (now: PlayState, id: number): PlayState => ({ ...now, things: now.things.filter((one) => one.id !== id), selected: now.selected === id ? null : now.selected })
 
-/** Changes the shape or the place of the board: what stood on a cell stands on the cell with the same number of the new board (the last one when it has fewer) */
+/** Changes the shape or the place of the board: what stood on a cell stands on the cell at the same share of the way through the new board, or the nearest free one when that cell is taken, so that two things never end up on one cell */
 export function reshapeBoard(now: PlayState, change: Partial<Pick<PlayState["board"], "shape" | "centre">>): PlayState {
   const board = { ...now.board, ...change }
   const [before, after] = [planOf(now.board), planOf(board)]
   const [from, to] = [cellCentres(before), cellCentres(after)]
+  const used = new Set<number>()
   const things = now.things.map((thing) => {
     const cell = cellAt(from, thing, before.size * 0.45)
-    const target = cell < 0 ? undefined : to[Math.min(cell, to.length - 1)]
-    return target ? { ...thing, x: target.x, z: target.z } : thing
+    if (cell < 0) return thing
+    const wanted = Math.round((cell * (to.length - 1)) / Math.max(1, from.length - 1))
+    // The nearest cell to the wanted one that nothing took yet, looking up and down the numbers
+    const free = Array.from({ length: to.length }, (_, step) => [wanted + step, wanted - step]).flat().find((candidate) => candidate >= 0 && candidate < to.length && !used.has(candidate))
+    const target = free === undefined ? undefined : to[free]
+    if (free === undefined || !target) return thing
+    used.add(free)
+    return { ...thing, x: target.x, z: target.z }
   })
   return { ...now, board, things }
 }

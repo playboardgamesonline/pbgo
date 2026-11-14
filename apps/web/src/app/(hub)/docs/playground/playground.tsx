@@ -327,7 +327,7 @@ export function Playground() {
               </div>
             )}
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <div key={tab} className="min-h-0 flex-1 overflow-y-auto p-4">
             {tab === "scene" && <ScenePanel controls={controls} onScene={startFrom} />}
             {tab === "add" && <AddPanel controls={controls} shape={shape} onShape={setShape} />}
             {tab === "parts" && <PartsPanel controls={controls} query={query} onShow={showPart} />}
