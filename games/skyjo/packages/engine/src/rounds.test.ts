@@ -56,6 +56,14 @@ describe("three equal cards in a column (page 2)", () => {
     expect(gridUp(state, "ana").slice(0, 3)).toEqual([true, true, false])
   })
 
+  it("does not throw away a column of equal cards when some of them lie face down, even when the move touches that column", () => {
+    // a 6 face up over two 6s face down: all equal, but only one is face up
+    const state = place(draw(layout({ players: 2, deck: [6], grids: { ana: [up(6), 6, 6] } }), "ana"), "ana", 0)
+    expect(gridValues(state, "ana").slice(0, 3)).toEqual([6, 6, 6])
+    expect(gridUp(state, "ana").slice(0, 3)).toEqual([true, false, false])
+    expect(state.stats[0]!.columns).toBe(0)
+  })
+
   it("does not throw away a column of two equal cards and one different", () => {
     const state = place(draw(layout({ players: 2, deck: [4], grids: { ana: [up(6), up(6), 5] } }), "ana"), "ana", 2)
     expect(gridValues(state, "ana").slice(0, 3)).toEqual([6, 6, 4])
