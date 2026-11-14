@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { type Box, boxesOverlap, CARD, FLOOR, fitPrompt, floorPlan, wrapWords, zoneBoxes, cornersOf, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, plateAt, seatAngle, seatSpots, tableBoxes, tableQuads, uprightYaw } from "./layout"
+import { type Box, boxesOverlap, CARD, fixedBoxes, FLOOR, fitPrompt, floorPlan, wrapWords, zones, cornersOf, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, plateAt, plateBox, seatAngle, seatSpots, tableBoxes, tableQuads, uprightYaw } from "./layout"
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
 const SIZES = [3, 4, 5, 6, 7, 8]
@@ -363,61 +363,59 @@ describe("fitPrompt", () => {
 
 describe("the zones the viewer presses to give a card", () => {
   const overlap = boxesOverlap
-  const fixed = () => {
-    const { strip } = floorPlan()
-    const { deck, discard } = pilePlaces()
-    const pile = (CARD.width * LAYOUT_SETTINGS.pileScale) / 2
-    const depth = (CARD.height * LAYOUT_SETTINGS.pileScale) / 2
-    return [
-      { x: strip.x, z: strip.z, halfWidth: strip.width / 2, halfDepth: strip.depth / 2, yaw: 0 },
-      { x: deck.x, z: deck.z, halfWidth: pile, halfDepth: depth + 0.8, yaw: 0 },
-      { x: discard.x, z: discard.z, halfWidth: pile, halfDepth: depth, yaw: 0 },
-    ] satisfies Box[]
+  const setup = (n: number, seated: boolean) => {
+    const ids = Array.from({ length: n }, (_, i) => String(i))
+    const viewer = seated ? "0" : null
+    const spots = seatSpots(ids, viewer)
+    const placed = lines(spots, viewer)
+    const all = zones(spots, placed, viewer)
+    return ids.map((id) => ({ id, zone: all.get(id)!, line: placed.get(id)!, plate: plateBox(spots.get(id)!, placed.get(id)!) }))
+  }
+  const inside = (zone: Box, p: { x: number; z: number }) => {
+    const dx = p.x - zone.x
+    const dz = p.z - zone.z
+    const u = dx * Math.cos(zone.yaw) - dz * Math.sin(zone.yaw)
+    const v = dx * Math.sin(zone.yaw) + dz * Math.cos(zone.yaw)
+    return Math.abs(u) <= zone.halfWidth + 1e-9 && Math.abs(v) <= zone.halfDepth + 1e-9
   }
 
   it("never overlap each other, from 3 to 8 players, for a player and for a spectator", () => {
     for (const seated of [true, false]) for (const n of SIZES) {
-      const zones = zoneBoxes(n, seated)
-      zones.forEach((a, i) => zones.slice(i + 1).forEach((b, j) => expect(overlap(a, b), `${n} players, seated ${seated}: zones ${i} and ${i + 1 + j}`).toBe(false)))
+      const all = setup(n, seated)
+      all.forEach((a, i) => all.slice(i + 1).forEach((b) => expect(overlap(a.zone, b.zone), `${n} players, seated ${seated}: zones ${a.id} and ${b.id}`).toBe(false)))
     }
   })
 
-  it("never overlap the piles or the strip of the buttons", () => {
+  it("never overlap the plate of another seat, the piles or the strip of the buttons", () => {
     for (const seated of [true, false]) for (const n of SIZES) {
-      zoneBoxes(n, seated).forEach((zone, i) => fixed().forEach((other, j) => expect(overlap(zone, other), `${n} players, seated ${seated}: zone ${i} and fixed box ${j}`).toBe(false)))
+      const all = setup(n, seated)
+      for (const { id, zone } of all) {
+        for (const other of all.filter((item) => item.id !== id)) expect(overlap(zone, other.plate), `${n} players, seated ${seated}: zone ${id} and the plate of ${other.id}`).toBe(false)
+        fixedBoxes().forEach((box, j) => expect(overlap(zone, box), `${n} players, seated ${seated}: zone ${id} and fixed box ${j}`).toBe(false))
+      }
     }
   })
 
-  it("are big: wider and deeper than a card, and as much as a thumb is wide across the shorter side", () => {
-    for (const n of SIZES) for (const zone of zoneBoxes(n)) {
-      expect(zone.halfWidth * 2, `${n} players`).toBeGreaterThan(CARD.width * 1.6)
-      expect(zone.halfDepth * 2, `${n} players`).toBeGreaterThan(CARD.height * 0.62 + 1)
+  it("hold the plate of their seat, whole, and the cards of its line: one zone for the play area and the name", () => {
+    for (const seated of [true, false]) for (const n of SIZES) for (const { id, zone, line, plate } of setup(n, seated)) {
+      for (const corner of cornersOf(plate)) expect(inside(zone, corner), `${n} players, seated ${seated}, zone ${id}: a corner of its plate is outside`).toBe(true)
+      const cards = cornersOf({ x: line.at.x, z: line.at.z, halfWidth: Math.min(line.width, CARD.width * line.scale * 3) / 2, halfDepth: (CARD.height * line.scale) / 2, yaw: line.yaw })
+      for (const corner of cards) expect(inside(zone, corner), `${n} players, seated ${seated}, zone ${id}: a card is outside`).toBe(true)
     }
   })
 
-  it("hold the line and the plate of their seat", () => {
-    for (const n of SIZES) {
-      const ids = Array.from({ length: n }, (_, i) => String(i))
-      const spots = seatSpots(ids, "0")
-      const placed = lines(spots, "0")
-      zoneBoxes(n).forEach((zone, i) => {
-        const line = placed.get(String(i))!
-        const own = cornersOf({ x: line.at.x, z: line.at.z, halfWidth: Math.min(line.width, CARD.width * line.scale * 3) / 2, halfDepth: (CARD.height * line.scale) / 2, yaw: line.yaw })
-        const quad = cornersOf(zone)
-        // every corner of a line of three cards is inside the zone: its centre is, and the zone is wider than the line
-        const centre = { x: line.at.x, z: line.at.z }
-        const inside = (p: { x: number; z: number }) => {
-          const dx = p.x - zone.x
-          const dz = p.z - zone.z
-          const u = dx * Math.cos(zone.yaw) - dz * Math.sin(zone.yaw)
-          const v = dx * Math.sin(zone.yaw) + dz * Math.cos(zone.yaw)
-          return Math.abs(u) <= zone.halfWidth + 1e-9 && Math.abs(v) <= zone.halfDepth + 1e-9
-        }
-        expect(inside(centre), `${n} players, zone ${i}`).toBe(true)
-        for (const corner of own) expect(inside(corner), `${n} players, zone ${i}`).toBe(true)
-        expect(quad).toHaveLength(4)
-      })
+  it("take a press on the name: the middle of the plate is inside the zone, so is a point of each piece of its lettering", () => {
+    for (const n of SIZES) for (const { id, zone, plate } of setup(n, true)) expect(inside(zone, { x: plate.x, z: plate.z }), `${n} players, zone ${id}`).toBe(true)
+  })
+
+  it("are padded on the sides with room: bigger than the play area they hold", () => {
+    for (const n of [3, 4]) for (const { id, zone, line, plate } of setup(n, true)) {
+      expect(zone.halfDepth * 2, `${n} players, zone ${id}`).toBeGreaterThan(CARD.height * line.scale + plate.halfDepth * 2)
     }
+  })
+
+  it("are big enough to hit: at least a card across on the short side", () => {
+    for (const n of SIZES) for (const { id, zone } of setup(n, true)) expect(Math.min(zone.halfWidth, zone.halfDepth) * 2, `${n} players, zone ${id}`).toBeGreaterThan(CARD.width * 0.8)
   })
 })
 

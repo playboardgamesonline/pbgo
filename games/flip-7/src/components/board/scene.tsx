@@ -96,7 +96,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the ids
   const spots = useMemo(() => seatSpots(ids, meId), [key, meId])
   const placed = useMemo(() => lines(spots, meId), [spots, meId])
-  const pressZones = useMemo(() => zones(spots, placed), [spots, placed])
+  const pressZones = useMemo(() => zones(spots, placed, meId), [spots, placed, meId])
   const { nickname } = useGame()
   const R = LAYOUT_SETTINGS
   const { deck, discard } = pilePlaces()
@@ -115,10 +115,10 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
 
   // A card the last move turned over comes in from above the draw pile after the time the timeline gives it, so that they come one after the other. Every other card is where it was, or flies from where it lay: the table remembers
   // where a card with the same id was a moment ago. The cards of the opening deal wait for the start screen to go
-  const cardsOf = (list: readonly Face[]): ZoneCard[] =>
+  const cardsOf = (list: readonly Face[], out = false): ZoneCard[] =>
     (held ? [] : list).map((face) => {
       const delay = entrances.get(face.id)
-      return { key: face.id, id: face.id, front: faces.face(face.type), back: faces.back, from: delay === undefined ? null : { ...dealt, delay } }
+      return { key: face.id, id: face.id, front: faces.face(face.type), back: faces.back, out, from: delay === undefined ? null : { ...dealt, delay } }
     })
   // The engine's discard is top first and a pile layout is bottom first
   const discarded = [...view.discard].reverse()
@@ -132,6 +132,8 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         const pickable = choosing && phase.targets.includes(player.id)
         const heldAt = heldPlace(line, viewer)
         const seat = said.get(player.id) ?? now.get(player.id)!
+        // A busted player can no longer play: all their cards go grey and dark until the next round (a frozen or a stayed one has banked their points and keeps the colour of their cards; the word under the name says which)
+        const out = seat.status === "busted"
         const spot = spots.get(player.id)!
         const plate = plateAt(spot, line)
         return (
@@ -144,13 +146,12 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
                 viewer={false}
                 line={pointsText(seat.total)}
                 status={statusOf(seat.status, words)}
-                out={seat.status === "busted"}
               />
             </group>
             {/* What lies in front of the player: every card is face up, and the line turns to face its player (`faceSeat`) */}
-            <Zone frame={{ x: line.at.x, z: line.at.z, yaw: line.yaw }} layout={linePoses(player.cards.length, line)} size={CARD_SIZE} cards={cardsOf(player.cards)} />
+            <Zone frame={{ x: line.at.x, z: line.at.z, yaw: line.yaw }} layout={linePoses(player.cards.length, line)} size={CARD_SIZE} cards={cardsOf(player.cards, out)} />
             {/* The Freeze and Flip Three cards flipped during a Flip Three wait, face up, until its three cards are done */}
-            <Zone frame={{ x: heldAt.x, z: heldAt.z, yaw: line.yaw }} layout={heldPoses(player.held.length, line)} size={CARD_SIZE} cards={cardsOf(player.held)} />
+            <Zone frame={{ x: heldAt.x, z: heldAt.z, yaw: line.yaw }} layout={heldPoses(player.held.length, line)} size={CARD_SIZE} cards={cardsOf(player.held, out)} />
             {/* The sector of the table in front of the seat, a floor zone: pressed to give this player the card the viewer holds. It lies only while a target is to be chosen */}
             {pickable && (
               <FloorButton
@@ -159,6 +160,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
                 depth={pressZones.get(player.id)!.halfDepth * 2}
                 tone={FLOOR_TONES.target}
                 tint={0.3}
+                hitY={0.35}
                 ariaLabel={fill(words.targetPlayer, { target: nickname(player.id) })}
                 onPress={() => onTarget(player.id)}
               />

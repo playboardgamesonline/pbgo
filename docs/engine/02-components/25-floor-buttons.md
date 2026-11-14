@@ -35,6 +35,8 @@ A `FloorButton` is shared: `packages/table/src/floor/floor-button.tsx`. The prop
 | `onPress` | A click, a tap, or Enter or Space on the focused pad calls it. Without it the pad is drawn and takes no press |
 | `disabled` | The pad lies flat and dim, takes no pointer and is left out of the Tab order |
 | `rim` | How high the rim rises, in world units (default `RIM_HEIGHT`, 0.2) |
+| `hitY` | How high the invisible plane that takes the pointer lies (default 0.02). A zone that lies under cards, which take the pointer themselves, lifts it above them (0.35) so that the whole zone answers, cards included |
+| `children` | The decal slot, see [Decals](#decals) |
 | `tint` | How strongly the pad is tinted, as a share of the usual (default 1). A big zone that lies under cards takes about 0.3 so that it colours the table without hiding it |
 
 - **Hover, focus and press** all lift the rim; a held press lowers it a little (`LIFT_LEVELS`, `liftTarget` in `lift.ts`). Keyboard focus shows the lift only for a focus the browser draws a ring on (`:focus-visible`), so a pointer press does not leave a pad lifted. A disabled pad never lifts.
@@ -47,11 +49,25 @@ A `FloorButton` is shared: `packages/table/src/floor/floor-button.tsx`. The prop
 
 | What | Where | Tone |
 | --- | --- | --- |
-| Hit, then Stay, side by side to the right of the draw pile, as deep as it, on the viewer's turn. Stay lies dim when the viewer holds nothing to bank | `floorPlan()`: `hit`, `stay` | teal `#19a89a`, and a grey `#7d9899` with a hint of the same teal, so the pair belongs together |
+| Hit, then Stay, side by side to the right of the draw pile, as deep as it, on the viewer's turn. Stay lies dim when the viewer holds nothing to bank | `floorPlan()`: `hit`, `stay` | a luminous blue-green `#4fe0c0`, and a pale cool grey `#b4c6d8` with a hint of the same blue-green, so the pair belongs together and both read on the teal table |
 | Deal, one pad across the room of the two, for the dealer between two rounds | `floorPlan().deal` | the teal |
-| The zone of each seat that can get the action card the viewer holds: the line, the plate and a margin, as big as the room beside its neighbours allows (`zones`, never overlapping each other or the piles) | `zones()`, `ZONE_MARGIN`, `ZONE_MAX_WIDTH` | the teal, `tint` 0.3 |
+| The zone of each seat that can get the action card the viewer holds: see [Player zones](#player-zones) | `zones()`, `ZONE_PADDING`, `ZONE_MAX_WIDTH` | a paler aqua `#a6efe0`, `tint` 0.3 |
 
 The action card drawn lies face up in the place of Hit, and its sentence is written flat beside it (`fitPrompt` breaks it into lines that fit the room), because Hit and Stay and the card never show at once. The game's words for them are `hit`, `stay`, `deal`, `targetFreeze`, `targetFlipThree`, `targetSecondChance` and `targetPlayer` (the accessible name of a zone).
+
+## Player zones
+
+A zone that chooses a player is a floor zone with these rules, which hold for every game:
+
+- **One zone per player: their play area, with the plate inside.** The zone is the rectangle that holds their line of cards, the cards set aside when there is room, **and the plate with the nickname**, with a padding all round. There is no separate target around the nickname: a press anywhere in the zone, on a card, on the empty padding or on the name, does the zone's action.
+- **Only the rim reacts.** Under the pointer the zone's border lifts, as for every floor button. The plate never reacts: the name and the avatar do not light up, tint or scale (a `Seat` has no hover state and no `onSelect`). The press target includes the plate; the look of the plate does not move.
+- **The press reaches through what lies in the zone.** A `Card` takes the pointer itself, which would hide the zone under it, so the zone's pointer plane lies above the cards (`hitY` 0.35) and a press on a card counts as a press on the zone. The plate's lettering is canvas text with no handlers, so nothing stops a press on the name.
+- **Geometry** (Flip 7: `zones()`, `zoneBox`, `playArea` in `layout.ts`): the play area is the line's room (never wider than `ZONE_MAX_WIDTH`), the cards set aside and the plate's box (`plateBox`, as wide as the avatar and eight letters, `PLATE_WIDTH`); the padding grows to `ZONE_PADDING` (0.5) on each side and stops short of the plates of the other seats, the piles and the buttons (`fixedBoxes`); where two zones meet, both paddings shrink until they touch. Tested for 3 to 8 players, seated and as a spectator: no zone overlaps another zone, another seat's plate, a pile or the strip of the buttons, and a zone holds its plate and its cards. A name longer than the plate's width sticks out of the zone's padding, not into the next seat.
+- **The accessible name** of the zone is the game's word for it ("Give it to Alix"): the keyboard stand-in is the zone's, and there is no other.
+
+## Decals
+
+A zone is a floor zone: the board will later draw flat marks on it (a seat's emblem, a sketch, a glyph) that belong to the zone, not to the cards on it. The extension point is the `children` of a `FloorButton`: they are drawn in the pad's own frame (x along `width`, z along `depth`, y up, the origin at the pad's centre) at `DECAL_Y` (0.012), over the tint and under the label and the cards, and they stay on the table as the rim lifts. A decal that must not take the pointer has `raycast={() => null}`. The slot is implemented and is one line (`floor-button.tsx`); it has no automated test, since nothing renders a scene in the unit tests, and no game uses it yet.
 
 ## Limits
 

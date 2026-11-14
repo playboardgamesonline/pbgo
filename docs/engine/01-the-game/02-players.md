@@ -46,7 +46,7 @@ A player can be out while the table goes on, of the game or of a round. The stat
 - Out of a round: Flip 7 holds a `Status` per seat (`active`, `stayed`, `frozen`, `busted`), which `startRound` sets back to `active`; `nextActive` passes over the seats that are not active, and the round ends when it finds none.
 - `waitingFor` names the players who can still act, and a rule that names a player who is out refuses it (`hasCards` in Exploding Kittens, with `INVALID_TARGET`).
 - The view says who is out: Exploding Kittens gives each player an `alive` flag and gives a player who is out `me: null`, the view of a spectator; Flip 7 gives each seat its `status`.
-- The `Seat` of the table can draw it, with `out` for a plate that fades with a struck name and `status` for a word under the score ([Seats](../02-components/03-seats.md#the-plate)); the game says it from its view. No board does: the two games with a board, Courtisans and the template, never put a player out.
+- The `Seat` of the table can draw it, with `status` for a word after the score, and the cards of a player who is out can be greyed (`Card` `out`) ([Seats](../02-components/03-seats.md#the-plate)); the game says it from its view. Flip 7 greys the cards of a busted player.
 
 ## The order around the table
 

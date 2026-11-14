@@ -45,6 +45,8 @@ export type CardProps = {
   shadow?: boolean
   /** Drawn over everything else, glows of other cards included */
   above?: boolean
+  /** The card can no longer play (its player is out of the round): a grey filter over its picture and its edge, darker and with no colour. It lifts when `out` turns false */
+  out?: boolean
   /** Seconds the card takes to settle on a new `target`, about: the smaller, the snappier (default 0.16) */
   speed?: number
   onClick?: (e: ThreeEvent<MouseEvent>) => void
@@ -90,7 +92,7 @@ function tint(color: Color, value: string) {
 }
 
 // What bends a material along its height: the card's fold, half its height and the way it arches (the front and the rim towards the viewer, the back away)
-const arch = (fold: { value: number }, height: number, dir: 1 | -1) => ({ uFold: fold, uHalfH: { value: height / 2 }, uDir: { value: dir } })
+const arch = (fold: { value: number }, height: number, dir: 1 | -1, grey: number) => ({ uFold: fold, uHalfH: { value: height / 2 }, uDir: { value: dir }, uGrey: { value: grey } })
 
 /**
  * A playing card: a plane with a front and a back, a thickness, and the same behaviour in every game.
@@ -108,6 +110,7 @@ export function Card({
   gloss,
   shadow = true,
   above = false,
+  out = false,
   speed = 0.16,
   onClick,
   onHover,
@@ -303,7 +306,7 @@ export function Card({
         <meshBasicMaterial map={shadowTex} transparent depthWrite={false} />
       </mesh>
       <mesh geometry={geo} position-z={thickness / 2 + FRONT.face}>
-        <meshBasicMaterial ref={(m) => applyFold(m, arch(fold.current, height, 1))} map={front} transparent={above} toneMapped={false} />
+        <meshBasicMaterial ref={(m) => applyFold(m, arch(fold.current, height, 1, out ? 1 : 0))} map={front} transparent={above} toneMapped={false} />
       </mesh>
       {children && (
         <group ref={overlayRef} position-z={thickness / 2 + FRONT.overlay}>
@@ -312,13 +315,13 @@ export function Card({
       )}
       <mesh geometry={edge} position-z={-thickness / 2}>
         <meshBasicMaterial attach="material-0" visible={false} />
-        <meshBasicMaterial attach="material-1" ref={(m) => applyFold(m, arch(fold.current, height, 1))} color="#d9cba6" transparent={above} toneMapped={false} />
+        <meshBasicMaterial attach="material-1" ref={(m) => applyFold(m, arch(fold.current, height, 1, out ? 1 : 0))} color="#d9cba6" transparent={above} toneMapped={false} />
       </mesh>
       <mesh ref={glossRef} geometry={geo} position-z={thickness / 2 + FRONT.gloss} raycast={() => null} visible={false}>
         <meshBasicMaterial map={glossTex} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
       </mesh>
       <mesh geometry={geo} rotation-y={Math.PI} position-z={-thickness / 2 - BACK.face}>
-        <meshBasicMaterial ref={(m) => applyFold(m, arch(fold.current, height, -1))} map={back} transparent={above} toneMapped={false} />
+        <meshBasicMaterial ref={(m) => applyFold(m, arch(fold.current, height, -1, out ? 1 : 0))} map={back} transparent={above} toneMapped={false} />
       </mesh>
       {halo && haloTex && (
         <mesh position-z={-thickness / 2 - BACK.halo} raycast={() => null}>

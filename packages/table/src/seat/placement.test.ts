@@ -2,19 +2,11 @@ import { describe, expect, it } from "vitest"
 import { seats } from "../layout"
 import { auraForce, plateOf, SEAT_SETTINGS } from "./placement"
 
-// The places the template's scene wrote inline before the plate moved here (`scene.tsx` and its `AVATAR` constant): the plate of a seat has not moved since.
+// The places the template's scene wrote inline before the plate moved here (`scene.tsx` and its `AVATAR` constant): the plate of a seat has not moved since, but for the info line, which stands a little lower, and the avatar, which is always to the left.
 const AVATAR = { size: 0.56, gap: 0.18 }
 function legacy(spot: { x: number; z: number }, viewer: boolean) {
   const pos: [number, number, number] = [spot.x * (viewer ? 1 : 1.32), 0.02, spot.z * (viewer ? 1.18 : 1.32)]
-  const after = spot.x > 1
-  return {
-    x: pos[0],
-    z: pos[2],
-    nameZ: pos[2] - 0.25,
-    lineZ: pos[2] + 0.35,
-    after,
-    avatarX: (after ? 1 : -1) * (AVATAR.gap + AVATAR.size / 2),
-  }
+  return { x: pos[0], z: pos[2], nameZ: pos[2] - 0.25, avatarX: -(AVATAR.gap + AVATAR.size / 2) }
 }
 
 const RING = { radiusX: 7.4, radiusZ: 4.4 }
@@ -37,17 +29,12 @@ describe("plateOf", () => {
     expect(plate.z).toBeCloseTo(RING.radiusZ * SEAT_SETTINGS.viewerReachZ)
   })
 
-  it("puts the avatar after the name for a seat on the right of the table only", () => {
-    const ring = seats(5, { ...RING, me: 0 })
-    expect(ring.map((spot, i) => plateOf(spot, i === 0).after)).toEqual([false, false, false, true, true])
+  it("puts the avatar to the left of the name at every seat, left, middle or right of the table: the plate is read left to right", () => {
+    for (const x of [-6, -1, 0, 1, 6]) expect(plateOf({ x, z: -3 }, false).avatarX).toBeLessThan(0)
+    for (const count of [3, 5, 8]) for (const spot of seats(count, { ...RING, me: 0 })) expect(plateOf(spot, false).avatarX).toBeLessThan(0)
   })
 
-  it("puts the avatar on the side of the name it stands on", () => {
-    expect(plateOf({ x: -5, z: -3 }, false).avatarX).toBeLessThan(0)
-    expect(plateOf({ x: 5, z: -3 }, false).avatarX).toBeGreaterThan(0)
-  })
-
-  it("puts the crown on the upper-right corner of the avatar, in the avatar's frame, whichever side of the name the avatar stands", () => {
+  it("puts the crown on the upper-right corner of the avatar, in the avatar's frame, as the avatar is always to the left of the name", () => {
     for (const spot of [{ x: -5, z: -3 }, { x: 5, z: -3 }]) {
       const plate = plateOf(spot, false)
       expect(plate.crownX - plate.avatarX).toBeCloseTo(SEAT_SETTINGS.crownRight)
@@ -55,10 +42,9 @@ describe("plateOf", () => {
     }
   })
 
-  it("stands the status under the line, which stands under the name", () => {
+  it("stands the info line under the name", () => {
     const plate = plateOf({ x: 3, z: -3 }, false)
     expect(plate.nameZ).toBeLessThan(plate.lineZ)
-    expect(plate.lineZ).toBeLessThan(plate.statusZ)
   })
 
   it("follows the settings it is given", () => {
@@ -80,15 +66,13 @@ describe("auraForce", () => {
     expect(SEAT_SETTINGS.turnForce).toBe(0)
   })
 
-  it("lights a player the game expects with others, a seat under the pointer and a winner, each in its own force", () => {
+  it("lights a player the game expects with others and a winner, each in its own force", () => {
     expect(auraForce({ waiting: true })).toBe(SEAT_SETTINGS.waitingForce)
-    expect(auraForce({ hovered: true })).toBe(SEAT_SETTINGS.hoverForce)
     expect(auraForce({ winner: true })).toBe(SEAT_SETTINGS.winnerForce)
   })
 
   it("gives the brightest of the lights that apply", () => {
     expect(auraForce({ waiting: true, winner: true })).toBe(SEAT_SETTINGS.winnerForce)
-    expect(auraForce({ waiting: true, hovered: true })).toBe(Math.max(SEAT_SETTINGS.waitingForce, SEAT_SETTINGS.hoverForce))
   })
 
   it("lights the turn when the setting is raised", () => {

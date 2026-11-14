@@ -1,12 +1,10 @@
 "use client"
 
-import { useCursor } from "@react-three/drei"
-import { type ReactNode, useState } from "react"
+import type { ReactNode } from "react"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSeatTheme } from "@pbgo/core/components/game/seat-label"
 import { useSkin } from "@pbgo/core/components/skin-provider"
 import { shortName } from "@pbgo/core/lib/short-name"
-import { seatFontFamily } from "@pbgo/core/lib/seat-avatar-canvas"
 import type { SeatTheme } from "@pbgo/core/lib/ui-theme"
 import { SeatGizmo } from "../debug/gizmos"
 import { useSettingsVersion } from "../debug/settings"
@@ -19,13 +17,14 @@ import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import { seatStateOf } from "./state"
 import { TableText, type TextStyle } from "./table-text"
 
-/** The height above the table of the aura, of the plane that makes a plate a click target and of the lettering: the aura lies under the lettering, and all under the cards */
+/** The height above the table of the aura and of the lettering: the aura lies under the lettering, and all under the cards */
 const AURA_Y = 0.015
-const HIT_Y = 0.02
 const TEXT_Y = 0.03
 
-/** The name of a seat under the pointer: cream, with the seat colour in its relief and its glow */
-const POINTED_INK = "#fff4dc"
+/** The font of the plate's lettering: Geist, the platform's own, a variable font (fontsource, `@fontsource-variable/geist`), so that the weight asked for is the weight drawn */
+export const PLATE_FONT = '"Geist Variable", "Geist", ui-sans-serif, system-ui, sans-serif'
+/** The weight of the name and of the info line: the platform's 600 */
+export const PLATE_WEIGHT = 600
 
 export type SeatProps = {
   nickname: string
@@ -45,33 +44,31 @@ export type SeatProps = {
   waiting?: boolean
   /** The player is away: the plate fades */
   away?: boolean
-  /** The player is out of the game or of the round: the plate fades and the name is struck */
-  out?: boolean
   /** A winner: the aura lights */
   winner?: boolean
-  /** The line under the name, already written in the visitor's language: the score */
+  /** The info line under the name, already written in the visitor's language: the score ("132 pts") */
   line?: string
-  /** A word under the line (Frozen, Stayed), written the same way */
+  /** A word on the same info line, after the score (Frozen, Stayed), plain text, written the same way */
   status?: string
+  /** What stands to the right of the name, in a frame whose origin is the name's right edge (`0.2` is just right of the last letter): tokens, a count, an icon. For a game whose players hold things (Love Letter's affection tokens) */
+  trailing?: ReactNode
   /** The crown's icon, the skin's `hostIcon`; without one, a drawn crown */
   crownIcon?: string | null
-  /** The CSS font of the lettering; `TABLE_FONT` by default */
+  /** The CSS font of the lettering; `PLATE_FONT` (Geist) by default */
   font?: string
   /** The aura's look; default `WINNER_AURA_SETTINGS` */
   aura?: AuraSettings
-  /** What is changed in the name's style (colour, effects), in the line's and in the status's */
+  /** What is changed in the name's style (colour, effects) and in the info line's */
   nameStyle?: Partial<TextStyle>
   lineStyle?: Partial<TextStyle>
-  statusStyle?: Partial<TextStyle>
-  /** Makes the whole plate a click target to choose this player: the name lights up under the pointer */
-  onSelect?: () => void
   /** What else stands at the seat, in the world's frame: the cards held there */
   children?: ReactNode
 }
 
 /**
- * The plate of a player at the table: the aura under it, the name in the seat colour with the avatar and, on the avatar's corner, the turn crown, and the
- * lines under it for the score and the status. Everything is `TableText`, `SeatAvatarMesh`, `Aura` and `TurnCrown` laid out by `plateOf`.
+ * The plate of a player at the table, one block that turns as one: the avatar, then the name, on a first row (the avatar is always to the LEFT of the name, as the plate is read, whatever way the plate is turned: the block turns as one and a
+ * plate more than a quarter turn from upright is turned back by half a turn as a whole), the info line under the name (the score, then a status as plain text), and a `trailing` slot to the right of the name. The turn crown stands on the avatar's
+ * corner and the aura lies under all of it. The plate never reacts to the pointer: choosing a player is the job of the zone the plate lies in (`FloorButton`).
  */
 export function Seat({
   nickname,
@@ -83,77 +80,34 @@ export function Seat({
   active = false,
   waiting = false,
   away = false,
-  out = false,
   winner = false,
   line,
   status,
+  trailing,
   crownIcon,
-  font,
+  font = PLATE_FONT,
   aura = WINNER_AURA_SETTINGS,
   nameStyle,
   lineStyle,
-  statusStyle,
-  onSelect,
   children,
 }: SeatProps) {
   // The plate follows `SEAT_SETTINGS` as the knobs of the debug panel move them, and the panel can mark where the seat is
   useSettingsVersion()
   const S = SEAT_SETTINGS
   const plate = plateOf(spot, viewer, S)
-  const [pointed, setPointed] = useState(false)
-  const lit = onSelect !== undefined && pointed
-  useCursor(lit)
-  const opacity = away || out ? S.awayOpacity : 1
-  const name: TextStyle = { color, shadow: "rgba(0,0,0,0.6)|12|4", ...(out ? { strike: true } : {}), ...nameStyle }
-  const look: TextStyle = lit ? { ...name, shadow: undefined, color: POINTED_INK, relief: color, aura: color } : name
-  // Before the name, or after it for a right-hand seat; the crown stands on the avatar's corner, in the same frame
-  const avatar = (
-    <>
-      <SeatAvatarMesh nickname={nickname} color={color} imageUrl={imageUrl} theme={theme} size={S.avatarSize} position={[plate.avatarX, 0, 0]} opacity={opacity} />
-      <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[plate.crownX, 0, plate.crownZ]} />
-    </>
-  )
-  // The plate is a click target as a whole: the plane under it takes the pointer on its own area, and the name, nearer and sometimes wider, on its own. R3F hands the hover over from one to the other, so the plate stays lit across both
+  const opacity = away ? S.awayOpacity : 1
+  const name: TextStyle = { color, shadow: "rgba(0,0,0,0.6)|12|4", weight: PLATE_WEIGHT, ...nameStyle }
+  const info = [line, status].filter((part): part is string => !!part).join("  ·  ")
+  // The avatar and the name are one block centred on the plate: the name's lettering stands half the avatar's width to the right of the centre, so that the avatar, at its left edge, brings the block back to the middle
+  const shift = -plate.avatarX / 2
   return (
     <group>
-      <Aura width={S.auraWidth} depth={S.auraDepth} position={[plate.x, AURA_Y, plate.z]} yaw={0} force={auraForce({ active, waiting, hovered: lit, winner }, S)} color={color} settings={aura} />
-      {onSelect && (
-        <mesh
-          position={[plate.x, HIT_Y, plate.z]}
-          rotation-x={-Math.PI / 2}
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelect()
-          }}
-          onPointerOver={(e) => {
-            e.stopPropagation()
-            setPointed(true)
-          }}
-          onPointerOut={() => setPointed(false)}
-        >
-          <planeGeometry args={[S.auraWidth, S.auraDepth]} />
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-        </mesh>
-      )}
-      <TableText
-        text={shortName(nickname).toUpperCase()}
-        style={look}
-        height={S.nameHeight}
-        position={[plate.x, TEXT_Y, plate.nameZ]}
-        font={font}
-        opacity={opacity}
-        onClick={onSelect}
-        onHover={onSelect ? setPointed : undefined}
-        trailing={plate.after ? avatar : undefined}
-      >
-        {!plate.after && avatar}
+      <Aura width={S.auraWidth} depth={S.auraDepth} position={[plate.x, AURA_Y, plate.z]} yaw={0} force={auraForce({ active, waiting, winner }, S)} color={color} settings={aura} />
+      <TableText text={shortName(nickname)} style={name} height={S.nameHeight} position={[plate.x + shift, TEXT_Y, plate.nameZ]} font={font} opacity={opacity} trailing={trailing}>
+        <SeatAvatarMesh nickname={nickname} color={color} imageUrl={imageUrl} theme={theme} size={S.avatarSize} position={[plate.avatarX, 0, 0]} opacity={opacity} />
+        <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[plate.crownX, 0, plate.crownZ]} />
       </TableText>
-      {line !== undefined && (
-        <TableText text={line} style={{ color: "#f5f2ea", weight: 700, ...lineStyle }} height={S.lineHeight} position={[plate.x, TEXT_Y, plate.lineZ]} font={font} opacity={opacity} />
-      )}
-      {status !== undefined && (
-        <TableText text={status} style={{ color: "#f5f2ea", weight: 700, ...statusStyle }} height={S.statusHeight} position={[plate.x, TEXT_Y, plate.statusZ]} font={font} opacity={opacity} />
-      )}
+      {info !== "" && <TableText text={info} style={{ color: "#f5f2ea", weight: PLATE_WEIGHT, ...lineStyle }} height={S.lineHeight} position={[plate.x, TEXT_Y, plate.lineZ]} font={font} opacity={opacity} />}
       {DEBUG_VIEW.seats && <SeatGizmo spot={spot} plate={plate} />}
       {children}
     </group>
@@ -169,5 +123,5 @@ export function PlayerSeat({ id, ...props }: { id: string } & Omit<SeatProps, "n
   const theme = useSeatTheme()
   const { hostIcon } = useSkin()
   const state = seatStateOf({ status: game.status, waitingFor: game.waitingFor, present: game.present, winners: view.results?.winners ?? [] }, id)
-  return <Seat nickname={nickname(id)} color={color(id)} imageUrl={avatarUrl(id)} theme={theme} crownIcon={hostIcon} font={seatFontFamily(theme.font)} {...state} {...props} />
+  return <Seat nickname={nickname(id)} color={color(id)} imageUrl={avatarUrl(id)} theme={theme} crownIcon={hostIcon} {...state} {...props} />
 }

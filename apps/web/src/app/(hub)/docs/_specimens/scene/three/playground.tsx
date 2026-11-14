@@ -441,7 +441,6 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
             waiting={state.seat === i}
             line={`${(i + 1) * 3} pts`}
             status={state.seat === i ? "Picked" : undefined}
-            onSelect={() => actions.pickSeat(state.seat === i ? null : i)}
           />
         ))}
     </Stage>
