@@ -1,14 +1,29 @@
-import type { BeforeSendFn, PostHogConfig } from "posthog-js"
+import type { BeforeSendFn, CaptureResult, PostHogConfig } from "posthog-js"
 import { INGEST_PATH, type AnalyticsConfig, type AppEnv } from "./config"
 import { scrubCapture, scrubText } from "./scrub"
 
 /**
- * `before_send` of the browser client, run on every event: the table code leaves it (`scrubCapture`), and the deployment is
- * added as `env`. It is added here rather than registered as a super property because `reset()` (a withdrawn consent) clears the
- * registered ones. A recording chunk (`$snapshot`) does not get it: it only carries the session it belongs to.
+ * Chrome reports a ResizeObserver callback that changed the layout in its own frame as a window error, with no stack. The spec
+ * calls it a notice, not a failure: nothing broke, so it is not sent to error tracking.
+ */
+const RESIZE_OBSERVER_NOTICE = "ResizeObserver loop"
+
+function isResizeObserverNotice(capture: CaptureResult): boolean {
+  if (capture.event !== "$exception") return false
+  const list: unknown = capture.properties?.$exception_list
+  if (!Array.isArray(list) || list.length === 0) return false
+  return list.every((exception) => typeof exception?.value === "string" && exception.value.startsWith(RESIZE_OBSERVER_NOTICE))
+}
+
+/**
+ * `before_send` of the browser client, run on every event: the browser's ResizeObserver notice is dropped, the table code leaves
+ * the event (`scrubCapture`), and the deployment is added as `env`. It is added here rather than registered as a super property
+ * because `reset()` (a withdrawn consent) clears the registered ones. A recording chunk (`$snapshot`) does not get it: it only
+ * carries the session it belongs to.
  */
 export function beforeSend(env: AppEnv): BeforeSendFn {
   return (capture) => {
+    if (capture && isResizeObserverNotice(capture)) return null
     const scrubbed = scrubCapture(capture)
     if (!scrubbed || scrubbed.event === "$snapshot") return scrubbed
     return { ...scrubbed, properties: { ...scrubbed.properties, env } }
