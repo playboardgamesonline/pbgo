@@ -231,7 +231,12 @@ export const PLAY_STACK = { max: 24, start: 8 }
 export type PlayThing =
   | { id: number; kind: "card"; card: number; x: number; z: number; face: "up" | "down"; /** How many cards the draw pile held when this one was dealt from it: where it flies in from */ from?: number }
   | { id: number; kind: "piece"; shape: PlayPiece; paint: number; x: number; z: number; fromBag: boolean; /** How many pieces the stack held when this one was taken from it */ fromStack?: number }
+/** The scenes the playground starts from, the first being the one it opens on. */
+export const PRESET_IDS = ["card", "board", "trick", "dice", "everything", "empty"] as const
+export type PresetId = (typeof PRESET_IDS)[number]
 export type PlayState = {
+  /** The scene this table began as (`play/presets.ts`): what Reset puts back and what the address names */
+  scene: PresetId
   things: PlayThing[]
   nextId: number
   selected: number | null
@@ -323,6 +328,21 @@ export type PlayActions = {
   pickSeat: (seat: number | null) => void
   /** The paper is pressed */
   press: () => void
+  /** A zone of the floor is pressed: the seat gets a card */
+  give: (seat: number) => void
+  /** Hit is pressed: the seat whose turn it is gets a card and a point */
+  hit: () => void
+  /** Stay is pressed: the seat whose turn it is banks its round's points, and the turn passes */
+  stay: () => void
+  /** Deal is pressed: a card to every seat */
+  dealRound: () => void
+  /** A piece hops to the next cell of the board */
+  hop: () => void
+  /** A card is added to the table, and a piece of a shape */
+  addCard: () => void
+  addPiece: (shape: PlayPiece) => void
+  /** The picked card is turned over (or the first on the table) */
+  flip: () => void
 }
 /** The ranges of the playground's stepper and slider, and where they start. */
 export const PLAY_NUMBERS = { stepper: { min: 0, max: 20, start: 3 }, slider: { min: 0, max: 100, step: 5, start: 40 } }

@@ -1,12 +1,11 @@
 // The scenes the playground starts from: a coherent table in one press. Each is the base table with some parts switched on, some cards in the hand, some pieces on the cells and a score that has begun, so the first second shows a table that looks played on
 // and not a list of components. Plain functions of nothing: every call makes a fresh state.
 
-import type { PlayCard, PlayHeld, PlayPart, PlayState, PlayThing } from "../defaults"
+import { PRESET_IDS, type PresetId, type PlayCard, type PlayHeld, type PlayPart, type PlayState, type PlayThing } from "../defaults"
 import { cellCentres, planOf } from "./geometry"
 import { baseState, deckCard } from "./state"
 
-export const PRESET_IDS = ["card", "board", "trick", "dice", "everything", "empty"] as const
-export type PresetId = (typeof PRESET_IDS)[number]
+export { PRESET_IDS, type PresetId }
 export const DEFAULT_PRESET: PresetId = "card"
 
 export type Preset = { id: PresetId; name: string; summary: string; parts: readonly PlayPart[] }
@@ -30,6 +29,10 @@ function withParts(state: PlayState, parts: readonly PlayPart[]): PlayState {
 
 /** The state of a scene, as it starts and as Reset puts it back */
 export function presetState(id: PresetId): PlayState {
+  return { ...build(id), scene: id }
+}
+
+function build(id: PresetId): PlayState {
   const base = baseState()
   const parts = PRESETS[id].parts
   switch (id) {
@@ -50,7 +53,7 @@ export function presetState(id: PresetId): PlayState {
           piles: { drawn: 14, discard: cards([[130, 5], [131, 27]]) },
           score: { round: 3, points: [3, 0, 7, 0, 0, 0, 0, 0], total: [12, 5, 23, 8, 0, 0, 0, 0] },
           log: ["Camille +7, 7 in round 3", "Round 2 over: Camille leads with 16", "Dealt a round: one card to each of 4 players"],
-          zoom: 30,
+          zoom: 21,
         },
         parts,
       )
@@ -66,17 +69,17 @@ export function presetState(id: PresetId): PlayState {
           dice: { shape: "d6", count: 2, values: [4, 3, 1, 6, 2, 4], rolls: 0 },
           counter: 1,
           log: ["Board game: drag a pawn onto a cell, or press Move a piece in the Play tab"],
-          zoom: 26,
+          zoom: 21,
         },
         parts,
       )
     }
     case "trick": {
       const played: PlayThing[] = [
-        { id: 1, kind: "card", card: 31, x: 0, z: 1.3, face: "up" },
-        { id: 2, kind: "card", card: 8, x: -1.5, z: -0.2, face: "up" },
-        { id: 3, kind: "card", card: 17, x: 0, z: -1.7, face: "up" },
-        { id: 4, kind: "card", card: 26, x: 1.5, z: -0.2, face: "up" },
+        { id: 1, kind: "card", card: 31, x: 0, z: 1.5, face: "up" },
+        { id: 2, kind: "card", card: 8, x: -1.5, z: 0.0, face: "up" },
+        { id: 3, kind: "card", card: 17, x: 0, z: -1.5, face: "up" },
+        { id: 4, kind: "card", card: 26, x: 1.5, z: 0.0, face: "up" },
       ]
       return withParts(
         {
@@ -89,7 +92,7 @@ export function presetState(id: PresetId): PlayState {
           piles: { drawn: 24, discard: cards([[130, 5], [131, 27], [132, 11]]) },
           score: { round: 2, points: [1, 2, 0, 1, 0, 0, 0, 0], total: [14, 9, 11, 7, 0, 0, 0, 0] },
           log: ["Basile's turn", "Alix +1, 1 in round 2"],
-          zoom: 30,
+          zoom: 21,
         },
         parts,
       )
@@ -104,7 +107,7 @@ export function presetState(id: PresetId): PlayState {
           counter: 0,
           score: { round: 1, points: [0, 0, 0, 0, 0, 0, 0, 0], total: [18, 24, 11, 0, 0, 0, 0, 0] },
           log: ["Dice game: roll the dice, then tick a box of the sheet"],
-          zoom: 32,
+          zoom: 27,
         },
         parts,
       )

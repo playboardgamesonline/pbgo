@@ -15,7 +15,8 @@ const number = (value: string | null): number | undefined => {
 }
 
 /** The hash of a table that began as `scene`: only the fields that differ from that scene are written, so a table nobody changed has a short link (`#s=card`) */
-export function encodeScene(state: PlayState, scene: PresetId): string {
+export function encodeScene(state: PlayState): string {
+  const scene = state.scene
   const start = presetState(scene)
   const params = new URLSearchParams({ s: scene })
   const on = PLAY_PARTS.filter((part) => state.parts[part] && !start.parts[part])

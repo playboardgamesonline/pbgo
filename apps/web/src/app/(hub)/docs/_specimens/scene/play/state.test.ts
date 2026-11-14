@@ -160,14 +160,14 @@ describe("the table", () => {
   it("keeps new things off the piles in the middle", () => {
     const s = card()
     const at = freeSlot(s)
-    expect(Math.hypot(at.x - -3.8, at.z - -0.4)).toBeGreaterThan(2.4)
+    expect(Math.hypot(at.x - -3.1, at.z - -0.6)).toBeGreaterThan(2)
   })
 
   it("showParts backs the camera off and brings the piles with the floor buttons", () => {
-    const s = showParts(presetState("empty"), ["floor"], true)
+    const s = showParts({ ...presetState("empty"), zoom: 14 }, ["floor"], true)
     expect(s.parts.floor && s.parts.piles).toBe(true)
     expect(s.layout.piles).toBe("middle")
-    expect(s.zoom).toBeGreaterThanOrEqual(28)
+    expect(s.zoom).toBeGreaterThanOrEqual(20)
     expect(showParts(s, ["floor"], false).parts.floor).toBe(false)
   })
 

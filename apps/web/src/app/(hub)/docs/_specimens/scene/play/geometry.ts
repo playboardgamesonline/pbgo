@@ -68,25 +68,27 @@ export function cellAt(centres: readonly Place[], at: Place, reach: number): num
 /** Where the draw and the discard pile lie, and the floor buttons beside them, for each place of the piles */
 export const PILE_PLACES_AT = {
   edge: { draw: { x: -6.6, z: 9.4 }, discard: { x: 6.6, z: 9.4 } },
-  middle: { draw: { x: -3.8, z: -0.4 }, discard: { x: 5.4, z: -0.4 } },
+  middle: { draw: { x: -3.1, z: -0.6 }, discard: { x: 3.1, z: -0.6 } },
 } as const
 
 /** The pads of the floor buttons: Hit and Stay side by side to the right of the draw pile, as deep as it, and Deal across the two under them (the arrangement of Flip 7, `floorPlan`) */
 export const FLOOR_GAP = 0.3
 export function floorPads(draw: Place) {
-  const depth = 2.4
-  const width = 2.5
-  const hit = { x: draw.x + 1.1 + FLOOR_GAP + width / 2, z: draw.z, width, depth }
+  const depth = 2.2
+  const width = 1.8
+  const hit = { x: draw.x + 0.65 + FLOOR_GAP + width / 2, z: draw.z, width, depth }
   const stay = { x: hit.x + width + FLOOR_GAP, z: draw.z, width, depth }
   const deal = { x: (hit.x + stay.x) / 2, z: draw.z + depth / 2 + FLOOR_GAP + 0.55, width: width * 2 + FLOOR_GAP, depth: 1.1 }
   return { hit, stay, deal }
 }
 
 /** The ring the seats stand on: a little wider the more players sit */
-export const ringOf = (players: number) => ({ radiusX: players > 6 ? 12 : 10, radiusZ: 7.2 })
+export const ringOf = (players: number) => (players > 6 ? { radiusX: 9.8, radiusZ: 6.6 } : players > 4 ? { radiusX: 8, radiusZ: 6 } : { radiusX: 6.6, radiusZ: 5.6 })
+/** How far back the camera stands for a ring of this many players */
+export const ringZoom = (players: number) => (players > 6 ? 28 : players > 4 ? 24 : 21)
 
 /** A seat's cards held face down lie between its plate and the middle of the table; the zone of the floor lies there too */
-export const heldFrame = (spot: Place & { yaw: number }, factor = 0.7): Place & { yaw: number } => ({ x: spot.x * factor, z: spot.z * factor, yaw: spot.yaw })
+export const heldFrame = (spot: Place & { yaw: number }, fx = 0.85, fz = 0.7): Place & { yaw: number } => ({ x: spot.x * fx, z: spot.z * fz, yaw: spot.yaw })
 
 /** The frame of a hand put in the bottom left of the screen, from two places of the table that the screen shows at its bottom left: where the left edge of the picture meets the row the hand lies on, and where its middle does. The hand is as wide as the room between them, never wider than `most`, and its depth follows */
 export function cornerFrame(left: Place, middle: Place, { most, depth }: { most: number; depth: number }): { x: number; z: number; width: number; depth: number; scale: number } {

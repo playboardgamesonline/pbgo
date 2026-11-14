@@ -30,7 +30,7 @@ import { BOX, nextFitting, START as FIRST_TILE } from "../landscape"
 import { cellAt, cellCentres, neighboursOf, PILE_PLACES_AT, planOf, type Place } from "./geometry"
 
 /** The parts that lie beyond the rest of the table: the camera backs off to at least this distance when one is switched on */
-export const BACK_OFF: Partial<Record<PlayPart, number>> = { seats: 28, sketch: PLAY_SKETCH.zoom, hand: 28, piles: 28, stack: 28, paper: 28, map: 32, sheet: PLAY_SHEET.zoom, tiles: PLAY_TILES.zoom, scoreboard: 0, floor: 28 }
+export const BACK_OFF: Partial<Record<PlayPart, number>> = { seats: 20, sketch: PLAY_SKETCH.zoom, hand: 20, piles: 20, stack: 28, paper: 28, map: 32, sheet: PLAY_SHEET.zoom, tiles: PLAY_TILES.zoom, scoreboard: 0, floor: 20 }
 
 /** Where a thing is put when it is added: the first place of a grid in the middle of the table that has nothing near it. */
 const SLOTS = Array.from({ length: 24 }, (_, n) => ({ x: -2.4 + (n % 4) * 1.6, z: -2.4 + Math.floor(n / 4) * 2.1 }))
@@ -38,8 +38,8 @@ const SLOTS = Array.from({ length: 24 }, (_, n) => ({ x: -2.4 + (n % 4) * 1.6, z
 /** What lies in the middle of the table where a new thing should not land: the piles when they are there */
 function obstacles(state: PlayState): { x: number; z: number; r: number }[] {
   const found: { x: number; z: number; r: number }[] = []
-  if (state.parts.piles && state.layout.piles === "middle") found.push({ ...PILE_PLACES_AT.middle.draw, r: 2.4 }, { ...PILE_PLACES_AT.middle.discard, r: 2.4 })
-  if (state.parts.floor && state.layout.piles === "middle") found.push({ x: 0.2, z: 0.4, r: 4 })
+  if (state.parts.piles && state.layout.piles === "middle") found.push({ ...PILE_PLACES_AT.middle.draw, r: 2 }, { ...PILE_PLACES_AT.middle.discard, r: 2 })
+  if (state.parts.floor && state.layout.piles === "middle") found.push({ x: 0, z: 0.2, r: 3.2 })
   return found
 }
 
@@ -62,6 +62,7 @@ const zeros = () => Array.from({ length: PLAY_PLAYERS.max }, () => 0)
 /** The table as the playground begins, with every part off: a board of the side, a few cards and pieces to move and nothing else. The scenes (`presets.ts`) switch parts on from here. */
 export function baseState(): PlayState {
   return {
+    scene: "empty",
     things: [
       { id: 1, kind: "card", card: 12, x: -1.6, z: -1.4, face: "up" },
       { id: 2, kind: "card", card: 21, x: 0, z: -1.4, face: "up" },
@@ -314,3 +315,22 @@ export function reshapeBoard(now: PlayState, change: Partial<Pick<PlayState["boa
   })
   return { ...now, board, things }
 }
+
+/** The seat whose turn it is banks the points of the round and the turn passes on */
+export function stay(now: PlayState): PlayState {
+  const seat = now.turn
+  const points = now.score.points[seat] ?? 0
+  return say(
+    { ...now, turn: (seat + 1) % now.players, score: { ...now.score, points: now.score.points.map((had, i) => (i === seat ? 0 : had)), total: now.score.total.map((had, i) => (i === seat ? had + points : had)) } },
+    `${nameOf(seat)} stays and banks ${points}`,
+  )
+}
+
+/** Hit: the seat whose turn it is gets a card from the draw pile, and a point for it */
+export function hit(now: PlayState): PlayState {
+  const given = giveTo(now, now.turn, true)
+  return given === now ? now : addPoints(say(given, `${nameOf(now.turn)} hits`), now.turn, 1)
+}
+
+/** The dice are rolled, and the tray is switched on to show them */
+export const rollDice = (now: PlayState): PlayState => say(showParts({ ...now, dice: { ...now.dice, values: rollFor(now.dice.shape), rolls: now.dice.rolls + 1 } }, ["dice"], true), "Rolled the dice")

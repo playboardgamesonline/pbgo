@@ -5,7 +5,7 @@ import { decodeScene, encodeScene } from "./url"
 
 describe("encodeScene and decodeScene", () => {
   it("write a table nobody changed as the name of its scene alone", () => {
-    for (const id of PRESET_IDS) expect(encodeScene(presetState(id), id)).toBe(`s=${id}`)
+    for (const id of PRESET_IDS) expect(encodeScene(presetState(id))).toBe(`s=${id}`)
   })
 
   it("bring back a scene as it starts", () => {
@@ -24,7 +24,7 @@ describe("encodeScene and decodeScene", () => {
       tilt: 12,
       above: true,
     }
-    const hash = encodeScene(changed, "card")
+    const hash = encodeScene(changed)
     const back = decodeScene(`#${hash}`)
     expect(back?.scene).toBe("card")
     expect(back?.state.parts.seats).toBe(false)

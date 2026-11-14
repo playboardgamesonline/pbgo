@@ -1,7 +1,7 @@
 "use client"
 
 import { DEFAULT_SEAT_THEME } from "@pbgo/core/lib/ui-theme"
-import { bagSize, squareBoard } from "@pbgo/engine-kit"
+import { bagSize } from "@pbgo/engine-kit"
 import {
   Bag,
   bagMouth,
@@ -20,10 +20,13 @@ import {
   type Drop,
   DropZone,
   fan,
+  FloorButton,
   grid,
   gridCells,
+  hexCells,
   inFrame,
   lineSpaces,
+  loopSpaces,
   NumberField,
   onTable,
   Paper,
@@ -52,9 +55,13 @@ import {
   TrackMarker,
   Zone,
 } from "@pbgo/table"
-import { useMemo } from "react"
-import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SHEET, PLAY_TILES, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_NAMES, SKETCH_BRUSHES } from "../defaults"
-import { pageFont } from "../color"
+import { useFrame, useThree } from "@react-three/fiber"
+import { type ReactNode, useMemo, useState } from "react"
+import { type Camera, Vector3 } from "three"
+import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SHEET, PLAY_TILES, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_NAMES, PLAY_SEAT_COLORS, SKETCH_BRUSHES } from "../defaults"
+import { cssColor, pageFont } from "../color"
+import { cellAt, cellCentres, cornerFrame, coordsOf, floorPads, heldFrame, LOOP_CELLS, PILE_PLACES_AT, planOf, ringOf, ringRadius } from "../play/geometry"
+import { leader, nameOf } from "../play/state"
 import { BOX, view } from "../landscape"
 import { back, CARD_SIZE, face, inks, palette } from "./art"
 import { TilesTable } from "./tiles"
@@ -66,7 +73,6 @@ import { Stage, TableLabel } from "./parts"
 /** The view of the table: seen from where a player sits, and from straight above when the controls say so. The distance and the lean are the controls'. */
 const camera = ({ zoom, above, tilt }: Pick<PlayState, "zoom" | "above" | "tilt">): CameraSettings => ({ tilt: above ? 6 : tilt, yaw: 0, distance: zoom, fov: 34, targetX: 0, targetZ: 0.5 })
 
-const BOARD_AT = { x: -6.6, z: -0.6 }
 const TRACK_AT = { x: -1, z: -5.2 }
 const COUNTER_AT = { x: 4.6, z: -5.2 }
 const TIMER_AT = { x: -7.4, z: -6.6 }
@@ -77,12 +83,9 @@ const CUP_AT = { x: 5.8, z: -1.6, yaw: 0 }
 const TRAY = { x: 7, z: 2.6, width: 5.4, depth: 3.4 }
 const BIN = { x: -6.6, z: 5.2, radius: 1.2 }
 const FIELD_Z = 6.2
-const RING = { radiusX: 10, radiusZ: 7.2 }
 const BRUSHES = SKETCH_BRUSHES.map((brush) => brush.width)
 /** The cards that are held and drawn from lie along the near edge of the table: the hand in the middle, the draw pile and the discard pile on each side of it. */
 const HAND_AT = { x: 0, z: 9.6, width: 9.6, depth: 3.4 }
-const DRAW_AT = { x: -6.6, z: 9.4 }
-const DISCARD_AT = { x: 6.6, z: 9.4 }
 /** The draw pile draws up to this many cards, however many its deck holds. */
 const PILE_LIMIT = 24
 const PILE_LOOK = { lean: "draw", leanAmplitude: 0.06 } as const
@@ -104,8 +107,17 @@ const GLOWS = defineGlows({
   all: { halo: {}, outline: {}, frame: {}, sparkle: {} },
 })
 
-/** The slots of the hand in its own frame, whose middle is (0, 0): the layout helpers of the package. */
-function handSlots(layout: LayoutName, n: number): Pose[] {
+/** The poses of a layout drawn smaller about the middle of its frame: a hand that has less room is the same hand, scaled */
+function scaled(poses: Pose[], by: number): Pose[] {
+  return by === 1 ? poses : poses.map((pose) => ({ ...pose, position: new Vector3(pose.position.x * by, pose.position.y, pose.position.z * by), scale: pose.scale * by }))
+}
+
+/** The slots of the hand in its own frame, whose middle is (0, 0): the layout helpers of the package, at the scale the room allows. */
+function handSlots(layout: LayoutName, n: number, by = 1): Pose[] {
+  return scaled(slotsOf(layout, n), by)
+}
+
+function slotsOf(layout: LayoutName, n: number): Pose[] {
   const count = Math.max(n, 1)
   switch (layout) {
     case "fan":
@@ -120,15 +132,49 @@ function handSlots(layout: LayoutName, n: number): Pose[] {
 }
 
 /** Where the top card of the draw pile lies when it holds `count` cards: where a card that was just dealt flies in from. */
-function topOfDraw(count: number): Pose {
+function topOfDraw(count: number, draw: { x: number; z: number }): Pose {
   const n = Math.max(1, Math.min(count, PILE_LIMIT))
-  return inFrame(DRAW_AT, pile(n, { ...PILE_LOOK, face: "down" })[n - 1] as Pose)
+  return inFrame(draw, pile(n, { ...PILE_LOOK, face: "down" })[n - 1] as Pose)
 }
 
 /** Where the top of the stack is when it holds `count` pieces: where a piece that was just taken flies in from. */
+/** The hand in the bottom left of the screen: the table is seen through a camera, so the place of a corner of the screen on the table is read from the camera on every frame, and the hand is laid there. It only asks for a render when the place moves, which it does when the window is resized or the view changes. */
+const CORNER_HAND = { most: 9.6, depth: 3.4 }
+const CORNER_SCREEN = { left: -0.96, middle: -0.2, row: -0.6 }
+const ray = new Vector3()
+const eye = new Vector3()
+function onTableAt(camera: Camera, x: number, y: number): { x: number; z: number } {
+  ray.set(x, y, 0.5).unproject(camera)
+  eye.copy(camera.position)
+  ray.sub(eye).normalize()
+  const t = ray.y < -1e-4 ? -eye.y / ray.y : 0
+  return { x: eye.x + ray.x * t, z: eye.z + ray.z * t }
+}
+function CornerHand({ children }: { children: (frame: ReturnType<typeof cornerFrame>) => ReactNode }) {
+  const camera = useThree((three) => three.camera)
+  const [frame, setFrame] = useState<ReturnType<typeof cornerFrame> | null>(null)
+  useFrame(() => {
+    camera.updateMatrixWorld()
+    const next = cornerFrame(onTableAt(camera, CORNER_SCREEN.left, CORNER_SCREEN.row), onTableAt(camera, CORNER_SCREEN.middle, CORNER_SCREEN.row), CORNER_HAND)
+    if (!frame || Math.abs(next.x - frame.x) > 0.05 || Math.abs(next.z - frame.z) > 0.05 || Math.abs(next.scale - frame.scale) > 0.01) setFrame(next)
+  })
+  return frame ? <>{children(frame)}</> : null
+}
+
+/** A place of the table that a point of the screen shows (-1 to 1 across and up), read from the camera as the corner hand is */
+function ScreenSpot({ at, children }: { at: readonly [number, number]; children: (spot: { x: number; z: number }) => ReactNode }) {
+  const camera = useThree((three) => three.camera)
+  const [spot, setSpot] = useState<{ x: number; z: number } | null>(null)
+  useFrame(() => {
+    camera.updateMatrixWorld()
+    const next = onTableAt(camera, at[0], at[1])
+    if (!spot || Math.abs(next.x - spot.x) > 0.05 || Math.abs(next.z - spot.z) > 0.05) setSpot(next)
+  })
+  return spot ? <>{children(spot)}</> : null
+}
+
 const topOfStack = (count: number) => ({ x: STACK_AT.x, z: STACK_AT.z, y: count * pieceModel("disc").height * STACK_SIZE })
 
-const CELLS = Array.from({ length: 36 }, (_, cell) => cell)
 const zoneOf = (cell: number) => `cell:${cell}`
 
 export function PlaygroundScene({ state, actions }: { state: PlayState; actions: PlayActions }) {
@@ -138,11 +184,33 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
   const paints = [colors.marks[0], colors.marks[1], colors.marks[2], colors.ivory, colors.muted, colors.navy]
   const { things, selected, parts } = state
   const tiles = useMemo(() => view(state.tiles.laid, BOX, state.tiles.index, state.tiles.spin, PLAY_TILES.table), [state.tiles])
-  const cells = useMemo(() => squareCells(squareBoard({ columns: 6, rows: 6 }).coords, { size: 0.95, gap: 0.05, at: BOARD_AT }), [])
+  const { shape, centre } = state.board
+  const plan = useMemo(() => planOf({ shape, centre }), [shape, centre])
+  const cells = useMemo(() => {
+    const gap = plan.size * 0.05
+    if (plan.shape === "grid") return squareCells(coordsOf("grid"), { size: plan.size, gap, at: plan.at })
+    if (plan.shape === "hex") return hexCells(coordsOf("hex"), { size: plan.size, gap, at: plan.at })
+    // A ring of squares: the spaces of a loop, each a cell with the corners of a square
+    const half = plan.size * 0.45
+    const corners = [[-half, -half], [half, -half], [half, half], [-half, half]] as const
+    return loopSpaces(LOOP_CELLS, { radiusX: ringRadius(plan.size) }).map((space) => ({ ...space, yaw: 0, corners }))
+  }, [plan])
+  const centres = useMemo(() => cellCentres(plan), [plan])
+  const dropCells = useMemo(() => cells.map((_, cell) => cell), [cells])
+  // The cells that have something on them
+  const taken = useMemo(() => new Set(things.map((one) => cellAt(centres, one, plan.size * 0.45)).filter((cell) => cell >= 0)), [things, centres, plan.size])
+  const [draw, discard] = [PILE_PLACES_AT[state.layout.piles].draw, PILE_PLACES_AT[state.layout.piles].discard]
+  const seatColors = PLAY_SEAT_COLORS.map((expression) => cssColor(expression))
+  const players = Math.min(state.players, PLAY_NAMES.length)
+  const ringLine = ringOf(players)
   const line = useMemo(() => spacesIn(TRACK_AT, lineSpaces(PLAY_LIMITS.spaces, { gap: 1.1 })), [])
-  const ring = seats(state.players, { ...RING, me: 0 })
+  const ring = seats(players, { ...ringLine, me: 0 })
   const fill = bagSize(BAG_START) === 0 ? 0 : bagSize(state.bag.counts) / bagSize(BAG_START)
-  const cellLook = (cell: number): CellLook => ({ color: ((cell % 6) + Math.floor(cell / 6)) % 2 === 0 ? colors.ivory : colors.marks[2] })
+  // A chequer for squares, three shades for hexagons so that no two neighbours match, a ring that alternates with its corners numbered; a cell with something on it takes the gold
+  const cellLook = (cell: number): CellLook => {
+    const base = shape === "grid" ? (((cell % 6) + Math.floor(cell / 6)) % 2 === 0 ? colors.ivory : colors.muted) : shape === "hex" ? [colors.ivory, colors.muted, colors.marks[1]][(cell * 7) % 3]! : cell % 2 === 0 ? colors.ivory : colors.muted
+    return { color: taken.has(cell) ? colors.marks[2] : base, ...(shape === "loop" ? { label: String(cell + 1), ink: colors.ink } : {}) }
+  }
   const spaceLook = (index: number) => (index === PLAY_LIMITS.spaces - 1 ? { label: String(index), color: colors.marks[2], ink: colors.ink } : { label: String(index) })
 
   // What a thing does when it is let go: on a cell it takes the cell, on the bin it is gone, anywhere else it lies where it is
@@ -172,6 +240,35 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
     actions.select(selected === thing.id ? null : thing.id)
   }
 
+  // The bin takes what is let go on it. With the hand in the bottom left it lies in the bottom right of the screen, the hand's counterpart
+  const binView = (at: { x: number; z: number }) => (
+    <>
+      <DropZone id="bin" shape={circleShape(at.x, at.z, BIN.radius)} show="always" />
+      <TableLabel text="Bin" x={at.x} z={at.z - BIN.radius - 0.5} height={0.4} tone="muted" />
+    </>
+  )
+  // The hand and the zone that takes the cards let go on it, framed where the layout says: along the near edge, or in the bottom left of the screen
+  const handView = (frame: { x: number; z: number; width: number; depth: number }, by: number) => (
+    <>
+      <DropZone id="hand" shape={rectShape(frame.x, frame.z, frame.width, frame.depth)} />
+      <Zone
+        frame={{ x: frame.x, z: frame.z }}
+        layout={handSlots(state.hand.layout, state.hand.cards.length, by)}
+        size={CARD_SIZE}
+        cards={state.hand.cards.map((entry) => ({
+          key: entry.id,
+          id: `thing-${entry.id}`,
+          front: face(entry.card),
+          back: cardBack,
+          draggable: true,
+          onDrop: letGoCard(entry),
+          ...(entry.from !== undefined ? { from: topOfDraw(entry.from, draw) } : {}),
+        }))}
+      />
+      <TableLabel text="Hand" x={frame.x} z={frame.z + frame.depth / 2 + 0.5} height={0.45 * Math.max(by, 0.7)} tone="muted" />
+    </>
+  )
+
   return (
     <Stage id="scene-playground" camera={camera(state)} playIntro={false}>
       {/* What the visitor moves */}
@@ -187,7 +284,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
               front={face(thing.card)}
               back={cardBack}
               size={CARD_SIZE}
-              from={thing.from !== undefined ? topOfDraw(thing.from) : undefined}
+              from={thing.from !== undefined ? topOfDraw(thing.from, draw) : undefined}
               glow={chosen && state.glow !== "none" ? GLOWS[state.glow] : null}
               draggable
               onDrop={letGo(thing)}
@@ -212,13 +309,12 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
           />
         )
       })}
-      <DropZone id="bin" shape={circleShape(BIN.x, BIN.z, BIN.radius)} show="always" />
-      <TableLabel text="Bin" x={BIN.x} z={BIN.z - BIN.radius - 0.5} height={0.4} tone="muted" />
+      {parts.hand && state.layout.hand === "corner" ? <ScreenSpot at={[0.8, CORNER_SCREEN.row]}>{binView}</ScreenSpot> : binView(BIN)}
 
       {parts.board && (
         <>
-          <Board cells={cells} look={cellLook} drops={CELLS} dropId={zoneOf} />
-          <TableLabel text="Board" x={BOARD_AT.x} z={BOARD_AT.z + 3.4} height={0.45} tone="muted" />
+          <Board key={shape} cells={cells} look={cellLook} drops={dropCells} dropId={zoneOf} />
+          <TableLabel text={`Board · ${shape}`} x={plan.at.x} z={plan.at.z + (shape === "hex" ? 2.7 : plan.size * (shape === "loop" ? 4.1 : 3.5))} height={0.45} tone="muted" />
         </>
       )}
       {parts.track && (
@@ -329,38 +425,19 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
           <TableLabel text="Sketch" x={PLAY_SKETCH.x} z={PLAY_SKETCH.z + PLAY_SKETCH.height / 2 + 0.6} height={0.45} tone="muted" />
         </>
       )}
-      {parts.hand && (
-        <>
-          <DropZone id="hand" shape={rectShape(HAND_AT.x, HAND_AT.z, HAND_AT.width, HAND_AT.depth)} />
-          <Zone
-            frame={{ x: HAND_AT.x, z: HAND_AT.z }}
-            layout={handSlots(state.hand.layout, state.hand.cards.length)}
-            size={CARD_SIZE}
-            cards={state.hand.cards.map((entry) => ({
-              key: entry.id,
-              id: `thing-${entry.id}`,
-              front: face(entry.card),
-              back: cardBack,
-              draggable: true,
-              onDrop: letGoCard(entry),
-              ...(entry.from !== undefined ? { from: topOfDraw(entry.from) } : {}),
-            }))}
-          />
-          <TableLabel text="Hand" x={HAND_AT.x} z={HAND_AT.z + HAND_AT.depth / 2 + 0.5} height={0.45} tone="muted" />
-        </>
-      )}
+      {parts.hand && (state.layout.hand === "corner" ? <CornerHand>{(frame) => handView(frame, frame.scale)}</CornerHand> : handView({ ...HAND_AT }, 1))}
       {parts.piles && (
         <>
-          <Pile frame={DRAW_AT} count={PLAY_DECK.size - state.piles.drawn} size={CARD_SIZE} back={cardBack} {...PILE_LOOK} limit={PILE_LIMIT} top={{ id: "draw-top", onClick: (event) => (event.stopPropagation(), actions.deal()) }} />
-          <TableLabel text="Draw pile" x={DRAW_AT.x} z={DRAW_AT.z + 2.1} height={0.45} tone="muted" />
-          <DropZone id="discard" shape={rectShape(DISCARD_AT.x, DISCARD_AT.z, 2.4, 3.2)} show="always" />
+          <Pile frame={draw} count={PLAY_DECK.size - state.piles.drawn} size={CARD_SIZE} back={cardBack} {...PILE_LOOK} limit={PILE_LIMIT} top={{ id: "draw-top", onClick: (event) => (event.stopPropagation(), actions.deal()) }} />
+          <TableLabel text="Draw pile" x={draw.x} z={draw.z + 2.1} height={0.45} tone="muted" />
+          <DropZone id="discard" shape={rectShape(discard.x, discard.z, 2.4, 3.2)} show="always" />
           <Zone
-            frame={DISCARD_AT}
+            frame={discard}
             layout={pile(state.piles.discard.length, { face: "up", step: 0.03, lean: "discard", leanAmplitude: 0.12 })}
             size={CARD_SIZE}
             cards={state.piles.discard.map((entry) => ({ key: entry.id, id: `thing-${entry.id}`, front: face(entry.card), back: cardBack }))}
           />
-          <TableLabel text="Discard pile" x={DISCARD_AT.x} z={DISCARD_AT.z + 2.4} height={0.45} tone="muted" />
+          <TableLabel text="Discard pile" x={discard.x} z={discard.z + 2.4} height={0.45} tone="muted" />
         </>
       )}
       {parts.stack && (
@@ -429,20 +506,71 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
         />
       )}
       {parts.seats &&
-        ring.slice(0, state.players).map((spot, i) => (
-          <Seat
-            key={i}
-            nickname={PLAY_NAMES[i] ?? `Player ${i + 1}`}
-            color={paints[i % paints.length]!}
-            theme={DEFAULT_SEAT_THEME}
-            spot={spot}
-            viewer={i === 0}
-            active={i === 1}
-            waiting={state.seat === i}
-            line={`${(i + 1) * 3} pts`}
-            status={state.seat === i ? "Picked" : undefined}
-          />
-        ))}
+        ring.map((spot, i) => {
+          const points = state.score.points[i] ?? 0
+          const heldHere = state.held.filter((one) => one.seat === i)
+          return (
+            <group key={i}>
+              <Seat
+                nickname={nameOf(i)}
+                color={seatColors[i % seatColors.length]!}
+                theme={DEFAULT_SEAT_THEME}
+                spot={spot}
+                viewer={i === 0}
+                active={state.turn === i}
+                waiting={state.seat === i}
+                line={`${state.score.total[i] ?? 0} pts`}
+                status={state.seat === i ? "Picked" : parts.scoreboard && points > 0 ? `+${points} this round` : undefined}
+              />
+              {i > 0 && heldHere.length > 0 && (
+                <Zone
+                  frame={heldFrame(spot)}
+                  layout={row(heldHere.length, { gap: Math.min(0.62, 4.2 / heldHere.length), face: "down", rise: 0.012, scale: 0.62 })}
+                  size={CARD_SIZE}
+                  cards={heldHere.map((one) => ({ key: one.id, id: `thing-${one.id}`, front: face(one.card), back: cardBack, ...(one.from !== undefined ? { from: topOfDraw(one.from, draw) } : {}) }))}
+                />
+              )}
+            </group>
+          )
+        })}
+      {parts.floor && (
+        <>
+          {(() => {
+            const pads = floorPads(draw)
+            const hitTone = cssColor("var(--success)")
+            const stayTone = cssColor("color-mix(in oklab, var(--success) 25%, var(--muted-foreground))")
+            const off = state.floor.disabled
+            const empty = state.piles.drawn >= PLAY_DECK.size
+            return (
+              <>
+                <FloorButton at={pads.hit} width={pads.hit.width} depth={pads.hit.depth} tone={hitTone} label="Hit" onPress={actions.hit} disabled={off || empty} />
+                <FloorButton at={pads.stay} width={pads.stay.width} depth={pads.stay.depth} tone={stayTone} label="Stay" onPress={actions.stay} disabled={off} />
+                <FloorButton at={pads.deal} width={pads.deal.width} depth={pads.deal.depth} tone={hitTone} label="Deal" labelHeight={0.45} onPress={actions.dealRound} disabled={off || empty} />
+              </>
+            )
+          })()}
+          {state.floor.zones &&
+            parts.seats &&
+            ring.map((spot, i) => {
+              const at = heldFrame(spot)
+              const width = Math.min(3.2, 20 / players)
+              return (
+                <FloorButton
+                  key={i}
+                  at={at}
+                  width={width}
+                  depth={2.2}
+                  tone={cssColor("var(--success)")}
+                  tint={0.3}
+                  ariaLabel={`Give a card to ${nameOf(i)}`}
+                  onPress={() => actions.give(i)}
+                  disabled={state.floor.disabled || state.piles.drawn >= PLAY_DECK.size}
+                />
+              )
+            })}
+        </>
+      )}
+      {parts.scoreboard && parts.seats && !parts.floor && <TableText text={`Round ${state.score.round}${leader(state) === null ? "" : ` · ${nameOf(leader(state) ?? 0)} leads`}`} style={{ color: colors.muted }} height={0.55} position={[0, 0.02, -3.3]} />}
     </Stage>
   )
 }
