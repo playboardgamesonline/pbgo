@@ -96,7 +96,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the ids
   const spots = useMemo(() => seatSpots(ids, meId), [key, meId])
   const placed = useMemo(() => lines(spots, meId), [spots, meId])
-  const pressZones = useMemo(() => zones(spots, placed), [spots, placed])
+  const pressZones = useMemo(() => zones(spots, placed, meId), [spots, placed, meId])
   const { nickname } = useGame()
   const R = LAYOUT_SETTINGS
   const { deck, discard } = pilePlaces()
@@ -159,6 +159,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
                 depth={pressZones.get(player.id)!.halfDepth * 2}
                 tone={FLOOR_TONES.target}
                 tint={0.3}
+                hitY={0.35}
                 ariaLabel={fill(words.targetPlayer, { target: nickname(player.id) })}
                 onPress={() => onTarget(player.id)}
               />

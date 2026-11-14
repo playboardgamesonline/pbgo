@@ -326,30 +326,84 @@ export function plateBox(spot: SeatSpot, line: Line): Box {
   return { x: place.x + down.x * middle, z: place.z + down.z * middle, halfWidth: SEAT_SETTINGS.auraWidth / 2, halfDepth: (PLATE.drop + PLATE.lift) / 2, yaw: place.yaw }
 }
 
-/** How far a player's zone reaches past its line and its plate, in world units: along the line (neighbours are 0.3 apart at the least, so two zones keep clear), beyond the plate, and toward the middle of the table, where the piles and their count lie close */
-export const ZONE_MARGIN = { side: 0, outer: 0.25, inner: 0 }
+/** How far a player's zone reaches past their cards on every side when there is room, in world units: generous, so a click or a tap needs no aim. Each side stops short of whatever is there: the plate, a pile, the buttons. */
+export const ZONE_PADDING = 0.5
 
 /** The widest a zone gets, in world units: the viewer's line may spread across the whole front of the table, and a zone as wide as that would be a band, not the place of a seat */
 export const ZONE_MAX_WIDTH = 7
 
-/**
- * The zone of a seat that the viewer presses to give it a card: the sector of the table in front of the seat, the rectangle (in the frame of its line) that holds the line, at all the room it may take, and the plate beyond it, and a margin all round.
- * It is much bigger than a card, so a click or a tap does not have to find the plate's name.
- */
-export function zoneBox(spot: SeatSpot, line: Line, margin = ZONE_MARGIN): Box {
+/** What a zone must keep clear of besides other zones: the two piles with their count and the strip between them (the plates of the seats are added by `zones`) */
+export function fixedBoxes(): Box[] {
+  const R = LAYOUT_SETTINGS
+  const { deck, discard } = pilePlaces()
+  const { strip } = floorPlan()
+  const pile = (CARD.width * R.pileScale) / 2
+  const depth = (CARD.height * R.pileScale) / 2
+  return [
+    { x: strip.x, z: strip.z, halfWidth: strip.width / 2, halfDepth: strip.depth / 2, yaw: 0 },
+    { x: deck.x, z: deck.z, halfWidth: pile, halfDepth: depth + 0.8, yaw: 0 },
+    { x: discard.x, z: discard.z, halfWidth: pile, halfDepth: depth, yaw: 0 },
+  ]
+}
+
+/** Where the cards of a seat lie, as the box a zone is built around, in the frame of the line: the line's room (at the widest `ZONE_MAX_WIDTH`) by the height of a card, and, when the room is free of `avoid`, the small row of the cards set aside beside it */
+function cardsBox(line: Line, viewer: boolean, avoid: readonly Box[], withHeld = true): Box {
+  const own: Box = { x: line.at.x, z: line.at.z, halfWidth: Math.min(line.width, ZONE_MAX_WIDTH) / 2, halfDepth: (CARD.height * line.scale) / 2, yaw: line.yaw }
+  const place = heldPlace(line, viewer)
+  const held: Box = { x: place.x, z: place.z, halfWidth: (3 * CARD.width * line.scale * LAYOUT_SETTINGS.heldScale * 1.1) / 2, halfDepth: (CARD.height * line.scale * LAYOUT_SETTINGS.heldScale) / 2, yaw: line.yaw }
+  if (!withHeld || avoid.some((box) => boxesOverlap(held, box))) return own
   const along = alongOf(line.yaw)
   const out = outwardOf(line.yaw)
-  const own: Box = { x: line.at.x, z: line.at.z, halfWidth: line.width / 2, halfDepth: (CARD.height * line.scale) / 2, yaw: line.yaw }
-  const points = [...cornersOf(own), ...cornersOf(plateBox(spot, line))]
+  const points = [...cornersOf(own), ...cornersOf(held)]
   const u = points.map((p) => p.x * along.x + p.z * along.z)
   const v = points.map((p) => p.x * out.x + p.z * out.z)
   const [u0, u1, v0, v1] = [Math.min(...u), Math.max(...u), Math.min(...v), Math.max(...v)]
-  // the way out is the frame's +z: the inner edge is its low end
-  const [lo, hi] = [v0 - margin.inner, v1 + margin.outer]
-  const [left, right] = [u0 - margin.side, u1 + margin.side]
-  const middleU = (left + right) / 2
-  const middleV = (lo + hi) / 2
-  return { x: along.x * middleU + out.x * middleV, z: along.z * middleU + out.z * middleV, halfWidth: (right - left) / 2, halfDepth: (hi - lo) / 2, yaw: line.yaw }
+  const [mu, mv] = [(u0 + u1) / 2, (v0 + v1) / 2]
+  const merged: Box = { x: along.x * mu + out.x * mv, z: along.z * mu + out.z * mv, halfWidth: (u1 - u0) / 2, halfDepth: (v1 - v0) / 2, yaw: line.yaw }
+  // the rectangle that holds both is bigger than the two together: it must not run into anything either
+  return avoid.some((box) => boxesOverlap(merged, box)) ? own : merged
+}
+
+/** A box grown by `by` on every side: what a zone keeps clear of, with a little room to spare */
+const clear = (box: Box, by = 0.02): Box => ({ ...box, halfWidth: box.halfWidth + by, halfDepth: box.halfDepth + by })
+
+/** A box grown by a padding on each of its four sides (in its own frame: left, right, toward the middle of the table, away from it) */
+function padded(box: Box, [left, right, inner, outer]: readonly number[]): Box {
+  const along = alongOf(box.yaw)
+  const out = outwardOf(box.yaw)
+  const du = (right! - left!) / 2
+  const dv = (outer! - inner!) / 2
+  return {
+    x: box.x + along.x * du + out.x * dv,
+    z: box.z + along.z * du + out.z * dv,
+    halfWidth: box.halfWidth + (left! + right!) / 2,
+    halfDepth: box.halfDepth + (inner! + outer!) / 2,
+    yaw: box.yaw,
+  }
+}
+
+/**
+ * The zone of a seat that the viewer presses to give it a card: the player's cards (their line, and the cards set aside when they have room) and a generous padding all round, and nothing else. The plate, with the name, is NOT in it: it stands beside the zone,
+ * outside, and is never covered. Each side of the padding grows to `ZONE_PADDING` and stops short of whatever `avoid` holds there (the plates, the piles, the buttons), so the zone is as large as the room lets it be.
+ */
+export function zoneBox(line: Line, viewer: boolean, avoid: readonly Box[], share = 1): Box {
+  // with no padding left to give, the zone is the cards alone: the box that holds the cards set aside as well may be what runs into a neighbour
+  const core = cardsBox(line, viewer, avoid, share > 0.3)
+  // a thing the cards are already a hair from is kept clear as it is; the others with a little room to spare
+  const room = avoid.map((box) => (boxesOverlap(core, clear(box)) ? box : clear(box)))
+  const pad = [0, 0, 0, 0].map((_, side) => {
+    let value = ZONE_PADDING * share
+    const only = (amount: number) => padded(core, [0, 1, 2, 3].map((i) => (i === side ? amount : 0)))
+    while (value > 0 && room.some((box) => boxesOverlap(only(value), box))) value = Math.max(0, value - 0.05)
+    return value
+  })
+  // the sides together, at the corners: all of the padding shrinks until nothing is touched
+  let box = padded(core, pad)
+  for (let i = 0; i < 40 && avoid.some((other) => boxesOverlap(box, other)); i++) {
+    for (let k = 0; k < 4; k++) pad[k] = pad[k]! * 0.85
+    box = padded(core, pad)
+  }
+  return box
 }
 
 /** Whether two turned rectangles overlap, by the separating axis test: they only touch when they share an edge */
@@ -367,27 +421,24 @@ export function boxesOverlap(a: Box, b: Box): boolean {
 }
 
 /**
- * The zone of every seat, by id, for a table in which the seats stand as `spots` and `placed` say. A plate is wider than the line of a crowded table, so the rectangles that hold a line and a plate would run into the next seat's: where two zones overlap
- * each is narrowed along its line, a little at a time, until they only touch. A zone never gets narrower than its own line, which no other line overlaps.
+ * The zone of every seat, by id, for a table in which the seats stand as `spots` and `placed` say. Where two zones overlap, the padding of both shrinks, a little at a time, until they only touch; with no padding a zone is the cards alone, which no other line overlaps.
  */
-export function zones(spots: ReadonlyMap<string, SeatSpot>, placed: ReadonlyMap<string, Line>): Map<string, Box> {
-  const out = new Map([...spots].map(([id, spot]) => {
-    const box = zoneBox(spot, placed.get(id)!)
-    return [id, { ...box, halfWidth: Math.min(box.halfWidth, ZONE_MAX_WIDTH / 2) }] as const
-  }))
-  const ids = [...out.keys()]
-  const least = (id: string) => Math.min(placed.get(id)!.width, ZONE_MAX_WIDTH) / 2
-  for (let pass = 0; pass < 200; pass++) {
+export function zones(spots: ReadonlyMap<string, SeatSpot>, placed: ReadonlyMap<string, Line>, meId: string | null = null): Map<string, Box> {
+  const plates = [...spots].map(([id, spot]) => plateBox(spot, placed.get(id)!))
+  const avoid = [...plates, ...fixedBoxes()]
+  const ids = [...spots.keys()]
+  const share = new Map(ids.map((id) => [id, 1]))
+  const build = (id: string) => zoneBox(placed.get(id)!, id === meId, avoid, share.get(id))
+  const out = new Map(ids.map((id) => [id, build(id)] as const))
+  for (let pass = 0; pass < 60; pass++) {
     let touched = false
     for (let i = 0; i < ids.length; i++) {
       for (let j = i + 1; j < ids.length; j++) {
-        const a = out.get(ids[i]!)!
-        const b = out.get(ids[j]!)!
-        if (!boxesOverlap(a, b)) continue
+        if (!boxesOverlap(out.get(ids[i]!)!, out.get(ids[j]!)!)) continue
         touched = true
         for (const id of [ids[i]!, ids[j]!]) {
-          const box = out.get(id)!
-          out.set(id, { ...box, halfWidth: Math.max(least(id), box.halfWidth * 0.97) })
+          share.set(id, share.get(id)! * 0.9)
+          out.set(id, build(id))
         }
       }
     }
@@ -401,7 +452,7 @@ export function zoneBoxes(n: number, seated = true): Box[] {
   const ids = Array.from({ length: n }, (_, i) => String(i))
   const viewer = seated ? "0" : null
   const spots = seatSpots(ids, viewer)
-  const all = zones(spots, lines(spots, viewer))
+  const all = zones(spots, lines(spots, viewer), viewer)
   return ids.map((id) => all.get(id)!)
 }
 

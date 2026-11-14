@@ -3,7 +3,7 @@
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { useCursor } from "@react-three/drei"
 import { useFrame, useThree } from "@react-three/fiber"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { ExtrudeGeometry, type Group, type Mesh, type MeshBasicMaterial, Path, Shape, Vector3 } from "three"
 import { shadowTexture } from "../card/textures"
 import { TABLE_FONT, TableText, type TextStyle } from "../seat/table-text"
@@ -33,7 +33,14 @@ export type FloorButtonProps = {
   rim?: number
   /** How strongly the pad is tinted, as a share of the usual (default 1): a big zone that lies under cards takes 0.5 so that it tints the table without hiding it */
   tint?: number
+  /** How high above the table the invisible plane that takes the pointer lies (default 0.02). A zone that lies under cards, which take the pointer themselves, lifts it above them (a card's height, 0.35) so that the whole zone answers, cards included */
+  hitY?: number
+  /** The decal slot: whatever is drawn flat on the zone, in the pad's own frame (x along `width`, z along `depth`, y up, the origin at the pad's centre), over the tint and under the label and the cards. A seat's mark, a sketch, a glyph. It stays on the table as the rim lifts, takes no clicks of its own unless it asks for them, and is drawn at `DECAL_Y` */
+  children?: ReactNode
 }
+
+/** How high above the table the decal slot lies: over the pad, under the cards */
+export const DECAL_Y = 0.012
 
 /** How high the rim of a pad rises when lifted, in world units: a few cards' thickness, so the raised wall reads from the camera without hiding what lies behind it */
 export const RIM_HEIGHT = 0.2
@@ -102,7 +109,7 @@ function padShape(w: number, d: number, border: number) {
  * A canvas takes no keyboard, so each enabled pad also puts one real, visually hidden `<button>` in the page: it takes the Tab key, shows the lift while focused, says `ariaLabel` to a screen reader and presses with Enter or Space. A disabled pad has none.
  * The same block is the big zones that a board presses to choose a seat or a cell: give them no `label` and an `ariaLabel`.
  */
-export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55, font = TABLE_FONT, ariaLabel, onPress, disabled = false, rim = RIM_HEIGHT, tint = 1 }: FloorButtonProps) {
+export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55, font = TABLE_FONT, ariaLabel, onPress, disabled = false, rim = RIM_HEIGHT, tint = 1, hitY = 0.02, children }: FloorButtonProps) {
   const reduced = usePrefersReducedMotion()
   const pressable = !!onPress && !disabled
   const [hovered, setHovered] = useState(false)
@@ -206,6 +213,7 @@ export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55,
           <meshBasicMaterial ref={side} toneMapped={false} attach="material-1" />
         </mesh>
       </group>
+      {children && <group position-y={DECAL_Y}>{children}</group>}
       {label !== undefined && (
         <group ref={raised}>
           <TableText text={label} style={lettering} height={fitLabel(label, width - 2 * border - 0.2, labelHeight)} position={[0, TEXT_Y, 0]} font={font} opacity={disabled ? 0.55 : 1} layer={6} />
@@ -215,7 +223,7 @@ export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55,
       {pressable && (
         <mesh
           rotation-x={-Math.PI / 2}
-          position-y={0.02}
+          position-y={hitY}
           onClick={(e) => {
             e.stopPropagation()
             onPress()
