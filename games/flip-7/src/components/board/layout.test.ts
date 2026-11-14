@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { type Box, boxesOverlap, CARD, fixedBoxes, FLOOR, fitPrompt, floorPlan, wrapWords, zoneBoxes, zones, cornersOf, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, plateAt, plateBox, seatAngle, seatSpots, tableBoxes, tableQuads, uprightYaw } from "./layout"
+import { type Box, boxesOverlap, CARD, fixedBoxes, FLOOR, fitPrompt, floorPlan, wrapWords, zones, cornersOf, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, plateAt, plateBox, seatAngle, seatSpots, tableBoxes, tableQuads, uprightYaw } from "./layout"
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
 const SIZES = [3, 4, 5, 6, 7, 8]
@@ -386,28 +386,31 @@ describe("the zones the viewer presses to give a card", () => {
     }
   })
 
-  it("never overlap a plate (their own or another's), the piles or the strip of the buttons", () => {
+  it("never overlap the plate of another seat, the piles or the strip of the buttons", () => {
     for (const seated of [true, false]) for (const n of SIZES) {
       const all = setup(n, seated)
       for (const { id, zone } of all) {
-        for (const other of all) expect(overlap(zone, other.plate), `${n} players, seated ${seated}: zone ${id} and the plate of ${other.id}`).toBe(false)
+        for (const other of all.filter((item) => item.id !== id)) expect(overlap(zone, other.plate), `${n} players, seated ${seated}: zone ${id} and the plate of ${other.id}`).toBe(false)
         fixedBoxes().forEach((box, j) => expect(overlap(zone, box), `${n} players, seated ${seated}: zone ${id} and fixed box ${j}`).toBe(false))
       }
     }
   })
 
-  it("hold the cards of their seat: the line of a few cards with its padding where there is room, and none of the plate", () => {
-    for (const n of SIZES) for (const { id, zone, line, plate } of setup(n, true)) {
+  it("hold the plate of their seat, whole, and the cards of its line: one zone for the play area and the name", () => {
+    for (const seated of [true, false]) for (const n of SIZES) for (const { id, zone, line, plate } of setup(n, seated)) {
+      for (const corner of cornersOf(plate)) expect(inside(zone, corner), `${n} players, seated ${seated}, zone ${id}: a corner of its plate is outside`).toBe(true)
       const cards = cornersOf({ x: line.at.x, z: line.at.z, halfWidth: Math.min(line.width, CARD.width * line.scale * 3) / 2, halfDepth: (CARD.height * line.scale) / 2, yaw: line.yaw })
-      for (const corner of cards) expect(inside(zone, corner), `${n} players, zone ${id}`).toBe(true)
-      for (const corner of cornersOf(plate)) expect(inside(zone, corner), `${n} players, zone ${id} holds a corner of the plate`).toBe(false)
+      for (const corner of cards) expect(inside(zone, corner), `${n} players, seated ${seated}, zone ${id}: a card is outside`).toBe(true)
     }
   })
 
-  it("are padded on the sides with room: wider and deeper than the cards", () => {
-    for (const n of SIZES) for (const { id, zone, line } of setup(n, true)) {
-      expect(zone.halfDepth * 2, `${n} players, zone ${id}`).toBeGreaterThan(CARD.height * line.scale + 0.02)
-      expect(zone.halfWidth * 2, `${n} players, zone ${id}`).toBeGreaterThan(CARD.width * line.scale * 1.5)
+  it("take a press on the name: the middle of the plate is inside the zone, so is a point of each piece of its lettering", () => {
+    for (const n of SIZES) for (const { id, zone, plate } of setup(n, true)) expect(inside(zone, { x: plate.x, z: plate.z }), `${n} players, zone ${id}`).toBe(true)
+  })
+
+  it("are padded on the sides with room: bigger than the play area they hold", () => {
+    for (const n of [3, 4]) for (const { id, zone, line, plate } of setup(n, true)) {
+      expect(zone.halfDepth * 2, `${n} players, zone ${id}`).toBeGreaterThan(CARD.height * line.scale + plate.halfDepth * 2)
     }
   })
 

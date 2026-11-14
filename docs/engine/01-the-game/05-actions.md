@@ -93,7 +93,6 @@ The scene takes the pointer through react-three-fiber events on meshes. `Card` i
 | --- | --- | --- |
 | `Card` | `onClick` and `onHover`, on its face, its rim and its back | A pointer while hovered, when it has an `onClick` |
 | `TableText` | `onClick` and `onHover`, only when one is given | A pointer while hovered, when it has an `onClick` |
-| `Seat`, with `onSelect` | `onClick`, `onPointerOver` and `onPointerOut` on an invisible plane over the plate, and the name's own `onClick` and `onHover`; the name, nearer, takes the pointer over its own area | A pointer while the plate is under the pointer |
 | A click target the game adds | Its own handlers, on a mesh it draws | `useCursor` of drei |
 
 - Everything that decorates takes no events. The picture of the table, the parts of a glow, the shadow and the shine of a card, `Aura`, `SeatAvatarMesh` and `TurnCrown` all set `raycast={() => null}`. A decoration a game adds does the same, or it steals the click from what lies under it.

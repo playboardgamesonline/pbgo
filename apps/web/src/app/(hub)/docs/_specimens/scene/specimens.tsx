@@ -266,12 +266,12 @@ export function SceneSeatSpecimen() {
   const [expected, setExpected] = useState(false)
   const [winner, setWinner] = useState(false)
   const [away, setAway] = useState(false)
-  const [out, setOut] = useState(false)
-  const [pick, setPick] = useState(false)
+  const [stayed, setStayed] = useState(false)
+  const [zones, setZones] = useState(false)
   const [points, setPoints] = useState(12)
   return (
     <SceneFrame
-      label="Three seats of a table for five players, the viewer's in front and one on each side: each plate has its name in the seat colour, its avatar, its score line, a crown on the avatar when it is the player's turn and an aura under it for the winners and the players expected together; a plate fades when its player is away or out, and lights up under the pointer when it can be picked"
+      label="Three seats of a table for five players, the viewer's in front and one on each side: each plate has its avatar at the left of its name in the seat colour, the score and a status under it, a crown on the avatar when it is the player's turn and an aura under it for the winners and the players expected together; a plate fades when its player is away; with the zones on, each plate lies inside a floor zone whose rim lifts under the pointer while the plate itself does not react"
       controls={
         <>
           <Choice
@@ -283,13 +283,13 @@ export function SceneSeatSpecimen() {
           <Option label="Everybody expected" checked={expected} onChange={setExpected} />
           <Option label="Winners" checked={winner} onChange={setWinner} />
           <Option label="Left is away" checked={away} onChange={setAway} />
-          <Option label="Right is out" checked={out} onChange={setOut} />
-          <Option label="Names can be picked" checked={pick} onChange={setPick} />
+          <Option label="Right has stayed" checked={stayed} onChange={setStayed} />
+          <Option label="Plates lie in zones that can be pressed" checked={zones} onChange={setZones} />
           <Knob label="Score" value={points} min={0} max={30} step={1} onChange={setPoints} />
         </>
       }
     >
-      <SeatScene turn={turn} expected={expected} winner={winner} away={away} out={out} pick={pick} points={points} onPick={setTurn} />
+      <SeatScene turn={turn} expected={expected} winner={winner} away={away} stayed={stayed} zones={zones} points={points} onPick={setTurn} />
     </SceneFrame>
   )
 }

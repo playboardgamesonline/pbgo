@@ -37,7 +37,7 @@ export function seats(ids: string[], meId: string | null): Map<string, SeatSpot>
 
 ## The plate
 
-`Seat` draws one player's plate from the spot of their seat. Three seats of a table for five players, to play with the turn, the players expected together, the winners, a seat that is away or out, a plate that can be picked and the score:
+`Seat` draws one player's plate from the spot of their seat. Three seats of a table for five players, to play with the turn, the players expected together, the winners, a seat that is away, the score and a status, and the zone a plate lies in:
 
 ```specimen
 scene-seat
@@ -47,7 +47,7 @@ The props are `SeatProps`:
 
 | Prop | Role |
 | --- | --- |
-| `nickname`, `color` | The name, written in capitals in the seat colour (cut to `NAME_LIMIT` characters, see [Long names](#long-names)), and the colour that the avatar is made of until a picture exists and that the aura is lit in |
+| `nickname`, `color` | The name, as typed (not in capitals), in Geist at weight 600, in the seat colour (cut to `NAME_LIMIT` characters, see [Long names](#long-names)), and the colour that the avatar is made of until a picture exists and that the aura is lit in |
 | `imageUrl` | The player's picture; when it is null the avatar is generated |
 | `theme` | The game's `SeatTheme`, `UI_THEME.seat`, read with `useSeatTheme()` |
 | `spot` | The seat's spot on the ring; the plate stands out from it ([Where the plate stands](#where-the-plate-stands)) |
@@ -55,15 +55,14 @@ The props are `SeatProps`:
 | `active` | The player of the turn: the crown shows on the avatar |
 | `waiting` | One of several players the game waits for at once: the aura lights softly |
 | `away` | The player is away: the plate fades |
-| `out` | The player is out of the game or of the round: the plate fades and the name is struck |
 | `winner` | A winner: the aura lights fully |
-| `line` | The line under the name, already written in the visitor's language: the score |
-| `status` | A word under the line, such as Frozen or Stayed, written the same way |
+| `line` | The info line under the name, already written in the visitor's language: the score ("132 pts") |
+| `status` | A word on the same info line, after the score ("132 pts · Stayed"), plain text, written the same way |
+| `trailing` | What stands to the right of the name, in a frame whose origin is the name's right edge (`0.2` is just right of the last letter): tokens, a count, an icon |
 | `crownIcon` | The crown's icon, the skin's `hostIcon`; without one, a drawn crown |
-| `font` | The CSS font of the lettering; `TABLE_FONT` by default |
+| `font` | The CSS font of the lettering; `PLATE_FONT` (Geist) by default |
 | `aura` | The aura's `AuraSettings`; `WINNER_AURA_SETTINGS` by default |
-| `nameStyle`, `lineStyle`, `statusStyle` | What is changed in the `TextStyle` of the name, of the line and of the status |
-| `onSelect` | Makes the whole plate a click target to choose this player: under the pointer the name turns cream with the seat colour in its relief, the aura lights and the cursor is a pointer |
+| `nameStyle`, `lineStyle` | What is changed in the `TextStyle` of the name and of the info line |
 | `children` | What else stands at the seat, in the frame of the world: the cards held there |
 
 - `PlayerSeat` is the `Seat` of a player of the table. Give it their `id` and it takes the nickname, the colour, the account picture, the seat theme, the crown icon and the font of the seat label from the platform (`useGame()`, `useSeatTheme()` and `useSkin()`), as `PlayerSeatLabel` does for the DOM ([Seat label](../../design/04-in-game/04-seat-label.md)), and what the table says of the player. The canvas of `Table` hands the contexts of the page on to the scene, so it works inside it.
@@ -81,7 +80,7 @@ The props are `SeatProps`:
 - A step several players answer together has no player of the turn: nobody has the crown, and each player expected has a soft aura instead ([Simultaneous steps](../01-the-game/03-turns.md#simultaneous-steps)).
 - A player who is away keeps the turn: the plate fades and the crown stays, so the others see that the game waits for someone who left ([Absent players](../01-the-game/03-turns.md#absent-players)).
 - Nobody fades once the game is over, whoever has left by then.
-- `out` and `status` are the game's to say, from its view: the `alive` flag of Exploding Kittens, the `status` of a seat in Flip 7. The contract has no word for them ([Players who are out](../01-the-game/02-players.md#players-who-are-out)).
+- `status` is the game's to say, from its view: the `status` of a seat in Flip 7. The contract has no word for it ([Players who are out](../01-the-game/02-players.md#players-who-are-out)). A player who is out is shown on their cards, not on the plate: the name is never struck out, and `Card` takes `out` to grey its picture ([Cards](04-cards.md#props)).
 
 From `template/src/components/board/scene.tsx`, a seat of the template; the backs of an opponent's cards are its children. It says nothing of the turn, of the players expected or of the winners: the table does.
 
@@ -89,30 +88,44 @@ From `template/src/components/board/scene.tsx`, a seat of the template; the back
 <PlayerSeat key={j.id} id={j.id} spot={s} viewer={j.id === meId} line={pointsText(j.points)}>
 ```
 
+### The layout of a plate
+
+A plate is one block that turns as one. A game fills the slots and does not place anything:
+
+```
+ ┌────────┬──────────────────────────┬──────────────┐
+ │ avatar │ name                     │ trailing     │
+ └────────┴──────────────────────────┴──────────────┘
+           info line: line · status
+```
+
+- **The avatar is always to the left of the name**, as the plate is read, whatever way the seat is turned: the plate is read left to right, and a plate that would be turned more than a quarter turn from upright is turned back by half a turn as a whole, avatar and text together, so the avatar never goes above, below or to the right of the name. (The older rule that put the avatar after the name for a right-hand seat is gone: `rightFrom` and `Plate.after` with it.) The avatar and the name are centred as one block on the plate.
+- **The name** is as typed, in Geist (`PLATE_FONT`, the platform's variable font from `@fontsource-variable/geist`, so the weight asked for is the weight drawn) at the platform's weight 600 (`PLATE_WEIGHT`), in the seat colour.
+- **The info line** stands under the name: the `line` (the score, "132 pts"), then the `status` (Stayed, Bust, Frozen) as plain text after a "·". It is one `TableText`, centred under the block.
+- **`trailing`** stands to the right of the name for whatever a game's players hold: Love Letter's affection tokens, a count, an icon. Give it three.js elements in the frame of the name's right edge. No game uses it yet.
+- **The plate never reacts to the pointer.** There is no `onSelect` and nothing lights, tints or scales under the pointer: a plate is read, not pressed. To choose a player, the game lays a zone over their whole play area and the plate is inside it ([Floor buttons](25-floor-buttons.md#player-zones)).
+
 ## Where the plate stands
 
 - The plate stands out of the ring: an opponent's at `reachX` and `reachZ` times the spot, just beyond the cards, and the viewer's level with it and a little in front, at `viewerReachX` and `viewerReachZ` times it.
 - The plates face the viewer whatever the yaw of the seat: only the position of the spot is used, and the cards of a seat take its yaw through their frame.
-- The name stands `nameLift` toward the middle of the table from the centre of the plate, the line `lineDrop` toward the viewer, and the status `statusDrop`, under the line.
-- A seat whose spot is farther right than `rightFrom` puts its avatar after the name: the cards of a right-hand seat fan out to the left of its name, and the avatar goes away from them. Otherwise it stands before the first letter. The crown stands on the avatar's upper-right corner, in the avatar's own frame, so it goes with the avatar to either side of the name.
-- The aura lies under the plate, `auraWidth` by `auraDepth`, lit by the brightest of the forces that apply (`auraForce`): `turnForce` for the player of the turn, none by default since the crown says it, `waitingForce` for a player expected with others, `hoverForce` under the pointer of a plate that can be picked and `winnerForce` for a winner.
-- A player who is away or out keeps `awayOpacity` of the plate: the name, the avatar, the line and the status fade, and the crown and the aura do not.
+- The name stands `nameLift` toward the middle of the table from the centre of the plate and the info line `lineDrop` toward the viewer, under it. The avatar stands before the first letter. The crown stands on the avatar's upper-right corner, in the avatar's own frame.
+- The aura lies under the plate, `auraWidth` by `auraDepth`, lit by the brightest of the forces that apply (`auraForce`): `turnForce` for the player of the turn, none by default since the crown says it, `waitingForce` for a player expected with others and `winnerForce` for a winner.
+- A player who is away keeps `awayOpacity` of the plate: the name, the avatar and the info line fade, and the crown and the aura do not.
 
 | Setting | Role |
 | --- | --- |
 | `reachX`, `reachZ` | How far out of the ring an opponent's plate stands, as factors of the spot |
 | `viewerReachX`, `viewerReachZ` | The same for the viewer's plate |
-| `rightFrom` | The x of a spot beyond which the seat is a right-hand seat |
 | `nameHeight`, `nameLift` | The size of the name's letters, and how far toward the middle of the table it stands from the centre of the plate |
-| `lineHeight`, `lineDrop` | The same for the line, which drops toward the viewer |
-| `statusHeight`, `statusDrop` | The same for the status, which drops farther |
-| `avatarSize`, `avatarGap` | The avatar's diameter and its gap to the first or the last letter |
+| `lineHeight`, `lineDrop` | The same for the info line, which drops toward the viewer |
+| `avatarSize`, `avatarGap` | The avatar's diameter and its gap to the first letter |
 | `crownSize`, `crownRight`, `crownBack` | The crown's size, and how far its foot stands from the avatar's centre: to the right and away from the viewer |
 | `auraWidth`, `auraDepth` | The size of the aura |
-| `turnForce`, `waitingForce`, `hoverForce`, `winnerForce` | How bright the aura is for the player of the turn, for a player expected with others, under the pointer and for a winner |
-| `awayOpacity` | How opaque the plate of a player who is away or out stays |
+| `turnForce`, `waitingForce`, `winnerForce` | How bright the aura is for the player of the turn, for a player expected with others and for a winner |
+| `awayOpacity` | How opaque the plate of a player who is away stays |
 
-`SEAT_SETTINGS` is a plain object (its type is `SeatSettings`) that the Seat folder of the table's debug panel edits (`SEAT_FIELDS` lists its knobs, and a `Seat` follows them as they move). With the panel's View folder on, every `Seat` also marks its spot on the ring and the middle of its plate. `plateOf`, `auraForce` (which takes a `SeatMood`: what lights the aura, whether the seat has the turn, is waited for, is under the pointer or won) and `seatStateOf` are the same numbers and rules as pure functions: `placement.test.ts` checks the places against those the template used before the plate moved into the package, and `state.test.ts` checks the states. From `template/src/components/board/scene.tsx`, the folder of the panel:
+`SEAT_SETTINGS` is a plain object (its type is `SeatSettings`) that the Seat folder of the table's debug panel edits (`SEAT_FIELDS` lists its knobs, and a `Seat` follows them as they move). With the panel's View folder on, every `Seat` also marks its spot on the ring and the middle of its plate. `plateOf`, `auraForce` (which takes a `SeatMood`: what lights the aura, whether the seat has the turn, is waited for or won) and `seatStateOf` are the same numbers and rules as pure functions: `placement.test.ts` checks the places against those the template used before the plate moved into the package, and `state.test.ts` checks the states. From `template/src/components/board/scene.tsx`, the folder of the panel:
 
 ## What stands on a plate
 
@@ -120,10 +133,10 @@ From `template/src/components/board/scene.tsx`, a seat of the template; the back
 | --- | --- | --- |
 | The light under the plate | `Aura` | [Aura](../01-the-game/03-turns.md#aura) |
 | The nickname | `TableText` | [Text on the table](09-score.md#text-on-the-table) |
-| The avatar beside it | `SeatAvatarMesh` | [The avatar](#the-avatar) |
+| The avatar to its left | `SeatAvatarMesh` | [The avatar](#the-avatar) |
 | The turn marker | `TurnCrown` | [Crown and the turn marker](../01-the-game/03-turns.md#crown-and-the-turn-marker) |
-| The score line and the status | `TableText` | [Text on the table](09-score.md#text-on-the-table) |
-| The click target, with `onSelect` only | An invisible plane over the plate | [Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover) |
+| The info line (score, then status) | `TableText` | [Text on the table](09-score.md#text-on-the-table) |
+| What stands to the right of the name | `trailing`, the game's | [The layout of a plate](#the-layout-of-a-plate) |
 | The cards held there | A `Zone` framed on the seat, a child of the `Seat` | [Zone](07-zones.md#zone) |
 
 - Each piece is exported on its own too: a light on the table is not always a seat's, and `Aura` also lights a zone.

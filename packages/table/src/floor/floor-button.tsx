@@ -197,12 +197,12 @@ export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55,
   return (
     <group ref={root} position={[at.x, 0, at.z]} rotation-y={at.yaw ?? 0}>
       {/* The soft shadow under the rim: it shows as the rim lifts */}
-      <mesh rotation-x={-Math.PI / 2} position={[0.04, PAD_Y - 0.002, 0.1 + rim]} renderOrder={1} raycast={() => null}>
+      <mesh rotation-x={-Math.PI / 2} position={[0.04, PAD_Y - 0.002, 0.1 + rim]} renderOrder={-0.8} raycast={() => null}>
         <planeGeometry args={[width * 1.12, depth * 1.2]} />
         <meshBasicMaterial ref={dropShadow} map={shadow} transparent opacity={0} depthWrite={false} toneMapped={false} />
       </mesh>
       {/* The flat pad: a tint at rest, brighter as the rim lifts */}
-      <mesh rotation-x={-Math.PI / 2} position-y={PAD_Y} renderOrder={2} raycast={() => null}>
+      <mesh rotation-x={-Math.PI / 2} position-y={PAD_Y} renderOrder={-0.5} raycast={() => null}>
         <shapeGeometry args={[fillGeometry]} />
         <meshBasicMaterial ref={fill} transparent depthWrite={false} toneMapped={false} />
       </mesh>

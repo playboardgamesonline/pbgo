@@ -59,6 +59,7 @@ A game can hold cards of different kinds, and its board paints each kind its own
 | `gloss` | The shine that follows the pointer over the front: `true` for the usual strength, a number for its own |
 | `shadow` | Whether the card casts a drop shadow; on unless set to false |
 | `above` | Draws the card over everything else, the glows of other cards included |
+| `out` | The card can no longer play, its player being out of the round: a grey filter over its picture and its edge, on the card's own pixels (`uGrey` in the fold shader, `GREY_SHADE`: no colour, half the brightness). It costs no extra mesh or texture, and lifts when `out` turns false, so the next round has colour again. Flip 7 sets it on every card of a busted player |
 | `speed` | About how many seconds the card takes to settle on a new `target`; smaller is snappier |
 | `onClick`, `onHover` | Pointer events. A card does not lift itself on hover: it reports the pointer, and the game moves the pose and sets `glow` or `gloss` ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)) |
 | `onArrive` | Called when a flight ends, for instance to remove a card that exists only for its flight |

@@ -109,7 +109,7 @@ export function SeatLabel({ nickname, color, imageUrl, theme, size = "md", name,
         {corner}
       </SeatAvatarMark>
       {/* a nickname is typed by its player: session recordings show it masked (`ph-mask`) */}
-      <span className={cn("ph-mask truncate", nameClassName)} style={(name ?? resolved.name) === "seat" ? { color } : undefined} title={nickname}>
+      <span className={cn("ph-mask truncate font-semibold", nameClassName)} style={(name ?? resolved.name) === "seat" ? { color } : undefined} title={nickname}>
         {shortName(nickname)}
       </span>
       {children}

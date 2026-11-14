@@ -1,6 +1,6 @@
 import { MeshBasicMaterial } from "three"
 import { describe, expect, it } from "vitest"
-import { applyFold, foldable } from "./fold"
+import { applyFold, foldable, GREY_SHADE } from "./fold"
 import { cardGeometry } from "./geometry"
 
 type Shader = Parameters<MeshBasicMaterial["onBeforeCompile"]>[0]
@@ -89,6 +89,19 @@ describe("applyFold", () => {
     expect(compile(m).uniforms.uHalfH).toBe(first.uHalfH)
     expect(first.uHalfH.value).toBe(1.2)
     expect(first.uDir.value).toBe(-1)
+  })
+
+  it("greys the picture in the fragment shader by `uGrey`, before the dithering, and leaves the shader's own lines", () => {
+    const m = new MeshBasicMaterial()
+    const uniforms = { ...uniformsOf(), uGrey: { value: 1 } }
+    applyFold(m, uniforms)
+    const shader = { uniforms: {}, vertexShader: "#include <common>\n#include <begin_vertex>", fragmentShader: "#include <common>\n#include <dithering_fragment>" } as unknown as Shader
+    m.onBeforeCompile(shader, undefined as never)
+    expect(shader.uniforms.uGrey).toBe(uniforms.uGrey)
+    const f = shader.fragmentShader
+    expect(f).toContain("uniform float uGrey;")
+    expect(f).toContain(`#define GREY_SHADE ${GREY_SHADE.toFixed(2)}`)
+    expect(f.indexOf("mix(gl_FragColor.rgb")).toBeLessThan(f.indexOf("#include <dithering_fragment>"))
   })
 
   it("leaves no material alone to patch", () => {

@@ -11,17 +11,12 @@ export const SEAT_SETTINGS = {
   /** The viewer's own plate: level with the spot, a little in front of it */
   viewerReachX: 1,
   viewerReachZ: 1.18,
-  /** A seat whose spot is farther right than this puts its avatar after the name, away from the cards that fan out to the left of the name */
-  rightFrom: 1,
   /** The height of the name's lettering, and how far toward the middle of the table it stands from the plate's centre */
-  nameHeight: 0.62,
+  nameHeight: 0.55,
   nameLift: 0.25,
-  /** The height of the line's lettering (the score), and how far toward the viewer it stands from the plate's centre */
-  lineHeight: 0.42,
-  lineDrop: 0.35,
-  /** The same for the status under the line (Frozen, Stayed) */
-  statusHeight: 0.34,
-  statusDrop: 0.85,
+  /** The height of the info line's lettering (the score, then the status), and how far toward the viewer it stands from the plate's centre */
+  lineHeight: 0.4,
+  lineDrop: 0.4,
   /** The avatar's diameter and its gap to the first or the last letter */
   avatarSize: 0.56,
   avatarGap: 0.18,
@@ -32,12 +27,11 @@ export const SEAT_SETTINGS = {
   /** The aura's size */
   auraWidth: 3.2,
   auraDepth: 1.6,
-  /** How bright the aura is for the player of the turn (none: the crown says it), for a player the game expects with others, under the pointer of a seat that can be picked, and for a winner */
+  /** How bright the aura is for the player of the turn (none: the crown says it), for a player the game expects with others, and for a winner */
   turnForce: 0,
   waitingForce: 0.5,
-  hoverForce: 0.7,
   winnerForce: 1,
-  /** How opaque the plate of a player who is away or out stays */
+  /** How opaque the plate of a player who is away stays */
   awayOpacity: 0.4,
 }
 export type SeatSettings = typeof SEAT_SETTINGS
@@ -51,13 +45,10 @@ export const SEAT_FIELDS = {
   reachZ: ["plate reach z", 1, 2, 0.01],
   viewerReachX: ["viewer plate reach x", 0.5, 2, 0.01],
   viewerReachZ: ["viewer plate reach z", 0.5, 2, 0.01],
-  rightFrom: ["right-hand seat from x", 0, 6, 0.1],
   nameHeight: ["name size", 0.2, 1.2, 0.01],
   nameLift: ["name lift", 0, 1, 0.01],
-  lineHeight: ["line size", 0.2, 1, 0.01],
-  lineDrop: ["line drop", 0, 1, 0.01],
-  statusHeight: ["status size", 0.2, 1, 0.01],
-  statusDrop: ["status drop", 0, 1.6, 0.01],
+  lineHeight: ["info line size", 0.2, 1, 0.01],
+  lineDrop: ["info line drop", 0, 1, 0.01],
   avatarSize: ["avatar size", 0.2, 1.2, 0.01],
   avatarGap: ["avatar gap", 0, 0.6, 0.01],
   crownSize: ["crown size", 0.2, 1.4, 0.01],
@@ -67,7 +58,6 @@ export const SEAT_FIELDS = {
   auraDepth: ["aura depth", 0.5, 5, 0.1],
   turnForce: ["aura force on the turn", 0, 1.5, 0.01],
   waitingForce: ["aura force when expected", 0, 1.5, 0.01],
-  hoverForce: ["aura force under the pointer", 0, 1.5, 0.01],
   winnerForce: ["aura force on a winner", 0, 1.5, 0.01],
   awayOpacity: ["away or out opacity", 0, 1, 0.01],
 } satisfies Record<keyof SeatSettings, Knob>
@@ -76,13 +66,10 @@ export const SEAT_FIELDS = {
 export type Plate = {
   x: number
   z: number
-  /** The z of the name's lettering, of the line under it and of the status under the line */
+  /** The z of the name's lettering and of the info line under it */
   nameZ: number
   lineZ: number
-  statusZ: number
-  /** The avatar goes after the name (a right-hand seat) rather than before it */
-  after: boolean
-  /** The avatar's centre from the left edge of the name (before it) or from its right edge (after it) */
+  /** The avatar's centre from the left edge of the name: always before it, to its left, as the plate is read */
   avatarX: number
   /** The crown's foot, in the same frame as the avatar: at its upper-right corner, the way the seat label of the DOM wears it */
   crownX: number
@@ -94,15 +81,12 @@ export function plateOf(spot: Spot, viewer: boolean, settings: SeatSettings = SE
   const S = settings
   const x = spot.x * (viewer ? S.viewerReachX : S.reachX)
   const z = spot.z * (viewer ? S.viewerReachZ : S.reachZ)
-  const after = spot.x > S.rightFrom
-  const avatarX = (after ? 1 : -1) * (S.avatarGap + S.avatarSize / 2)
+  const avatarX = -(S.avatarGap + S.avatarSize / 2)
   return {
     x,
     z,
     nameZ: z - S.nameLift,
     lineZ: z + S.lineDrop,
-    statusZ: z + S.statusDrop,
-    after,
     avatarX,
     crownX: avatarX + S.crownRight,
     crownZ: -S.crownBack,
@@ -110,9 +94,9 @@ export function plateOf(spot: Spot, viewer: boolean, settings: SeatSettings = SE
 }
 
 /** What lights a seat's aura. */
-export type SeatMood = { active?: boolean; waiting?: boolean; hovered?: boolean; winner?: boolean }
+export type SeatMood = { active?: boolean; waiting?: boolean; winner?: boolean }
 
 /** How bright a seat's aura is: the brightest of the lights that apply, none when none does. */
-export function auraForce({ active, waiting, hovered, winner }: SeatMood, settings: SeatSettings = SEAT_SETTINGS): number {
-  return Math.max(active ? settings.turnForce : 0, waiting ? settings.waitingForce : 0, hovered ? settings.hoverForce : 0, winner ? settings.winnerForce : 0)
+export function auraForce({ active, waiting, winner }: SeatMood, settings: SeatSettings = SEAT_SETTINGS): number {
+  return Math.max(active ? settings.turnForce : 0, waiting ? settings.waitingForce : 0, winner ? settings.winnerForce : 0)
 }

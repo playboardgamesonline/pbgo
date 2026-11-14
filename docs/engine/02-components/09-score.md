@@ -60,7 +60,7 @@ Text lies flat on the table as a texture painted on a canvas: nicknames, points,
 | `bloom`, `aura` | A soft light of that colour around the letters |
 | `relief` | A stack of copies for depth, with a gloss and a shimmer |
 | `holo` | Scan lines cut out of the letters, and a slow flicker |
-| `strike` | A line through the letters: a `Seat` strikes the name of a player who is out |
+| `strike` | A line through the letters: no `Seat` uses it any more: a player who is out is shown by greying their cards (`Card` `out`) |
 
 - The texture is painted again only when the text, the style or the readiness of the font changes, and the old one is disposed. The component waits for the font (`document.fonts`), or a fallback font would be frozen into the texture.
 - The font is the `font` prop, `TABLE_FONT` by default. A `Seat` of `PlayerSeat` is given the font of the game's seat label (`UI_THEME.seat.font`), so the names of the table and those of the DOM are lettered alike.
