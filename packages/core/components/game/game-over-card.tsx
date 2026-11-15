@@ -18,7 +18,7 @@ import { useEngineTexts } from "../skin-provider"
 import { SeatAvatarMark, SeatLabel, type SeatSize } from "./seat-label"
 
 // The end screen, in the game's look: a card centered on the screen, over the board with no veil around it. It wears what a game gives its screens: the surface, line, corners and ink of `UI_THEME.gameOver`, the ring and the name colours of `UI_THEME.seat`
-// (the pictures are always round), the game's fonts, its crown and its buttons (`PrimaryButton`). At the very top it says how the game ended for the visitor (a score, the rank points of a game that counted for the rank). Under it a podium has the winner
+// (the pictures are always round), the game's fonts, its crown and its buttons (`PrimaryButton`). At the very top it says how the game ended for the visitor (a score, the rank points of a game that counted for the rank, the experience it gave). Under it a podium has the winner
 // in the middle, with the second place on its left and the third on its right, on steps that touch each other; at two places the steps share the whole width; players who share a rank share a step (a tie, a team), and a table that plays together has one
 // place for everybody. The places after the third are rows under the podium. Then two buttons: "Continue", which leaves the finished game for the platform, and "Rematch", which asks the table for another game and says who has agreed. The scores of every
 // player, with their lines, are behind "Show scores". Pure presentation, no game context: the connected `GameOver` feeds it from the game, the design docs with samples. The names and the score lines are what the players and the game wrote; every other word
@@ -246,7 +246,7 @@ export type GameOverCardProps = {
   together?: "won" | "lost"
   /** The visitor's player id. */
   meId: string | null
-  /** What the game did to the visitor's rank points: absent for a guest, and while it is not known. */
+  /** What the game did to the visitor: its rank points when it counted for the rank, and the experience it gave ("+N XP", whatever the mode): absent for a guest, and while it is not known. */
   rank?: RankChange | null
   /** Where the vote for another game stands. */
   rematch: Rematch
@@ -303,7 +303,7 @@ export function GameOverCard({ theme, seat, pattern, crown, summary, places, win
           <HugeiconsIcon icon={Share08Icon} strokeWidth={1.8} className="size-5" />
         </button>
 
-        {/* How it ended for the visitor comes first, at the very top of the card, with the score and the rank points; the share is in the corner beside it */}
+        {/* How it ended for the visitor comes first, at the very top of the card, with the score, the rank points and the experience; the share is in the corner beside it */}
         <div className="flex flex-col items-center gap-2 px-9">
           <h2 className="text-center font-display text-3xl leading-tight tracking-wide short:text-2xl" style={summary.outcome === "win" ? ACCENT : undefined}>
             {summary.title}
@@ -318,6 +318,12 @@ export function GameOverCard({ theme, seat, pattern, crown, summary, places, win
             {rank?.ranked && rank.points !== null && (
               <span className={cn(CHIP, pointsTone(rank.points) === "destructive" && "opacity-70")} style={pointsTone(rank.points) === "success" ? ACCENT : undefined}>
                 {pointsLabel(rank.points)} rank points
+              </span>
+            )}
+            {/* The experience the game gave, one point for each action the visitor played, in any mode: said once the game is written down, and not when it gave none */}
+            {rank?.recorded && !!rank.xp && rank.xp > 0 && (
+              <span className={CHIP} style={ACCENT}>
+                +{rank.xp} XP
               </span>
             )}
           </div>

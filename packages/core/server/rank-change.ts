@@ -29,10 +29,24 @@ export async function readRankChange({ game, userId, tableCreatedAt, startedAt }
   if (error) throw error
   const mine = (data as Row[] | null)?.[0]
   if (!mine) return NO_RANK_CHANGE
-  if (joined(mine.game_results).ranked !== true) return { recorded: true, ranked: false, points: null }
+  // What the game gave in experience is the same whatever the mode: it is read for a normal table too
+  const xp = await readActions(String(mine.game_result_id), userId)
+  if (joined(mine.game_results).ranked !== true) return { recorded: true, ranked: false, points: null, xp }
   const { data: change, error: changeError } = await db.from("rating_changes").select("points_before, points_after").eq("game_result_id", String(mine.game_result_id)).eq("user_id", userId).maybeSingle()
   if (changeError) throw changeError
-  return { recorded: true, ranked: true, points: change ? Number(change.points_after) - Number(change.points_before) : null }
+  return { recorded: true, ranked: true, points: change ? Number(change.points_after) - Number(change.points_before) : null, xp }
+}
+
+/**
+ * The actions a member played in a game that was written down (`game_participants.actions`, migration 0026), which is the experience the game gave them, one point each: what the end screen says as "+N XP". The actions of every seat the account held
+ * are added. Null where they cannot be read, for instance where the project has not applied the migration yet: the end screen then says nothing of it, and the rank points it also says are not lost for that.
+ */
+async function readActions(gameResultId: string, userId: string): Promise<number | null> {
+  const { data, error } = await supabaseAdmin().from("game_participants").select("actions").eq("game_result_id", gameResultId).eq("user_id", userId)
+  if (error) return null
+  const seats = (data as Row[] | null) ?? []
+  if (seats.length === 0) return null
+  return seats.reduce((total, seat) => total + (Number.isSafeInteger(Number(seat.actions)) && Number(seat.actions) > 0 ? Number(seat.actions) : 0), 0)
 }
 
 /** When play began at a table (`games.started_at`, migration 0006), null when it was never told or the project has no such column yet: the game is then the table's latest. */
