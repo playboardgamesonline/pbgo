@@ -77,6 +77,21 @@ describe("things", () => {
     expect(calls.length).toBeLessThan(10)
   })
 
+  it("does not take a 200 that is no list of items for an answer, so that it does not read as nothing found", async () => {
+    for (const body of ["Rate limit exceeded.", "<html><body>Maintenance</body></html>", `<errors><error><message>Invalid</message></error></errors>`, ""]) {
+      const { send } = fakeFetch(xml(body), xml(body), xml(body))
+      const { bgg } = client(send)
+      await expect(bgg.things([1])).rejects.toThrow("did not answer with a list of items")
+      await expect(bgg.search("Trio")).rejects.toThrow(BggError)
+      await expect(bgg.detail(1)).rejects.toThrow(BggError)
+    }
+  })
+
+  it("takes an empty list of items for what it is, nothing found", async () => {
+    const { send } = fakeFetch(xml(`<items total="0" termsofuse="https://boardgamegeek.com/xmlapi/termsofuse"></items>`))
+    expect(await client(send).bgg.things([1])).toEqual(new Map())
+  })
+
   it("says that the token was refused, without repeating it", async () => {
     for (const status of [401, 403]) {
       const { send } = fakeFetch(xml("Unauthorized", status))
@@ -115,5 +130,56 @@ describe("search", () => {
     const { send, calls } = fakeFetch(xml(`<items total="0"></items>`))
     await client(send).bgg.search("Trio", { exact: true })
     expect(calls[0]?.url.searchParams.get("exact")).toBe("1")
+  })
+
+  it("searches the types it is given, board games and expansions together", async () => {
+    const { send, calls } = fakeFetch(xml(`<items total="0"></items>`))
+    await client(send).bgg.search("Flip 7", { types: ["boardgame", "boardgameexpansion"] })
+    expect(calls[0]?.url.searchParams.get("type")).toBe("boardgame,boardgameexpansion")
+  })
+
+  it("refuses a type that is not a plain word, and no type at all, before asking anything", async () => {
+    const { send, calls } = fakeFetch()
+    const { bgg } = client(send)
+    await expect(bgg.search("Trio", { types: ["boardgame&type=rpgitem"] })).rejects.toThrow(BggError)
+    await expect(bgg.search("Trio", { types: [] })).rejects.toThrow(BggError)
+    expect(calls).toHaveLength(0)
+  })
+})
+
+const LINKED = `<items><item type="boardgameexpansion" id="7"><name type="primary" value="Seven" /><yearpublished value="2020" /><link type="boardgameexpansion" id="3" value="Three" inbound="true" /><link type="boardgamepublisher" id="9" value="Pub" /></item></items>`
+const VERSIONED = `<items><item type="boardgame" id="7"><name type="primary" value="Seven" /><versions><item type="boardgameversion" id="70"><name type="primary" value="First" /><yearpublished value="2020" /><link type="boardgamepublisher" id="9" value="Pub" /><link type="language" id="2184" value="English" /></item></versions></item></items>`
+
+describe("detail", () => {
+  it("reads the figures and the links of an item in one request, with its statistics, and asks for no version unless it is asked to", async () => {
+    const { send, calls } = fakeFetch(xml(LINKED))
+    const found = await client(send).bgg.detail(7)
+    expect(found?.thing).toMatchObject({ id: 7, type: "boardgameexpansion", name: "Seven", year: 2020 })
+    expect(found?.links).toEqual([
+      { type: "boardgameexpansion", id: 3, name: "Three", inbound: true },
+      { type: "boardgamepublisher", id: 9, name: "Pub", inbound: false },
+    ])
+    expect(found?.versions).toEqual([])
+    expect(calls).toHaveLength(1)
+    expect(`${calls[0]?.url.origin}${calls[0]?.url.pathname}`).toBe(`${BGG_API}/thing`)
+    expect(calls[0]?.url.searchParams.get("id")).toBe("7")
+    expect(calls[0]?.url.searchParams.get("stats")).toBe("1")
+    expect(calls[0]?.url.href).not.toContain(TOKEN)
+    expect(calls[0]?.init.headers).toMatchObject({ Authorization: `Bearer ${TOKEN}` })
+  })
+
+  it("reads the versions in a second request, spaced out, because they hold items of their own", async () => {
+    const { send, calls } = fakeFetch(xml(LINKED), xml(VERSIONED))
+    const { bgg, wait } = client(send)
+    const found = await bgg.detail(7, { versions: true })
+    expect(found?.versions).toEqual([{ id: 70, name: "First", year: 2020, publishers: ["Pub"], languages: ["English"], productCode: null }])
+    expect(calls.map((call) => call.url.searchParams.get("versions"))).toEqual([null, "1"])
+    expect(wait).toHaveBeenCalledTimes(1)
+  })
+
+  it("answers null when BGG has no such item, and asks for no versions of it", async () => {
+    const { send, calls } = fakeFetch(xml(`<items total="0"></items>`))
+    expect(await client(send).bgg.detail(99999999, { versions: true })).toBeNull()
+    expect(calls).toHaveLength(1)
   })
 })

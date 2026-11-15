@@ -36,8 +36,11 @@ const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"'
 /** The text of an attribute, with the entities of XML undone. */
 export function decode(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, name: string) => {
-    if (name.startsWith("#x") || name.startsWith("#X")) return String.fromCodePoint(Number.parseInt(name.slice(2), 16))
-    if (name.startsWith("#")) return String.fromCodePoint(Number.parseInt(name.slice(1), 10))
+    if (name.startsWith("#")) {
+      const code = name[1] === "x" || name[1] === "X" ? Number.parseInt(name.slice(2), 16) : Number.parseInt(name.slice(1), 10)
+      // A number that is no character (past 0x10FFFF) is left as it is, like a name that is unknown, and does not stop the reading
+      return Number.isInteger(code) && code <= 0x10ffff ? String.fromCodePoint(code) : whole
+    }
     return ENTITIES[name.toLowerCase()] ?? whole
   })
 }
@@ -130,4 +133,63 @@ export function parseSearch(xml: string): BggCandidate[] {
     if (id !== null && name !== null) found.push({ id, name, year: count(valueOf(body, "yearpublished")) })
   }
   return found
+}
+
+/**
+ * A link of an item to another (`<link type="boardgamepublisher" id="…" value="…" />`): its publishers, designers and artists, the games it comes from, the
+ * expansions and reimplementations it has. BGG marks `inbound="true"` the link of an expansion to its base game (a saved answer of BGG shows it), and the game
+ * it comes from lists it without; a reimplementation's link to the game it reimplements is taken to work the same way, which no answer seen so far shows.
+ */
+export type BggLink = { type: string; id: number; name: string; inbound: boolean }
+
+/** One version of a game (`thing?id=…&versions=1`): a printing by a publisher, in a language. */
+export type BggVersion = {
+  id: number
+  /** What BGG calls it ("English edition", "Second edition") */
+  name: string | null
+  year: number | null
+  publishers: string[]
+  languages: string[]
+  /** The code on the box (a GTIN, an ISBN, a reference of the publisher), null when BGG has none */
+  productCode: string | null
+}
+
+/** The links of an item's text: one with no type, no id or no name is left out. */
+function linksOf(body: string): BggLink[] {
+  return tags(body, "link").flatMap((tag) => {
+    const type = attribute(tag, "type")
+    const id = count(attribute(tag, "id"))
+    const name = attribute(tag, "value")
+    return type === null || id === null || name === null || name === "" ? [] : [{ type, id, name, inbound: attribute(tag, "inbound") === "true" }]
+  })
+}
+
+/** The links of the first item of an answer to `thing`. */
+export function parseLinks(xml: string): BggLink[] {
+  const [first] = items(xml)
+  return first === undefined ? [] : linksOf(first.body)
+}
+
+/**
+ * The versions in an answer to `thing?versions=1`. They are items inside the item of the game, so the block is cut out first (reading the answer as a list of items
+ * would end the game's item at the first version's closing tag); an answer with no versions is an empty list.
+ */
+export function parseVersions(xml: string): BggVersion[] {
+  const block = /<versions\b[^>]*>([\s\S]*?)<\/versions>/.exec(xml)?.[1] ?? ""
+  const versions: BggVersion[] = []
+  for (const { head, body } of items(block)) {
+    const id = count(attribute(` ${head}`, "id"))
+    if (id === null) continue
+    const links = linksOf(body)
+    const named = (type: string) => [...new Set(links.filter((link) => link.type === type).map((link) => link.name))]
+    versions.push({
+      id,
+      name: nameOf(body),
+      year: count(valueOf(body, "yearpublished")),
+      publishers: named("boardgamepublisher"),
+      languages: named("language"),
+      productCode: valueOf(body, "productcode")?.trim() || null,
+    })
+  }
+  return versions
 }
