@@ -46,14 +46,18 @@ begin
   create function pg_temp.entry(p_state jsonb, p_list text, p_nickname text) returns jsonb language sql as $f$
     select e from jsonb_array_elements(p_state -> p_list) e where e ->> 'nickname' = p_nickname limit 1
   $f$;
+  -- The nickname and the tag of a profile (`set_profile` takes a JSON object since 0018)
+  create function pg_temp.sp(p_user uuid, p_nickname text, p_tag integer) returns text language sql as $f$
+    select public.set_profile(p_user, jsonb_build_object('nickname', p_nickname, 'tag', p_tag))
+  $f$;
 
   -- Fixtures: nine members, who sign in (a profile is found by its handle only once its account has), and one that has no profile
   insert into auth.users (id, email, raw_user_meta_data) values
     (ua, 'ann@example.test', '{"full_name":"Ann","avatar_url":"https://example.com/ann.png"}'), (ub, 'bob@example.test', '{"full_name":"Bob"}'), (uc, 'cat@example.test', '{"full_name":"Cat"}'),
     (ud, 'dan@example.test', '{"full_name":"Dan"}'), (ue, 'eve@example.test', '{"full_name":"Eve"}'), (uf, 'fay@example.test', '{"full_name":"Fay"}'),
     (ug, 'gus@example.test', '{"full_name":"Gus"}'), (uh, 'hal@example.test', '{"full_name":"Hal"}'), (ui, 'ida@example.test', '{"full_name":"Ida"}'), (uj, 'jon@example.test', '{"full_name":"Jon"}');
-  answer := public.set_profile(ua, 'Ann', 1) || public.set_profile(ub, 'Bob', 2) || public.set_profile(uc, 'Cat', 3) || public.set_profile(ud, 'Dan', 4) || public.set_profile(ue, 'Eve', 5)
-    || public.set_profile(uf, 'Fay', 6) || public.set_profile(ug, 'Gus', 7) || public.set_profile(uh, 'Hal', 8) || public.set_profile(ui, 'Ida', 9);
+  answer := pg_temp.sp(ua, 'Ann', 1) || pg_temp.sp(ub, 'Bob', 2) || pg_temp.sp(uc, 'Cat', 3) || pg_temp.sp(ud, 'Dan', 4) || pg_temp.sp(ue, 'Eve', 5)
+    || pg_temp.sp(uf, 'Fay', 6) || pg_temp.sp(ug, 'Gus', 7) || pg_temp.sp(uh, 'Hal', 8) || pg_temp.sp(ui, 'Ida', 9);
   update auth.users set last_sign_in_at = now() where id in (ua, ub, uc, ud, ue, uf, ug, uh, ui);
   delete from public.profiles where user_id = uj;
   r := r || pg_temp.check_that('the fixtures are nine profiles', answer = 'okokokokokokokokok', answer);

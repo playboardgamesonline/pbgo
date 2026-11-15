@@ -19,15 +19,22 @@ export type FriendRequest = {
   direction: "incoming" | "outgoing"
 }
 
-/** An invitation to a table that waits for the visitor's answer (PLT-109): who invited them, to which game, and until when (an ISO date). The table itself is not named: its code is the server's. */
-export type TableInvitation = {
+/** What an invitation is for: a table of a game (PLT-109), the visitor's friend's group, or a request to join the visitor's own group (PLT-23). */
+export type InvitationKind = "table" | "group" | "join"
+
+type InvitationBase = {
   id: string
   nickname: string
   tag: string
   avatarUrl?: string | null
-  game: { slug: string; name: string }
   expiresAt: string
 }
+
+/**
+ * An invitation that waits for the visitor's answer: who sent it and until when (an ISO date). An invitation to a table names its game (the table itself is not named: its code is the server's); an invitation to a group, or a request of somebody to join the visitor's
+ * group, names nothing more. A request to join is answered by any member of the group: the first answer is everybody's.
+ */
+export type Invitation = (InvitationBase & { kind: "table"; game: { slug: string; name: string } }) | (InvitationBase & { kind: "group" | "join" })
 
 /** How long an invitation has left, in the one unit that fits, for its row: "2 min left", "under a minute left", "expired" once it has passed. `now` is a parameter so that it is tested. */
 export function timeLeft(expiresAt: string, now: number = Date.now()): string {

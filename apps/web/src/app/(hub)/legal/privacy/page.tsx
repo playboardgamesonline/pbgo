@@ -3,12 +3,14 @@ import Link from "next/link"
 import { ConsentLink } from "@pbgo/analytics/client"
 import { ANALYTICS_ENABLED } from "@pbgo/analytics/config"
 import { MAX_BLOCKS, MAX_FRIENDS } from "@pbgo/core/lib/friends"
+import { MAX_GROUP_MEMBERS } from "@pbgo/core/lib/groups"
 import { INVITATION_TTL_MINUTES } from "@pbgo/core/lib/invitations"
 import {
   ACCOUNT_DELETION_GRACE_DAYS,
   FEEDBACK_RETENTION_MONTHS,
   FINISHED_STATE_RETENTION_HOURS,
   FRIEND_REQUEST_RETENTION_DAYS,
+  GROUP_IDLE_DAYS,
   INVITATION_RETENTION_DAYS,
   MESSAGE_RETENTION_DAYS,
   PRESENCE_RETENTION_DAYS,
@@ -22,7 +24,7 @@ import { CONTACT, PUBLISHER, SITE_NAME } from "@/site"
 export const metadata: Metadata = { title: "Privacy Policy", alternates: { canonical: "/legal/privacy" }, robots: { index: false } }
 
 /** The day the text last changed: change it with the text. */
-const UPDATED = "10 November 2026"
+const UPDATED = "15 November 2026"
 
 /**
  * Everything the site does with personal data, in the order a person meets it. Every line is the code's, and the table of `docs/legal.md` lists where: a new field that holds
@@ -166,6 +168,10 @@ export default function PrivacyPolicy() {
               text: `You can write to your friends, and only to them. For each message we keep who wrote it to whom, the text, when it was written and when the other person read it. Only the two of you see a conversation: the other person sees your username, your tag and your picture, and the last message of each conversation is shown in the list of the social panel. Messages are not end-to-end encrypted: our servers read them to deliver them, and our database holds the text. We do not read them otherwise, we do not use them to measure anything, and our analytics never sees them (what you type in a message is hidden from the recordings). A message is deleted ${MESSAGE_RETENTION_DAYS} days after it was written, whether it was read or not, and at once, both sides, if you remove the friend or block them (a member you blocked, or who blocked you, can no longer write to you or read the conversation, and the one who blocked is not told); they are deleted with your account too. You cannot send more than a limited number of messages that the other person has not read.`,
             },
             {
+              name: "Your group",
+              text: `You can make a group with your friends, to play together. A group has two to ${MAX_GROUP_MEMBERS} members, and one of them leads it. It is made when a friend accepts your invitation to your group, and any member of a group can invite a friend. You can also ask to join the group of a friend: the request goes to every member of that group, who need not be your friends, and any of them can answer it. They see your username, your tag and your picture, and you see only that your request waits. For each group we keep who leads it and when it was made, and for each member their account and when they joined. For each invitation to a group, and each request to join one, we keep what we keep for an invitation to a table: who sent it to whom, when it was sent and when it expires, and what became of it, and for a request the group it is for, with no game and no table. The members of a group see each other's username, tag and picture, who leads the group, whether each of them is online and the game they are at, and whether they wait in its lobby or are playing. They never see a table or its code. Your friends see only that you are in a group, not whose it is and not who is in it. Only your friends can be invited, and only the group of a friend can be asked. You can leave your group whenever you want, and its leader can remove a member and hand the lead over. If you block a member, you leave the group you share with them, and they are not told; a request to join a group where a member blocked you seems to go, and nothing is kept. A group is deleted as soon as it has fewer than two members, and when nobody in it was seen on the site for ${GROUP_IDLE_DAYS} ${GROUP_IDLE_DAYS === 1 ? "day" : "days"}. Invitations and requests expire after ${INVITATION_TTL_MINUTES} minutes and are deleted ${INVITATION_RETENTION_DAYS} day after they were sent, whatever became of them. You leave your group when you close your account, and your place in it is deleted with the account.`,
+            },
+            {
               name: "Your games, your totals and your rank",
               text: "For each game you play, we count your games, how many you won and how long you played. When a game counts for the ranks (a ranked game, where every seat is a different account and nobody played for another), we also keep rank points for you in that game: you earn points by winning, more when your opponents are stronger than you, and you lose points by losing, more when they are weaker, and your points set your rank. Behind the points we keep a hidden rating, which says how strong a player is, and what each game did to it. The rating is hidden: it is never shown and never sent to your browser; the site shows your rank, the points a game gave or took and, from your first ranked game, your place. The best players of a game are listed on its page, for every visitor, with the name and the picture of their account, their rank and their place. Your totals, your rating and the link between you and your games are deleted with your account. Hiding your game history in your settings hides your games, your records and your ranks from your profile for the other players (see \"Your profile\"). It does not stop us from writing your games down, since your totals and your rank are made of them, it does not take you off the list of the best players of a game, and your name stays in the games of the players you played with.",
             },
@@ -179,7 +185,7 @@ export default function PrivacyPolicy() {
                 <>
                   Your account stays until you delete it. When you do, it is closed at once and kept for {ACCOUNT_DELETION_GRACE_DAYS} days, in case you change your mind: you can reopen it with the link we e-mail you, or delete it right away from the page that
                   link opens. When the {ACCOUNT_DELETION_GRACE_DAYS} days are over, the clean-up that runs every night deletes it with what it holds: your sign-in details (e-mail address, name, picture address, password and the services linked to it), your profile (username, tag, picture address, pronouns, country, city, favourite games and bio), your
-                  language and your settings, your country or region and your date of birth if you gave them, your second step if you turned it on, your friends, the requests you sent or got and the members you blocked, your totals, your rank points and your rating, and the feedback you sent with your e-mail address, screenshots included. The name, the tag and the picture that a table or a game had copied from your account are erased, and
+                  language and your settings, your country or region and your date of birth if you gave them, your second step if you turned it on, your friends, the requests you sent or got and the members you blocked, your place in a group, your totals, your rank points and your rating, and the feedback you sent with your e-mail address, screenshots included. The name, the tag and the picture that a table or a game had copied from your account are erased, and
                   your games stay as those of a deleted player, without your name or your picture. Your e-mail address can then be used for a new account. An account without an e-mail address cannot be deleted from the site, since it would have no link to be
                   reopened with: write to{" "}
                   <a className={LEGAL_LINK} href={`mailto:${CONTACT}`}>
@@ -283,7 +289,8 @@ export default function PrivacyPolicy() {
             { name: "Geoapify", text: "Finds the cities you can pick for your profile, only when you search for one. Our server sends it the first letters you type in the City field and, when you save, the name and the country of the city you picked, to check that it exists. It receives our server's address and not you, your account or your browser. It is a company registered in Cyprus and handles those letters under its own policy." },
             { name: "Google, Discord, Steam and Twitch", text: "Only if you sign in with them or link them to your account (Twitch can only be linked). They learn that you sign in to this site and handle your data under their own policies. For Steam, our server also asks its operator, Valve, to confirm the sign-in and for the name and the picture of your profile." },
             { name: "The other people at your table", text: "See your nickname, or the name and picture of your account, and your chat messages." },
-            { name: "Your friends", text: "See whether you are online and the game you are at, and whether you wait in its lobby or play. Never a table, its code or when you were last online. A member you blocked, and anyone who is not your friend, see none of it." },
+            { name: "Your friends", text: "See whether you are online and the game you are at, and whether you wait in its lobby or play, and whether you are in a group (only that). Never a table, its code or when you were last online. A member you blocked, and anyone who is not your friend, see none of it." },
+            { name: "The members of your group", text: "See your username, your tag and your picture, whether you lead the group, whether you are online and the game you are at, and whether you wait in its lobby or play. Never a table or its code. Every member of a group you asked to join sees your request, with your username, your tag and your picture." },
             { name: "Every visitor, for a public table", text: "A table that its host made public, or that a search opened, is listed while it waits for players: anyone who opens the site sees the nicknames or account names and pictures of the people who sit at it, and what was asked for (a minimum rank, a language, the speed, the number of seats, whether it counts for the rank). When you press Play, the search sits you at such a table for each game you picked, until a game begins or you stop looking. Chat messages are not shown." },
             { name: "Every visitor of a game's page", text: "See the best players of the game: the name and the picture of their account, their rank and their place. Never a rating, and never the games behind it." },
             { name: "The people who run the site", text: "Can read the database and the feedback." },
