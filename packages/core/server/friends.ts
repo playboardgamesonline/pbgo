@@ -13,7 +13,8 @@ import {
   type RequestEntry,
   type SocialState,
 } from "../lib/friends"
-import { isInvitationId } from "../lib/invitations"
+import { personKey } from "../lib/friends-view"
+import { isInvitationId, invitationKindOf, type InvitationEntry, type InvitationKind } from "../lib/invitations"
 import { MAX_CONVERSATIONS, type ConversationEntry } from "../lib/messages"
 import { isMissingFunction, isMissingTable } from "./db-error"
 import { ensureProfile } from "./profiles"
@@ -29,13 +30,32 @@ type Member = Parameters<typeof ensureProfile>[0]
 /** A friend as the database says: whether they are online, and the game (its slug) and the phase of the table they are at, when they are online and at one. The table, with its code, is never read. */
 export type FriendRecord = Person & { online: boolean; game: string | null; phase: FriendPhase | null }
 
-/** An invitation to a table that waits for the member: who sent it, the game (its slug) and when. The table, with its code, is never read. */
-export type InvitationRecord = { id: string; from: Person; game: string; at: string; expiresAt: string }
+/** An invitation that waits for the member: who sent it, what it is for, the game (its slug) of an invitation to a table and when. The table, with its code, is never read. */
+export type InvitationRecord = { id: string; kind: InvitationKind; from: Person; game: string | null; at: string; expiresAt: string }
 
-/** The whole social state of a member: their friends with their presence, the requests that came in and went out, the members they blocked, the invitations to a table that wait for them (PLT-109, migration 0024) and their conversations, the latest first (PLT-25, migration 0025). */
-export type SocialRecord = { friends: FriendRecord[]; incoming: RequestEntry[]; outgoing: RequestEntry[]; blocked: Person[]; invitations: InvitationRecord[]; conversations: ConversationEntry[] }
+/** A member of the member's group: whether they lead it, whether they are the member themselves, whether they are online and the game (its slug) and the phase of the table they are at, when they are online and at one. */
+export type GroupMemberRecord = Person & { leader: boolean; you: boolean; online: boolean; game: string | null; phase: FriendPhase | null }
 
-export const EMPTY_SOCIAL: SocialRecord = { friends: [], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [] }
+/**
+ * What `group_state` answers (PLT-23, migration 0027): the member's own group, the friends who are in a group (not whose), the friends the member invited to their group and the friends whose group they asked to join, which wait for an answer.
+ * The accounts' ids are never in it.
+ */
+export type GroupsRecord = { group: { members: GroupMemberRecord[] } | null; grouped: Person[]; invited: Person[]; requested: Person[] }
+
+export const NO_GROUPS: GroupsRecord = { group: null, grouped: [], invited: [], requested: [] }
+
+/** The whole social state of a member: their friends with their presence, the requests that came in and went out, the members they blocked, the invitations that wait for them (PLT-109, migration 0024: to a table, to a group, to let somebody in their group), their conversations, the latest first (PLT-25, migration 0025) and their group (PLT-23, migration 0027). */
+export type SocialRecord = {
+  friends: FriendRecord[]
+  incoming: RequestEntry[]
+  outgoing: RequestEntry[]
+  blocked: Person[]
+  invitations: InvitationRecord[]
+  conversations: ConversationEntry[]
+  groups: GroupsRecord
+}
+
+export const EMPTY_SOCIAL: SocialRecord = { friends: [], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [], groups: NO_GROUPS }
 
 /** Whether the database does not have the friends yet: migration 0017 is not applied. */
 export const friendsNotApplied = (error: unknown): boolean => typeof error === "object" && error !== null && (isMissingTable(error as { code?: string }) || isMissingFunction(error as { code?: string }))
@@ -60,9 +80,12 @@ function friendOfRow(row: Record<string, unknown>): FriendRecord | null {
 
 function invitationOfRow(row: Record<string, unknown>): InvitationRecord | null {
   const from = personOfRow(row)
-  if (!from || !isInvitationId(row.id) || typeof row.game !== "string" || row.game === "") return null
+  if (!from || !isInvitationId(row.id)) return null
   if (typeof row.at !== "string" || Number.isNaN(Date.parse(row.at)) || typeof row.expires_at !== "string" || Number.isNaN(Date.parse(row.expires_at))) return null
-  return { id: row.id, from, game: row.game, at: row.at, expiresAt: row.expires_at }
+  const kind = invitationKindOf(row.kind)
+  // An invitation to a table names its game; the others name nothing
+  if (kind === "table" && (typeof row.game !== "string" || row.game === "")) return null
+  return { id: row.id, kind, from, game: kind === "table" && typeof row.game === "string" ? row.game : null, at: row.at, expiresAt: row.expires_at }
 }
 
 /** The invitations that `invitations_for` answers, as records: an entry that is not what it should be is left out. */
@@ -77,6 +100,31 @@ function conversationOfRow(row: Record<string, unknown>): ConversationEntry | nu
 /** The conversations that `conversations_for` answers, as entries: one that is not what it should be is left out. */
 export const conversationRecordsOf = (data: unknown): ConversationEntry[] => objectsOf(data).flatMap((row) => conversationOfRow(row) ?? [])
 
+function groupMemberOfRow(row: Record<string, unknown>): GroupMemberRecord | null {
+  const person = personOfRow(row)
+  if (!person || typeof row.leader !== "boolean" || typeof row.you !== "boolean" || typeof row.online !== "boolean") return null
+  const game = typeof row.game === "string" && row.game !== "" ? row.game : null
+  const phase = row.phase === "lobby" || row.phase === "playing" ? row.phase : null
+  return { ...person, leader: row.leader, you: row.you, online: row.online, game: row.online && game && phase ? game : null, phase: row.online && game && phase ? phase : null }
+}
+
+/**
+ * The groups that `group_state` answers, as a record: an entry that is not what it should be is left out. A group has two members at least and the member themselves is one of them: any other answer is no group (a browser never draws what the database did not mean to
+ * send), and an answer that is not an object is nobody's.
+ */
+export function groupsRecordOf(data: unknown): GroupsRecord {
+  if (typeof data !== "object" || data === null) return NO_GROUPS
+  const { group, grouped, invited, requested } = data as Record<string, unknown>
+  const members = typeof group === "object" && group !== null ? objectsOf((group as Record<string, unknown>).members).flatMap((row) => groupMemberOfRow(row) ?? []) : []
+  const people = (value: unknown): Person[] => objectsOf(value).flatMap((row) => personOf({ nickname: row.nickname, tag: row.tag, avatarUrl: null }) ?? [])
+  return {
+    group: members.length >= 2 && members.some((member) => member.you) ? { members } : null,
+    grouped: people(grouped),
+    invited: people(invited),
+    requested: people(requested),
+  }
+}
+
 /** The state that `social_state` answers, as a record: an entry that is not what it should be is left out, and an answer that is not an object is nobody's state. */
 export function socialRecordOf(data: unknown): SocialRecord {
   if (typeof data !== "object" || data === null) return EMPTY_SOCIAL
@@ -88,19 +136,21 @@ export function socialRecordOf(data: unknown): SocialRecord {
     blocked: objectsOf(blocked).flatMap((row) => personOfRow(row) ?? []),
     invitations: [],
     conversations: [],
+    groups: NO_GROUPS,
   }
 }
 
 /**
- * The friends, the requests, the blocks, the invitations and the conversations of this account, read together. Throws what the database says, but not for a project where the friends are not there yet, which has none. A project where migration 0024 or 0025 is not
- * applied has no invitations or no conversations, and the rest is read as ever.
+ * The friends, the requests, the blocks, the invitations, the conversations and the group of this account, read together. Throws what the database says, but not for a project where the friends are not there yet, which has none. A project where migration 0024, 0025 or 0027
+ * is not applied has no invitations, no conversations or no group, and the rest is read as ever.
  */
 export async function readSocial(userId: string): Promise<SocialRecord> {
   const db = supabaseAdmin()
-  const [state, invitations, conversations] = await Promise.all([
+  const [state, invitations, conversations, groups] = await Promise.all([
     db.rpc("social_state", { p_user: userId }),
     db.rpc("invitations_for", { p_user: userId }),
     db.rpc("conversations_for", { p_user: userId, p_limit: MAX_CONVERSATIONS }),
+    db.rpc("group_state", { p_user: userId }),
   ])
   if (state.error) {
     if (friendsNotApplied(state.error)) return EMPTY_SOCIAL
@@ -108,26 +158,49 @@ export async function readSocial(userId: string): Promise<SocialRecord> {
   }
   if (invitations.error && !friendsNotApplied(invitations.error)) throw invitations.error
   if (conversations.error && !friendsNotApplied(conversations.error)) throw conversations.error
+  if (groups.error && !friendsNotApplied(groups.error)) throw groups.error
   return {
     ...socialRecordOf(state.data),
     invitations: invitations.error ? [] : invitationRecordsOf(invitations.data),
     conversations: conversations.error ? [] : conversationRecordsOf(conversations.data),
+    groups: groups.error ? NO_GROUPS : groupsRecordOf(groups.data),
   }
 }
 
-/** The social state as the browser is told it: each friend's game with its name (the hub's, which the app gives), or none when the hub has no name for it. The tables, and the accounts, are not in it. */
+/**
+ * The social state as the browser is told it: each friend's game with its name (the hub's, which the app gives), or none when the hub has no name for it, and whether each friend is in a group (the member's own, or another: never whose) and what waits for their answer. The tables, and
+ * the accounts, are not in it.
+ */
 export function stateOf(record: SocialRecord, names: ReadonlyMap<string, string>): SocialState {
+  const { groups, ...rest } = record
+  const mine = new Set(groups.group?.members.map(personKey) ?? [])
+  const grouped = new Map(groups.grouped.map((person) => [personKey(person), mine.has(personKey(person)) ? ("yours" as const) : ("other" as const)]))
+  const invited = new Set(groups.invited.map(personKey))
+  const requested = new Set(groups.requested.map(personKey))
   return {
-    ...record,
-    // An invitation is for a game that the hub names; one for a game it does not list (it was taken down) is not shown, since the table cannot be joined from here
-    invitations: record.invitations.flatMap((invitation) => {
-      const name = names.get(invitation.game)
-      return name ? [{ id: invitation.id, from: invitation.from, game: { slug: invitation.game, name }, at: invitation.at, expiresAt: invitation.expiresAt }] : []
+    ...rest,
+    // An invitation to a table is for a game that the hub names; one for a game it does not list (it was taken down) is not shown, since the table cannot be joined from here. The others name no game
+    invitations: record.invitations.flatMap((invitation): InvitationEntry[] => {
+      const base = { id: invitation.id, from: invitation.from, at: invitation.at, expiresAt: invitation.expiresAt }
+      if (invitation.kind !== "table") return [{ ...base, kind: invitation.kind }]
+      const name = invitation.game ? names.get(invitation.game) : undefined
+      return invitation.game && name ? [{ ...base, kind: "table", game: { slug: invitation.game, name } }] : []
     }),
     friends: record.friends.map((friend) => {
+      const key = personKey(friend)
       const name = friend.game ? names.get(friend.game) : undefined
-      return friend.game && name ? { ...friend, game: { slug: friend.game, name } } : { ...friend, game: null, phase: null }
+      const group = grouped.get(key) ?? "none"
+      const pending = invited.has(key) ? ("invited" as const) : requested.has(key) ? ("requested" as const) : null
+      return friend.game && name ? { ...friend, game: { slug: friend.game, name }, group, pending } : { ...friend, game: null, phase: null, group, pending }
     }),
+    group: groups.group
+      ? {
+          members: groups.group.members.map((member) => {
+            const name = member.game ? names.get(member.game) : undefined
+            return member.game && name ? { ...member, game: { slug: member.game, name } } : { ...member, game: null, phase: null }
+          }),
+        }
+      : null,
   }
 }
 

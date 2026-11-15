@@ -1,7 +1,7 @@
 import * as React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
-import { FriendRequestReceivedToast, FriendRequestSentToast, GameInvitationToast, type ToastPerson } from "./platform/person-toast"
+import { FriendRequestReceivedToast, FriendRequestSentToast, GameInvitationToast, GroupInvitationToast, JoinRequestToast, type ToastPerson } from "./platform/person-toast"
 
 // The toasts about a person by their markup: a group named by who it is about and what it says, never a status; which buttons each has, and what they are called; what is masked in a recording; and the cross, which only a toast that stays has.
 
@@ -14,6 +14,9 @@ const received = (props: Partial<React.ComponentProps<typeof FriendRequestReceiv
 const invitation = (props: Partial<React.ComponentProps<typeof GameInvitationToast>> = {}) =>
   renderToStaticMarkup(React.createElement(GameInvitationToast, { person: ALEX, game: { name: "Hanabi" }, onAccept: nothing, onDecline: nothing, ...props }))
 
+const group = (props: Partial<React.ComponentProps<typeof GroupInvitationToast>> = {}) => renderToStaticMarkup(React.createElement(GroupInvitationToast, { person: ALEX, onAccept: nothing, onDecline: nothing, ...props }))
+const join = (props: Partial<React.ComponentProps<typeof JoinRequestToast>> = {}) => renderToStaticMarkup(React.createElement(JoinRequestToast, { person: ALEX, onAccept: nothing, onDecline: nothing, ...props }))
+
 const BUTTON = /<button\b[^>]*>/g
 const buttons = (html: string) => html.match(BUTTON) ?? []
 
@@ -22,6 +25,8 @@ describe("every toast about a person", () => {
     ["a request that was sent", sent()],
     ["a request that came in", received()],
     ["an invitation", invitation()],
+    ["an invitation to a group", group()],
+    ["a request to join the member's group", join()],
   ])("is a group named by the person and what it says, for %s", (_name, html) => {
     expect(html).toContain('role="group"')
     const [, person, message] = /aria-labelledby="([^ "]+-person) ([^ "]+-message)"/.exec(html) ?? []
@@ -34,6 +39,8 @@ describe("every toast about a person", () => {
     ["a request that was sent", sent()],
     ["a request that came in", received()],
     ["an invitation", invitation()],
+    ["an invitation to a group", group()],
+    ["a request to join the member's group", join()],
   ])("is not a status that a screen reader reads out and leaves, for %s", (_name, html) => {
     expect(html).not.toContain('role="status"')
     expect(html).not.toContain('role="alert"')
@@ -122,5 +129,58 @@ describe("an invitation to a game", () => {
   it("keeps the text clear of the cross", () => {
     expect(invitation({ onDismiss: nothing })).toContain("pr-8")
     expect(invitation()).not.toContain("pr-8")
+  })
+})
+
+describe("an invitation to a group", () => {
+  it("says who invites and to what, and has the two answers, named for what they do", () => {
+    const html = group()
+    expect(html).toContain("Invited you to join their group")
+    expect(buttons(html)).toHaveLength(2)
+    expect(html).toContain('aria-label="Accept the invitation of Alex to join their group"')
+    expect(html).toContain('aria-label="Decline the invitation of Alex to join their group"')
+    expect(html).toContain("Accept</button>")
+    expect(html).toContain("Decline</button>")
+  })
+
+  it("names the person with their tag, masked in a recording, and is the floating surface of the others", () => {
+    const html = group()
+    expect(html).toMatch(/class="ph-mask truncate text-base text-foreground">Alex<span class="text-muted-foreground">#0042<\/span><\/p>/)
+    expect(html).toContain("glass")
+    expect(html).toContain("nest-4xl/4")
+    expect((html.match(/<button\b[^>]*rounded-nested/g) ?? []).length).toBe(2)
+  })
+
+  it("has the cross, at the top right corner, once the page says what it does, and not without", () => {
+    const cross = /<button\b[^>]*aria-label="Dismiss"[^>]*>/.exec(group({ onDismiss: nothing }))?.[0]
+    expect(cross, "a button called Dismiss").toBeTruthy()
+    expect(cross).toContain("absolute top-3 right-3")
+    expect(group()).not.toContain('aria-label="Dismiss"')
+    expect(group({ onDismiss: nothing })).toContain("pr-8")
+  })
+
+  it("has no game: the group is the invitation", () => {
+    expect(group()).not.toContain("<img")
+  })
+})
+
+describe("a request to join the member's group", () => {
+  it("says who asks, and has the two answers, the first of which lets them in", () => {
+    const html = join()
+    expect(html).toContain("Asks to join your group")
+    expect(buttons(html)).toHaveLength(2)
+    expect(html).toContain('aria-label="Let Alex join your group"')
+    expect(html).toContain('aria-label="Decline the request of Alex to join your group"')
+    expect(html).toContain("Accept</button>")
+    expect(html).toContain("Decline</button>")
+  })
+
+  it("stays until it is answered or closed: it has the cross as soon as the page says what it does", () => {
+    expect(join({ onDismiss: nothing })).toContain('aria-label="Dismiss"')
+    expect(join()).not.toContain('aria-label="Dismiss"')
+  })
+
+  it("stands in for a picture that is not there with the initials of the person", () => {
+    expect(join()).toContain(">A</span>")
   })
 })

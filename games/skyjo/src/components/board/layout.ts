@@ -13,19 +13,19 @@ export type Place = { x: number; z: number }
 export const LAYOUT_SETTINGS = {
   /** The ellipse the grids of the seats are centred on, for a table of two and for a table of eight (in between, in steps). Its far end is the grid of the seat across, its sides those of the seats at the sides; the viewer's grid stands in front of it at
    * `viewerZ`. How far the camera stands is not a knob: it is fitted to the window (`fitCamera`) */
-  radiusX2: 5.249,
-  radiusX8: 3.82,
-  radiusZ2: 4.2,
-  radiusZ8: 6.117,
+  radiusX2: 4.311,
+  radiusX8: 4.533,
+  radiusZ2: 4.337,
+  radiusZ8: 6.988,
   /** The size of the cards of the opponents, for a table of two and for a table of eight: a small table has big cards, a full one small ones */
-  opponentScale2: 0.655,
-  opponentScale8: 0.414,
+  opponentScale2: 0.603,
+  opponentScale8: 0.404,
   /** The viewer's grid: how far toward them it lies and how big its cards are */
-  viewerZ: 3.85,
-  viewerScale: 0.738,
-  /** The gap between two columns of a grid, as a share of the width of a card, and the step between two rows, as a share of its height: below 1 the rows overlap, so that the figure in the corner of each card stays readable */
-  columnGap: 1.08,
-  rowStep: 0.707,
+  viewerZ: 4.724,
+  viewerScale: 0.711,
+  /** The step between two columns of a grid, as a share of the width of a card, and between two rows, as a share of its height: 1.1 leaves a gap of a tenth of a card between neighbours, both ways. Cards never overlap (`layout.test.ts` holds a margin): the figures stay readable by the size of the cards */
+  columnGap: 1.1,
+  rowStep: 1.1,
   /** 1: the grid of an opponent turns to face its player (the cards of the seat across from the viewer are upside down for the viewer, as on a real table); 0: every grid reads upright from the viewer's side */
   faceSeat: 1,
   /** 1: the plate of a seat (name, score, status) turns with the seat, but never upside down: a text that would be turned more than a quarter turn from upright is turned back by half a turn; 0: every plate reads upright */
@@ -33,11 +33,11 @@ export const LAYOUT_SETTINGS = {
   /** The clear space between a grid and its plate, in world units */
   plateGap: 0.2,
   /** The draw pile and the discard, either side of the card in hand, in the middle of the table */
-  pilesX: 1.423,
+  pilesX: 1.406,
   pilesZ: 0.1,
-  pileScale: 0.706,
+  pileScale: 0.818,
   /** The card in hand lies between the piles, a little bigger than they are */
-  heldScale: 0.839,
+  heldScale: 0.736,
 }
 
 export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
@@ -49,8 +49,8 @@ export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
   opponentScale8: ["opponent card scale · 8", 0.2, 1, 0.01],
   viewerZ: ["viewer grid z", 0, 8, 0.05],
   viewerScale: ["viewer card scale", 0.3, 1.2, 0.01],
-  columnGap: ["column gap (cards)", 1, 1.4, 0.01],
-  rowStep: ["row step (cards)", 0.5, 1.1, 0.01],
+  columnGap: ["column step (cards)", 1.05, 1.4, 0.01],
+  rowStep: ["row step (cards)", 1.05, 1.4, 0.01],
   faceSeat: ["grids face their seat (0 off, 1 on)", 0, 1, 1],
   textTurn: ["plates turn with their seat (0 off, 1 on)", 0, 1, 1],
   plateGap: ["plate gap", 0, 2, 0.05],
@@ -151,7 +151,7 @@ export function pitchOf(scale: number): { x: number; z: number } {
   return { x: CARD.width * scale * R.columnGap, z: CARD.height * scale * R.rowStep }
 }
 
-/** The whole grid of cards at `scale`: its width along its rows and its depth along its columns */
+/** The whole grid of cards at `scale`: its width along its rows and its depth along its columns (the cards and the gaps between them, not the margin of the zones) */
 export function gridSize(scale: number): { width: number; depth: number } {
   const pitch = pitchOf(scale)
   const card = cardSize(scale)
@@ -183,34 +183,26 @@ export function cellPlace(grid: Grid, position: number): Place & { yaw: number }
 /** A rectangle of the table that is turned: its centre, half its width along its own x axis, half its depth along its own z axis, and the yaw of that frame (the frame of a seat: x runs along a row, +z points outward) */
 export type Box = { x: number; z: number; halfWidth: number; halfDepth: number; yaw: number }
 
-/** The box of the whole grid of a seat */
+/** The size of the twelve zones of a grid together: four columns by three rows of the pitch */
+export function zoneExtent(scale: number): { width: number; depth: number } {
+  const pitch = pitchOf(scale)
+  return { width: 4 * pitch.x, depth: 3 * pitch.z }
+}
+
+/** The box of the whole grid of a seat, zones included */
 export function gridBox(grid: Grid): Box {
-  const { width, depth } = gridSize(grid.scale)
+  // the box holds the zones too: the cards and half the gap round each of them
+  const { width, depth } = zoneExtent(grid.scale)
   return { x: grid.at.x, z: grid.at.z, halfWidth: width / 2, halfDepth: depth / 2, yaw: grid.yaw }
 }
 
 /**
- * The zone of a cell that its player presses: the card plus a margin that fills the room between it and its neighbours, so that the twelve zones tile the whole grid, with no gap and no overlap. A column is `pitch.x` wide and the rows of a column are
- * `pitch.z` apart; the first row reaches up to the top edge of its card and the last down to the bottom edge of its card, which the rows above overlap.
+ * The zone of a cell that its player presses: the card plus half the gap to its neighbours on every side, so that the twelve zones tile the whole grid plus its gaps, with no gap between them and no overlap. A zone is `pitch.x` wide and `pitch.z` deep.
  */
 export function cellZone(grid: Grid, position: number): Box {
   const pitch = pitchOf(grid.scale)
-  const card = cardSize(grid.scale)
-  const row = position % 3
-  const top = row === 0 ? card.height / 2 : pitch.z / 2
-  const bottom = row === 2 ? card.height / 2 : pitch.z / 2
-  const local = cellSpot(position, grid.scale)
-  const along = alongOf(grid.yaw)
-  const out = outwardOf(grid.yaw)
-  const shift = (bottom - top) / 2
-  const z = local.z + shift
-  return {
-    x: grid.at.x + local.x * along.x + z * out.x,
-    z: grid.at.z + local.x * along.z + z * out.z,
-    halfWidth: pitch.x / 2,
-    halfDepth: (top + bottom) / 2,
-    yaw: grid.yaw,
-  }
+  const place = cellPlace(grid, position)
+  return { x: place.x, z: place.z, halfWidth: pitch.x / 2, halfDepth: pitch.z / 2, yaw: grid.yaw }
 }
 
 /** The four corners of a box, in the table's frame */
@@ -240,7 +232,7 @@ export function plateAt(spot: SeatSpot, grid: Grid): Place & { yaw: number } {
   const yaw = R.textTurn ? uprightYaw(spot.yaw) : 0
   const out = outwardOf(spot.yaw)
   // how far the grid's box reaches along the way out, and how far the plate reaches back toward the grid: the name when the plate's own down points out, the status when it points in
-  const { width, depth } = gridSize(grid.scale)
+  const { width, depth } = zoneExtent(grid.scale)
   const along = alongOf(grid.yaw)
   const across = outwardOf(grid.yaw)
   const reach = (Math.abs(out.x * along.x + out.z * along.z) * width + Math.abs(out.x * across.x + out.z * across.z) * depth) / 2

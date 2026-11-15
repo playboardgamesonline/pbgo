@@ -1,21 +1,23 @@
 import "server-only"
 import type { Handle } from "@pbgo/accounts"
 import type { PlayableGame } from "../lib/binding"
-import { INVITATION_TTL_MINUTES, MAX_INVITATIONS_RECEIVED, MAX_INVITATIONS_SENT } from "../lib/invitations"
+import { INVITATION_TTL_MINUTES, MAX_INVITATIONS_RECEIVED, MAX_INVITATIONS_SENT, invitationKindOf, type InvitationKind } from "../lib/invitations"
 import { loadSettings } from "../lib/settings-server"
 import { effectiveSettings } from "../lib/table-settings"
 import { friendsNotApplied } from "./friends"
 import { ApiError } from "./api"
 import { readGame } from "./games"
+import { acceptGroupInvitation } from "./groups"
 import { ensureProfile } from "./profiles"
 import { supabaseAdmin } from "./supabase"
 import { seatedPlayers } from "./table-rules"
 import { readTableSettingsOf } from "./table-settings"
 import { readMemberTables } from "./tables"
 
-// The invitations to a table (PLT-109, migration 0024). The database decides who may be invited (a friend, only, and never a member who blocked the sender, who is not told), the limits and the answers; what it cannot see is the table, which is read here from its own
-// row: the sender must sit at it, it must still wait for players (a lobby) and have a seat free; and when the friend accepts, it must still exist, wait and have room for them. The code of a table is read from the database when the friend accepts, and only then
-// is it told to the browser, so the list of invitations a member reads never has it. Where migration 0024 is not applied the routes answer that invitations are not available.
+// The invitations (PLT-109, migration 0024; PLT-23, migration 0027). An invitation is to a table, to a group or a request to join one (`kind`): the table ones are here, the group ones are `server/groups.ts`'s and are answered through the same routes. The database decides who may be
+// invited (a friend, only, and never a member who blocked the sender, who is not told), the limits and the answers; what it cannot see is the table, which is read here from its own row: the sender must sit at it, it must still wait for players (a lobby) and have a seat free;
+// and when the friend accepts, it must still exist, wait and have room for them. The code of a table is read from the database when the friend accepts, and only then is it told to the browser, so the list of invitations a member reads never has it. Where migration 0024 is not
+// applied the routes answer that invitations are not available.
 
 type Member = Parameters<typeof ensureProfile>[0]
 
@@ -27,7 +29,10 @@ const SEND_OUTCOMES = ["sent", "missing", "self", "not_friends", "too_many_sent"
 export type SendInvitationOutcome = (typeof SEND_OUTCOMES)[number]
 
 const ANSWER_OUTCOMES = ["pending", "accepted", "declined", "expired", "missing"] as const
-export type InvitationAnswer = { result: (typeof ANSWER_OUTCOMES)[number]; game?: string; code?: string }
+export type InvitationAnswer = { result: (typeof ANSWER_OUTCOMES)[number]; kind: InvitationKind; game?: string; code?: string }
+
+/** What accepting an invitation did: the table to go to, for an invitation to a table; for the others, which it was (the member is in the group when it answers). */
+export type AcceptedInvitation = { kind: "table"; game: string; code: string } | { kind: "group" | "join" }
 
 /** Whether the database does not have the invitations yet: migration 0024 is not applied (or the tables of 0013 that a send reads). */
 export const invitationsNotApplied = friendsNotApplied
@@ -83,18 +88,23 @@ async function answerRow(userId: string, id: string, answer: "peek" | "accept" |
   const row = typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {}
   const result = ANSWER_OUTCOMES.find((word) => word === row.result)
   if (result === undefined) throw new Error("The database answered something else than a word to an answer to an invitation")
-  return { result, ...(typeof row.game === "string" ? { game: row.game } : {}), ...(typeof row.code === "string" ? { code: row.code } : {}) }
+  return { result, kind: invitationKindOf(row.kind), ...(typeof row.game === "string" ? { game: row.game } : {}), ...(typeof row.code === "string" ? { code: row.code } : {}) }
 }
 
 /**
- * Accepts the invitation `id` of the account and gives the table to go to. The table is looked at before the invitation is spent, so that a refusal leaves it as it was: 404 `INVITE_GONE` (none by this id for them, answered already, or its sender is not
+ * Accepts the invitation `id` of the account. An invitation to a table gives the table to go to, which is looked at before the invitation is spent, so that a refusal leaves it as it was: 404 `INVITE_GONE` (none by this id for them, answered already, or its sender is not
  * their friend any more), 410 `INVITE_EXPIRED`, 404 `INVITE_TABLE_GONE` (the table was deleted), 409 `INVITE_TABLE_STARTED` (it began, and they do not sit at it), 409 `INVITE_TABLE_FULL`. A visitor who sits at the table already is only taken there. The rank
- * and the language a public table asks are checked when they sit down, by the join route (`RANK_TOO_LOW`, `LANGUAGE_MISMATCH`).
+ * and the language a public table asks are checked when they sit down, by the join route (`RANK_TOO_LOW`, `LANGUAGE_MISMATCH`). An invitation to a group, or a request to join one, puts the one who joins in the group (`acceptGroupInvitation`, which has the refusals of a group).
  */
-export async function acceptInvitation(deps: InvitationDeps, account: Member, id: string): Promise<{ game: string; code: string }> {
+export async function acceptInvitation(deps: InvitationDeps, account: Member, id: string): Promise<AcceptedInvitation> {
   const seen = await answerRow(account.id, id, "peek")
   if (seen.result === "expired") throw new ApiError("INVITE_EXPIRED", 410)
-  if (seen.result !== "pending" || !seen.game || !seen.code) throw new ApiError("INVITE_GONE", 404)
+  if (seen.result !== "pending") throw new ApiError("INVITE_GONE", 404)
+  if (seen.kind !== "table") {
+    await acceptGroupInvitation(account, id)
+    return { kind: seen.kind }
+  }
+  if (!seen.game || !seen.code) throw new ApiError("INVITE_GONE", 404)
   const { game: slug, code } = seen
   const game = await deps.loadGame(slug)
   if (!game) throw new ApiError("INVITE_TABLE_GONE", 404)
@@ -111,7 +121,7 @@ export async function acceptInvitation(deps: InvitationDeps, account: Member, id
   const done = await answerRow(account.id, id, "accept")
   if (done.result === "expired") throw new ApiError("INVITE_EXPIRED", 410)
   if (done.result !== "accepted") throw new ApiError("INVITE_GONE", 404)
-  return { game: slug, code }
+  return { kind: "table", game: slug, code }
 }
 
 /** Declines the invitation `id` of the account. An invitation that is gone already is as declined as it can be: nothing is said. */

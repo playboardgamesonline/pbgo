@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { activityLine, connectedOf, gamesOf, matchingFriends, suggestionsOf, initials, presenceWord, rosterOf, sectionsOf, statusLine, tablesOf, type Friend } from "./friends"
+import { activityLine, connectedOf, gamesOf, groupActionOf, groupWord, matchingFriends, suggestionsOf, initials, presenceWord, rosterOf, sectionsOf, statusLine, tablesOf, type Friend } from "./friends"
 
 const friend = (id: string, status: Friend["status"], rest: Partial<Friend> = {}): Friend => ({ id, nickname: id, status, ...rest })
 const COURTISANS = { slug: "courtisans", name: "Courtisans" }
@@ -204,5 +204,50 @@ describe("suggestionsOf", () => {
     const list = [friend("anna", "online"), friend("bert", "online"), friend("annie", "offline")]
     const { online, offline } = suggestionsOf(list, "ann")
     expect([online.map((one) => one.id), offline.map((one) => one.id)]).toEqual([["anna"], ["annie"]])
+  })
+})
+
+describe("groupActionOf", () => {
+  it("invites a friend who is connected and in no group to the visitor's group, whatever they are doing", () => {
+    for (const status of ["online", "playing", "inactive", "dnd"] as const) {
+      expect(groupActionOf(friend("a", status))).toEqual({ kind: "invite", label: "Invite", title: "Invite to your group", pending: false })
+    }
+  })
+
+  it("has nothing for a friend who is away: they are invited from the picker, where the invitation waits for them", () => {
+    expect(groupActionOf(friend("a", "offline"))).toBeNull()
+  })
+
+  it("asks to join the group of a friend who is in one, connected or not", () => {
+    expect(groupActionOf(friend("a", "online", { group: "other" }))).toEqual({ kind: "join", label: "Join", title: "Ask to join their group", pending: false })
+    expect(groupActionOf(friend("b", "offline", { group: "other" }))?.kind).toBe("join")
+  })
+
+  it("has nothing for a friend who is in the visitor's own group", () => {
+    expect(groupActionOf(friend("a", "online", { group: "yours" }))).toBeNull()
+    expect(groupActionOf(friend("b", "offline", { group: "yours" }))).toBeNull()
+  })
+
+  it("says that an invitation or a request waits, and is off, so that it is not sent twice", () => {
+    expect(groupActionOf(friend("a", "online", { pending: "invited" }))).toEqual({ kind: "invite", label: "Invited", title: "Waiting for their answer", pending: true })
+    expect(groupActionOf(friend("b", "online", { group: "other", pending: "requested" }))).toEqual({ kind: "join", label: "Requested", title: "Waiting for their answer", pending: true })
+  })
+
+  it("does not take a request for an invitation: what waits is read for the action it is about", () => {
+    expect(groupActionOf(friend("a", "online", { pending: "requested" }))?.pending).toBe(false)
+    expect(groupActionOf(friend("b", "online", { group: "other", pending: "invited" }))?.pending).toBe(false)
+  })
+
+  it("leaves the table of a friend out of it: only groups are joined from a row", () => {
+    expect(groupActionOf(friend("a", "online", { game: HANABI, table: { code: "K7Q", size: 2, max: 4 } }))?.kind).toBe("invite")
+    expect(groupActionOf(friend("b", "playing", { game: HANABI }))?.kind).toBe("invite")
+  })
+})
+
+describe("groupWord", () => {
+  it("says whose group a friend is in, and nothing for a friend in none", () => {
+    expect(groupWord(friend("a", "online", { group: "yours" }))).toBe("In your group")
+    expect(groupWord(friend("b", "online", { group: "other" }))).toBe("In a group")
+    expect(groupWord(friend("c", "online"))).toBeUndefined()
   })
 })

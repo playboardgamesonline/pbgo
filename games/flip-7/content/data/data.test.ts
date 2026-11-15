@@ -12,6 +12,7 @@ import { buildCards, CARD_LIST, cardId } from "./cards.ts"
 import { buildGame, GAME_ID } from "./game.ts"
 import { buildSettings, SETTINGS_ID } from "./settings.ts"
 import { seedDocs } from "./test-fixtures.ts"
+import { buildTexts } from "./texts.ts"
 
 type LocaleObject = { _type: "localeString" | "localeText" } & Record<LanguageId, string>
 
@@ -251,10 +252,21 @@ describe("the game", () => {
 describe("the settings", () => {
   const settings = () => buildSettings() as Doc
 
-  it("hold the credits and the publisher, and nothing else", () => {
-    expect(Object.keys(settings()).sort()).toEqual(["_id", "_type", "creditsAuthors", "creditsAuthorsI18n", "publisher", "publisherUrl"])
+  it("hold the description, the credits and the publisher, and nothing else", () => {
+    expect(Object.keys(settings()).sort()).toEqual(["_id", "_type", "creditsAuthors", "creditsAuthorsI18n", "descriptionI18n", "publisher", "publisherUrl"])
     expect(settings()._id).toBe(SETTINGS_ID)
     expect(settings()._type).toBe("settings")
+  })
+
+  it("describe the game in every language, in at least the 80 characters the Launch list asks for and at most the 400 the gamemaster keeps", () => {
+    expect(settings().descriptionI18n._type).toBe("localeText")
+    for (const language of LANGUAGE_IDS) {
+      const text = settings().descriptionI18n[language] as string
+      expect(text.length, language).toBeGreaterThanOrEqual(80)
+      expect(text.length, language).toBeLessThanOrEqual(400)
+    }
+    // The localized description is read first and holds every language, so the single-language one (French, from before) stays empty
+    expect(settings()).not.toHaveProperty("description")
   })
 
   it("credit the author of the game, Eric Olsen, in every language", () => {
@@ -284,11 +296,55 @@ describe("the settings", () => {
   })
 })
 
+describe("the victory phrases", () => {
+  const phrases = () => (buildTexts() as Doc).victoryPhrases as { _type: string } & Record<LanguageId, string[]>
+  const every = (check: (phrase: string, where: string) => void) => {
+    for (const language of LANGUAGE_IDS) for (const phrase of phrases()[language]) check(phrase, `${language}: ${phrase}`)
+  }
+
+  it("are a localeStringList: the four languages and nothing else", () => {
+    expect(phrases()._type).toBe("localeStringList")
+    expect(Object.keys(phrases()).sort()).toEqual(["_type", ...LANGUAGE_IDS].sort())
+  })
+
+  it("are as many in every language, and at least three", () => {
+    const counts = LANGUAGE_IDS.map((language) => phrases()[language].length)
+    expect(Math.min(...counts)).toBeGreaterThanOrEqual(3)
+    expect(new Set(counts).size).toBe(1)
+  })
+
+  it("name the winner and their points once each, and hold no other braces", () => {
+    every((phrase, where) => {
+      expect(phrase.match(/\{pseudo\}/g), where).toHaveLength(1)
+      expect(phrase.match(/\{points\}/g), where).toHaveLength(1)
+      expect(phrase.replace(/\{(pseudo|points)\}/g, ""), where).not.toMatch(/[{}]/)
+    })
+  })
+
+  it("follow the typography of the other texts: trimmed, one line, one space at a time, the typographic apostrophe, no marker", () => {
+    every((phrase, where) => {
+      expect(phrase, where).toBe(phrase.trim())
+      expect(phrase, where).not.toMatch(/ {2}|\t|[\r\n]/)
+      expect(phrase, where).not.toContain("'")
+      expect(phrase, where).not.toMatch(/\bTODO\b|\b(tbd|fixme|lorem|ipsum|placeholder|xxx)\b|\?\?|<\/?[a-z]|https?:\/\//i)
+    })
+  })
+
+  it("differ from one another, in a language and from a language to the next", () => {
+    const all = LANGUAGE_IDS.flatMap((language) => phrases()[language])
+    expect(new Set(all).size).toBe(all.length)
+  })
+
+  it("stay inside what a screen of the game over can hold", () => {
+    every((phrase, where) => expect(phrase.length, where).toBeLessThanOrEqual(120))
+  })
+})
+
 describe("every text", () => {
   it("is in the four languages, for every localeString and localeText of every document", () => {
     const objects = allLocaleObjects()
-    // the names of the 3 action cards, the credits, the 6 words of the engine, the message of the game's one error code and the 28 words of the board
-    expect(objects).toHaveLength(39)
+    // the names of the 3 action cards, the description and the credits, the 6 words of the engine, the message of the game's one error code and the 28 words of the board
+    expect(objects).toHaveLength(40)
     for (const { path, value } of objects) expect(Object.keys(value).sort(), path).toEqual(["_type", ...LANGUAGE_IDS].sort())
   })
 

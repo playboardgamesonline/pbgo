@@ -7,7 +7,7 @@ vi.mock("./supabase", () => ({ supabaseAdmin: () => ({ rpc: mocks.rpc }) }))
 vi.mock("./profiles", () => ({ ensureProfile: mocks.ensureProfile }))
 
 import { MAX_BLOCKS, MAX_FRIENDS, MAX_REQUESTS_RECEIVED, MAX_REQUESTS_SENT } from "../lib/friends"
-import { EMPTY_SOCIAL, answerFriendRequest, blockMember, friendsNotApplied, readRelation, readSocial, removeFriend, sendFriendRequest, socialRecordOf, unblockMember } from "./friends"
+import { EMPTY_SOCIAL, NO_GROUPS, answerFriendRequest, blockMember, friendsNotApplied, groupsRecordOf, readRelation, readSocial, removeFriend, sendFriendRequest, socialRecordOf, stateOf, unblockMember } from "./friends"
 
 const ANN = "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11"
 const account = { id: ANN, nickname: "Ann", avatarUrl: "https://cdn.example/ann.png", createdAt: "2026-10-01T09:00:00.000Z", preferences: { hideHistory: false } } as never
@@ -42,6 +42,7 @@ describe("socialRecordOf", () => {
       blocked: [{ nickname: "Fay", tag: 5, avatarUrl: null }],
       invitations: [],
       conversations: [],
+      groups: NO_GROUPS,
     })
   })
 
@@ -107,7 +108,43 @@ describe("readSocial", () => {
     )
     const record = await readSocial(ANN)
     expect(mocks.rpc).toHaveBeenCalledWith("invitations_for", { p_user: ANN })
-    expect(record.invitations).toEqual([{ id: ID, from: { nickname: "Bob", tag: 42, avatarUrl: null }, game: "hanabi", at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }])
+    expect(record.invitations).toEqual([{ id: ID, kind: "table", from: { nickname: "Bob", tag: 42, avatarUrl: null }, game: "hanabi", at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }])
+  })
+
+  it("reads an invitation to a group and a request to join one with no game, and leaves out an invitation to a table that has none", async () => {
+    const ID = "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e"
+    const row = { id: ID, nickname: "Bob", tag: 42, avatar_url: null, at: "2026-11-13T10:00:00+00:00", expires_at: "2026-11-13T10:30:00+00:00" }
+    mocks.rpc.mockImplementation(async (name: string) =>
+      name === "social_state" ? { data: state(), error: null } : name === "invitations_for" ? { data: [{ ...row, kind: "group", game: null }, { ...row, kind: "join", game: null }, { ...row, kind: "table", game: null }, { ...row, kind: "table", game: "hanabi" }], error: null } : { data: [], error: null },
+    )
+    const record = await readSocial(ANN)
+    expect(record.invitations.map((entry) => [entry.kind, entry.game])).toEqual([["group", null], ["join", null], ["table", "hanabi"]])
+  })
+
+  it("reads the group of the account and the friends' groups with the state (migration 0027)", async () => {
+    const member = (nickname: string, tag: number, over: Record<string, unknown> = {}) => ({ nickname, tag, avatar_url: null, leader: false, you: false, online: true, game: null, phase: null, ...over })
+    mocks.rpc.mockImplementation(async (name: string) =>
+      name === "social_state"
+        ? { data: state(), error: null }
+        : name === "group_state"
+          ? { data: { group: { members: [member("Ann", 1, { leader: true, you: true }), member("Bob", 42, { game: "hanabi", phase: "lobby" })] }, grouped: [{ nickname: "Bob", tag: 42 }, { nickname: "Cat", tag: 7 }], invited: [{ nickname: "Dan", tag: 1 }], requested: [] }, error: null }
+          : { data: [], error: null },
+    )
+    const record = await readSocial(ANN)
+    expect(mocks.rpc).toHaveBeenCalledWith("group_state", { p_user: ANN })
+    expect(record.groups.group?.members.map((one) => [one.nickname, one.leader, one.you, one.game])).toEqual([["Ann", true, true, null], ["Bob", false, false, "hanabi"]])
+    expect(record.groups.grouped.map((one) => one.nickname)).toEqual(["Bob", "Cat"])
+    expect(record.groups.invited.map((one) => one.nickname)).toEqual(["Dan"])
+  })
+
+  it("has the friends and no group where migration 0027 is not applied yet, and throws the rest", async () => {
+    mocks.rpc.mockImplementation(async (name: string) => (name === "group_state" ? { data: null, error: { code: "PGRST202", message: "no function" } } : name === "social_state" ? { data: state(), error: null } : { data: [], error: null }))
+    const record = await readSocial(ANN)
+    expect(record.friends).toHaveLength(2)
+    expect(record.groups).toEqual(NO_GROUPS)
+    const error = { code: "57014", message: "timeout" }
+    mocks.rpc.mockImplementation(async (name: string) => (name === "group_state" ? { data: null, error } : name === "social_state" ? { data: state(), error: null } : { data: [], error: null }))
+    await expect(readSocial(ANN)).rejects.toBe(error)
   })
 
   it("reads the conversations with the state, the latest first as the database gives them, and leaves out an entry that is not one", async () => {
@@ -320,5 +357,104 @@ describe("readRelation", () => {
     const error = { code: "57014", message: "timeout" }
     mocks.rpc.mockResolvedValue({ data: null, error })
     await expect(readRelation(ANN, OTHER)).rejects.toBe(error)
+  })
+})
+
+describe("groupsRecordOf", () => {
+  const member = (nickname: string, tag: number, over: Record<string, unknown> = {}) => ({ nickname, tag, avatar_url: null, leader: false, you: false, online: true, game: null, phase: null, ...over })
+  const answer = (over: Record<string, unknown> = {}) => ({ group: { members: [member("Ann", 1, { leader: true, you: true }), member("Bob", 2)] }, grouped: [], invited: [], requested: [], ...over })
+
+  it("reads what group_state answers: the members with who leads and who the member is, and the three lists of friends", () => {
+    expect(groupsRecordOf(answer({ grouped: [{ nickname: "Cat", tag: 3 }], invited: [{ nickname: "Dan", tag: 4 }], requested: [{ nickname: "Eve", tag: 5 }] }))).toEqual({
+      group: {
+        members: [
+          { nickname: "Ann", tag: 1, avatarUrl: null, leader: true, you: true, online: true, game: null, phase: null },
+          { nickname: "Bob", tag: 2, avatarUrl: null, leader: false, you: false, online: true, game: null, phase: null },
+        ],
+      },
+      grouped: [{ nickname: "Cat", tag: 3, avatarUrl: null }],
+      invited: [{ nickname: "Dan", tag: 4, avatarUrl: null }],
+      requested: [{ nickname: "Eve", tag: 5, avatarUrl: null }],
+    })
+  })
+
+  it("shows a member at a game only while they are online and with its phase", () => {
+    const { group } = groupsRecordOf(answer({ group: { members: [member("Ann", 1, { you: true }), member("Bob", 2, { online: false, game: "hanabi", phase: "lobby" }), member("Cat", 3, { game: "hanabi", phase: "later" }), member("Dan", 4, { game: "hanabi", phase: "playing" })] } }))
+    expect(group?.members.map((one) => [one.game, one.phase])).toEqual([[null, null], [null, null], [null, null], ["hanabi", "playing"]])
+  })
+
+  it("is no group for one with a single member, one the member is not in, or one that is not an object, and leaves out an entry that is not what it should be", () => {
+    expect(groupsRecordOf(answer({ group: { members: [member("Ann", 1, { you: true })] } })).group).toBeNull()
+    expect(groupsRecordOf(answer({ group: { members: [member("Ann", 1), member("Bob", 2)] } })).group).toBeNull()
+    for (const bad of [null, "x", 3, { members: "x" }]) expect(groupsRecordOf(answer({ group: bad })).group).toBeNull()
+    expect(groupsRecordOf(answer({ group: { members: [member("Ann", 1, { you: true }), member("Bob", 2), { nickname: "Cat" }, member("Dan", 0), { ...member("Eve", 5), leader: "yes" }] } })).group?.members).toHaveLength(2)
+    expect(groupsRecordOf(answer({ grouped: [{ nickname: "", tag: 1 }, { nickname: "Cat", tag: 0 }, null, "x", { nickname: "Dan", tag: 4 }] })).grouped).toEqual([{ nickname: "Dan", tag: 4, avatarUrl: null }])
+  })
+
+  it("is nobody's groups for an answer that is not an object", () => {
+    expect(groupsRecordOf(null)).toEqual(NO_GROUPS)
+    expect(groupsRecordOf("x")).toEqual(NO_GROUPS)
+    expect(groupsRecordOf({ group: null, grouped: 3 })).toEqual(NO_GROUPS)
+  })
+
+  it("holds no account and no table: only the fields the screens draw", () => {
+    const keys = new Set(groupsRecordOf(answer({ group: { members: [{ ...member("Ann", 1, { you: true }), user_id: "someone", code: "ABC123" }, member("Bob", 2)] } })).group?.members.flatMap((one) => Object.keys(one)))
+    expect([...keys].sort()).toEqual(["avatarUrl", "game", "leader", "nickname", "online", "phase", "tag", "you"])
+  })
+})
+
+describe("stateOf", () => {
+  const NAMES = new Map([["courtisans", "Courtisans"], ["hanabi", "Hanabi"]])
+  const bob = { nickname: "Bob", tag: 42, avatarUrl: null, online: true, game: "courtisans", phase: "playing" as const }
+  const cat = { nickname: "Cat", tag: 7, avatarUrl: null, online: false, game: null, phase: null }
+  const dan = { nickname: "Dan", tag: 1, avatarUrl: null, online: true, game: null, phase: null }
+  const member = (nickname: string, tag: number, over: Record<string, unknown> = {}) => ({ nickname, tag, avatarUrl: null, leader: false, you: false, online: true, game: null, phase: null, ...over })
+  const record = (over: Record<string, unknown> = {}) => ({ ...EMPTY_SOCIAL, friends: [bob, cat, dan], ...over })
+
+  it("names the game of each friend, and drops the one the hub has no name for", () => {
+    const state = stateOf(record({ friends: [bob, { ...bob, nickname: "Eve", game: "unknown" }] }) as never, NAMES)
+    expect(state.friends.map((friend) => [friend.nickname, friend.game?.name ?? null, friend.phase])).toEqual([["Bob", "Courtisans", "playing"], ["Eve", null, null]])
+  })
+
+  it("says for each friend whether they are in the member's own group, in another one or in none, and what waits for them", () => {
+    const state = stateOf(
+      record({
+        groups: { group: { members: [member("Ann", 9, { leader: true, you: true }), member("Bob", 42)] }, grouped: [{ nickname: "Bob", tag: 42, avatarUrl: null }, { nickname: "CAT", tag: 7, avatarUrl: null }], invited: [{ nickname: "Dan", tag: 1, avatarUrl: null }], requested: [{ nickname: "cat", tag: 7, avatarUrl: null }] },
+      }) as never,
+      NAMES,
+    )
+    expect(state.friends.map((friend) => [friend.nickname, friend.group, friend.pending])).toEqual([["Bob", "yours", null], ["Cat", "other", "requested"], ["Dan", "none", "invited"]])
+  })
+
+  it("says the same of every friend when the member is in no group: only the others' groups", () => {
+    const state = stateOf(record({ groups: { group: null, grouped: [{ nickname: "Bob", tag: 42, avatarUrl: null }], invited: [], requested: [] } }) as never, NAMES)
+    expect(state.friends.map((friend) => friend.group)).toEqual(["other", "none", "none"])
+    expect(state.group).toBeNull()
+  })
+
+  it("names the game of the members of the group, and none the hub has no name for", () => {
+    const state = stateOf(
+      record({ groups: { group: { members: [member("Ann", 9, { you: true, leader: true, game: "hanabi", phase: "lobby" }), member("Bob", 42, { game: "gone", phase: "playing" })] }, grouped: [], invited: [], requested: [] } }) as never,
+      NAMES,
+    )
+    expect(state.group?.members.map((one) => [one.nickname, one.game?.name ?? null, one.phase])).toEqual([["Ann", "Hanabi", "lobby"], ["Bob", null, null]])
+  })
+
+  it("tells each kind of invitation: a table with its game by name, the others with none, and leaves out a table the hub has no name for", () => {
+    const base = { from: { nickname: "Bob", tag: 42, avatarUrl: null }, at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }
+    const ID = (n: number) => `00000000-0000-4000-8000-00000000000${n}`
+    const state = stateOf(
+      record({
+        invitations: [
+          { ...base, id: ID(1), kind: "table", game: "hanabi" },
+          { ...base, id: ID(2), kind: "table", game: "gone" },
+          { ...base, id: ID(3), kind: "group", game: null },
+          { ...base, id: ID(4), kind: "join", game: null },
+        ],
+      }) as never,
+      NAMES,
+    )
+    expect(state.invitations.map((entry) => [entry.kind, entry.kind === "table" ? entry.game.name : null])).toEqual([["table", "Hanabi"], ["group", null], ["join", null]])
+    expect(JSON.stringify(state)).not.toContain("code")
   })
 })

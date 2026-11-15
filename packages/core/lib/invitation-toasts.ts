@@ -1,7 +1,7 @@
 import type { InvitationEntry } from "./invitations"
 
 /**
- * When a toast tells a member that an invitation to a table came in (PLT-109). The browser reads the social state every 20 s (`social-sync.ts`), and a toast is for what is new since the last read of this tab: the first read of a tab tells nothing (what waits is
+ * When a toast tells a member that an invitation came in (PLT-109 to a table, PLT-23 to a group and requests to join one). The browser reads the social state every 20 s (`social-sync.ts`), and a toast is for what is new since the last read of this tab: the first read of a tab tells nothing (what waits is
  * counted on the picture of the panel and shown by its card), and an invitation is never told twice, whatever the reads that follow say. The same rules as the friend requests' (`friend-toasts.ts`), kept in the same shape: pure, so that the page and the tests read
  * the invitations the same way; the tab keeps an `InvitationWatch` and gives it back with each read, and nothing is stored anywhere.
  */
@@ -20,8 +20,8 @@ export type InvitationWatch = {
 /** Nothing read yet: a new tab, or a tab that now shows another account. */
 export const NO_INVITATION_WATCH: InvitationWatch = { seen: null, waiting: new Set() }
 
-/** The id of the toast of an invitation: one toast for each, so that a toast raised again is the same one. */
-export const invitationToastId = (id: string): string => `table-invitation:${id}`
+/** The id of the toast of an invitation (to a table, to a group, a request to join one): one toast for each, so that a toast raised again is the same one. */
+export const invitationToastId = (id: string): string => `invitation:${id}`
 
 export type InvitationNews = {
   /** The invitations to tell one by one, the oldest first, so that the newest is the one in front. */
