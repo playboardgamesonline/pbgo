@@ -20,7 +20,7 @@ export type Quad = readonly Ground[]
  */
 export const PLATFORM_HUD = {
   ticker: { left: 24, top: 20, width: 320, height: 300 },
-  column: { right: 24, width: 256, top: 108, row: 40, padding: 27 },
+  column: { right: 24, width: 240, top: 108, row: 40, padding: 27 },
   /** The air kept round those boxes, and round the window */
   gap: 12,
 }

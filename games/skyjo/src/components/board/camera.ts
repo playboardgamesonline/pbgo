@@ -23,7 +23,7 @@ export type Rect = { left: number; top: number; right: number; bottom: number }
  */
 export const HUD = {
   ticker: { left: 24, top: 20, width: 320, height: 300 },
-  column: { right: 24, width: 256, top: 108, row: 40, padding: 27 },
+  column: { right: 24, width: 240, top: 108, row: 40, padding: 27 },
   /** The message box at the bottom right (the chat), 352 px wide and 44 high, 20 px above the bottom edge: the plate of the viewer's seat, at the foot of the table, must not run under it */
   chat: { right: 24, width: 352, bottom: 20, height: 44 },
   gap: 12,
