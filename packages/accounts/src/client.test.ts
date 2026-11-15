@@ -216,9 +216,9 @@ describe("signUpWithPassword", () => {
     const auth = stubClient()
     const { signUpWithPassword } = await client()
     await signUpWithPassword({ ...entry, next: "https://evil.example/phish" })
-    expect(auth.signUp.mock.calls[0]?.[0]).toMatchObject({ options: { emailRedirectTo: "https://pbgo.test/me" } })
+    expect(auth.signUp.mock.calls[0]?.[0]).toMatchObject({ options: { emailRedirectTo: "https://pbgo.test/me/profile" } })
     await signUpWithPassword({ ...entry, next: "/signup" })
-    expect(auth.signUp.mock.calls[1]?.[0]).toMatchObject({ options: { emailRedirectTo: "https://pbgo.test/me" } })
+    expect(auth.signUp.mock.calls[1]?.[0]).toMatchObject({ options: { emailRedirectTo: "https://pbgo.test/me/profile" } })
   })
 
   it("signs nobody in and writes no cookie: the account waits for its code", async () => {

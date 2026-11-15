@@ -49,8 +49,8 @@ describe("confirmNext", () => {
   })
 
   it("goes to the visitor's own page when the link says nothing", () => {
-    expect(confirmNext(null, ORIGIN)).toBe("/me")
-    expect(confirmNext("", ORIGIN)).toBe("/me")
+    expect(confirmNext(null, ORIGIN)).toBe("/me/profile")
+    expect(confirmNext("", ORIGIN)).toBe("/me/profile")
   })
 
   it("takes the path of an address of this site, which is what the e-mail writes with {{ .RedirectTo }}", () => {
@@ -75,7 +75,7 @@ describe("confirmNext", () => {
     "https://[not a host]/",
     "evil.example",
   ])("sends nobody anywhere else, signed in (%j)", (value) => {
-    expect(confirmNext(value, ORIGIN)).toBe("/me")
+    expect(confirmNext(value, ORIGIN)).toBe("/me/profile")
   })
 
   it("keeps a path on this site even when the address has a login in front of its host, which is still this host", () => {
@@ -84,7 +84,7 @@ describe("confirmNext", () => {
 
   it("does not go back to the sign-in's own way, or to the sign-up's", () => {
     for (const value of ["/login", "/signup", "/signup?error=confirm", "/auth/confirm?token_hash=x", `${ORIGIN}/signup`, `${ORIGIN}/login?next=/me`]) {
-      expect(confirmNext(value, ORIGIN), value).toBe("/me")
+      expect(confirmNext(value, ORIGIN), value).toBe("/me/profile")
     }
   })
 })

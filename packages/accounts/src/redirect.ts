@@ -1,9 +1,9 @@
-// Where a sign-in goes back to. The page that asked for it puts its own path in the link (`/login?next=/me/games`), and the callback of the provider
+// Where a sign-in goes back to. The page that asked for it puts its own path in the link (`/login?next=/me/career`), and the callback of the provider
 // brings it back: it is a value anyone can write into a link, so it is a path of this site or it is nothing (an open redirect would make the
 // sign-in page a way to send a visitor, signed in, anywhere). Pure, so that the login page, the callback and the tests all read it the same way.
 
-/** Where a visitor lands when nothing says where they came from: their own page. */
-export const AFTER_SIGN_IN = "/me"
+/** Where a visitor lands when nothing says where they came from: their own page, their profile. */
+export const AFTER_SIGN_IN = "/me/profile"
 
 /** The paths that are the way in and out themselves: going back to one of them would loop. */
 const SIGN_IN_PATHS = ["/login", "/signup", "/logout", "/auth"]

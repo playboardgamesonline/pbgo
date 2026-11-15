@@ -43,7 +43,7 @@ export function SettingsModal({ nickname, tag, avatarUrl, over, children }: { ni
       >
         <DialogTitle className="sr-only">Settings</DialogTitle>
         <aside className="flex min-h-0 shrink-0 flex-col gap-3 border-b bg-card/50 p-3 md:w-72 md:gap-4 md:border-r md:border-b-0 md:p-5">
-          <Link href="/me" className="flex min-w-0 items-center gap-3 rounded-xl p-2 outline-none max-md:mr-12 transition-colors duration-fast hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30">
+          <Link href="/me/profile" className="flex min-w-0 items-center gap-3 rounded-xl p-2 outline-none max-md:mr-12 transition-colors duration-fast hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30">
             <Avatar size="lg">
               {avatarUrl && <AvatarImage src={avatarUrl} alt="" referrerPolicy="no-referrer" />}
               <AvatarFallback>{initialsOf(nickname)}</AvatarFallback>

@@ -8,14 +8,14 @@ import { ownProfileHead } from "@/lib/profile-data"
 const RECENT_GAMES = 3
 
 /**
- * The member's own profile. It uses the same parts as a public profile (`ProfileSections`) but shows everything, hidden or not. It lists the last three games and links to the whole history (`/me/games`). The games are the recorded ones (PLT-13).
+ * The member's own profile. It uses the same parts as a public profile (`ProfileSections`) but shows everything, hidden or not. It lists the last three games and links to the whole history (`/me/career`). The games are the recorded ones (PLT-13).
  */
 export default async function ProfilePage() {
-  const account = await requireAccount("/me")
+  const account = await requireAccount("/me/profile")
   const [head, games] = await Promise.all([ownProfileHead(account), memberGames(account, RECENT_GAMES)])
   return (
     <>
-      <ProfileSections games={games} own hideHistory={head.hideHistory} recent={RECENT_GAMES} allGamesHref="/me/games" timeFormat={account.preferences.timeFormat} />
+      <ProfileSections games={games} own hideHistory={head.hideHistory} recent={RECENT_GAMES} allGamesHref="/me/career" timeFormat={account.preferences.timeFormat} />
       <ProfileViewed own hidden={head.hideHistory} from="account" />
     </>
   )

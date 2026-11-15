@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ordinal, perGame, playedGameOf, statsFrom, statsOf, type FinishedGame, type PlayedGame } from "./games"
+import { figuresOf, ordinal, perGame, playedGameOf, statsFrom, statsOf, type FinishedGame, type PlayedGame } from "./games"
 
 const game = (id: string, slug: string, name: string, state: PlayedGame["state"], result?: PlayedGame["result"]): PlayedGame => ({
   id,
@@ -180,14 +180,48 @@ describe("perGame", () => {
       game("5", "love-letter", "Love Letter", "in-progress"),
     ]
     expect(perGame(games)).toEqual([
-      { slug: "courtisans", name: "Courtisans", played: 2, wins: 1 },
-      { slug: "hanabi", name: "Hanabi", played: 1, wins: 1 },
-      { slug: "skyjo", name: "Skyjo", played: 1, wins: 0 },
+      { slug: "courtisans", name: "Courtisans", played: 2, wins: 1, rated: 0, seconds: 0 },
+      { slug: "hanabi", name: "Hanabi", played: 1, wins: 1, rated: 0, seconds: 0 },
+      { slug: "skyjo", name: "Skyjo", played: 1, wins: 0, rated: 0, seconds: 0 },
+    ])
+  })
+
+  it("counts the games that counted for the rank and adds up how long the games lasted, a game with no duration adding none", () => {
+    const games = [
+      { ...game("1", "courtisans", "Courtisans", "finished", "won"), ranked: true, durationSeconds: 1680 },
+      { ...game("2", "courtisans", "Courtisans", "finished", "lost"), ranked: false, durationSeconds: 540 },
+      { ...game("3", "courtisans", "Courtisans", "finished", "lost"), ranked: true },
+      { ...game("4", "hanabi", "Hanabi", "finished", "won"), durationSeconds: 1320 },
+    ]
+    expect(perGame(games)).toEqual([
+      { slug: "courtisans", name: "Courtisans", played: 3, wins: 1, rated: 2, seconds: 2220 },
+      { slug: "hanabi", name: "Hanabi", played: 1, wins: 1, rated: 0, seconds: 1320 },
     ])
   })
 
   it("is empty with no game that is over", () => {
     expect(perGame([])).toEqual([])
+  })
+})
+
+describe("figuresOf", () => {
+  const rows = [
+    { slug: "courtisans", name: "Courtisans", played: 12, wins: 6, rated: 8, seconds: 7200 },
+    { slug: "hanabi", name: "Hanabi", played: 3, wins: 2, rated: 0, seconds: 3600 },
+    { slug: "skyjo", name: "Skyjo", played: 5, wins: 0 },
+  ]
+
+  it("adds up every game's figures and gives the share of games won in whole percent", () => {
+    expect(figuresOf(rows)).toEqual({ played: 20, wins: 8, rated: 8, seconds: 10800, winRate: 40 })
+  })
+
+  it("is one game's figures for a list of one, a game that does not say its rated games or its time adding none", () => {
+    expect(figuresOf([rows[0]!])).toEqual({ played: 12, wins: 6, rated: 8, seconds: 7200, winRate: 50 })
+    expect(figuresOf([rows[2]!])).toEqual({ played: 5, wins: 0, rated: 0, seconds: 0, winRate: 0 })
+  })
+
+  it("has no share of games won before any game", () => {
+    expect(figuresOf([])).toEqual({ played: 0, wins: 0, rated: 0, seconds: 0, winRate: null })
   })
 })
 

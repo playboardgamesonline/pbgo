@@ -66,6 +66,9 @@ const nextConfig: NextConfig = {
       // The settings open on their first section, and the Profile section was folded into Account. These are redirects of the server and not of a page: the settings are a window, which a page that redirects while it is drawn would leave open under the next one
       { source: "/me/settings", destination: "/me/settings/account", permanent: false },
       { source: "/me/settings/profile", destination: "/me/settings/account", permanent: true },
+      // The member's own pages: the profile is at /me/profile, and the games they finished became their career. `/me` stays a temporary redirect, since it is the address of the whole account area
+      { source: "/me", destination: "/me/profile", permanent: false },
+      { source: "/me/games", destination: "/me/career", permanent: true },
     ]
   },
   async rewrites() {

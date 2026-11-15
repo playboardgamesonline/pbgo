@@ -23,7 +23,7 @@ export const metadata: Metadata = { title: "Player profile", robots: { index: fa
 const RECENT_GAMES = 10
 
 /**
- * A member's public profile (PLT-39, PLT-111). Anybody can open it. It uses the same parts as `/me` (`ProfileHeader`, `ProfileSections`). Another visitor sees no games when the member hides them. An address that no member goes by is the hub's 404. `?from=` is for analytics.
+ * A member's public profile (PLT-39, PLT-111). Anybody can open it. It uses the same parts as `/me/profile` (`ProfileHeader`, `ProfileSections`). Another visitor sees no games when the member hides them. An address that no member goes by is the hub's 404. `?from=` is for analytics.
  * The head has the button that makes friends (PLT-23): for a visitor who is not signed in, Add friend leads to the sign-in and back here; for a member, `AddFriendButton`, which says whether they are friends, a request waits, or the other member had asked first. The member's own profile has Edit profile, which opens the window that edits it.
  */
 export default async function PlayerPage({ params, searchParams }: { params: Promise<{ handle: string }>; searchParams: Promise<{ from?: string | string[] }> }) {

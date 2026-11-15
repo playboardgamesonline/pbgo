@@ -52,7 +52,7 @@ type Saved = { nickname: string; tag: number } & ProfileDetails
 const sameCity = (a: ProfileCity | null, b: ProfileCity | null): boolean => a?.name === b?.name && a?.country === b?.country
 
 /**
- * The Edit profile window of a member's own profile (`/me` and their public page): their username and tag, their pronouns (a list), their country (searched in a list), their city (searched at Geoapify, never typed: `CityField`), up to five favourite games of the catalog (with their covers) and a short bio. One Save sends
+ * The Edit profile window of a member's own profile (`/me/profile` and their public page): their username and tag, their pronouns (a list), their country (searched in a list), their city (searched at Geoapify, never typed: `CityField`), up to five favourite games of the catalog (with their covers) and a short bio. One Save sends
  * what changed, and only that, to `POST /api/hub/profile`, which keeps it whole or not at all: the pair that somebody else has is told in place and nothing else is changed. The window closes on Save and the page behind it is drawn again (on the public page, the new
  * address when the pair changed). The account keeps a copy of the username for the navbar (`saveNickname`). The picture is the provider's and is not edited here. `address` says which page the member is on.
  */

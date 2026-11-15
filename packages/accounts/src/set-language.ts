@@ -1,5 +1,5 @@
 // The browser's side of the visitor's language that must stay light, because the games' pages load it: the one setter (`setLanguage`), used by the language pickers of the
-// games and by the Language row of `/me`. It holds no Supabase code: the account is reached through `./client`, which is imported only for a visitor who holds a session,
+// games and by the Language section of the settings. It holds no Supabase code: the account is reached through `./client`, which is imported only for a visitor who holds a session,
 // so a guest never loads the auth client to change a language (docs/accounts.md). The sync of a signed-in visitor's device is `./language-sync`, the hub's.
 
 import { hasSessionCookie, languageCookie, type PlatformLanguage } from "./language"
