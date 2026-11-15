@@ -1,7 +1,7 @@
 import type { PlayerResult, Results } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
 import type { CoreView } from "./binding"
-import { endingOf, ordinal, placesOf, pointsLine, rankedResults, scoredOf, scoreText, sectionMotion, signed, summaryOf, winnerAnnouncement } from "./game-over"
+import { activityOf, barsOf, endingOf, ordinal, placesOf, pointsLine, rankedResults, rewardsMotion, scoredOf, scoreText, sectionMotion, signed, summaryOf, winnerAnnouncement } from "./game-over"
 import type { PublicGame } from "./game-types"
 import { REDUCED_FADE } from "./motion-preference"
 import { DEFAULT_SKIN } from "./skin"
@@ -244,5 +244,68 @@ describe("sectionMotion", () => {
       const m = sectionMotion(motion)
       expect(m.exit).toEqual(m.initial)
     }
+  })
+})
+
+describe("activityOf", () => {
+  const turn = (playerId: string, moves: number) => ({ playerId, entries: Array.from({ length: moves }, (_, i) => i) })
+
+  it("counts the turns each player took and the moves they made in them", () => {
+    // The history is the board's, the newest turn first: the order does not change the count
+    const history = [turn("a", 1), turn("c", 1), turn("b", 2), turn("a", 3)]
+    expect(activityOf(history, ["a", "b", "c"])).toEqual([
+      { playerId: "a", turns: 2, moves: 4 },
+      { playerId: "b", turns: 1, moves: 2 },
+      { playerId: "c", turns: 1, moves: 1 },
+    ])
+  })
+
+  it("keeps the order it is given the players in, and gives one the history never names no turn", () => {
+    expect(activityOf([turn("b", 2)], ["c", "b", "a"])).toEqual([
+      { playerId: "c", turns: 0, moves: 0 },
+      { playerId: "b", turns: 1, moves: 2 },
+      { playerId: "a", turns: 0, moves: 0 },
+    ])
+  })
+
+  it("leaves out a turn that is nobody's of the table", () => {
+    expect(activityOf([turn("ghost", 5)], ["a"])).toEqual([{ playerId: "a", turns: 0, moves: 0 }])
+  })
+
+  it("is empty for a table with no players", () => {
+    expect(activityOf([turn("a", 1)], [])).toEqual([])
+  })
+})
+
+describe("barsOf", () => {
+  it("gives the highest value the whole bar and the others their share of it", () => {
+    expect(barsOf([10, 5, 0])).toEqual([100, 50, 0])
+  })
+
+  it("starts a chart from the lowest value when one is below zero, with a bar that can still be seen for it", () => {
+    expect(barsOf([-3, -14])).toEqual([100, 4])
+    expect(barsOf([6, -2, 0])).toEqual([100, 4, 25])
+  })
+
+  it("never lets a value that is not zero shrink out of sight", () => {
+    expect(barsOf([200, 1])).toEqual([100, 4])
+  })
+
+  it("has no bar to compare when everybody has the same value", () => {
+    expect(barsOf([0, 0, 0])).toEqual([0, 0, 0])
+    expect(barsOf([])).toEqual([])
+  })
+})
+
+describe("rewardsMotion", () => {
+  it("opens the row and fades it in, and closes it the way it opened", () => {
+    const m = rewardsMotion("calm")
+    expect(m.initial).toEqual({ opacity: 0, height: 0 })
+    expect(m.animate).toEqual({ opacity: 1, height: "auto" })
+    expect(m.exit).toEqual(m.initial)
+  })
+
+  it("is quick under reduced motion", () => {
+    expect(rewardsMotion("reduced").transition.duration).toBeLessThanOrEqual(REDUCED_FADE)
   })
 })

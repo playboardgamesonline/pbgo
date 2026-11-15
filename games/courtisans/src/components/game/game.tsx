@@ -383,7 +383,7 @@ function Board({
                     {catalog.words.skip}
                   </button>
                 )}
-                {ending?.scoreboard && <GameOver onUpdate={onUpdate} renderDetail={renderFamilyCards} />}
+                {ending?.scoreboard && <GameOver onUpdate={onUpdate} renderDetail={renderFamilyCards} history={history} sentences />}
               </>
             }
           >

@@ -27,6 +27,8 @@
 @source "../../../../packages/core/components/game/players-strip-view.tsx";
 @source "../../../../packages/core/components/game/announcement-view.tsx";
 @source "../../../../packages/core/components/game/game-over-card.tsx";
+@source "../../../../packages/core/components/game/game-over-panels.tsx";
+@source "../../../../packages/core/components/game/game-over-parts.tsx";
 @source "../../../../packages/core/components/home/screen.tsx";
 @source "../../../../packages/core/components/game/prompt-host.tsx";
 /* The page of markdown of /docs is drawn in its own package (`@pbgo/docs/markdown`), which Tailwind does not scan */
