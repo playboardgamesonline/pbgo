@@ -4,8 +4,8 @@ import type { Face, PlayerView, PublicCell, PublicSeat } from "@skyjo/engine"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import { shortName } from "@pbgo/core/lib/short-name"
-import { FloorButton, grainTexture, onTable, Pile, PlayerSeat, type Pose, Table, TableText, useSettings, Zone, type ZoneCard } from "@pbgo/table"
-import { useDeferredValue, useEffect, useMemo, useState } from "react"
+import { FloorButton, onTable, Pile, PlayerSeat, type Pose, Table, TableText, useSettings, Zone, type ZoneCard } from "@pbgo/table"
+import { useDeferredValue, useMemo, useState } from "react"
 import { AdditiveBlending } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
 import { FLOOR_TONES } from "../../lib/floor-tones"
@@ -14,24 +14,20 @@ import { cameraFor, PHOTO } from "./camera"
 import { GLOWS } from "./glows"
 import { cellPlace, cellPose, cellZone, fitPrompt, floorPlan, type Grid, grids, LAYOUT_FIELDS, LAYOUT_SETTINGS, pilePlaces, plateAt, seatSpots } from "./layout"
 import { cardKey, cellKey, type Entrance, HELD_KEY, type Origin, PACE_FIELDS, PACE_SETTINGS } from "./pacing"
-import { CARD_SIZE, matTexture, useFaces } from "./textures"
+import { CARD_SIZE, feltTexture, matTexture, useFaces } from "./textures"
 import { useViewport } from "./viewport"
 
 /** The pool of light of the mat: how far across it spreads, in world units. Past it the table is the plain colour it fades into. */
 const MAT_SIZE = 44
 
-/** How many world units one repeat of the table's grain covers */
-const GRAIN_TILE = 2
+/** How many world units one repeat of the felt covers: nine mosaic cells across, so a cell is about half a world unit, a bit more than a card's width */
+const FELT_TILE = 5
 
 /** The most cards under the top of the discard that are drawn: a deeper pile looks no different */
 const DISCARD_DEPTH = 8
 
-/** The felt of the table: a grain painted in code (`grainTexture` of the kit, a 256-pixel tile) in the edge colour of the table, strong enough to be seen up close and quiet from the camera's distance, so that cards and plates keep their contrast */
-function useGrain(base: string) {
-  const grain = useMemo(() => grainTexture({ base, strength: 0.3 }), [base])
-  useEffect(() => () => grain.dispose(), [grain])
-  return grain
-}
+/** The felt of the table: a cracked-glass mosaic painted in code (`feltTexture`), in the edge colour of the table, low in contrast so that cards and plates keep theirs */
+const useFelt = (base: string) => useMemo(() => feltTexture(base), [base])
 
 /** The pool of light the cards lie on: `surface` of the game's settings in the middle, falling away to `surfaceDark`, which is the colour of the endless table around it. It is added to the felt (additive blending), not laid over it, so the grain shows through it and it has no edge. */
 function Mat({ inner, outer }: { inner: string; outer: string }) {
@@ -80,12 +76,12 @@ export type SceneProps = {
 const lastTurnOf = (lastTurn: PublicSeat["lastTurn"], words: Vocabulary) => (lastTurn === "ender" ? words.ended : lastTurn === "pending" ? words.lastTurn : undefined)
 
 /** A sentence written flat on the table, in the room above the piles: broken into lines that fit it, the lines centred in the room */
-function Prompt({ text, plan, color }: { text: string; plan: { x: number; z: number; width: number; depth: number }; color: string }) {
+function Prompt({ text, plan, color, outline }: { text: string; plan: { x: number; z: number; width: number; depth: number }; color: string; outline: string }) {
   const { lines, height, step } = fitPrompt(text, plan.width, plan.depth)
   return (
     <>
       {lines.map((line, i) => (
-        <TableText key={i} text={line} style={{ color, weight: 800, shadow: "rgba(0,0,0,0.6)|10|3" }} height={height} position={[plan.x, 0.02, plan.z + (i - (lines.length - 1) / 2) * step]} />
+        <TableText key={i} text={line} style={{ color, outline, weight: 900 }} height={height} position={[plan.x, 0.02, plan.z + (i - (lines.length - 1) / 2) * step]} />
       ))}
     </>
   )
@@ -239,7 +235,7 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
         const roundScore = view.rounds.at(-1)?.[mine]
         // the points of the round just counted, doubled when the count is not what the cards show (the ender's penalty)
         const doubled = roundScore !== undefined && roundScore !== player.score
-        const status = roundOver && roundScore !== undefined ? fill(doubled ? words.roundPointsDoubled : words.roundPoints, { points: roundScore }) : lastTurnOf(seat.lastTurn, words)
+        const status = roundOver && roundScore !== undefined ? fill(doubled ? words.roundPointsDoubled : words.roundPoints, { points: roundScore > 0 ? `+${roundScore}` : roundScore }) : lastTurnOf(seat.lastTurn, words)
         const cells = player.cells.flatMap((cell, position) => (cell === null ? [] : [{ cell, position }]))
         return (
           <group key={player.id}>
@@ -309,7 +305,7 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
       <Zone frame={{ x: handAt.x, z: handAt.z }} layout={[onTable(0, 0, { y: 0.2, face: inHand?.card ? "up" : "down", scale: R.heldScale })]} size={CARD_SIZE} cards={handCard} />
 
       {/* The instruction of the moment, written flat on the table above the piles */}
-      {prompt && !held && <Prompt text={prompt} plan={plan.prompt} color={theme.accent} />}
+      {prompt && !held && <Prompt text={prompt} plan={plan.prompt} color={theme.foreground} outline={theme.surfaceDark} />}
 
       {/* The viewer's choice: Draw under the pile, Take under the discard; after a draw, Throw away under the discard. The cells of the grid are the other half of the choice */}
       {viewerChooses && (
@@ -335,9 +331,9 @@ export function Scene(props: SceneProps) {
   const seated = props.view.me !== null
   const camera = useMemo(() => cameraFor(players, viewport, seated), [players, viewport, seated])
   // The endless table beyond the mat is the same felt, in the edge colour, and fades into it with distance
-  const felt = useGrain(theme.surfaceDark)
+  const felt = useFelt(theme.surfaceDark)
   return (
-    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, map: felt, tile: GRAIN_TILE }} held={props.held} onLoaded={props.onLoaded}>
+    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, map: felt, tile: FELT_TILE }} held={props.held} onLoaded={props.onLoaded}>
       <Mat inner={theme.surface} outer={theme.surfaceDark} />
       <World {...props} />
     </Table>
