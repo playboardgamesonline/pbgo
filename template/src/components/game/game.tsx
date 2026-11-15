@@ -224,7 +224,7 @@ function Table({ onUpdate, onLeave, held = false, onLoaded, deadlineAt = null }:
           {announcement}
           <BidPanel sending={sending} onBid={bid} />
           <StalledTurn onUpdate={onUpdate} />
-          {ended && !current && <GameOver onUpdate={onUpdate} />}
+          {ended && !current && <GameOver onUpdate={onUpdate} history={history} />}
           <DebugSlot />
         </>
       }

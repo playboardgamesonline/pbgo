@@ -124,6 +124,39 @@ export function winnerAnnouncement(
   return { phrase, detail: `${names} · ${pointsText(winners[0]?.total ?? 0)}`, winners: winners.map((v) => v.playerId), kind: "victory" }
 }
 
+/** What a player did in a finished game: the turns they took and the moves they made in them. */
+export type Activity = { playerId: string; turns: number; moves: number }
+
+/** A turn of the history of a game as far as the counting goes: whose it was and what they did in it (`HistoryTurn` of the ticker). */
+type CountedTurn = { playerId: string; entries: readonly unknown[] }
+
+/**
+ * What each player did, counted from the history of the game that the board gives its ticker (`groupTurns`): the turns they took and the moves they made in them, so the numbers of the end screen are the ones its history lists. In the order of
+ * `playerIds`; a player the history never names has none.
+ */
+export function activityOf(history: readonly CountedTurn[], playerIds: readonly string[]): Activity[] {
+  const counts = new Map<string, Activity>(playerIds.map((playerId) => [playerId, { playerId, turns: 0, moves: 0 }]))
+  for (const turn of history) {
+    const activity = counts.get(turn.playerId)
+    if (!activity) continue
+    activity.turns += 1
+    activity.moves += turn.entries.length
+  }
+  return [...counts.values()]
+}
+
+/**
+ * How long each value is as a bar of a chart, in percent: from nothing to the highest, or, when a value is below zero (a game whose scores can fall under it), from the lowest to the highest. A value other than zero always has a bar the eye can see,
+ * and a chart where there is nothing to compare (every value zero, or all the same below zero) has none.
+ */
+export function barsOf(values: readonly number[]): number[] {
+  if (values.length === 0) return []
+  const lowest = Math.min(0, ...values)
+  const span = Math.max(...values) - lowest
+  if (span === 0) return values.map(() => 0)
+  return values.map((value) => (value === lowest && lowest < 0 ? 4 : Math.max(value === 0 ? 0 : 4, Math.round(((value - lowest) / span) * 100))))
+}
+
 /** A score as the end screen writes it: "1 pt", "9 pts", "-3 pts". */
 export const scoreText = (points: number): string => `${points} ${Math.abs(points) === 1 ? "pt" : "pts"}`
 
@@ -132,6 +165,15 @@ export const pointsLine = (points: number, format: (points: number) => string) =
 
 /** A number with its "+" when it is a gain, for the score chips: "+3", "0", "-2" */
 export const signed = (n: number) => pointsLine(n, String)
+
+/**
+ * How the rewards (the rank points and the experience) come in under the title once the game is written down: the row opens and fades in, so the card grows without a jump; with reduced motion it only fades. They are known a moment after the card
+ * is on the screen, which is why they are animated in rather than reserved.
+ */
+export function rewardsMotion(motion: Motion) {
+  const closed = { opacity: 0, height: 0 }
+  return { initial: closed, animate: { opacity: 1, height: "auto" }, exit: closed, transition: { duration: fade(motion, 0.35), ease: EASE_STANDARD } }
+}
 
 /**
  * How the end screen comes in and goes out as a whole: a spring that settles with lively motion, a short slide with calm motion, a

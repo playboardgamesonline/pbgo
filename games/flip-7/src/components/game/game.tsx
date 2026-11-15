@@ -212,7 +212,7 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
         <>
           {announcement}
           <StalledTurn onUpdate={onUpdate} />
-          {ended && !current && !busy && <GameOver onUpdate={onUpdate} />}
+          {ended && !current && !busy && <GameOver onUpdate={onUpdate} history={history} />}
           <DebugSlot />
         </>
       }

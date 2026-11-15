@@ -20,6 +20,7 @@ import { HostIcon } from "./host-icon"
 import { SharePreview } from "./preview-sharing"
 import { useSeatTheme } from "./seat-label"
 import { generateShareImage, type ShareRow } from "./sharing"
+import type { HistoryTurn } from "./ticker"
 import { useRankChange } from "./use-rank-change"
 import { useRematchToasts } from "./use-rematch-toasts"
 
@@ -31,8 +32,9 @@ export { winnerAnnouncement } from "../../lib/game-over"
  * the visitor, and has the two buttons that go on from it. "Continue" leaves the finished table and goes on to the platform (`useContinue`: `GameClient` owns where). "Rematch" votes for another game at the same table (`POST …/replay`) and says how many of the
  * players still there agreed; when somebody else asks first, a toast of the game has the button that agrees (`useRematchToasts`). A member of a table that counted for the rank sees the rank points the game gave or took (`useRankChange`). The share thumbnail is the share button's, drawn in the background.
  * `renderDetail`: the game's own rendering of a player's score breakdown (default: `label +n` chips). The table that lost together has no winner: the card says "Defeat".
+ * `history`: the history of the game as the board gives its ticker (`groupTurns`); with it the card has its Stats and History tabs, and without it only the table of the scores.
  */
-export function GameOver({ onUpdate, renderDetail }: { onUpdate: (p: PublicGame) => void; renderDetail?: ResultDetailRenderer }) {
+export function GameOver({ onUpdate, renderDetail, history }: { onUpdate: (p: PublicGame) => void; renderDetail?: ResultDetailRenderer; history?: readonly HistoryTurn[] }) {
   const t = useText()
   const { GAME, SLUG, UI_THEME } = useBinding()
   const api = useApi()
@@ -119,6 +121,7 @@ export function GameOver({ onUpdate, renderDetail }: { onUpdate: (p: PublicGame)
           together={results.coop}
           meId={game.meId}
           rank={rank}
+          history={history}
           rematch={rematch}
           voting={voting}
           onRematch={() => void vote()}
