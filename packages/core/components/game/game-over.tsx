@@ -34,7 +34,7 @@ export { winnerAnnouncement } from "../../lib/game-over"
  * `renderDetail`: the game's own rendering of a player's score breakdown (default: `label +n` chips). The table that lost together has no winner: the card says "Defeat".
  * `history`: the history of the game as the board gives its ticker (`groupTurns`); with it the card has its Stats and History tabs, and without it only the table of the scores.
  */
-export function GameOver({ onUpdate, renderDetail, history }: { onUpdate: (p: PublicGame) => void; renderDetail?: ResultDetailRenderer; history?: readonly HistoryTurn[] }) {
+export function GameOver({ onUpdate, renderDetail, history, sentences }: { onUpdate: (p: PublicGame) => void; renderDetail?: ResultDetailRenderer; history?: readonly HistoryTurn[]; sentences?: boolean }) {
   const t = useText()
   const { GAME, SLUG, UI_THEME } = useBinding()
   const api = useApi()
@@ -122,6 +122,7 @@ export function GameOver({ onUpdate, renderDetail, history }: { onUpdate: (p: Pu
           meId={game.meId}
           rank={rank}
           history={history}
+          sentences={sentences}
           rematch={rematch}
           voting={voting}
           onRematch={() => void vote()}

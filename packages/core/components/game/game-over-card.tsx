@@ -30,7 +30,7 @@ export type { PodiumPlace, ResultDetailRenderer } from "./game-over-parts"
 const REWARD = "inline-flex h-8 items-center gap-2 rounded-lg border border-current/15 bg-current/10 px-3 font-display text-sm font-bold tabular-nums"
 
 /** The height of the steps, which touch each other: the first place is the highest, and each step after it is lower. */
-const STEP_HEIGHTS = ["min-h-[4.5rem]", "min-h-14", "min-h-12"] as const
+const STEP_HEIGHTS = ["min-h-24", "min-h-[4.75rem]", "min-h-[3.75rem]"] as const
 /**
  * How the steps stand for one, two or three places. The first place is in the middle of three; at two the steps share the whole width, the second on the left of the first; a single place takes it all. The classes are written out for the stylesheet to find them.
  */
@@ -87,7 +87,7 @@ function Podium({ places, ...rest }: Omit<PlaceProps, "place"> & { places: Podiu
   const count = steps.length as 1 | 2 | 3
   if (steps.length === 0) return null
   return (
-    <ol aria-label="Podium" className={cn("grid shrink-0 items-end short:hidden", LAYOUT[count].grid)}>
+    <ol aria-label="Podium" className={cn("mx-auto grid w-full max-w-md shrink-0 items-end border-b border-current/20 short:hidden", LAYOUT[count].grid)}>
       {steps.map((place, index) => (
         <Step key={place.rank} place={place} index={index} count={count} {...rest} />
       ))}
@@ -179,6 +179,8 @@ export type GameOverCardProps = {
    * The history of the game as the board gives its ticker (`groupTurns`: the newest turn first, each move rendered by the game). With it the card has its statistics and its history; without it, the table of the scores is all that lies under the podium.
    */
   history?: readonly HistoryTurn[]
+  /** The lines of the history say who did what themselves (the ticker's `sentences`: `Ben plays Duke`), so the history shows the player's picture before a line and no name. */
+  sentences?: boolean
   /** The tab that is open to begin with: the scores. */
   defaultTab?: GameOverTab
   /** Where the vote for another game stands. */
@@ -201,7 +203,7 @@ export type GameOverCardProps = {
  * The end screen: how the game ended for the visitor at the very top with what it gave them, the podium under it, the details in tabs (the scores of every player, the statistics, the history) and the two buttons. The score of a game that counts no points
  * is not written, and neither are the lines under it. `Rematch` says how many of the players still at the table agreed, and a line under the buttons says who asked, whom the table waits for and who left (`rematchLine`).
  */
-export function GameOverCard({ theme, seat, pattern, crown, summary, places, winners, together, meId, rank, history, defaultTab = "scores", rematch, voting = false, onRematch, onContinue, onShare, renderDetail, motion, className }: GameOverCardProps) {
+export function GameOverCard({ theme, seat, pattern, crown, summary, places, winners, together, meId, rank, history, sentences, defaultTab = "scores", rematch, voting = false, onRematch, onContinue, onShare, renderDetail, motion, className }: GameOverCardProps) {
   const base = useId()
   const [chosen, setChosen] = useState<GameOverTab>(defaultTab)
   const scored = summary.points !== null
@@ -219,7 +221,7 @@ export function GameOverCard({ theme, seat, pattern, crown, summary, places, win
     tab === "stats" && history ? (
       <StatsPanel places={places} scored={scored} history={history} seat={faces} motion={motion} />
     ) : tab === "history" && history ? (
-      <HistoryPanel history={history} entries={entries} meId={meId} seat={faces} />
+      <HistoryPanel history={history} entries={entries} meId={meId} seat={faces} sentences={sentences} />
     ) : (
       <ScoresPanel places={places} winners={winners} meId={meId} scored={scored} together={together} seat={faces} crown={crown} renderDetail={renderDetail} />
     )
@@ -248,8 +250,8 @@ export function GameOverCard({ theme, seat, pattern, crown, summary, places, win
         </button>
 
         {/* How it ended for the visitor comes first, at the very top of the card, with what it gave them; the share is in the corner beside it */}
-        <header className="flex shrink-0 flex-col items-center gap-2 px-9">
-          <h2 className="text-center font-display text-4xl leading-tight tracking-wide short:text-2xl" style={summary.outcome === "win" ? ACCENT : undefined}>
+        <header className="flex shrink-0 flex-col items-center gap-2">
+          <h2 className="px-9 text-center font-display text-4xl leading-tight tracking-wide short:text-2xl" style={summary.outcome === "win" ? ACCENT : undefined}>
             {summary.title}
           </h2>
           <Rewards rank={rank} motion={motion} />
@@ -264,7 +266,7 @@ export function GameOverCard({ theme, seat, pattern, crown, summary, places, win
         {/* The details of the game: the scores first, and, for a game that gives its history, the statistics and the history. The height is the same on every tab, so that the card does not move when one is picked */}
         <section
           aria-label="Details of the game"
-          className="flex min-h-32 shrink basis-60 flex-col overflow-hidden rounded-xl border border-current/15 bg-current/[0.04] short:min-h-20 short:basis-28 [@media(min-height:56rem)]:basis-80"
+          className="@container flex min-h-32 shrink basis-60 flex-col overflow-hidden rounded-xl border border-current/15 bg-current/[0.04] short:min-h-20 short:basis-40 [@media(min-height:56rem)]:basis-80"
         >
           {tabs.length > 1 ? (
             <>
