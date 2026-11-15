@@ -1,7 +1,7 @@
 // The live specimens of the social pages of the design docs (`docs/design`): one component for each piece the markdown shows, registered by name below. The words around them are the page's.
 
 import type { Specimens } from "@pbgo/docs/markdown"
-import { BarListSpecimen, BarSpecimen, ChatSpecimen, DockSpecimen, GroupSpecimen, InvitationsSpecimen, InvitePickerSpecimen, PresenceLegend, SocialSpecimen } from "./friends-specimen"
+import { BarListSpecimen, BarSpecimen, ChatSpecimen, DockSpecimen, FriendPickerSpecimen, GroupSpecimen, InvitationsSpecimen, InvitePickerSpecimen, PlayerSlotsSpecimen, PresenceLegend, SocialSpecimen } from "./friends-specimen"
 import { Frame } from "./text"
 
 function PresenceDotsFrame() {
@@ -167,6 +167,47 @@ function InvitePickerFrame() {
   )
 }
 
+function FriendPickerFrame() {
+  return (
+    <Frame code={`<Popover>
+  <PopoverTrigger asChild>…a free place…</PopoverTrigger>
+  <PopoverContent className="rounded-2xl p-3">
+    <FriendPicker
+      friends={friends}
+      limit={8}
+      onInvite={async (friend) => sendInvitation(friend)}
+      // a way to bring somebody who is not a friend yet
+      link={{ onCopy: copy, copied }}
+      // for a table that does not exist yet: "Add" and "Added" in place of "Invite" and "Invited"
+      labels={{ action: "Add", done: "Added" }}
+    />
+  </PopoverContent>
+</Popover>`}>
+      <FriendPickerSpecimen />
+    </Frame>
+  )
+}
+
+function PlayerSlotsFrame() {
+  return (
+    <Frame code={`<PlayerSlots
+  // the visitor first: they have the middle place, the others fill outwards from it
+  players={[{ id: "me", name: "Oré", you: true }, { id: "1", name: "Marly", leader: true, status: "playing" }]}
+  // how many places the row has, from 1 to nine; it is never fewer than the people in it
+  size={9}
+  // what a free place opens
+  picker={<FriendPicker friends={friends} onInvite={invite} />}
+  // what a press on a person opens
+  menu={(player) => (player.you ? null : <DropdownMenuItem>View profile</DropdownMenuItem>)}
+/>`}>
+      <div className="flex flex-col gap-10">
+        <PlayerSlotsSpecimen />
+        <PlayerSlotsSpecimen size={4} alone />
+      </div>
+    </Frame>
+  )
+}
+
 export const socialSpecimens: Specimens = {
   "presence-dots": PresenceDotsFrame,
   "friends-bar": FriendsBarFrame,
@@ -177,4 +218,6 @@ export const socialSpecimens: Specimens = {
   "invitations-card": InvitationsCardFrame,
   "chat-window": ChatWindowFrame,
   "invite-friend": InvitePickerFrame,
+  "friend-picker": FriendPickerFrame,
+  "player-slots": PlayerSlotsFrame,
 }

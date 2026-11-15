@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { QUEUE_MAX_AGE_MS, QUEUE_MAX_GAMES, QUEUE_MAX_TABLES, QUEUE_MODE_HINTS, QUEUE_MODE_LABELS, QUEUE_MODES, parseQueue, queueGamesLabel, queueProgress, queueSeconds, queueTime } from "./queue"
+import { QUEUE_EXPANSIONS_MAX, QUEUE_MAX_AGE_MS, QUEUE_MAX_GAMES, QUEUE_MAX_TABLES, QUEUE_MODE_HINTS, QUEUE_MODE_LABELS, QUEUE_MODES, parseCriteria, parseCriteriaOf, parseQueue, queueGamesLabel, queueProgress, queueSeconds, queueTime } from "./queue"
 
 const NOW = Date.parse("2026-11-02T18:00:00Z")
 
@@ -156,5 +156,61 @@ describe("parseQueue", () => {
     expect(parseQueue({ ...stored, games: Array.from({ length: QUEUE_MAX_GAMES }, (_, index) => ({ slug: `game-${index}`, name: `Game ${index}` })) }, NOW)).not.toBeNull()
     expect(parseQueue({ ...stored, since: NOW + 30_000 }, NOW)).not.toBeNull()
     expect(parseQueue({ ...stored, since: NOW - QUEUE_MAX_AGE_MS }, NOW)).not.toBeNull()
+  })
+})
+
+describe("parseCriteria", () => {
+  it("reads a speed that a lobby offers and expansions that are slugs, each listed once", () => {
+    expect(parseCriteria({ pace: "fast", expansions: ["diplomats", "queens", "diplomats"] })).toEqual({ pace: "fast", expansions: ["diplomats", "queens"] })
+    expect(parseCriteria({ pace: "none" })).toEqual({ pace: "none" })
+    expect(parseCriteria({ expansions: [] })).toEqual({ expansions: [] })
+    expect(parseCriteria({})).toEqual({})
+  })
+
+  it("leaves out a key that is not one of ours", () => {
+    expect(parseCriteria({ pace: "slow", cheat: true })).toEqual({ pace: "slow" })
+  })
+
+  it("is nothing for what is not criteria: another speed, a list that is not slugs, too many expansions", () => {
+    for (const raw of [null, undefined, "fast", [], { pace: "async" }, { pace: 3 }, { expansions: "queens" }, { expansions: ["Not a slug"] }, { expansions: [3] }, { expansions: Array.from({ length: QUEUE_EXPANSIONS_MAX + 1 }, (_, index) => `x-${index}`) }]) {
+      expect(parseCriteria(raw)).toBeNull()
+    }
+  })
+})
+
+describe("parseCriteriaOf", () => {
+  it("is nothing asked when nothing is given", () => {
+    expect(parseCriteriaOf(undefined, ["a"])).toEqual({})
+    expect(parseCriteriaOf(null, ["a"])).toEqual({})
+    expect(parseCriteriaOf({}, ["a"])).toEqual({})
+  })
+
+  it("keeps what is asked of each game, and nothing for a game that asks for the usual speed and no expansion", () => {
+    expect(parseCriteriaOf({ a: { pace: "fast" }, b: { pace: "normal", expansions: [] }, c: { expansions: ["x"] } }, ["a", "b", "c"])).toEqual({ a: { pace: "fast" }, c: { expansions: ["x"] } })
+  })
+
+  it("is nothing when it asks of a game that is not in the search, or when a game's criteria are not criteria", () => {
+    expect(parseCriteriaOf({ z: { pace: "fast" } }, ["a"])).toBeNull()
+    expect(parseCriteriaOf({ a: { pace: "async" } }, ["a"])).toBeNull()
+    expect(parseCriteriaOf([], ["a"])).toBeNull()
+    expect(parseCriteriaOf("fast", ["a"])).toBeNull()
+  })
+})
+
+describe("parseQueue, what the search asks", () => {
+  const raw = { games: [{ slug: "courtisans", name: "Courtisans" }, { slug: "flip-7", name: "Flip 7" }], mode: "normal", since: NOW - 1000 }
+
+  it("reads back what the search asked of each game", () => {
+    const queue = parseQueue({ ...raw, criteria: { courtisans: { pace: "slow", expansions: ["diplomats"] } } }, NOW)
+    expect(queue?.criteria).toEqual({ courtisans: { pace: "slow", expansions: ["diplomats"] } })
+  })
+
+  it("goes on with the usual when what it kept is not criteria, or is for a game that is not in the search", () => {
+    for (const criteria of [{ courtisans: { pace: "async" } }, { other: { pace: "fast" } }, "fast", []]) {
+      const queue = parseQueue({ ...raw, criteria }, NOW)
+      expect(queue).not.toBeNull()
+      expect(queue).not.toHaveProperty("criteria")
+    }
+    expect(parseQueue(raw, NOW)).not.toHaveProperty("criteria")
   })
 })

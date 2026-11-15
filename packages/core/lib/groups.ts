@@ -1,12 +1,13 @@
+import { MAX_SEATS } from "@pbgo/ui/tables"
 import { personOf, type FriendGame, type FriendPhase, type Person } from "./friends"
 
 /**
  * The groups of the hub (PLT-23): the cap, what the routes are called, what the browser is told and how it reads it. Pure, with nothing of the server in it (`server/groups.ts` keeps what the database does, `routes/api/hub/groups/route.ts` the routes of leaving, removing and
- * handing the lead over; inviting to a group and asking to join one go through the invitations, `lib/invitations.ts`). A member is named by their handle, never by their account's id. A group has two to eight members, one of whom leads; a group of one person is no group.
+ * handing the lead over; inviting to a group and asking to join one go through the invitations, `lib/invitations.ts`). A member is named by their handle, never by their account's id. A group has two to nine members, one of whom leads; a group of one person is no group.
  */
 
-/** The most members a group can have, the one who leads included. The database is given it by each function that adds a member. */
-export const MAX_GROUP_MEMBERS = 8
+/** The most members a group can have, the one who leads included: the most seats a table has (`MAX_SEATS`), so that a whole group can sit at one. The database is given it by each function that adds a member. */
+export const MAX_GROUP_MEMBERS = MAX_SEATS
 
 /** The routes of the group, under `/api/hub/groups`: the group itself comes with the social state (`GET /api/hub/friends`), and each of these is a `POST` that changes it. */
 export const GROUPS_PATH = "/api/hub/groups"

@@ -6,7 +6,7 @@ The settings of a table are declared by the engine, the platform or core, narrow
 
 | Parameter | Declared by | Set by | Reaches the engine |
 | --- | --- | --- | --- |
-| Number of players | `minPlayers` and `maxPlayers` of the definition ([The contract](11-the-contract.md#the-contract)) | The gamemaster, within the engine's bounds (`clampPlayers`) | As `players` in `setup`, in the order they sat down; the routes hold a table to the bounds ([Players](02-players.md)) |
+| Number of players | `minPlayers` and `maxPlayers` of the definition ([The contract](11-the-contract.md#the-contract)) | The gamemaster, within the engine's bounds (`clampPlayers`) and never above nine (`MAX_SEATS`: the platform opens no lobby of more than nine, `playerBounds`) | As `players` in `setup`, in the order they sat down; the routes hold a table to the bounds ([Players](02-players.md)) |
 | Engine options | `options` of the definition | The gamemaster sets each default and can hide an option; the host sets the options that an expansion or a helper carries | As `options` in `setup`, normalized for the players seated |
 | Expansions and helpers | The platform's Sanity project, not the engine | The host, in the settings of the lobby | Only as the option whose key is their id |
 | Speed | The platform's lobby (`PACES`) | The host, in the settings of the lobby, kept with the table (`games.settings`) | Not at all: it is shown and kept, and sets no clock yet |

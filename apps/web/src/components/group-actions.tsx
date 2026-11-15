@@ -128,8 +128,8 @@ function ConfirmRemoveMember({ member, busy, onConfirm, onCancel }: { member: Gr
 
 /**
  * What the group's screens do (the panel of the navbar, the chat's menu, the page of the friends): the handlers to give them, and the `dialogs` to render beside the panel, as `useFriendActions` does. `friends` are the member's friends, for the picker of the group tab (a friend in
- * a group is not listed: they are asked to let the member in, from their row; the friends already invited show as sent). `invite` and `askToJoin` are for a friend's row; `openInvite` opens the picker; `leave`, `kick` (it asks first), `makeLeader` and `viewProfile` are for the
- * group tab. A change that is on its way is not sent twice.
+ * a group is not listed: they are asked to let the member in, from their row; the friends already invited show as sent). `invite` and `askToJoin` are for a friend's row; `openInvite` opens the picker and `inviteFromPicker` is what a picker of one's own calls (the play zone's
+ * panel of friends: it answers whether the invitation went, so that the row says "Invited"); `leave`, `kick` (it asks first), `makeLeader` and `viewProfile` are for the group tab and the play zone's row of players. A change that is on its way is not sent twice.
  */
 export function useGroupActions(friends: readonly Friend[]) {
   const router = useRouter()
@@ -208,7 +208,7 @@ export function useGroupActions(friends: readonly Friend[]) {
     </>
   )
 
-  return { invite, askToJoin, leave, makeLeader, viewProfile, kick: (member: GroupMember) => setRemoving(member), openInvite: () => setPicking(true), dialogs }
+  return { invite, askToJoin, inviteFromPicker, leave, makeLeader, viewProfile, kick: (member: GroupMember) => setRemoving(member), openInvite: () => setPicking(true), dialogs }
 }
 
 /** The nicknames of a few members in a sentence: "Bob", "Bob and Cat", and a count for more. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { isOlder, lobbyKey, olderLobby, openingSettings, parseCancelRequest, parsePlayRequest, rankLobbies, seated, SEARCH_MAX_GAMES, settleOwn, type Choice, type Lobby } from "./quick-play"
+import { isOlder, lobbyKey, matchesWanted, olderLobby, openingSettings, parseCancelRequest, parsePlayRequest, rankLobbies, seated, SEARCH_MAX_GAMES, settleOwn, USUAL_WANTED, wantedPace, type Choice, type Lobby, type Wanted } from "./quick-play"
 import { RANK_GAP_STEP_MS, type TableSettings } from "./table-settings"
 
 const NOW = Date.parse("2026-01-01T12:00:00.000Z")
@@ -67,6 +67,88 @@ describe("openingSettings", () => {
   it("marks a ranked table and keeps the tier of the member who opens it", () => {
     expect(openingSettings("ranked", { min: 2, max: 6 }, "Silver")).toEqual({ visibility: "public", pace: "normal", seats: 4, ranked: true, anchor: "Silver" })
   })
+
+  it("opens a normal table at the speed the search asks, and a ranked one always at the usual speed", () => {
+    expect(openingSettings("normal", { min: 2, max: 4 }, "Gold", "fast").pace).toBe("fast")
+    expect(openingSettings("normal", { min: 2, max: 4 }, "Gold", "none").pace).toBe("none")
+    expect(openingSettings("ranked", { min: 2, max: 4 }, "Gold", "fast").pace).toBe("normal")
+  })
+})
+
+describe("parsePlayRequest, what a search asks of the tables", () => {
+  it("reads the speed and the expansions asked of each game, for the games that are in the search", () => {
+    const criteria = { courtisans: { pace: "fast", expansions: ["diplomats", "diplomats", "queens"] }, "flip-7": { expansions: ["deluxe"] } }
+    expect(parsePlayRequest({ games: ["courtisans", "flip-7"], mode: "normal", criteria })?.criteria).toEqual({ courtisans: { pace: "fast", expansions: ["diplomats", "queens"] }, "flip-7": { expansions: ["deluxe"] } })
+  })
+
+  it("keeps nothing for a game that asks for the usual speed and no expansion, and has no criteria at all then", () => {
+    const asked = parsePlayRequest({ games: ["courtisans"], mode: "normal", criteria: { courtisans: { pace: "normal", expansions: [] } } })
+    expect(asked).not.toBeNull()
+    expect(asked).not.toHaveProperty("criteria")
+    expect(parsePlayRequest({ games: ["courtisans"], mode: "normal" })).not.toHaveProperty("criteria")
+    expect(parsePlayRequest({ games: ["courtisans"], mode: "normal", criteria: null })).not.toHaveProperty("criteria")
+  })
+
+  it("refuses what is asked of a game that is not in the search, a speed a lobby does not offer, and expansions that are not slugs", () => {
+    for (const criteria of [{ flip7: { pace: "fast" } }, { courtisans: { pace: "async" } }, { courtisans: { pace: 3 } }, { courtisans: { expansions: ["Not A Slug"] } }, { courtisans: { expansions: "diplomats" } }, { courtisans: "fast" }, [], "fast"]) {
+      expect(parsePlayRequest({ games: ["courtisans"], mode: "normal", criteria })).toBeNull()
+    }
+  })
+
+  it("takes the most expansions a game has and no more", () => {
+    const many = Array.from({ length: 21 }, (_, index) => `x-${index}`)
+    expect(parsePlayRequest({ games: ["a"], mode: "normal", criteria: { a: { expansions: many.slice(0, 20) } } })?.criteria?.a?.expansions).toHaveLength(20)
+    expect(parsePlayRequest({ games: ["a"], mode: "normal", criteria: { a: { expansions: many } } })).toBeNull()
+  })
+})
+
+describe("what a search wants of the tables of a game", () => {
+  it("is the speed it asks, the usual one when it asks none, and the usual one for a ranked search whatever it asks", () => {
+    expect(wantedPace("normal", { pace: "slow" })).toBe("slow")
+    expect(wantedPace("normal", undefined)).toBe("normal")
+    expect(wantedPace("normal", { expansions: ["a"] })).toBe("normal")
+    expect(wantedPace("ranked", { pace: "fast" })).toBe("normal")
+  })
+
+  const wanted = (over: Partial<Wanted> = {}): Wanted => ({ pace: "normal", offered: ["diplomats", "queens"], expansions: ["diplomats"], ...over })
+  const table = (options: Record<string, unknown> | undefined, pace?: TableSettings["pace"]) => ({ settings: { visibility: "public", ...(pace ? { pace } : {}) } as TableSettings, options })
+
+  it("is met by a table played at that speed with exactly those expansions of the game on", () => {
+    expect(matchesWanted(table({ diplomats: true, queens: false }, "normal"), wanted())).toBe(true)
+    // An expansion that was never set is off, and a table that kept no speed is played at the usual one
+    expect(matchesWanted(table({ diplomats: true }), wanted())).toBe(true)
+  })
+
+  it("is not met by a table with an expansion more or less than it wants, nor by one played at another speed", () => {
+    expect(matchesWanted(table({ diplomats: true, queens: true }), wanted())).toBe(false)
+    expect(matchesWanted(table({ queens: true }), wanted())).toBe(false)
+    expect(matchesWanted(table({}), wanted())).toBe(false)
+    expect(matchesWanted(table({ diplomats: true }, "fast"), wanted())).toBe(false)
+    expect(matchesWanted(table({ diplomats: true }, "fast"), wanted({ pace: "fast" }))).toBe(true)
+  })
+
+  it("does not look at an option that is not one of the game's expansions, and a search that wants none is met by a table with none on", () => {
+    expect(matchesWanted(table({ diplomats: true, hint: false, fiveDifferent: true }), wanted())).toBe(true)
+    expect(matchesWanted(table({ hint: true }), USUAL_WANTED)).toBe(true)
+    expect(matchesWanted(table(undefined), USUAL_WANTED)).toBe(true)
+  })
+
+  it("leaves a lobby out of the search that is not played the way it wants, and puts the ones that are in their order", () => {
+    const wants = wanted({ pace: "slow", expansions: ["queens"] })
+    const slowQueens = lobby("SLOWQU", 1, { settings: { visibility: "public", seats: 4, pace: "slow" }, options: { queens: true } })
+    const slowPlain = lobby("SLOWPL", 3, { settings: { visibility: "public", seats: 4, pace: "slow" }, options: {} })
+    const usualQueens = lobby("USUQUE", 3, { options: { queens: true } })
+    const another = lobby("SLOWQ2", 2, { settings: { visibility: "public", seats: 4, pace: "slow" }, options: { queens: true } })
+    expect(rankLobbies([slowQueens, slowPlain, usualQueens, another], choice({ wanted: () => wants })).map((one) => one.code)).toEqual(["SLOWQ2", "SLOWQU"])
+  })
+
+  it("asks it of each game by its own: a lobby of another game is judged by that game's wishes", () => {
+    const here = lobby("COURTI", 2, { options: { queens: true } })
+    const there = lobby("FLIPPE", 2, { game: "flip-7", options: {} })
+    const wantedOf = (queens: boolean) => (game: string): Wanted => (game === "courtisans" ? wanted({ expansions: queens ? ["queens"] : [] }) : USUAL_WANTED)
+    expect(rankLobbies([here, there], choice({ wanted: wantedOf(true) })).map((one) => one.code)).toEqual(["COURTI", "FLIPPE"])
+    expect(rankLobbies([here, there], choice({ wanted: wantedOf(false) })).map((one) => one.code)).toEqual(["FLIPPE"])
+  })
 })
 
 const lobby = (code: string, seats: number, over: Partial<Lobby> & { settings?: TableSettings } = {}): Lobby => ({
@@ -82,6 +164,7 @@ const choice = (over: Partial<Choice> = {}): Choice => ({
   mode: "normal",
   viewer: () => ({ tier: "Silver", language: "en" }),
   maxOf: () => 4,
+  wanted: () => USUAL_WANTED,
   mine: new Set(),
   now: NOW,
   ...over,

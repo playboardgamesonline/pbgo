@@ -1,6 +1,6 @@
-import { QUEUE_MODES, type QueueMode } from "@pbgo/ui/queue"
+import { parseCriteriaOf, QUEUE_MODES, type QueueCriteria, type QueueMode } from "@pbgo/ui/queue"
 import type { Tier } from "@pbgo/ui/ranks"
-import { defaultSeats } from "@pbgo/ui/tables"
+import { defaultSeats, type Pace } from "@pbgo/ui/tables"
 import { effectiveSettings, modeOf, unmetCriteria, type TableSettings, type Viewer } from "./table-settings"
 
 // The search of a visitor who presses Play (PLT-21, phase C): for each game they picked they sit at a public lobby that waits for players, or open one, and the table that fills first is the one they play. These are the rules of it, pure and
@@ -35,11 +35,14 @@ export type PlayTable = {
 /** What a search answers: the table the visitor sits at for each game they picked (one at most), or the one they are playing. */
 export type PlayState = { tables: PlayTable[] }
 
+/** What a search asks of the tables of one game besides how they count: how fast they are played and which expansions they have (`QueueCriteria`). */
+export type PlayCriteria = QueueCriteria
+
 /**
- * What the browser sends to look for a table: the games (slugs), how the table counts and, for a guest, the nickname they sit down under. A search asks again every few seconds while it lasts: `poll` says that this is one of those, not the press that began it,
- * and `waited` is how many seconds the visitor has waited, which only the events say.
+ * What the browser sends to look for a table: the games (slugs), how the table counts, what it asks of the tables of each game (`criteria`, by slug, only for a game that asks for something) and, for a guest, the nickname they sit down under. A search asks again every few seconds
+ * while it lasts: `poll` says that this is one of those, not the press that began it, and `waited` is how many seconds the visitor has waited, which only the events say.
  */
-export type PlayRequest = { games: string[]; mode: PlayMode; nickname?: unknown; poll?: boolean; waited?: number }
+export type PlayRequest = { games: string[]; mode: PlayMode; criteria?: Record<string, PlayCriteria>; nickname?: unknown; poll?: boolean; waited?: number }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value)
 const isSlug = (value: unknown): value is string => typeof value === "string" && /^[a-z0-9][a-z0-9-]{0,63}$/.test(value)
@@ -49,7 +52,10 @@ const WAITED_MAX = 24 * 60 * 60
 
 const seconds = (value: unknown): number | undefined => (typeof value === "number" && Number.isFinite(value) ? Math.min(WAITED_MAX, Math.max(0, Math.floor(value))) : undefined)
 
-/** A request to look for tables as it was sent, or null for anything that is not one: the games are slugs, listed once, one at least and `SEARCH_MAX_GAMES` at the most, and the mode is one of ours. */
+/**
+ * A request to look for tables as it was sent, or null for anything that is not one: the games are slugs, listed once, one at least and `SEARCH_MAX_GAMES` at the most, the mode is one of ours, and what is asked of the tables (`criteria`) is asked of games that are in the search
+ * (a speed a lobby offers, expansions that are slugs: `parseCriteriaOf`).
+ */
 export function parsePlayRequest(raw: unknown): PlayRequest | null {
   if (!isRecord(raw) || !Array.isArray(raw.games) || raw.games.length === 0 || raw.games.length > SEARCH_MAX_GAMES) return null
   if (!PLAY_MODES.some((mode) => mode === raw.mode)) return null
@@ -58,7 +64,9 @@ export function parsePlayRequest(raw: unknown): PlayRequest | null {
     if (!isSlug(game)) return null
     if (!games.includes(game)) games.push(game)
   }
-  return { games, mode: raw.mode as PlayMode, nickname: raw.nickname, poll: raw.poll === true, waited: seconds(raw.waited) }
+  const criteria = parseCriteriaOf(raw.criteria, games)
+  if (!criteria) return null
+  return { games, mode: raw.mode as PlayMode, ...(Object.keys(criteria).length > 0 ? { criteria } : {}), nickname: raw.nickname, poll: raw.poll === true, waited: seconds(raw.waited) }
 }
 
 /** The tables a visitor stops looking at: a game and a code each, as the search told them, and for the events how they were looking and for how long. */
@@ -75,18 +83,37 @@ export function parseCancelRequest(raw: unknown): CancelRequest | null {
   return { tables, mode: PLAY_MODES.find((mode) => mode === raw.mode), waited: seconds(raw.waited) }
 }
 
-/** What a search sets a table it opens to: public, the usual speed and the value between the game's least and most players; a ranked one is marked and keeps the tier of the member who opened it, which the others are measured against. */
-export function openingSettings(mode: PlayMode, range: { min: number; max: number }, tier: Tier): TableSettings {
-  return { visibility: "public", pace: "normal", seats: defaultSeats(range.min, range.max), ...(mode === "ranked" ? { ranked: true, anchor: tier } : {}) }
+/** What a search sets a table it opens to: public, the speed it asks (the usual one unless it asks another, and a ranked table is always played at the usual one) and the value between the game's least and most players; a ranked one is marked and keeps the tier of the member who opened it, which the others are measured against. */
+export function openingSettings(mode: PlayMode, range: { min: number; max: number }, tier: Tier, pace: Pace = "normal"): TableSettings {
+  return { visibility: "public", pace: mode === "ranked" ? "normal" : pace, seats: defaultSeats(range.min, range.max), ...(mode === "ranked" ? { ranked: true, anchor: tier } : {}) }
 }
 
-/** A public lobby a search may sit at: which table it is, who sits at it, what it was set to and when it was opened (ISO time). */
+/**
+ * What a search wants of the tables of one game, as the server has worked it out: the speed, the expansions the game offers (`offered`: the ones that a table can switch on, that is those that the engine has an option for and the gamemaster did not hide) and the ones of them that
+ * the tables must have on, the others being off. A table is sat at only if it is played this way, and the one a search opens is.
+ */
+export type Wanted = { pace: Pace; offered: readonly string[]; expansions: readonly string[] }
+
+/** What a search that asks nothing of a game wants: the usual speed and no expansion. */
+export const USUAL_WANTED: Wanted = { pace: "normal", offered: [], expansions: [] }
+
+/** The speed a search wants of a game's tables: the one it asks, and always the usual one for a ranked search, whose tables are fixed. */
+export const wantedPace = (mode: PlayMode, criteria: PlayCriteria | undefined): Pace => (mode === "ranked" ? "normal" : (criteria?.pace ?? "normal"))
+
+/** A public lobby a search may sit at: which table it is, who sits at it, what it was set to, the options it is played with and when it was opened (ISO time). A lobby with no options is played with none on. */
 export type Lobby = {
   game: string
   code: string
   players: ReadonlyArray<{ id: string; left?: boolean }>
   settings: TableSettings
+  options?: Readonly<Record<string, unknown>>
   createdAt: string
+}
+
+/** Whether a table is played the way a search wants: at the speed it asks, and with the expansions it asks on and the other expansions of the game off. An option that is not one of the game's expansions is not looked at. */
+export function matchesWanted(table: Pick<Lobby, "settings" | "options">, wanted: Wanted): boolean {
+  if ((table.settings.pace ?? "normal") !== wanted.pace) return false
+  return wanted.offered.every((id) => (table.options?.[id] === true) === wanted.expansions.includes(id))
 }
 
 /** `<game>:<code>`: the same table has the same key wherever it is listed. */
@@ -110,20 +137,23 @@ export type Choice = {
   viewer: (game: string) => Viewer
   /** The most players a game takes: the seats of a table that kept none. */
   maxOf: (game: string) => number
+  /** What the search wants of the tables of a game: the speed and the expansions. */
+  wanted: (game: string) => Wanted
   /** The lobbies where the visitor sits already (`lobbyKey`): they are theirs, not a find. */
   mine: ReadonlySet<string>
   now: number
 }
 
 /**
- * The lobbies a search may sit at, the one to take first at the head: those of this mode (a ranked search never joins a normal table, nor the other way round) that are played at the usual speed, that the visitor does not sit at, that have a seat free and whose
- * criteria they meet (`unmetCriteria`: the rank and the language the host asked, and, for a ranked table, the gap from the tier it opened at, which widens with the time it has waited). The fullest comes first, so that tables fill and begin; of two as full, the older.
+ * The lobbies a search may sit at, the one to take first at the head: those of this mode (a ranked search never joins a normal table, nor the other way round) that are played the way the search wants (`matchesWanted`: the speed and the expansions, the usual speed and none by default),
+ * that the visitor does not sit at, that have a seat free and whose criteria they meet (`unmetCriteria`: the rank and the language the host asked, and, for a ranked table, the gap from the tier it opened at, which widens with the time it has waited). The fullest comes first,
+ * so that tables fill and begin; of two as full, the older.
  */
 export function rankLobbies<L extends Lobby>(lobbies: readonly L[], choice: Choice): L[] {
   return lobbies
     .filter((lobby) => {
       if (modeOf(lobby.settings) !== choice.mode) return false
-      if ((lobby.settings.pace ?? "normal") !== "normal") return false
+      if (!matchesWanted(lobby, choice.wanted(lobby.game))) return false
       if (choice.mine.has(lobbyKey(lobby))) return false
       if (seated(lobby) >= effectiveSettings(lobby.settings, choice.maxOf(lobby.game)).seats) return false
       return unmetCriteria(lobby.settings, choice.viewer(lobby.game), choice.now - openedAt(lobby)) === null

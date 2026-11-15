@@ -1,5 +1,6 @@
 import type { PlayedGame } from "@pbgo/accounts"
 import type { Person } from "@pbgo/core/lib/friends"
+import { MAX_GROUP_MEMBERS } from "@pbgo/core/lib/groups"
 import { DEMO_AVATARS } from "@pbgo/accounts/demo-avatars"
 import type { Friend } from "@pbgo/ui/friends"
 import type { Group } from "@pbgo/ui/groups"
@@ -26,7 +27,7 @@ export const DEMO_FRIENDS: readonly Friend[] = [MARLY, HERVE, ZOE, TOM, LINA, JA
 
 /** The group of the demo account (PLT-23): the account leads it, with two of its friends. Made up like the rest: its buttons call the routes, which say they are done, and the group does not change. */
 export const DEMO_GROUP: Group = {
-  max: 8,
+  max: MAX_GROUP_MEMBERS,
   members: [
     { id: "me", nickname: "Oré", tag: "0001", avatarUrl: DEMO_AVATARS.sam, status: "online", leader: true, you: true },
     { id: MARLY.id, nickname: MARLY.nickname, tag: MARLY.tag, avatarUrl: MARLY.avatarUrl, status: "playing", game: COURTISANS, activity: "Table K7P · 12 min", leader: false, you: false },

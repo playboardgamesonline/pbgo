@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react"
 import { ApiClientError, gameRequest } from "@pbgo/core/lib/api"
 import { PLAY_CANCEL_PATH, PLAY_PATH, SEARCH_MAX_GAMES, type PlayState } from "@pbgo/core/lib/quick-play"
-import { parseQueue, queueSeconds, type Queue, type QueueGame, type QueueMode, type QueueTable } from "@pbgo/ui/queue"
+import { parseQueue, queueSeconds, type Queue, type QueueCriteria, type QueueGame, type QueueMode, type QueueTable } from "@pbgo/ui/queue"
 
 // The search of the visitor who looks for a table: the one place that knows it, read by the buttons that start a search (a game's page, the signed-in home), by the social panel, which shows the same wait, and by `SearchSync`, which keeps it alive. A search is real
 // (PLT-21): pressing Play sits the visitor at a table of each game they picked, a public lobby that waits or one they open, with `POST /api/hub/play` (`server/quick-play.ts`), and the table that fills first begins by itself. The browser asks again every few seconds while
@@ -56,8 +56,8 @@ const post = <T>(path: string, body: unknown) => gameRequest<T>(path, { method: 
 
 const tablesOf = (state: PlayState): QueueTable[] => state.tables.map(({ game, code, status, players, seats }) => ({ game, code, status, players, seats }))
 
-/** What every call of the search says: the games, the kind of table and, for a guest, the nickname they sit down under. */
-const bodyOf = (current: Queue, extra: Record<string, unknown>) => ({ games: current.games.map((game) => game.slug), mode: current.mode, ...(nickname ? { nickname } : {}), ...extra })
+/** What every call of the search says: the games, the kind of table, what it asks of the tables of each game (the speed, the expansions) and, for a guest, the nickname they sit down under. */
+const bodyOf = (current: Queue, extra: Record<string, unknown>) => ({ games: current.games.map((game) => game.slug), mode: current.mode, ...(current.criteria ? { criteria: current.criteria } : {}), ...(nickname ? { nickname } : {}), ...extra })
 
 const leftListeners = new Set<() => void>()
 
@@ -81,9 +81,10 @@ function leaveTables(tables: readonly { game: string; code: string }[], current:
 /**
  * The visitor presses Play: from now, and in place of the search they had (which is stopped), they look for a table of these games (one at least), ranked or normal. The server sits them down at one table for each game and the answer is kept; a refusal (a guest who
  * asks for a ranked table, a game for adults, too many requests) stops the search and is thrown for the caller to tell. `who.nickname` is the name a guest sits down under: a member sits down as their account.
- * A search looks for `SEARCH_MAX_GAMES` games at the most, since it sits the visitor at a table of each: when more are given, the first ones are looked for.
+ * A search looks for `SEARCH_MAX_GAMES` games at the most, since it sits the visitor at a table of each: when more are given, the first ones are looked for. `criteria` is what it asks of the tables of each game (by slug: the speed and the expansions, the settings of
+ * the game's tile on the home); a game that asks for nothing has no entry, and a search of a game's page asks nothing of any.
  */
-export async function startSearch(all: readonly QueueGame[], mode: QueueMode, who: { nickname?: string } = {}): Promise<void> {
+export async function startSearch(all: readonly QueueGame[], mode: QueueMode, who: { nickname?: string } = {}, criteria: Readonly<Record<string, QueueCriteria>> = {}): Promise<void> {
   const games = all.slice(0, SEARCH_MAX_GAMES)
   if (games.length === 0 || pressing) return
   pressing = true
@@ -91,7 +92,8 @@ export async function startSearch(all: readonly QueueGame[], mode: QueueMode, wh
     // The tables of the search they had are left first: the new one may sit them at the same ones, and must not meet the leave
     await leaveQueue()
     nickname = who.nickname
-    const next: Queue = { games: games.map(({ slug, name }) => ({ slug, name })), mode, since: Date.now() }
+    const asked = Object.fromEntries(Object.entries(criteria).filter(([slug]) => games.some((game) => game.slug === slug)))
+    const next: Queue = { games: games.map(({ slug, name }) => ({ slug, name })), mode, since: Date.now(), ...(Object.keys(asked).length > 0 ? { criteria: asked } : {}) }
     keep(next)
     calling = true
     try {

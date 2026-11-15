@@ -10,6 +10,7 @@ import {
   modeOf,
   OPEN_TO_ANYONE,
   parseTableSettings,
+  PRIVATE_TABLE,
   RANK_GAP_BASE,
   RANK_GAP_STEP_MS,
   rankGap,
@@ -258,6 +259,11 @@ describe("creationSettings", () => {
     expect(creationSettings(OPEN_TO_ANYONE, "normal", null, range)).toEqual({ visibility: "public", minRank: null, language: null, pace: "normal", seats: 3 })
     expect(creationSettings(OPEN_TO_ANYONE, "normal", null, { min: 2, max: 8 }).seats).toBe(5)
     expect(creationSettings(OPEN_TO_ANYONE, "normal", null, { min: 4, max: 4 }).seats).toBe(4)
+  })
+
+  it("is private for a table opened by hand from the home's Custom mode: reached by its link or by the invitations, asking for nothing", () => {
+    expect(PRIVATE_TABLE).toEqual({ visibility: "private", minRank: null, language: null })
+    expect(creationSettings(PRIVATE_TABLE, "normal", null, range)).toEqual({ visibility: "private", minRank: null, language: null, pace: "normal", seats: 3 })
   })
 
   it("takes what the host picked, and what it makes is what the server accepts", () => {

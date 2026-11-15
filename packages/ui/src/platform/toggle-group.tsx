@@ -16,7 +16,7 @@ const ToggleGroupContext = React.createContext<string | null>(null)
  * puts them in one container the width of its parent, on the `muted` fill like the track of a tab list, each chip the same width
  * (`flex-1`; give one `flex-none` and a width to make it narrower, an icon alone). In a segmented group that keeps one picked, the fill
  * behind the chip that is picked is a thumb that glides to the next chip when another is picked, with the spring of the navbar's fill
- * (`SPRING_TRAVEL`), and jumps when a visitor asks for less motion; a group that is `disabled` shows what is picked and takes no press.
+ * (`SPRING_TRAVEL`), and jumps when a visitor asks for less motion; a group that is `disabled` shows what is picked and takes no press. The thumb takes the corner of the chip it is behind, so a taller chip (the mode switch's) gives it the corner it sets.
  */
 function ToggleGroup({
   className,
@@ -75,7 +75,7 @@ function ToggleGroupItem({
           layoutId="toggle-group-thumb"
           aria-hidden="true"
           data-slot="toggle-group-thumb"
-          className="absolute -inset-px -z-10 rounded-lg bg-primary group-hover/toggle-item:bg-primary/80"
+          className="absolute -inset-px -z-10 rounded-[inherit] bg-primary group-hover/toggle-item:bg-primary/80"
           transition={SPRING_TRAVEL}
         />
       )}

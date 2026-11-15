@@ -18,7 +18,8 @@ A box takes the step of its role, whatever its size.
 
 | Role | Utility | Used by |
 | --- | --- | --- |
-| Surface | `rounded-4xl` | A box that holds other boxes: menu, popover, select, dialog, panels (friends, social, chat), card, game card, banner, cookie banner, login card, an empty state |
+| Surface | `rounded-4xl` | A box that holds other boxes: menu, popover, select, dialog, panels (friends, social, chat), card, game card, cookie banner, login card, an empty state |
+| Panel of a list | `rounded-2xl` | A popover that holds a search and a list: the select with a search, the games, the friends; its rows are one step in (`rounded-xl`) |
 | Bar | `rounded-3xl` | The home's search bar |
 | Row | `rounded-2xl` | A row of a list and a list of rows (a table), an island, an alert, a menu item |
 | Control | `rounded-xl` | Button, field (input, text area, select trigger, input group), tab bar, a tab of the social panel, a chat bubble |
@@ -31,6 +32,7 @@ A box takes the step of its role, whatever its size.
 
 - A surface is the roundest box: nothing is rounder than `rounded-4xl`. A bar is `rounded-3xl`, since at `rounded-4xl` it would be a capsule.
 - A list is as round as its rows: a table, or a stack of rows, takes the row step and never the surface's.
+- A panel that holds a list is as round as a row too: it is as wide as it is tall, and at the surface step a short one is nearly a capsule. Its rows are the step inside it.
 - A tile is `rounded-tile` and never a step of the scale: a share of its side, so a small tile is not rounder than a large one.
 - Only the picture of a person is a circle, besides the shapes that are one by nature (last row). A game, its icon and its card are rounded like anything else.
 - Nothing is a capsule: no corner reaches half the height of its box. The one exception is the highlight of a menu row, which shows under the pointer only and keeps `rounded-2xl`.

@@ -24,6 +24,8 @@ type LanguageOption = { value: string; label: string }
 type LobbyAccessValue = { visibility: LobbyVisibilityValue; minRank: Tier | null; language: string | null }
 
 type LobbyAccessProps = Omit<React.ComponentProps<typeof Button>, "variant" | "size" | "onChange" | "children" | "defaultValue"> & {
+  /** How big the button is: `icon-sm` at the top right of a lobby's panel, `icon-xl` beside the main button of the play zone, which is as tall as it. */
+  size?: "icon-sm" | "icon-xl"
   /** What it is set to when it is drawn: the table's own, or `public` for a lobby that is about to be opened. */
   defaultVisibility?: LobbyVisibilityValue
   /** The least rank a player must have to sit at the table, a tier, or none. */
@@ -38,7 +40,7 @@ type LobbyAccessProps = Omit<React.ComponentProps<typeof Button>, "variant" | "s
 /** What a select cannot hold as an empty value: the choice that asks for nothing. */
 const ANY = "any"
 
-function LobbyAccess({ defaultVisibility = "public", defaultMinRank = null, defaultLanguage = null, languages = [], onChange, className, ...props }: LobbyAccessProps) {
+function LobbyAccess({ defaultVisibility = "public", defaultMinRank = null, defaultLanguage = null, languages = [], onChange, size = "icon-sm", className, ...props }: LobbyAccessProps) {
   const titleId = React.useId()
   const rankId = React.useId()
   const languageId = React.useId()
@@ -57,7 +59,7 @@ function LobbyAccess({ defaultVisibility = "public", defaultMinRank = null, defa
           data-slot="lobby-access"
           type="button"
           variant="outline"
-          size="icon-sm"
+          size={size}
           aria-label={`Who can join: ${public_ ? "public" : "private"}${restricted ? ", with criteria" : ""}`}
           title="Who can join"
           className={className}

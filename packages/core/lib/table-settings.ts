@@ -159,6 +159,9 @@ export type AccessChoice = { visibility: Visibility; minRank: Tier | null; langu
 /** What the button is set to before the host touches it: a public table that asks for nothing (it is what the button's globe shows). */
 export const OPEN_TO_ANYONE: AccessChoice = { visibility: "public", minRank: null, language: null }
 
+/** What the button is set to when the visitor opens a table of their own from the home's Custom mode: private, reached by its link or by the invitations they send, which is what a table of friends is. */
+export const PRIVATE_TABLE: AccessChoice = { visibility: "private", minRank: null, language: null }
+
 /**
  * What the host chose before the table existed, as the create route takes it: who may join (the button at the top right of the space that opens a table), the speed and the number of players, each as the panel shows it. A rank that asks for nothing is `null`;
  * a language that is not one the lobby offers is left out (the server would refuse it); a speed the lobby does not offer is the usual one; the number of players that was not picked is the median of the game's players (`defaultSeats`), and one that is not between the game's least and most

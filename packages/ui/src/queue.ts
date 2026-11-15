@@ -1,3 +1,5 @@
+import { SPEEDS, type Pace } from "./tables"
+
 // The queue of a visitor who is looking for a table, for the buttons that start a search (a game's page, the signed-in home) and for the social panel, which both show it: the games they look for, whether the table is ranked or normal, and since when, the tables the search has
 // sat them at and how full they are, the time they have waited as a counter ("0:12"), and the way a queue that was kept in the browser is read back. Pure, so that it is tested as it is. The hub keeps the queue in the page (`apps/web/src/lib/matchmaking.ts`) and the blocks draw
 // what they are given. A queue lasts until a table of it begins or the visitor stops it.
@@ -17,11 +19,20 @@ export const QUEUE_MODE_HINTS: Record<QueueMode, string> = { ranked: "Counts for
 /** A game a visitor looks for a table of. */
 export type QueueGame = { slug: string; name: string }
 
+/**
+ * What a search asks of the tables of one game besides how they count: how fast they are played (a speed of a lobby; none asked is the usual one, and a ranked search is always played at it) and the expansions they are played with (the platform's slugs of the game's expansions;
+ * none asked is none). A table that is played another way is not sat at, and the one a search opens is played this way. Each is the visitor's choice for one game, in the settings of its tile on the home.
+ */
+export type QueueCriteria = { pace?: Pace; expansions?: string[] }
+
+/** The most expansions a game's criteria hold: a game has a few, and what a browser keeps is anybody's. */
+export const QUEUE_EXPANSIONS_MAX = 20
+
 /** A table that a search has sat the visitor at: which one (a game and a code), where it is (`lobby` waits for players, the others have begun) and how many sit at it of those it is set for. */
 export type QueueTable = { game: string; code: string; status: "lobby" | "starting" | "playing"; players: number; seats: number }
 
-/** The games a visitor looks for (at least one), the kind of table they want, the moment they started (milliseconds since the epoch) and, once the server has sat them down, the table they have for each game. */
-export type Queue = { games: QueueGame[]; mode: QueueMode; since: number; tables?: QueueTable[] }
+/** The games a visitor looks for (at least one), the kind of table they want, what they ask of the tables of each game (by slug: only the games that ask for something have an entry), the moment they started (milliseconds since the epoch) and, once the server has sat them down, the table they have for each game. */
+export type Queue = { games: QueueGame[]; mode: QueueMode; since: number; criteria?: Record<string, QueueCriteria>; tables?: QueueTable[] }
 
 /**
  * The longest a queue that was kept in the browser is still believed when the page is read back: a tab that was forgotten for hours says nothing the visitor wants any more. It is two hours,
@@ -69,6 +80,44 @@ const isLine = (value: unknown): value is string => typeof value === "string" &&
 const isMode = (value: unknown): value is QueueMode => QUEUE_MODES.some((mode) => mode === value)
 const isCount = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 100
 const STATUSES: readonly QueueTable["status"][] = ["lobby", "starting", "playing"]
+const isId = (value: unknown): value is string => typeof value === "string" && /^[a-z0-9][a-z0-9-]{0,63}$/.test(value)
+
+/** The criteria of one game as they were sent or kept, or null for anything that is not one: a speed that a lobby offers, expansions that are slugs, each listed once and `QUEUE_EXPANSIONS_MAX` at the most. A key that is not one of ours is left out. */
+export function parseCriteria(raw: unknown): QueueCriteria | null {
+  if (!isRecord(raw)) return null
+  const criteria: QueueCriteria = {}
+  if (raw.pace !== undefined) {
+    if (typeof raw.pace !== "string" || !(SPEEDS as readonly string[]).includes(raw.pace)) return null
+    criteria.pace = raw.pace as Pace
+  }
+  if (raw.expansions !== undefined) {
+    if (!Array.isArray(raw.expansions) || raw.expansions.length > QUEUE_EXPANSIONS_MAX) return null
+    const ids: string[] = []
+    for (const id of raw.expansions) {
+      if (!isId(id)) return null
+      if (!ids.includes(id)) ids.push(id)
+    }
+    criteria.expansions = ids
+  }
+  return criteria
+}
+
+/**
+ * What a search asks of each of its games, as it was sent or kept: an object by the slug of a game that is one of `slugs`, each value the criteria of that game (`parseCriteria`). Null for anything else (a game that is not in the search, a value that is not criteria), so that a request that
+ * asks for what it does not look for is refused; nothing at all is `{}`. A game whose criteria ask for nothing is left out: the usual speed and no expansion is what every search asks.
+ */
+export function parseCriteriaOf(raw: unknown, slugs: readonly string[]): Record<string, QueueCriteria> | null {
+  if (raw === undefined || raw === null) return {}
+  if (!isRecord(raw)) return null
+  const all: Record<string, QueueCriteria> = {}
+  for (const [slug, value] of Object.entries(raw)) {
+    const criteria = parseCriteria(value)
+    if (!slugs.includes(slug) || !criteria) return null
+    if (criteria.pace !== undefined && criteria.pace !== "normal") all[slug] = { ...all[slug], pace: criteria.pace }
+    if (criteria.expansions !== undefined && criteria.expansions.length > 0) all[slug] = { ...all[slug], expansions: criteria.expansions }
+  }
+  return all
+}
 
 /** The tables a queue kept, each checked: what is not a table of a search is left out, so that the next answer of the server fills them again. */
 function parseTables(raw: unknown): QueueTable[] {
@@ -96,5 +145,7 @@ export function parseQueue(raw: unknown, now: number): Queue | null {
     games.push({ slug: game.slug, name: game.name })
   }
   const tables = parseTables(raw.tables)
-  return { games, mode: raw.mode, since: raw.since, ...(tables.length > 0 ? { tables } : {}) }
+  // What the search asked of its games is read the same way the server reads it, and left out when it is not one: the search goes on with the usual
+  const criteria = parseCriteriaOf(raw.criteria, games.map((game) => game.slug)) ?? {}
+  return { games, mode: raw.mode, since: raw.since, ...(Object.keys(criteria).length > 0 ? { criteria } : {}), ...(tables.length > 0 ? { tables } : {}) }
 }

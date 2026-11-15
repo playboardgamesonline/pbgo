@@ -71,7 +71,9 @@ type LobbySettingsProps = Omit<React.ComponentProps<"div">, "onChange"> & {
   chosenHelpers?: readonly string[]
   /** Whether the visitor sets them (the lobby is theirs) or reads them (a table of the list). */
   editable?: boolean
-  /** What the page puts between the speed and the expansions, as a block of the settings: the signed-in home's Create a table has the number of players there (`LobbyPlayers`), since it sets them before the lobby has seats. */
+  /** Whether the speed is set here (it is, unless the page says it is not): the settings of a ranked search leave the slider out, since a ranked table is played at the usual speed. */
+  speed?: boolean
+  /** What the page puts between the speed and the expansions, as a block of the settings: the play zone of the signed-in home has the number of players there (`LobbyPlayerCount`) for the table it opens, since it sets them before the lobby has seats. */
   afterSpeed?: React.ReactNode
   onChange?: (value: LobbySettingsValue) => void
   /** A press on the box of an expansion the visitor cannot choose (`ExpansionOption.locked`): the expansion is not chosen, and the page decides what to do (tell why, ask for what is missing). */
@@ -274,7 +276,7 @@ function SwitchRow({ option, on, onChange }: { option: SettingOption; on: boolea
  * The settings of a lobby: the speed, then the expansions of the game as cards (a visitor who sets the lobby ticks one to choose it; one who reads a table sees only the ones it is played with), then, for a visitor who sets the lobby, the helpers that the game
  * offers, a small row and a switch each. Each group has its small title. The container decides the width of the picture of an expansion and whether the names of the speeds fit (`@container`).
  */
-function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chosenHelpers, editable = false, afterSpeed, onChange, onLockedPick, className, ...props }: LobbySettingsProps) {
+function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chosenHelpers, editable = false, speed = true, afterSpeed, onChange, onLockedPick, className, ...props }: LobbySettingsProps) {
   const [set, setSet] = React.useState<LobbySettingsValue>({ expansions: [...chosen], pace, helpers: chosenHelpers ? [...chosenHelpers] : helpers.map((helper) => helper.id), expansionSettings: {} })
   // What is read comes from the table that is given, so that the panel follows the row that is picked; what is set is the visitor's own
   const value = editable ? set : { expansions: [...chosen], pace, helpers: [], expansionSettings: {} }
@@ -285,36 +287,38 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chose
   const shown = editable ? expansions : expansions.filter((expansion) => value.expansions.includes(expansion.id))
   return (
     <div data-slot="lobby-settings" data-editable={editable ? "" : undefined} className={cn("@container flex flex-col gap-5", className)} {...props}>
-      <Group title="Speed">
-        {editable || SPEEDS.includes(value.pace) ? (
-          // Every table has the slider: the visitor who sets the lobby moves it, the one who reads a table of the list sees where it stands and cannot press it
-          <ToggleGroup
-            type="single"
-            variant="segmented"
-            value={value.pace}
-            disabled={!editable}
-            onValueChange={(next) => next && change({ ...set, pace: next as Pace })}
-            aria-label="Speed of the game"
-            // It reaches 12px out of the column on each side, as the cards of the expansions do, so that the two blocks have the same edges
-            className="-mx-3 w-auto"
-          >
-            {SPEEDS.map((speed) =>
-              speed === "none" ? (
-                // No timer is an infinity and nothing else, narrower than the others, which share the rest of the width alike: its name is for a screen reader and for the pointer
-                <ToggleGroupItem key={speed} value={speed} fit aria-label="No timer" title="No timer" className={cn("w-12 px-0", CHIP, READ)}>
-                  <HugeiconsIcon icon={InfinityIcon} strokeWidth={2} className="size-4" aria-hidden="true" />
-                </ToggleGroupItem>
-              ) : (
-                <ToggleGroupItem key={speed} value={speed} className={cn(CHIP, READ)}>
-                  {PACES.find((pace) => pace.value === speed)?.label}
-                </ToggleGroupItem>
-              )
-            )}
-          </ToggleGroup>
-        ) : (
-          <p>{PACES.find((option) => option.value === value.pace)?.label}</p>
-        )}
-      </Group>
+      {speed && (
+        <Group title="Speed">
+          {editable || SPEEDS.includes(value.pace) ? (
+            // Every table has the slider: the visitor who sets the lobby moves it, the one who reads a table of the list sees where it stands and cannot press it
+            <ToggleGroup
+              type="single"
+              variant="segmented"
+              value={value.pace}
+              disabled={!editable}
+              onValueChange={(next) => next && change({ ...set, pace: next as Pace })}
+              aria-label="Speed of the game"
+              // It reaches 12px out of the column on each side, as the cards of the expansions do, so that the two blocks have the same edges
+              className="-mx-3 w-auto"
+            >
+              {SPEEDS.map((choice) =>
+                choice === "none" ? (
+                  // No timer is an infinity and nothing else, narrower than the others, which share the rest of the width alike: its name is for a screen reader and for the pointer
+                  <ToggleGroupItem key={choice} value={choice} fit aria-label="No timer" title="No timer" className={cn("w-12 px-0", CHIP, READ)}>
+                    <HugeiconsIcon icon={InfinityIcon} strokeWidth={2} className="size-4" aria-hidden="true" />
+                  </ToggleGroupItem>
+                ) : (
+                  <ToggleGroupItem key={choice} value={choice} className={cn(CHIP, READ)}>
+                    {PACES.find((pace) => pace.value === choice)?.label}
+                  </ToggleGroupItem>
+                )
+              )}
+            </ToggleGroup>
+          ) : (
+            <p>{PACES.find((option) => option.value === value.pace)?.label}</p>
+          )}
+        </Group>
+      )}
       {afterSpeed}
       {shown.length > 0 && (
         <Group title={editable ? "Expansions" : "Played with"}>
@@ -358,5 +362,41 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chose
   )
 }
 
-export { LobbySettings }
-export type { ExpansionFact, ExpansionLock, ExpansionOption, ExpansionTag, HelperOption, LobbySettingsProps, LobbySettingsValue, SettingOption }
+type LobbyPlayerCountProps = {
+  /** How many players the game takes, from its least to its most. */
+  range: { min: number; max: number }
+  /** How many players the table is set for. */
+  count: number
+  onCountChange: (count: number) => void
+  disabled?: boolean
+}
+
+/**
+ * How many players a table that is about to be opened is set for, as a block of the settings under the speed ("Players"): a segmented toggle with a chip for each count from the game's least to its most, the same slider as the speed. It is for the play zone's Custom table, whose
+ * row of places (`PlayerSlots`) shows as many places as the count says; a lobby that exists has its number above its seats (`LobbyPlayers`).
+ */
+function LobbyPlayerCount({ range, count, onCountChange, disabled = false }: LobbyPlayerCountProps) {
+  const numbers = Array.from({ length: Math.max(0, range.max - range.min + 1) }, (_, index) => range.min + index)
+  return (
+    <Group title="Players">
+      <ToggleGroup
+        type="single"
+        variant="segmented"
+        value={String(count)}
+        disabled={disabled}
+        onValueChange={(next) => next && onCountChange(Number(next))}
+        aria-label="Number of players"
+        className="-mx-3 w-auto"
+      >
+        {numbers.map((number) => (
+          <ToggleGroupItem key={number} value={String(number)} className={cn(CHIP, READ)}>
+            {number}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </Group>
+  )
+}
+
+export { Group as SettingsGroup, LobbyPlayerCount, LobbySettings }
+export type { ExpansionFact, ExpansionLock, ExpansionOption, ExpansionTag, HelperOption, LobbyPlayerCountProps, LobbySettingsProps, LobbySettingsValue, SettingOption }

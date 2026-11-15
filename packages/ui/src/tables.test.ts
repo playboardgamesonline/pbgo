@@ -206,10 +206,11 @@ describe("defaultSeats", () => {
   })
 
   it("is what playerRange gives a game that says no most or nothing at all", () => {
+    // Up to the nine seats of a table: the middle of 2 to 9
     const { min, max } = playerRange(2, null)
-    expect(defaultSeats(min, max)).toBe(6)
+    expect(defaultSeats(min, max)).toBe(5)
     const none = playerRange(null, null)
-    expect(defaultSeats(none.min, none.max)).toBe(6)
+    expect(defaultSeats(none.min, none.max)).toBe(5)
   })
 })
 
