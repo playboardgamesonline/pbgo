@@ -12,7 +12,7 @@ import { UserCard } from "@pbgo/ui/platform/user-card"
 import { seatsOf } from "@pbgo/ui/tables"
 import { CookieBannerDemo } from "./cookie-banner-demo"
 import { MenuDemo } from "./menu-demo"
-import { FriendRequestReceivedDemo, FriendRequestSentDemo, GameInvitationDemo, ToastFixedDemo, ToastKindsDemo } from "./toast-demo"
+import { FriendRequestReceivedDemo, FriendRequestSentDemo, GameInvitationDemo, GroupInvitationDemo, JoinRequestDemo, ToastFixedDemo, ToastKindsDemo } from "./toast-demo"
 import { Frame } from "./text"
 
 const ROW = "flex flex-wrap items-center gap-3"
@@ -171,6 +171,32 @@ function ToastGameInvitation() {
   )
 }
 
+function ToastGroupInvitation() {
+  return (
+    <Frame code={`showGroupInvitation({
+  from: person,
+  onAccept: () => join(),
+  onDecline: () => refuse(),
+  onDismiss: () => forget(),
+})`}>
+      <GroupInvitationDemo />
+    </Frame>
+  )
+}
+
+function ToastJoinRequest() {
+  return (
+    <Frame code={`showJoinRequest({
+  from: person,
+  onAccept: () => letIn(),
+  onDecline: () => refuse(),
+  onDismiss: () => forget(),
+})`}>
+      <JoinRequestDemo />
+    </Frame>
+  )
+}
+
 function CookieBannerFirstVisit() {
   return (
     <Frame code={`const banner = useRef<HTMLDivElement>(null)
@@ -266,6 +292,8 @@ export const overlaysSpecimens: Specimens = {
   "toast-friend-request-sent": ToastFriendRequestSent,
   "toast-friend-request-received": ToastFriendRequestReceived,
   "toast-game-invitation": ToastGameInvitation,
+  "toast-group-invitation": ToastGroupInvitation,
+  "toast-join-request": ToastJoinRequest,
   "cookie-banner-first-visit": CookieBannerFirstVisit,
   "cookie-banner-customize": CookieBannerCustomize,
   "cookie-banner-reopened": CookieBannerReopened,

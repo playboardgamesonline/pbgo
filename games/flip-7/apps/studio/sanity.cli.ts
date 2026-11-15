@@ -7,6 +7,7 @@ export default defineCliConfig({
   },
   studioHost: process.env.SANITY_STUDIO_HOST ?? "flip-7",
   deployment: {
+    appId: "fztyjg5a2xp1b7ew9mq9twe7",
     autoUpdates: true,
   },
   typegen: {

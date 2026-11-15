@@ -26,7 +26,7 @@ export const texts = createTexts(
     word("cell", "Spoken name of a card of your grid, pressed to use it ({column}, {row})"),
     word("lastTurn", "Status · plays a last turn"),
     word("ended", "Status · turned every card over and ended the round"),
-    word("roundPoints", "Status · points of the round ({points})"),
+    word("roundPoints", "Status · points of the round, with its sign ({points})"),
     word("roundPointsDoubled", "Status · points of the round, doubled ({points})"),
     word("round", "Round ({number})"),
     word("endsAt", "Score that ends the game ({points})"),

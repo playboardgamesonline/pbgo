@@ -5,11 +5,18 @@ const mocks = vi.hoisted(() => ({
   sendInvitation: vi.fn(),
   acceptInvitation: vi.fn(),
   declineInvitation: vi.fn(),
+  inviteToGroup: vi.fn(),
+  askToJoinGroup: vi.fn(),
 }))
 
 vi.mock("server-only", () => ({}))
 vi.mock("@pbgo/accounts/server", () => ({ getAccount: async () => mocks.account }))
 vi.mock("../../../../server/player", () => ({ getPlayerId: async () => null }))
+vi.mock("../../../../server/groups", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../../server/groups")>()),
+  inviteToGroup: mocks.inviteToGroup,
+  askToJoinGroup: mocks.askToJoinGroup,
+}))
 vi.mock("../../../../server/invitations", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../../server/invitations")>()),
   sendInvitation: mocks.sendInvitation,
@@ -35,9 +42,11 @@ const SEND = { nickname: "Bob", tag: 42, game: "hanabi", code: "K7Q2" }
 
 beforeEach(() => {
   mocks.account = null
-  for (const mock of [mocks.sendInvitation, mocks.acceptInvitation, mocks.declineInvitation]) mock.mockReset()
+  for (const mock of [mocks.sendInvitation, mocks.acceptInvitation, mocks.declineInvitation, mocks.inviteToGroup, mocks.askToJoinGroup]) mock.mockReset()
   mocks.sendInvitation.mockResolvedValue("sent")
-  mocks.acceptInvitation.mockResolvedValue({ game: "hanabi", code: "K7Q2" })
+  mocks.inviteToGroup.mockResolvedValue("sent")
+  mocks.askToJoinGroup.mockResolvedValue("sent")
+  mocks.acceptInvitation.mockResolvedValue({ kind: "table", game: "hanabi", code: "K7Q2" })
   mocks.declineInvitation.mockResolvedValue("declined")
   setRateLimitStore(new MemoryRateLimitStore())
   vi.spyOn(console, "error").mockImplementation(() => {})
@@ -110,14 +119,132 @@ describe("POST /api/hub/invitations/send", () => {
     expect(await (await post("send", SEND)).json()).toEqual({ ok: true, result: "sent" })
     expect(mocks.sendInvitation).not.toHaveBeenCalled()
   })
+
+  it("takes an invitation to a table to be the kind that says so, and does not mix it with a group", async () => {
+    mocks.account = { id: ANN }
+    await post("send", { ...SEND, kind: "table" })
+    expect(mocks.sendInvitation).toHaveBeenCalledExactlyOnceWith(deps, mocks.account, { nickname: "Bob", tag: 42 }, { game: "hanabi", code: "K7Q2" })
+    expect(mocks.inviteToGroup).not.toHaveBeenCalled()
+    expect(mocks.askToJoinGroup).not.toHaveBeenCalled()
+  })
+})
+
+describe("POST /api/hub/invitations/send, for a group", () => {
+  it("invites the friend of the handle to the group of the signed-in account, with no table", async () => {
+    mocks.account = { id: ANN, nickname: "Ann" }
+    const response = await post("send", { kind: "group", nickname: "Bob", tag: 42 })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true, result: "sent" })
+    expect(mocks.inviteToGroup).toHaveBeenCalledExactlyOnceWith(mocks.account, { nickname: "Bob", tag: 42 })
+    expect(mocks.sendInvitation).not.toHaveBeenCalled()
+    expect(mocks.askToJoinGroup).not.toHaveBeenCalled()
+  })
+
+  it("asks to join the group of the friend of the handle, as the signed-in account", async () => {
+    mocks.account = { id: ANN, nickname: "Ann" }
+    expect(await (await post("send", { kind: "join", nickname: "Bob", tag: 42 })).json()).toEqual({ ok: true, result: "sent" })
+    expect(mocks.askToJoinGroup).toHaveBeenCalledExactlyOnceWith(mocks.account, { nickname: "Bob", tag: 42 })
+    expect(mocks.inviteToGroup).not.toHaveBeenCalled()
+  })
+
+  it("acts as the account that is signed in, whatever the request says of who it is, and ignores a table it is sent", async () => {
+    mocks.account = { id: ANN }
+    await post("send", { kind: "group", nickname: "Bob", tag: 42, sender: "someone-else", game: "hanabi", code: "K7Q2" })
+    expect(mocks.inviteToGroup).toHaveBeenCalledExactlyOnceWith(mocks.account, { nickname: "Bob", tag: 42 })
+    expect(mocks.sendInvitation).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["no handle", { kind: "group" }],
+    ["a tag that is not one", { kind: "group", nickname: "Bob", tag: 0 }],
+    ["a kind that is none of the three", { kind: "party", nickname: "Bob", tag: 42 }],
+    ["a kind that is not a word", { kind: 3, nickname: "Bob", tag: 42 }],
+    ["a kind that is null", { kind: null, nickname: "Bob", tag: 42 }],
+  ])("refuses %s with 400 INVITE_INVALID, and writes nothing", async (_name, body) => {
+    mocks.account = { id: ANN }
+    const response = await post("send", body)
+    expect(response.status).toBe(400)
+    expect(await errorOf(response)).toBe("INVITE_INVALID")
+    expect(mocks.inviteToGroup).not.toHaveBeenCalled()
+    expect(mocks.askToJoinGroup).not.toHaveBeenCalled()
+    expect(mocks.sendInvitation).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["FRIEND_NOT_FOUND", 404],
+    ["FRIEND_SELF", 400],
+    ["INVITE_NOT_FRIEND", 403],
+    ["INVITE_LIMIT", 409],
+    ["INVITE_UNAVAILABLE", 409],
+    ["GROUP_FULL", 409],
+    ["GROUP_ALREADY_MEMBER", 409],
+    ["GROUP_TARGET_IN_GROUP", 409],
+  ])("passes the refusal %s of an invitation to a group on, with %i", async (code, status) => {
+    mocks.account = { id: ANN }
+    mocks.inviteToGroup.mockRejectedValue(new ApiError(code, status))
+    const response = await post("send", { kind: "group", nickname: "Bob", tag: 42 })
+    expect(response.status).toBe(status)
+    expect(await errorOf(response)).toBe(code)
+  })
+
+  it.each([
+    ["GROUP_ALREADY_IN", 409],
+    ["GROUP_GONE", 404],
+    ["GROUP_FULL", 409],
+    ["GROUP_UNAVAILABLE", 409],
+    ["INVITE_NOT_FRIEND", 403],
+  ])("passes the refusal %s of a request to join on, with %i", async (code, status) => {
+    mocks.account = { id: ANN }
+    mocks.askToJoinGroup.mockRejectedValue(new ApiError(code, status))
+    const response = await post("send", { kind: "join", nickname: "Bob", tag: 42 })
+    expect(response.status).toBe(status)
+    expect(await errorOf(response)).toBe(code)
+  })
+
+  it("says that groups are not available where migration 0027 is not applied", async () => {
+    mocks.account = { id: ANN }
+    mocks.inviteToGroup.mockRejectedValue({ code: "PGRST202" })
+    const response = await post("send", { kind: "group", nickname: "Bob", tag: 42 })
+    expect(response.status).toBe(503)
+    expect(await errorOf(response)).toBe("GROUPS_UNAVAILABLE")
+    mocks.askToJoinGroup.mockRejectedValue({ code: "42883" })
+    expect(await errorOf(await post("send", { kind: "join", nickname: "Bob", tag: 42 }))).toBe("GROUPS_UNAVAILABLE")
+  })
+
+  it("is told it is done by the demo account of development, and writes nothing", async () => {
+    mocks.account = DEMO_ACCOUNT
+    expect(await (await post("send", { kind: "group", nickname: "Bob", tag: 42 })).json()).toEqual({ ok: true, result: "sent" })
+    expect(await (await post("send", { kind: "join", nickname: "Bob", tag: 42 })).json()).toEqual({ ok: true, result: "sent" })
+    expect(mocks.inviteToGroup).not.toHaveBeenCalled()
+    expect(mocks.askToJoinGroup).not.toHaveBeenCalled()
+  })
 })
 
 describe("POST /api/hub/invitations/accept and decline", () => {
   it("accepts and gives the table to go to", async () => {
     mocks.account = { id: ANN }
     const response = await post("accept", { id: ID })
-    expect(await response.json()).toEqual({ ok: true, result: "accepted", game: "hanabi", code: "K7Q2" })
+    expect(await response.json()).toEqual({ ok: true, result: "accepted", kind: "table", game: "hanabi", code: "K7Q2" })
     expect(mocks.acceptInvitation).toHaveBeenCalledExactlyOnceWith(deps, mocks.account, ID)
+  })
+
+  it.each(["group", "join"] as const)("accepts an invitation of the kind %s, and says only which it was: the member is in the group", async (kind) => {
+    mocks.account = { id: ANN }
+    mocks.acceptInvitation.mockResolvedValue({ kind })
+    const response = await post("accept", { id: ID })
+    expect(await response.json()).toEqual({ ok: true, result: "accepted", kind })
+  })
+
+  it.each([
+    ["GROUP_ALREADY_IN", 409],
+    ["GROUP_FULL", 409],
+    ["GROUP_UNAVAILABLE", 409],
+  ])("passes the refusal %s of an acceptance of a group on, with %i", async (code, status) => {
+    mocks.account = { id: ANN }
+    mocks.acceptInvitation.mockRejectedValue(new ApiError(code, status))
+    const response = await post("accept", { id: ID })
+    expect(response.status).toBe(status)
+    expect(await errorOf(response)).toBe(code)
   })
 
   it("declines", async () => {
@@ -172,7 +299,7 @@ describe("every action", () => {
   })
 
   it("has a message for each refusal", () => {
-    for (const code of ["INVITE_INVALID", "INVITE_NOT_FRIEND", "INVITE_NOT_AT_TABLE", "INVITE_LIMIT", "INVITE_UNAVAILABLE", "INVITE_GONE", "INVITE_EXPIRED", "INVITE_TABLE_GONE", "INVITE_TABLE_STARTED", "INVITE_TABLE_FULL", "INVITATIONS_UNAVAILABLE"]) {
+    for (const code of ["INVITE_INVALID", "INVITE_NOT_FRIEND", "INVITE_NOT_AT_TABLE", "INVITE_LIMIT", "INVITE_UNAVAILABLE", "INVITE_GONE", "INVITE_EXPIRED", "INVITE_TABLE_GONE", "INVITE_TABLE_STARTED", "INVITE_TABLE_FULL", "INVITATIONS_UNAVAILABLE", "GROUP_FULL", "GROUP_ALREADY_IN", "GROUP_ALREADY_MEMBER", "GROUP_TARGET_IN_GROUP", "GROUP_GONE", "GROUP_UNAVAILABLE", "GROUPS_UNAVAILABLE"]) {
       expect(CORE_ERROR_MESSAGES[code], code).toBeTruthy()
     }
   })

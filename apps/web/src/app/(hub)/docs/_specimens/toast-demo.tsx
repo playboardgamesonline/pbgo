@@ -7,8 +7,12 @@ import {
   FriendRequestReceivedToast,
   FriendRequestSentToast,
   GameInvitationToast,
+  GroupInvitationToast,
+  JoinRequestToast,
   showFriendRequestReceived,
   showGameInvitation,
+  showGroupInvitation,
+  showJoinRequest,
   type ToastPerson,
 } from "@pbgo/ui/platform/person-toast"
 import { toast } from "@pbgo/ui/platform/sonner"
@@ -187,6 +191,82 @@ export function GameInvitationDemo() {
               onAccept: () => void toast.success("Joining the table"),
               onDecline: () => {},
               onDismiss: () => void toast.info("Invitation dismissed"),
+            })
+          }
+        >
+          Raise the toast
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export function GroupInvitationDemo() {
+  const [said, setSaid] = useState<string | null>(null)
+  return (
+    <div className="flex flex-col gap-4">
+      <div className={CARD}>
+        <GroupInvitationToast
+          person={NOLAN}
+          onAccept={async () => {
+            await later(600)
+            setSaid("Accepted.")
+          }}
+          onDecline={async () => {
+            await later(600)
+            setSaid("Declined.")
+          }}
+          onDismiss={() => setSaid("Dismissed, with no answer.")}
+        />
+      </div>
+      <Said said={said} />
+      <div>
+        <Button
+          variant="outline"
+          onClick={() =>
+            showGroupInvitation({
+              from: NOLAN,
+              onAccept: () => void toast.success("You joined the group"),
+              onDecline: () => {},
+              onDismiss: () => void toast.info("Invitation dismissed"),
+            })
+          }
+        >
+          Raise the toast
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export function JoinRequestDemo() {
+  const [said, setSaid] = useState<string | null>(null)
+  return (
+    <div className="flex flex-col gap-4">
+      <div className={CARD}>
+        <JoinRequestToast
+          person={NOLAN}
+          onAccept={async () => {
+            await later(600)
+            setSaid("Let in.")
+          }}
+          onDecline={async () => {
+            await later(600)
+            setSaid("Declined.")
+          }}
+          onDismiss={() => setSaid("Dismissed, with no answer.")}
+        />
+      </div>
+      <Said said={said} />
+      <div>
+        <Button
+          variant="outline"
+          onClick={() =>
+            showJoinRequest({
+              from: NOLAN,
+              onAccept: () => void toast.success("Nolan#6150 joined your group"),
+              onDecline: () => {},
+              onDismiss: () => void toast.info("Request dismissed"),
             })
           }
         >

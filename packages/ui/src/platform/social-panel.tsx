@@ -1,23 +1,25 @@
 "use client"
 
 import * as React from "react"
-import { Cancel01Icon, Chatting01Icon, Link01Icon, PanelRightCloseIcon, PanelRightOpenIcon, Tick02Icon, UserAdd01Icon, UserListIcon } from "@hugeicons/core-free-icons"
+import { Cancel01Icon, Chatting01Icon, Link01Icon, PanelRightCloseIcon, PanelRightOpenIcon, Tick02Icon, UserAdd01Icon, UserGroupIcon, UserListIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AnimatePresence, LayoutGroup, motion } from "motion/react"
 import { initials, type Friend } from "../friends"
+import type { Group, GroupMember } from "../groups"
 import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "../motion"
-import { lastMessage, sortedConversations, timeAgo, unreadOf, type Conversation, type FriendRequest, type TableInvitation } from "../social"
+import { lastMessage, sortedConversations, timeAgo, unreadOf, type Conversation, type FriendRequest, type Invitation } from "../social"
 import { cn } from "../utils"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { AddFriendForm } from "./add-friend-form"
 import { Badge } from "./badge"
 import { Button } from "./button"
 import { FriendsRoster, PresenceDot, type FriendMenuHandlers } from "./friends-panel"
+import { GroupPane } from "./group-panel"
 import { InvitationsCard } from "./invitations-card"
 import { QueueCard, type QueueCardProps } from "./queue"
 import { Tabs, TabsList, TabsTrigger } from "./tabs"
 
-// The social panel of a signed-in visitor, the way the Riot Client has it: three tabs, each an icon (the friends, game by game, and what they are doing, `FriendsRoster`; the conversations
+// The social panel of a signed-in visitor, the way the Riot Client has it: three or four tabs, each an icon (the friends, game by game, and what they are doing, `FriendsRoster`; the visitor's group, `GroupPane`, when the page has groups; the conversations
 // with them; and the way to add a friend, `AddFriendForm` (the username and the tag side by side and one button under them), with the requests that wait for an answer under it, the ones that came in
 // and then the ones that went out, as the Riot Client lists them), the search of the friends, and the list. The tabs that have something for the visitor (messages
 // not read, requests to answer) carry a count. The tile behind the current tab is one element that glides to the tab that is pressed, and the pane of a tab comes in from the side the tab is
@@ -25,9 +27,9 @@ import { Tabs, TabsList, TabsTrigger } from "./tabs"
 // surface of its own it is a column for a page, with a `header` (whatever the page puts at the top, usually a picture, a name and a status); `bare` draws none: it is then the body of the
 // dock of the navbar (`SocialDock`), which is its surface and whose bar holds the button that opens and closes it (`SocialPanelToggle`). It is drawn from what it is given and decides
 // nothing: where the friends, the messages and the requests come from (PLT-23) and what a press does are the page's, and a button whose handler is missing is not drawn (the form that
-// adds a friend is off). The dot of a friend's presence wears its colour (`FriendsRoster`, `PresenceDot`). While the visitor looks for a game the panel has a card for it at the top, over the tabs, whatever tab is open (`QueueCard`), and the invitations to a table that wait for them have one under it (`InvitationsCard`, PLT-109).
+// adds a friend is off). The dot of a friend's presence wears its colour (`FriendsRoster`, `PresenceDot`). While the visitor looks for a game the panel has a card for it at the top, over the tabs, whatever tab is open (`QueueCard`), and what waits for their answer, the invitations to a table, the invitations to a group and the requests to join theirs, has one under it (`InvitationsCard`, PLT-109, PLT-23).
 
-export type SocialTab = "friends" | "messages" | "add"
+export type SocialTab = "friends" | "group" | "messages" | "add"
 
 /** The count on the corner of a tab: at the top right of its icon, which is in the middle. */
 const COUNT = "absolute top-0.5 left-1/2 ml-2 h-4 min-w-4 justify-center px-1"
@@ -36,7 +38,7 @@ const COUNT = "absolute top-0.5 left-1/2 ml-2 h-4 min-w-4 justify-center px-1"
 const TAB = "relative isolate rounded-xl px-0 data-active:bg-transparent"
 
 /** The tabs, in the order of the bar: the way a change of tab went is read from it. */
-const ORDER: readonly SocialTab[] = ["friends", "messages", "add"]
+const ORDER: readonly SocialTab[] = ["friends", "group", "messages", "add"]
 
 /**
  * What a pane does as the tab changes: the one that was shown leaves quickly, to the side that the tab went from, and the one of the tab that was pressed comes in from the side it went
@@ -50,7 +52,7 @@ const PANE = {
 
 /**
  * What marks the current tab: the tile behind it and a small white bar under it, as the Riot Client's tab has, glued to the foot of the tab bar (`-bottom-1.5`: 6px under the tab, which is where the
- * bar ends) and a little apart from the tile. Each is one element for the three tabs (`layoutId`), so that it travels when another tab is pressed, with the spring of the navbar's fill.
+ * bar ends) and a little apart from the tile. Each is one element for all the tabs (`layoutId`), so that it travels when another tab is pressed, with the spring of the navbar's fill.
  */
 function TabFill() {
   return (
@@ -87,17 +89,27 @@ type SocialPanelProps = Omit<React.ComponentProps<"aside">, "children"> & Friend
   gameIcon?: (slug: string) => string | undefined
   conversations: readonly Conversation[]
   requests: readonly FriendRequest[]
-  /** The invitations to a table that wait for the visitor's answer: a card at the top, over the tabs. */
-  invitations?: readonly TableInvitation[]
-  /** What the buttons of an invitation do (accept: sit down at the table; decline). The card has no button without it. */
-  onAnswerInvitation?: (invitation: TableInvitation, answer: "accept" | "decline") => void | boolean | Promise<boolean | void>
+  /** What waits for the visitor's answer, the invitations to a table, the invitations to a group and the requests to join theirs: a card at the top, over the tabs. */
+  invitations?: readonly Invitation[]
+  /** What the buttons of an invitation do (accept: sit down at the table, join the group, let in the one who asks; decline). The card has no button without it. */
+  onAnswerInvitation?: (invitation: Invitation, answer: "accept" | "decline") => void | boolean | Promise<boolean | void>
+  /** The visitor's group: a fourth tab, between the friends and the conversations, that shows it (`GroupPane`), or the way to start one when it is null. Left out, the page has no groups and the panel keeps its three tabs. */
+  group?: Group | null
+  /** What the button of the group tab that invites a friend does: open the picker of the friend to invite to the group. Not drawn without it. */
+  onInviteToGroup?: () => void
+  /** What the button that leaves the group does. Not drawn without it. */
+  onLeaveGroup?: () => void
+  /** What the entries of a member's menu do, for the leader (remove them, hand the lead over), and for any member (open their profile). An entry whose handler is missing is not drawn. */
+  onKickMember?: (member: GroupMember) => void
+  onMakeLeader?: (member: GroupMember) => void
+  onViewMember?: (member: GroupMember) => void
   /** The tab it opens on. */
   defaultTab?: SocialTab
   /** What a press on a friend, or on a conversation, does: open the chat with them. */
   onOpenChat?: (friend: Friend) => void
-  /** What the button of a friend who is online does. */
+  /** What the button of a friend who is connected and in no group does: invite them to the visitor's group. */
   onInvite?: (friend: Friend) => void
-  /** What the button of a friend who is in a game does. */
+  /** What the button of a friend who is in a group does: ask to join it. */
   onJoin?: (friend: Friend) => void
   /** What the button of the note on a friend, in their card (the card opens under the pointer, to the left of the panel), does. Not drawn without it. */
   onNote?: (friend: Friend) => void
@@ -224,7 +236,7 @@ function RequestGroup({ label, requests, onAnswer }: { label: string; requests: 
 }
 
 /**
- * The panel: the visitor at the top, then the three tabs under them. It fills the place the page gives it and scrolls what a tab holds, so the page places it
+ * The panel: the visitor at the top, then the tabs under them. It fills the place the page gives it and scrolls what a tab holds, so the page places it
  * (`PanelPresence`: `fixed`, on the right, from under the navbar's island to the bottom of the window).
  */
 function SocialPanel({
@@ -237,6 +249,12 @@ function SocialPanel({
   requests,
   invitations = [],
   onAnswerInvitation,
+  group,
+  onInviteToGroup,
+  onLeaveGroup,
+  onKickMember,
+  onMakeLeader,
+  onViewMember,
   tab: controlled,
   defaultTab = "friends",
   onTabChange,
@@ -257,7 +275,9 @@ function SocialPanel({
   ...props
 }: SocialPanelProps) {
   const [own, setOwn] = React.useState<SocialTab>(defaultTab)
-  const tab = controlled ?? own
+  // A panel with no groups has no group tab: a page that asks for it anyway gets the friends
+  const asked = controlled ?? own
+  const tab = asked === "group" && group === undefined ? "friends" : asked
   // Which way the last change of tab went, so that the pane comes in from that side
   const [way, setWay] = React.useState<1 | -1>(1)
   const unread = unreadOf(conversations)
@@ -265,7 +285,7 @@ function SocialPanel({
   const outgoing = requests.filter((request) => request.direction === "outgoing")
   const sorted = sortedConversations(conversations)
   // Each panel has its own tile and its own ids, so that two panels on one page (the specimens of the design docs) do not trade them
-  const group = React.useId()
+  const scope = React.useId()
 
   function pick(next: SocialTab) {
     if (next === tab) return
@@ -290,6 +310,7 @@ function SocialPanel({
         onBlock={onBlock}
       />
     ),
+    group: <GroupPane group={group ?? null} onInvite={onInviteToGroup} onLeave={onLeaveGroup} onKick={onKickMember} onMakeLeader={onMakeLeader} onViewProfile={onViewMember} />,
     messages: (
       <div className={COLUMN}>
         {sorted.length === 0 ? (
@@ -346,16 +367,22 @@ function SocialPanel({
       <InvitationsCard invitations={invitations} gameIcon={gameIcon} onAnswer={onAnswerInvitation} />
 
       <Tabs value={tab} onValueChange={(value) => pick(value as SocialTab)} className="min-h-0 flex-1 gap-4">
-        <LayoutGroup id={group}>
+        <LayoutGroup id={scope}>
           <TabsList className="w-full gap-1 rounded-2xl group-data-horizontal/tabs:h-12">
-            <TabsTrigger value="friends" id={`${group}-friends`} aria-controls={`${group}-pane`} aria-label="Friends" title="Friends" className={TAB}>
+            <TabsTrigger value="friends" id={`${scope}-friends`} aria-controls={`${scope}-pane`} aria-label="Friends" title="Friends" className={TAB}>
               <HugeiconsIcon icon={UserListIcon} strokeWidth={2} className={TAB_ICON} />
               {tab === "friends" && <TabFill />}
             </TabsTrigger>
+            {group !== undefined && (
+              <TabsTrigger value="group" id={`${scope}-group`} aria-controls={`${scope}-pane`} aria-label="Group" title="Group" className={TAB}>
+                <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className={TAB_ICON} />
+                {tab === "group" && <TabFill />}
+              </TabsTrigger>
+            )}
             <TabsTrigger
               value="messages"
-              id={`${group}-messages`}
-              aria-controls={`${group}-pane`}
+              id={`${scope}-messages`}
+              aria-controls={`${scope}-pane`}
               aria-label={unread > 0 ? `Messages, ${unread} unread` : "Messages"}
               title="Messages"
               className={TAB}
@@ -366,8 +393,8 @@ function SocialPanel({
             </TabsTrigger>
             <TabsTrigger
               value="add"
-              id={`${group}-add-tab`}
-              aria-controls={`${group}-pane`}
+              id={`${scope}-add-tab`}
+              aria-controls={`${scope}-pane`}
               aria-label={incoming.length > 0 ? `Add a friend, ${incoming.length} requests` : "Add a friend"}
               title="Add a friend"
               className={TAB}
@@ -382,9 +409,9 @@ function SocialPanel({
         <AnimatePresence mode="wait" initial={false} custom={way}>
           <motion.div
             key={tab}
-            id={`${group}-pane`}
+            id={`${scope}-pane`}
             role="tabpanel"
-            aria-labelledby={tab === "add" ? `${group}-add-tab` : `${group}-${tab}`}
+            aria-labelledby={tab === "add" ? `${scope}-add-tab` : `${scope}-${tab}`}
             custom={way}
             variants={PANE}
             initial="enter"

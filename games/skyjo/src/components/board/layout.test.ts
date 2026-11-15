@@ -131,13 +131,29 @@ describe("a grid", () => {
     expect(xs).toEqual([...xs].sort((a, b) => a - b))
   })
 
-  it("overlaps its rows a little, so that the figure at the top of each card stays readable, and never overlaps its columns", () => {
+  it("never overlaps two cards, in a row or in a column, and leaves a gap of at least a twentieth of a card between neighbours", () => {
     for (const scale of [0.3, 0.6, 1]) {
       const pitch = pitchOf(scale)
       const card = cardSize(scale)
-      expect(pitch.z).toBeLessThan(card.height)
-      expect(pitch.z).toBeGreaterThan(card.height * 0.55)
-      expect(pitch.x).toBeGreaterThan(card.width)
+      expect(pitch.x - card.width).toBeGreaterThanOrEqual(card.width * 0.05)
+      expect(pitch.z - card.height).toBeGreaterThanOrEqual(card.height * 0.05)
+      // and no more than a fifth: the grid stays one block
+      expect(pitch.x - card.width).toBeLessThanOrEqual(card.width * 0.2)
+      expect(pitch.z - card.height).toBeLessThanOrEqual(card.height * 0.2)
+    }
+  })
+
+  it("keeps the cards of every grid of every table apart, whatever their turn: the boxes of any two of the twelve cards share no area", () => {
+    for (const n of SIZES) {
+      for (const seated of [true, false]) {
+        const ring = Array.from({ length: n }, (_, i) => `p${i}`)
+        const placed = grids(seatSpots(ring, seated ? "p0" : null), seated ? "p0" : null)
+        for (const grid of placed.values()) {
+          const card = cardSize(grid.scale)
+          const boxes: Box[] = Array.from({ length: 12 }, (_, position) => ({ ...cellPlace(grid, position), halfWidth: card.width / 2, halfDepth: card.height / 2 }))
+          for (let i = 0; i < 12; i++) for (let j = i + 1; j < 12; j++) expect(boxesOverlap(boxes[i]!, boxes[j]!), `${n} players, cards ${i} and ${j}`).toBe(false)
+        }
+      }
     }
   })
 
@@ -166,14 +182,13 @@ describe("a grid", () => {
     expect(cellPlace(across, 0).z).toBeCloseTo(-3 - spot.z)
   })
 
-  it("has twelve cells zones that tile the grid with no gap and no overlap, for the viewer and for a seat turned to the side", () => {
+  it("has twelve cell zones that tile the grid with no gap and no overlap, for the viewer and for a seat turned to the side", () => {
     for (const grid of [{ at: { x: 0, z: 3.4 }, yaw: 0, scale: 0.74 }, { at: { x: -4, z: 0 }, yaw: -Math.PI / 2, scale: 0.5 }, { at: { x: 2, z: -3 }, yaw: Math.PI * 0.8, scale: 0.4 }]) {
       const zones = Array.from({ length: 12 }, (_, position) => cellZone(grid, position))
       for (let i = 0; i < 12; i++) for (let j = i + 1; j < 12; j++) expect(boxesOverlap(zones[i]!, zones[j]!), `${i} and ${j}`).toBe(false)
-      // four columns of `pitch.x` and rows that add up to the depth of the grid: the gaps between the columns belong to the zones
+      // four columns of `pitch.x` by three rows of `pitch.z`: the gaps between the cards belong to the zones
       const area = zones.reduce((sum, zone) => sum + 4 * zone.halfWidth * zone.halfDepth, 0)
-      const { depth } = gridSize(grid.scale)
-      expect(area).toBeCloseTo(4 * pitchOf(grid.scale).x * depth, 6)
+      expect(area).toBeCloseTo(12 * pitchOf(grid.scale).x * pitchOf(grid.scale).z, 6)
       // every zone holds its own card's centre, in its own frame
       zones.forEach((zone, position) => {
         const centre = cellPlace(grid, position)
@@ -187,13 +202,13 @@ describe("a grid", () => {
     }
   })
 
-  it("makes the zone of a card of the viewer comfortably big: at least a card wide and two thirds of a card tall", () => {
+  it("makes the zone of a card of the viewer comfortably big: at least a card wide and a card tall", () => {
     const grid = grids(seatSpots(ids(4), "p0"), "p0").get("p0")!
     const card = cardSize(grid.scale)
     for (let position = 0; position < 12; position++) {
       const zone = cellZone(grid, position)
       expect(zone.halfWidth * 2).toBeGreaterThanOrEqual(card.width)
-      expect(zone.halfDepth * 2).toBeGreaterThanOrEqual(card.height * 0.6)
+      expect(zone.halfDepth * 2).toBeGreaterThanOrEqual(card.height)
     }
   })
 
@@ -204,6 +219,28 @@ describe("a grid", () => {
       for (const [id, spot] of spots) {
         const plate = plateBox(spot, placed.get(id)!)
         for (let position = 0; position < 12; position++) expect(boxesOverlap(plate, cellZone(placed.get(id)!, position)), `${n} players, ${id}, cell ${position}`).toBe(false)
+      }
+    }
+  })
+})
+
+describe("the zones of the viewer", () => {
+  it("overlap no plate, no pile, no pad, no card in hand and no other zone, for every table of two to eight", () => {
+    for (const n of SIZES) {
+      const ring = Array.from({ length: n }, (_, i) => `p${i}`)
+      const spots = seatSpots(ring, "p0")
+      const placed = grids(spots, "p0")
+      const zones = Array.from({ length: 12 }, (_, position) => cellZone(placed.get("p0")!, position))
+      const { draw, take, deal, strip } = floorPlan()
+      const pad = (p: { x: number; z: number; width: number; depth: number }): Box => ({ x: p.x, z: p.z, halfWidth: p.width / 2, halfDepth: p.depth / 2, yaw: 0 })
+      const others = [...[...spots].map(([id, spot]) => plateBox(spot, placed.get(id)!)), ...tableBoxes(n).slice(-4), pad(draw), pad(take), pad(deal), pad(strip)]
+      zones.forEach((zone, position) => {
+        others.forEach((box, i) => expect(boxesOverlap(zone, box), `${n} players, zone ${position} and box ${i}`).toBe(false))
+      })
+      // the opponents' zones too: none reaches a plate, a pile or the strip
+      for (const [id, grid] of placed) {
+        if (id === "p0") continue
+        for (let position = 0; position < 12; position++) for (const box of [...tableBoxes(n).slice(-4), ...[...spots].filter(([other]) => other !== id).map(([other, spot]) => plateBox(spot, placed.get(other)!))]) expect(boxesOverlap(cellZone(grid, position), box), `${n} players, ${id} zone ${position}`).toBe(false)
       }
     }
   })

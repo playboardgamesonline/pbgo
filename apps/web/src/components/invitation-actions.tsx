@@ -9,18 +9,20 @@ import { invitationActionPath, type InvitationResult } from "@pbgo/core/lib/invi
 import { NO_INVITATION_WATCH, invitationToastId, watchInvitations, type InvitationWatch } from "@pbgo/core/lib/invitation-toasts"
 import type { Friend } from "@pbgo/ui/friends"
 import { InviteFriendDialog } from "@pbgo/ui/platform/invite-friend"
-import { showGameInvitation } from "@pbgo/ui/platform/person-toast"
+import { showGameInvitation, showGroupInvitation, showJoinRequest } from "@pbgo/ui/platform/person-toast"
 import { toast } from "@pbgo/ui/platform/sonner"
-import type { TableInvitation } from "@pbgo/ui/social"
+import type { Invitation } from "@pbgo/ui/social"
 import { refreshSocial, useSocialState } from "@/lib/social-store"
 import { messageOf } from "@/lib/table-door"
 import { useSocial } from "@/lib/use-social"
+import { markAccepted } from "./group-actions"
 import { useJoinTable } from "./join-table"
 
-// The invitations to a table (PLT-109), from the screens. The host's side: "Invite a friend" in the menu of a free seat opens the picker (`useInviteFriend`), and a press on a friend sends the invitation (`POST /api/hub/invitations/send`). The friend's side: the card of the social
-// panel and the toast that comes in while a tab is open give Accept and Decline (`useInvitationActions`, `useReceivedInvitationToasts`); accepting asks the server for the table (`POST …/accept`, which checks that it still waits and has room) and then sits the visitor down
-// with the one way every list sits them down (`useJoinTable`: the game's own join route, and a refusal of its rank or language is a toast), which takes them to the lobby. A refusal of the invitation itself (a table that is full, began or is gone, an invitation that expired) is a toast
-// in the platform's words. The social state is read again after each, whatever the answer was. The demo account of development is told it is done by the same routes, and nothing is written.
+// The invitations (PLT-109 to a table, PLT-23 to a group and requests to join one), from the screens. The host's side of a table: "Invite a friend" in the menu of a free seat opens the picker (`useInviteFriend`), and a press on a friend sends the invitation (`POST /api/hub/invitations/send`;
+// the invitations to a group are sent from `group-actions.tsx`, through the same route). The other side: the card of the social panel and the toast that comes in while a tab is open give Accept and Decline (`useInvitationActions`, `useReceivedInvitationToasts`), whatever the invitation is for.
+// Accepting an invitation to a table asks the server for the table (`POST …/accept`, which checks that it still waits and has room) and then sits the visitor down with the one way every list sits them down (`useJoinTable`: the game's own join route, and a refusal of its rank or language is
+// a toast), which takes them to the lobby; accepting an invitation to a group, or a request to join the visitor's own, puts the one who joins in the group, and the toast says so. A refusal of the invitation itself (a table that is full, began or is gone, a group that is full, an invitation
+// that expired) is a toast in the platform's words. The social state is read again after each, whatever the answer was. The demo account of development is told it is done by the same routes, and nothing is written.
 
 /** Sends an invitation to a friend, to the table `code` of `game`, and tells the visitor why when it was refused: true when it went. */
 export async function inviteToTable(friend: Friend, table: { game: string; code: string }): Promise<boolean> {
@@ -75,20 +77,34 @@ function JoinInvited({ game, code, onDone }: { game: string; code: string; onDon
   return <>{dialogs}</>
 }
 
+/** What an answer needs to know of the invitation: which one it is, what it is for and who sent it (the name is in the toast that says a member joined). */
+export type AnsweredInvitation = Pick<Invitation, "id" | "kind" | "nickname">
+
 /**
  * What the visitor does with the invitations they got: `answer` is for the buttons of the card and of the toast, and answers whether it went (a refusal is told in a toast and keeps the invitation where it is: the card reads the state again). `joining` is what to render beside the
- * panel: it sits the visitor down at the table of an invitation that was accepted.
+ * panel: it sits the visitor down at the table of an invitation to a table that was accepted. An invitation to a group that was accepted says in a toast that the visitor is in the group, and a request that was accepted that the one who asked is.
  */
-export function useInvitationActions(): { answer: (invitation: Pick<TableInvitation, "id">, action: "accept" | "decline") => Promise<boolean>; joining: ReactNode } {
+export function useInvitationActions(): { answer: (invitation: AnsweredInvitation, action: "accept" | "decline") => Promise<boolean>; joining: ReactNode } {
   const [joining, setJoining] = useState<{ game: string; code: string } | null>(null)
   const running = useRef(new Set<string>())
 
-  const answer = useCallback(async (invitation: Pick<TableInvitation, "id">, action: "accept" | "decline"): Promise<boolean> => {
+  const answer = useCallback(async (invitation: AnsweredInvitation, action: "accept" | "decline"): Promise<boolean> => {
     if (running.current.has(invitation.id)) return false
     running.current.add(invitation.id)
     try {
       const result = await gameRequest<InvitationResult>(invitationActionPath(action), { method: "POST", body: JSON.stringify({ id: invitation.id }) })
-      if (result.result === "accepted") setJoining({ game: result.game, code: result.code })
+      if (result.result === "accepted" && result.kind === "table") {
+        setJoining({ game: result.game, code: result.code })
+      } else if (result.result === "accepted" && result.kind === "group") {
+        markAccepted()
+        toast.success("You joined the group.")
+      } else if (result.result === "accepted") {
+        toast.success(
+          <>
+            <span className="ph-mask">{invitation.nickname}</span> joined your group.
+          </>,
+        )
+      }
       return true
     } catch (error) {
       toast.error(messageOf(error))
@@ -107,7 +123,7 @@ export function useInvitationActions(): { answer: (invitation: Pick<TableInvitat
  * about every 20 s (`social-store.ts`); what waited when the tab first read them is on the card and gets no toast, and an invitation is never told twice (`watchInvitations`, which holds the rules and is tested). Nothing for no account (a guest, or the demo account of
  * development, whose invitations never come in).
  */
-export function useReceivedInvitationToasts(accountId: string | null, answer: (invitation: Pick<TableInvitation, "id">, action: "accept" | "decline") => Promise<boolean>, gameIcon: (slug: string) => string): void {
+export function useReceivedInvitationToasts(accountId: string | null, answer: (invitation: AnsweredInvitation, action: "accept" | "decline") => Promise<boolean>, gameIcon: (slug: string) => string): void {
   const state = useSocialState(accountId)
   const watching = useRef<{ account: string | null; watch: InvitationWatch }>({ account: null, watch: NO_INVITATION_WATCH })
 
@@ -118,14 +134,13 @@ export function useReceivedInvitationToasts(accountId: string | null, answer: (i
     watching.current.watch = news.watch
     for (const id of news.gone) toast.dismiss(invitationToastId(id))
     for (const entry of news.tell) {
-      showGameInvitation({
-        id: invitationToastId(entry.id),
-        from: { nickname: entry.from.nickname, tag: tagText(entry.from.tag), avatarUrl: entry.from.avatarUrl },
-        game: { name: entry.game.name, iconUrl: gameIcon(entry.game.slug) },
-        onAccept: () => answer(entry, "accept"),
-        onDecline: () => answer(entry, "decline"),
-      })
+      const from = { nickname: entry.from.nickname, tag: tagText(entry.from.tag), avatarUrl: entry.from.avatarUrl }
+      const answered: AnsweredInvitation = { id: entry.id, kind: entry.kind, nickname: entry.from.nickname }
+      const answers = { id: invitationToastId(entry.id), from, onAccept: () => answer(answered, "accept"), onDecline: () => answer(answered, "decline") }
+      if (entry.kind === "table") showGameInvitation({ ...answers, game: { name: entry.game.name, iconUrl: gameIcon(entry.game.slug) } })
+      else if (entry.kind === "group") showGroupInvitation(answers)
+      else showJoinRequest(answers)
     }
-    if (news.more > 0) toast.info(`${news.more} more invitations`, { id: "table-invitations-more", description: "Answer them in the social panel." })
+    if (news.more > 0) toast.info(`${news.more} more invitations`, { id: "invitations-more", description: "Answer them in the social panel." })
   }, [accountId, state, answer, gameIcon])
 }
