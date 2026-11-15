@@ -5,7 +5,7 @@ import { ArrowUp01Icon, Edit02Icon, Link01Icon, MoreHorizontalIcon, Search01Icon
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AnimatePresence, motion } from "motion/react"
 import { useReducedMotion } from "../reduced-motion"
-import { initials, presenceWord, rosterOf, type Friend, type FriendStatus } from "../friends"
+import { groupActionOf, groupWord, initials, presenceWord, rosterOf, type Friend, type FriendStatus, type GroupAction } from "../friends"
 import { DURATION, EASE_STANDARD } from "../motion"
 import { fold } from "../match-options"
 import { cn } from "../utils"
@@ -17,7 +17,8 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 import { MovingCard, useMovingCard, type MovingCardControl } from "./moving-card"
 
 // The friends of a signed-in visitor, as a list for a page or a panel: game by game (the picture of the game, its name and how many friends are in it, those who wait in its
-// lobby and those who play it in one list), then those who are in no game by status, a search among them, and the way to add a friend or to invite one. It is drawn from the friends it is given and decides nothing about them: where they come from (the platform schema, PLT-23)
+// lobby and those who play it in one list), then those who are in no game by status, a search among them, and the way to add a friend or to invite one. Each row has the one thing that can be done about groups with that friend (`groupActionOf`):
+// invite them to the visitor's group, or ask to join theirs. It is drawn from the friends it is given and decides nothing about them: where they come from (the platform schema, PLT-23)
 // and what a press does are the page's. A status is a shape, a colour and a word, never the colour alone: a green disc (active), a blue disc with a play knocked out of
 // it (playing), an orange-yellow moon (inactive), a red disc with a bar knocked out of it (do not disturb), a thick grey ring (offline). Only the dot is coloured
 // (`--presence-online`, `--presence-playing`, `--presence-inactive`, `--presence-dnd`, the hues of the platform besides destructive): the line under the name is quiet text. The short way to the same friends, on every page of the hub, is the navbar's: `FriendsBar` (the games
@@ -142,9 +143,13 @@ type FriendMenuHandlers = {
   onBlock?: (friend: Friend) => void
 }
 
-/** The button of a row that opens the menu of a friend, and the menu. */
-function FriendMenu({ friend, onViewProfile, onRemove, onBlock }: { friend: Friend } & FriendMenuHandlers) {
-  if (!onViewProfile && !onRemove && !onBlock) return null
+/**
+ * The button of a row that opens the menu of a friend, and the menu: what can be done about groups with them first (the entry of the row's button, which is the one to reach on a screen where that button is not drawn), then their profile, then removing them and blocking them.
+ * A request that waits is the entry "Invited" or "Requested", off.
+ */
+function FriendMenu({ friend, action, onAct, onViewProfile, onRemove, onBlock }: { friend: Friend; action: GroupAction | null; onAct?: (friend: Friend) => void } & FriendMenuHandlers) {
+  const group = action && onAct ? { action, onAct } : null
+  if (!group && !onViewProfile && !onRemove && !onBlock) return null
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -160,6 +165,12 @@ function FriendMenu({ friend, onViewProfile, onRemove, onBlock }: { friend: Frie
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
+        {group && (
+          <DropdownMenuItem disabled={group.action.pending} onSelect={() => group.onAct(friend)}>
+            {group.action.pending ? group.action.label : group.action.title}
+          </DropdownMenuItem>
+        )}
+        {group && (onViewProfile || onRemove || onBlock) && <DropdownMenuSeparator />}
         {onViewProfile && <DropdownMenuItem onSelect={() => onViewProfile(friend)}>View profile</DropdownMenuItem>}
         {onViewProfile && (onRemove || onBlock) && <DropdownMenuSeparator />}
         {onRemove && <DropdownMenuItem onSelect={() => onRemove(friend)}>Remove friend</DropdownMenuItem>}
@@ -171,6 +182,12 @@ function FriendMenu({ friend, onViewProfile, onRemove, onBlock }: { friend: Frie
       </DropdownMenuContent>
     </DropdownMenu>
   )
+}
+
+/** What a screen reader says of the button of a row: the group action with the friend it is about, since the row's text is only "Invite" or "Join". */
+function actionLabel(action: GroupAction, friend: Friend): string {
+  if (action.pending) return `Waiting for the answer of ${friend.nickname}`
+  return action.kind === "invite" ? `Invite ${friend.nickname} to your group` : `Ask to join the group of ${friend.nickname}`
 }
 
 function FriendRow({
@@ -190,11 +207,11 @@ function FriendRow({
   onJoin?: (friend: Friend) => void
   onOpen?: (friend: Friend) => void
 } & FriendMenuHandlers) {
-  // A friend who plays can be joined, so can one who waits at a table that has room; one who is online anywhere else can be invited
-  const joinable = friend.status === "playing" || (friend.status === "online" && friend.table !== undefined && friend.table.size < friend.table.max)
-  const act = joinable ? onJoin : friend.status === "online" ? onInvite : undefined
-  // The game is said by the group the friend is in, so the line says only what they are doing
-  const line = friend.activity
+  // The one thing to do about groups with this friend: invite them to the visitor's group, or ask to join theirs. The button is drawn where the page can do it
+  const action = groupActionOf(friend)
+  const act = action ? (action.kind === "invite" ? onInvite : onJoin) : undefined
+  // The game is said by the list the friend is in, so the line says what they are doing, and whether they are in a group
+  const line = [friend.activity, groupWord(friend)].filter(Boolean).join(" · ") || undefined
   const who = (
     <>
       <Avatar>
@@ -242,18 +259,22 @@ function FriendRow({
       ) : (
         <div className="flex min-w-0 flex-1 items-center gap-3">{who}</div>
       )}
-      {act && (
+      {action && act && (
         <Button
           type="button"
           size="xs"
           variant="outline"
-          className="shrink-0 opacity-0 group-hover/friend:opacity-100 focus-visible:opacity-100 group-focus-within/friend:opacity-100 [@media(hover:none)]:opacity-100"
+          title={action.title}
+          aria-label={actionLabel(action, friend)}
+          disabled={action.pending}
+          // What was sent stays in view, quiet: only the button of what can be sent is for the pointer and the focus (always there on a touch screen)
+          className={cn("shrink-0", !action.pending && "opacity-0 group-hover/friend:opacity-100 focus-visible:opacity-100 group-focus-within/friend:opacity-100 [@media(hover:none)]:opacity-100")}
           onClick={() => act(friend)}
         >
-          {joinable ? "Join" : "Invite"}
+          {action.label}
         </Button>
       )}
-      <FriendMenu friend={friend} onViewProfile={onViewProfile} onRemove={onRemove} onBlock={onBlock} />
+      <FriendMenu friend={friend} action={action} onAct={act} onViewProfile={onViewProfile} onRemove={onRemove} onBlock={onBlock} />
     </li>
   )
 }
@@ -289,9 +310,9 @@ function FriendsRoster({
   folded?: ReadonlySet<string>
   /** What the head of a game does with the groups that are folded once one is pressed. */
   onFoldedChange?: (folded: ReadonlySet<string>) => void
-  /** What the button of a friend who is online does. */
+  /** What the button of a friend who is connected and in no group does: invite them to the visitor's group. Not drawn without it. */
   onInvite?: (friend: Friend) => void
-  /** What the button of a friend who is in a game does. */
+  /** What the button of a friend who is in a group does: ask to join it. Not drawn without it. */
   onJoin?: (friend: Friend) => void
   /** What the button of the note on a friend, in their card, does. Not drawn without it. */
   onNote?: (friend: Friend) => void
@@ -445,9 +466,9 @@ function FriendsPanel({
   gameIcon?: (slug: string) => string | undefined
   /** The header's button: add a friend by their nickname. Not drawn without it. */
   onAddFriend?: () => void
-  /** What the button of a friend who is online does. */
+  /** What the button of a friend who is connected and in no group does: invite them to the visitor's group. Not drawn without it. */
   onInvite?: (friend: Friend) => void
-  /** What the button of a friend who is in a game does. */
+  /** What the button of a friend who is in a group does: ask to join it. Not drawn without it. */
   onJoin?: (friend: Friend) => void
   /** What the footer's button does: copy a link that brings a friend here. Not drawn without it. */
   onShareLink?: () => void

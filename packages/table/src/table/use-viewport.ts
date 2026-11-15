@@ -1,7 +1,7 @@
 "use client"
 
 import { useSyncExternalStore } from "react"
-import type { Viewport } from "./camera"
+import type { Viewport } from "./fit"
 
 /** What a window is taken to be before there is one: a laptop */
 const FALLBACK: Viewport = { width: 1280, height: 800 }
@@ -20,5 +20,5 @@ function snapshot(): Viewport {
   return last
 }
 
-/** The size of the window the board fills, in pixels, followed as it is resized */
+/** The size of the window a board fills, in pixels, followed as it is resized. Give it to `useDeferredValue` before fitting a camera to it, so that a window dragged to another size does not fit the camera at every step */
 export const useViewport = (): Viewport => useSyncExternalStore(subscribe, snapshot, () => FALLBACK)

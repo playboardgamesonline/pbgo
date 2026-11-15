@@ -1,7 +1,7 @@
 import "server-only"
-import { feedbackCutoff, finishedStateCutoff, friendRequestCutoff, invitationCutoff, messageCutoff, presenceCutoff, tableCutoff, unrankedSeatCutoff } from "../lib/retention"
+import { GROUP_IDLE_DAYS, feedbackCutoff, finishedStateCutoff, friendRequestCutoff, invitationCutoff, messageCutoff, presenceCutoff, tableCutoff, unrankedSeatCutoff } from "../lib/retention"
 import { dueAccounts, eraseAccount } from "./account-deletion"
-import { isMissingTable } from "./db-error"
+import { isMissingFunction, isMissingTable } from "./db-error"
 import { FEEDBACK_BATCH_SIZE, removeFeedbackRows, type FeedbackRow } from "./feedback-removal"
 import { supabaseAdmin } from "./supabase"
 
@@ -29,8 +29,10 @@ export type PurgeReport = {
   presence: number
   /** The friend requests nobody answered in time (`friend_requests`, PLT-23) */
   friendRequests: number
-  /** The invitations to a table, whatever became of them, a day after they were sent (`table_invitations`, PLT-109) */
+  /** The invitations (to a table, to a group, requests to join one), whatever became of them, a day after they were sent (`table_invitations`, PLT-109, PLT-23) */
   invitations: number
+  /** The groups nobody in them has been seen in for `GROUP_IDLE_DAYS` (`friend_groups`, PLT-23) */
+  groups: number
   /** The messages between friends, a month after they were written (`friend_messages`, PLT-25) */
   messages: number
   /** The states of tables that are over, whose game is written down (`games.state`) */
@@ -67,7 +69,7 @@ export async function purgeExpired({ now = new Date(), dryRun = false }: { now?:
     invitations: invitationCutoff(now).toISOString(),
     messages: messageCutoff(now).toISOString(),
   }
-  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, presence: 0, friendRequests: 0, invitations: 0, messages: 0, states: 0, seats: 0, screenshots: 0, accounts: 0, accountFeedback: 0, errors: [] }
+  const report: PurgeReport = { dryRun, cutoffs, tables: 0, feedback: 0, presence: 0, friendRequests: 0, invitations: 0, groups: 0, messages: 0, states: 0, seats: 0, screenshots: 0, accounts: 0, accountFeedback: 0, errors: [] }
   try {
     report.tables = await purgeTables(cutoffs.tables, dryRun)
   } catch (error) {
@@ -87,6 +89,11 @@ export async function purgeExpired({ now = new Date(), dryRun = false }: { now?:
     report.invitations = await purgeInvitations(cutoffs.invitations, dryRun)
   } catch (error) {
     report.errors.push(`invitations: ${messageOf(error)}`)
+  }
+  try {
+    report.groups = await purgeGroups(dryRun)
+  } catch (error) {
+    report.errors.push(`groups: ${messageOf(error)}`)
   }
   try {
     report.messages = await purgeMessages(cutoffs.messages, dryRun)
@@ -199,6 +206,16 @@ async function purgeInvitations(cutoff: string, dryRun: boolean): Promise<number
     throw error
   }
   return count ?? 0
+}
+
+/** The groups that nobody in has been seen in for `GROUP_IDLE_DAYS` go, with their requests, in one call of the database (`groups_purge`, which counts them when it is a dry run). A project where migration 0027 is not applied yet has none. */
+async function purgeGroups(dryRun: boolean): Promise<number> {
+  const { data, error } = await supabaseAdmin().rpc("groups_purge", { p_idle: `${GROUP_IDLE_DAYS} days`, p_dry: dryRun })
+  if (error) {
+    if (isMissingFunction(error) || isMissingTable(error)) return 0
+    throw error
+  }
+  return typeof data === "number" ? data : 0
 }
 
 /** The messages a month old go in one statement (`created_at` has an index). A project where migration 0025 is not applied yet has none. */

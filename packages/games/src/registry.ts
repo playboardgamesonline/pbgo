@@ -79,7 +79,7 @@ export const GAMES = [
     players: { min: 3, max: 8 },
     sanityProjectId: "ky3exlhe",
     live: true,
-    indexable: false,
+    indexable: true,
   },
   {
     slug: "hanabi",

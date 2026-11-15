@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), ensureProfile: vi.fn(), readMemberTables: vi.fn(), readGame: vi.fn(), readTableSettingsOf: vi.fn(), loadSettings: vi.fn() }))
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), ensureProfile: vi.fn(), readMemberTables: vi.fn(), readGame: vi.fn(), readTableSettingsOf: vi.fn(), loadSettings: vi.fn(), acceptGroupInvitation: vi.fn() }))
 
 vi.mock("server-only", () => ({}))
 vi.mock("./supabase", () => ({ supabaseAdmin: () => ({ rpc: mocks.rpc }) }))
 vi.mock("./profiles", () => ({ ensureProfile: mocks.ensureProfile }))
 vi.mock("./tables", () => ({ readMemberTables: mocks.readMemberTables }))
 vi.mock("./games", () => ({ readGame: mocks.readGame }))
+vi.mock("./groups", () => ({ acceptGroupInvitation: mocks.acceptGroupInvitation }))
 vi.mock("./table-settings", () => ({ readTableSettingsOf: mocks.readTableSettingsOf }))
 vi.mock("../lib/settings-server", () => ({ loadSettings: mocks.loadSettings }))
 
@@ -31,7 +32,7 @@ const refusedWith = async (promise: Promise<unknown>, code: string, status?: num
 }
 
 beforeEach(() => {
-  for (const mock of [mocks.rpc, mocks.ensureProfile, mocks.readMemberTables, mocks.readGame, mocks.readTableSettingsOf, mocks.loadSettings]) mock.mockReset()
+  for (const mock of [mocks.rpc, mocks.ensureProfile, mocks.readMemberTables, mocks.readGame, mocks.readTableSettingsOf, mocks.loadSettings, mocks.acceptGroupInvitation]) mock.mockReset()
   mocks.ensureProfile.mockResolvedValue({ userId: ANN })
   mocks.readMemberTables.mockResolvedValue([table()])
   mocks.readTableSettingsOf.mockResolvedValue({})
@@ -111,7 +112,7 @@ describe("sendInvitation", () => {
 
 const answers = (peek: unknown, accept: unknown = { result: "accepted", game: "hanabi", code: "K7Q2" }) =>
   mocks.rpc.mockImplementation(async (_name: string, args: { p_answer: string }) => ({ data: args.p_answer === "peek" ? peek : accept, error: null }))
-const PENDING = { result: "pending", game: "hanabi", code: "K7Q2" }
+const PENDING = { result: "pending", kind: "table", game: "hanabi", code: "K7Q2" }
 const lobby = (over: Record<string, unknown> = {}) => ({ code: "K7Q2", status: "lobby", players: [seat("p1")], ...over })
 
 describe("acceptInvitation", () => {
@@ -122,7 +123,7 @@ describe("acceptInvitation", () => {
 
   it("looks at the invitation, then at the table, then spends it, and gives the table to go to", async () => {
     answers(PENDING)
-    expect(await acceptInvitation(deps, account, ID)).toEqual({ game: "hanabi", code: "K7Q2" })
+    expect(await acceptInvitation(deps, account, ID)).toEqual({ kind: "table", game: "hanabi", code: "K7Q2" })
     expect(mocks.rpc.mock.calls.map(([name, args]) => [name, args.p_answer])).toEqual([["invitation_answer", "peek"], ["invitation_answer", "accept"]])
     expect(mocks.rpc).toHaveBeenCalledWith("invitation_answer", { p_user: ANN, p_id: ID, p_answer: "accept" })
   })
@@ -138,7 +139,7 @@ describe("acceptInvitation", () => {
   })
 
   it("says the table does not exist any more when its game is not here or its row is deleted, and keeps the invitation", async () => {
-    answers({ result: "pending", game: "retired", code: "K7Q2" })
+    answers({ result: "pending", kind: "table", game: "retired", code: "K7Q2" })
     await refusedWith(acceptInvitation(deps, account, ID), "INVITE_TABLE_GONE", 404)
     answers(PENDING)
     const { ApiError } = await import("./api")
@@ -165,7 +166,33 @@ describe("acceptInvitation", () => {
     answers(PENDING)
     mocks.readMemberTables.mockResolvedValue([table({ players: [seat("p1"), seat("p2"), seat("p3"), seat("p4")], status: "playing" })])
     mocks.readGame.mockResolvedValue(lobby({ status: "playing", players: [seat("p1"), seat("p2"), seat("p3"), seat("p4")] }))
-    expect(await acceptInvitation(deps, account, ID)).toEqual({ game: "hanabi", code: "K7Q2" })
+    expect(await acceptInvitation(deps, account, ID)).toEqual({ kind: "table", game: "hanabi", code: "K7Q2" })
+  })
+
+  it("reads an answer with no kind as an invitation to a table", async () => {
+    answers({ result: "pending", game: "hanabi", code: "K7Q2" })
+    expect(await acceptInvitation(deps, account, ID)).toEqual({ kind: "table", game: "hanabi", code: "K7Q2" })
+  })
+
+  it.each(["group", "join"] as const)("puts the one who joins in the group for an invitation of the kind %s: it reads no table and spends nothing here", async (kind) => {
+    answers({ result: "pending", kind })
+    mocks.acceptGroupInvitation.mockResolvedValue("joined")
+    expect(await acceptInvitation(deps, account, ID)).toEqual({ kind })
+    expect(mocks.acceptGroupInvitation).toHaveBeenCalledExactlyOnceWith(account, ID)
+    expect(mocks.readGame).not.toHaveBeenCalled()
+    expect(mocks.readMemberTables).not.toHaveBeenCalled()
+    expect(mocks.rpc.mock.calls.every(([, args]) => args.p_answer === "peek")).toBe(true)
+  })
+
+  it("passes on the refusal of a group, and is gone or expired for a group invitation that was answered or expired", async () => {
+    const { ApiError } = await import("./api")
+    answers({ result: "pending", kind: "group" })
+    mocks.acceptGroupInvitation.mockRejectedValue(new ApiError("GROUP_FULL", 409))
+    await refusedWith(acceptInvitation(deps, account, ID), "GROUP_FULL", 409)
+    answers({ result: "missing", kind: "group" })
+    await refusedWith(acceptInvitation(deps, account, ID), "INVITE_GONE", 404)
+    answers({ result: "expired", kind: "join" })
+    await refusedWith(acceptInvitation(deps, account, ID), "INVITE_EXPIRED", 410)
   })
 
   it("is gone when the invitation was answered between the look and the answer", async () => {

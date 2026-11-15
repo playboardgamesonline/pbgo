@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock("server-only", () => ({}))
 vi.mock("./supabase", () => ({ supabaseAdmin: () => ({ rpc: mocks.rpc }) }))
 
-import { engineVersion, gameResultOf, markGameStarted, markTakenOver, recordGameResult } from "./results"
+import { countAction, engineVersion, gameResultOf, markGameStarted, markTakenOver, recordGameResult } from "./results"
 
 /** A game whose state is just its results: what the view of a finished game says, whatever the game. */
 type State = { results: Results | null }
@@ -202,5 +202,23 @@ describe("markTakenOver", () => {
     mocks.rpc.mockRejectedValue(new Error("network down"))
     await expect(markTakenOver({ slug: "testgame" }, "ABC234", ["p2"])).resolves.toBeUndefined()
     expect(console.error).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("countAction", () => {
+  it("tells the database that a player played one more action at the table", async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: null })
+    await countAction({ slug: "testgame" }, "ABC234", "p2")
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("count_action", { p_game: "testgame", p_code: "ABC234", p_player: "p2" })
+    expect(console.error).not.toHaveBeenCalled()
+  })
+
+  it("never throws, whether the database refuses (a project where the migration is not applied yet) or cannot be reached: a point is lost and it is logged", async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: "42883", message: "function public.count_action does not exist" } })
+    await expect(countAction({ slug: "testgame" }, "ABC234", "p2")).resolves.toBeUndefined()
+    expect(console.error).toHaveBeenCalledTimes(1)
+    mocks.rpc.mockRejectedValue(new Error("network down"))
+    await expect(countAction({ slug: "testgame" }, "ABC234", "p2")).resolves.toBeUndefined()
+    expect(console.error).toHaveBeenCalledTimes(2)
   })
 })

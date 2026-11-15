@@ -2,6 +2,7 @@ import type { PlayedGame } from "@pbgo/accounts"
 import type { Person } from "@pbgo/core/lib/friends"
 import { DEMO_AVATARS } from "@pbgo/accounts/demo-avatars"
 import type { Friend } from "@pbgo/ui/friends"
+import type { Group } from "@pbgo/ui/groups"
 import type { Conversation, FriendRequest } from "@pbgo/ui/social"
 
 // The made-up friends, requests, conversations and games of the demo account of development (`@pbgo/accounts/demo`), in a file of their own so that the browser loads
@@ -11,9 +12,9 @@ const COURTISANS = { slug: "courtisans", name: "Courtisans" }
 const SKULL_KING = { slug: "skull-king", name: "Skull King" }
 const HANABI = { slug: "hanabi", name: "Hanabi" }
 
-const MARLY: Friend = { id: "f1", nickname: "Marly", tag: "4821", avatarUrl: DEMO_AVATARS.marly, status: "playing", game: COURTISANS, table: { code: "K7P", size: 3, max: 4 }, activity: "Table K7P · 12 min" }
-const HERVE: Friend = { id: "f2", nickname: "Hervé", tag: "0412", avatarUrl: DEMO_AVATARS.herve, status: "playing", game: SKULL_KING, table: { code: "9QD", size: 4, max: 6 }, activity: "Table 9QD · 4 min" }
-const ZOE: Friend = { id: "f3", nickname: "Zoé", tag: "1033", avatarUrl: DEMO_AVATARS.zoe, status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby" }
+const MARLY: Friend = { id: "f1", nickname: "Marly", tag: "4821", avatarUrl: DEMO_AVATARS.marly, status: "playing", game: COURTISANS, table: { code: "K7P", size: 3, max: 4 }, activity: "Table K7P · 12 min", group: "yours" }
+const HERVE: Friend = { id: "f2", nickname: "Hervé", tag: "0412", avatarUrl: DEMO_AVATARS.herve, status: "playing", game: SKULL_KING, table: { code: "9QD", size: 4, max: 6 }, activity: "Table 9QD · 4 min", group: "other" }
+const ZOE: Friend = { id: "f3", nickname: "Zoé", tag: "1033", avatarUrl: DEMO_AVATARS.zoe, status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby", group: "yours" }
 const TOM: Friend = { id: "f4", nickname: "Tom", tag: "7712", avatarUrl: DEMO_AVATARS.tom, status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby" }
 const LINA: Friend = { id: "f5", nickname: "Lina", tag: "2290", avatarUrl: DEMO_AVATARS.lina, status: "inactive", game: HANABI, activity: "Inactive · 8 min" }
 const JADE: Friend = { id: "f9", nickname: "Jade", tag: "6604", avatarUrl: DEMO_AVATARS.jade, status: "dnd", activity: "Do not disturb" }
@@ -22,6 +23,16 @@ const INES: Friend = { id: "f7", nickname: "Inès", tag: "3318", avatarUrl: DEMO
 const SAM: Friend = { id: "f8", nickname: "Sam", tag: "9042", avatarUrl: DEMO_AVATARS.sam, status: "offline", activity: "3 days ago" }
 
 export const DEMO_FRIENDS: readonly Friend[] = [MARLY, HERVE, ZOE, TOM, LINA, JADE, MAX, INES, SAM]
+
+/** The group of the demo account (PLT-23): the account leads it, with two of its friends. Made up like the rest: its buttons call the routes, which say they are done, and the group does not change. */
+export const DEMO_GROUP: Group = {
+  max: 8,
+  members: [
+    { id: "me", nickname: "Oré", tag: "0001", avatarUrl: DEMO_AVATARS.sam, status: "online", leader: true, you: true },
+    { id: MARLY.id, nickname: MARLY.nickname, tag: MARLY.tag, avatarUrl: MARLY.avatarUrl, status: "playing", game: COURTISANS, activity: "Table K7P · 12 min", leader: false, you: false },
+    { id: ZOE.id, nickname: ZOE.nickname, tag: ZOE.tag, avatarUrl: ZOE.avatarUrl, status: "online", game: COURTISANS, activity: "In the lobby", leader: false, you: false },
+  ],
+}
 
 export const DEMO_REQUESTS: readonly FriendRequest[] = [
   { id: "r1", nickname: "Nolan", tag: "6150", avatarUrl: DEMO_AVATARS.nolan, direction: "incoming" },

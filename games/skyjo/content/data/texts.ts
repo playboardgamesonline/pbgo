@@ -108,10 +108,10 @@ export const BOARD_WORDS = [
   { key: "cell", fr: "Colonne {column}, ligne {row}", en: "Column {column}, row {row}", es: "Columna {column}, fila {row}", de: "Spalte {column}, Reihe {row}" },
   { key: "lastTurn", fr: "Dernier tour", en: "Last turn", es: "Último turno", de: "Letzter Zug" },
   { key: "ended", fr: "A fini la manche", en: "Ended the round", es: "Terminó la ronda", de: "Hat die Runde beendet" },
-  { key: "roundPoints", fr: "{points} sur la manche", en: "{points} this round", es: "{points} en la ronda", de: "{points} in dieser Runde" },
+  { key: "roundPoints", fr: "{points}", en: "{points}", es: "{points}", de: "{points}" },
   {
     key: "roundPointsDoubled",
-    fr: "{points} sur la manche (×2)",
+    fr: "{points} (×2)",
     en: "{points} (doubled)",
     es: "{points} (doblado)",
     de: "{points} (verdoppelt)",

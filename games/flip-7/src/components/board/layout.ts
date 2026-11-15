@@ -330,6 +330,29 @@ export function plateBox(spot: SeatSpot, line: Line): Box {
   return { x: place.x + down.x * middle, z: place.z + down.z * middle, halfWidth: PLATE_WIDTH / 2, halfDepth: (PLATE.drop + PLATE.lift) / 2, yaw: place.yaw }
 }
 
+/** Where a sticker lies, in world units: its centre, its width, the turn that makes it read upright from the viewer's side and the lean that makes it look thumped down by a hand */
+export type StickerPlace = Place & { width: number; yaw: number; tilt: number }
+
+/** How wide each sticker is, in cards of the line it lies by (a card is `CARD.width` wide, times the scale of the line) */
+const STICKER_CARDS = { bust: 2.6, bonus: 3.4 }
+
+/**
+ * The two stickers of a seat. The BUST! stamp lies across the middle of the line, over its grey cards. The "+15 point bonus" badge lies on the side of the line toward the middle of the table, on the edge of its cards (on their middle it would hide the cards it
+ * celebrates). Both read upright from the viewer's side whoever's line they lie by (`uprightYaw`, as a plate does) and grow and shrink with the line. `bustAspect` and `bonusAspect` are the width over the height of the two pictures.
+ */
+export function stickerPlaces(line: Line, bustAspect: number, bonusAspect: number): { bust: StickerPlace; bonus: StickerPlace } {
+  const card = CARD.width * line.scale
+  const yaw = uprightYaw(line.yaw)
+  // the way the player faces, away from the middle of the table: the badge lies the other way, toward it
+  const outward = outwardOf(line.yaw)
+  const bonusWidth = STICKER_CARDS.bonus * card
+  const lift = (CARD.height * line.scale) / 2 + bonusWidth / bonusAspect / 3
+  return {
+    bust: { x: line.at.x, z: line.at.z, width: STICKER_CARDS.bust * card, yaw, tilt: -0.16 },
+    bonus: { x: line.at.x - outward.x * lift, z: line.at.z - outward.z * lift, width: bonusWidth, yaw, tilt: 0.1 },
+  }
+}
+
 /** How far a player's zone reaches past their cards on every side when there is room, in world units: generous, so a click or a tap needs no aim. Each side stops short of whatever is there: the plate, a pile, the buttons. */
 export const ZONE_PADDING = 0.5
 
@@ -508,8 +531,14 @@ export function tableBoxes(n: number, full = false, seated = true): Box[] {
   return out
 }
 
-/** What the camera has to bring into the window, and to keep clear of what the platform draws over it (`fitCamera`): the corners of each box of the table (`tableBoxes`), at their nominal sizes, and the zones that the viewer presses to give a card (`zoneBoxes`), which reach a little past the plates and must never lie under a box of the platform. A longer line spreads, and may reach farther. */
-export const tableQuads = (n: number, seated = true): Place[][] => [...tableBoxes(n, false, seated), ...zoneBoxes(n, seated)].map(cornersOf)
+/** What the camera centres the window on (`fitCamera`): the corners of each box of the table (`tableBoxes`), at their nominal sizes, what is drawn. A longer line spreads, and may reach farther than this. */
+export const seenQuads = (n: number, seated = true): Place[][] => tableBoxes(n, false, seated).map(cornersOf)
+
+/** What the camera has to have in the window too, without it weighing on the centre (`fitCamera`): the zones that the viewer presses to give a card (`zoneBoxes`), which reach a little past the plates and must never lie under a box of the platform. */
+export const reachQuads = (n: number, seated = true): Place[][] => zoneBoxes(n, seated).map(cornersOf)
+
+/** Everything the camera has to bring into the window, what is seen and what is reached */
+export const tableQuads = (n: number, seated = true): Place[][] => [...seenQuads(n, seated), ...reachQuads(n, seated)]
 
 /** Where the cards are dealt from: above the draw pile, face down. */
 export function dealtFrom(): Pose {

@@ -3,6 +3,7 @@ import { INVITATION_TOASTS_MAX, NO_INVITATION_WATCH, invitationToastId, watchInv
 import type { InvitationEntry } from "./invitations"
 
 const entry = (n: number, minute = n): InvitationEntry => ({
+  kind: "table",
   id: `00000000-0000-4000-8000-00000000000${n}`,
   from: { nickname: `Friend${n}`, tag: n, avatarUrl: null },
   game: { slug: "hanabi", name: "Hanabi" },
@@ -48,6 +49,6 @@ describe("watchInvitations", () => {
   })
 
   it("names the toast of an invitation by its id alone", () => {
-    expect(invitationToastId(entry(1).id)).toBe(`table-invitation:${entry(1).id}`)
+    expect(invitationToastId(entry(1).id)).toBe(`invitation:${entry(1).id}`)
   })
 })

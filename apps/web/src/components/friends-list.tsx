@@ -4,21 +4,10 @@ import { FriendsPanel, type Friend, type FriendMenuHandlers } from "@pbgo/ui/pla
 import { useCopied } from "@/lib/use-copied"
 
 /**
- * The friends of the visitor listed in full, on the page of their friends: the panel, with its search and its sections, and the same button as the bar's that copies the address of the sign-in. What a friend's menu does is the page's (`onViewProfile`,
- * `onRemove`, `onBlock`). Joining and inviting a friend are not there for a real account (PLT-109): only the demo account of development (`preview`) has the buttons, and they do nothing. It fills the height of its parent.
+ * The friends of the visitor listed in full, on the page of their friends: the panel, with its search and its sections, and the same button as the bar's that copies the address of the sign-in. What a friend's menu does is the page's (`onViewProfile`, `onRemove`, `onBlock`), and so is what
+ * the Invite and Join buttons of a row do about the visitor's group (`onInvite`, `onJoin`, PLT-23): a button whose handler is missing is not drawn. It fills the height of its parent.
  */
-export function FriendsList({ friends, preview, className, ...menu }: { friends: readonly Friend[]; preview: boolean; className?: string } & FriendMenuHandlers) {
+export function FriendsList({ friends, className, onInvite, onJoin, ...menu }: { friends: readonly Friend[]; className?: string; onInvite?: (friend: Friend) => void; onJoin?: (friend: Friend) => void } & FriendMenuHandlers) {
   const [copied, copy] = useCopied()
-  const nothing = () => {}
-  return (
-    <FriendsPanel
-      friends={friends}
-      className={className}
-      onShareLink={copy}
-      shareLabel={copied ? "Link copied" : "Invite a friend"}
-      onInvite={preview ? nothing : undefined}
-      onJoin={preview ? nothing : undefined}
-      {...menu}
-    />
-  )
+  return <FriendsPanel friends={friends} className={className} onShareLink={copy} shareLabel={copied ? "Link copied" : "Invite a friend"} onInvite={onInvite} onJoin={onJoin} {...menu} />
 }

@@ -2,10 +2,12 @@ import * as React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import type { Friend } from "./friends"
+import type { Invitation } from "./social"
 import { ChatWindow } from "./platform/chat-window"
+import { Dialog } from "./platform/dialog"
 import { FriendsBar } from "./platform/friends-bar"
 import { InvitationsCard } from "./platform/invitations-card"
-import { InviteFriendList } from "./platform/invite-friend"
+import { InviteFriendHeader, InviteFriendList } from "./platform/invite-friend"
 
 // The connected friends in the dock's bar (their own avatars, before the games they are in) and the picker of the friend to invite, by their markup. What happens under the pointer is not here: the bar is read as the server draws it.
 
@@ -83,8 +85,27 @@ describe("InviteFriendList", () => {
   })
 })
 
+describe("InviteFriendHeader", () => {
+  // The window is portaled and draws nothing on the server, so its head is read inside the context of a dialog, which is what names its title
+  const header = (props: Partial<React.ComponentProps<typeof InviteFriendHeader>> = {}) =>
+    renderToStaticMarkup(React.createElement(Dialog, { open: true }, React.createElement(InviteFriendHeader, props)))
+
+  it("is called Invite a friend, and says what one press does, unless the page says more", () => {
+    const html = header()
+    expect(html).toContain(">Invite a friend</h2>")
+    expect(html).toContain("Friends who are online come first. One press sends the invitation.")
+  })
+
+  it("takes the title of what it is for: a group, for instance", () => {
+    const html = header({ title: "Invite a friend to your group", description: "One press sends the invitation to your group." })
+    expect(html).toContain(">Invite a friend to your group</h2>")
+    expect(html).toContain("One press sends the invitation to your group.")
+    expect(html).not.toContain("Friends who are online come first")
+  })
+})
+
 describe("InvitationsCard", () => {
-  const invitation = { id: "i1", nickname: "Bob", tag: "0042", avatarUrl: null, game: { slug: "hanabi", name: "Hanabi" }, expiresAt: "2026-11-13T10:30:00.000Z" }
+  const invitation: Invitation = { id: "i1", kind: "table", nickname: "Bob", tag: "0042", avatarUrl: null, game: { slug: "hanabi", name: "Hanabi" }, expiresAt: "2026-11-13T10:30:00.000Z" }
   const NOW = Date.parse("2026-11-13T10:00:00.000Z")
   const card = (props: Partial<React.ComponentProps<typeof InvitationsCard>> = {}) => renderToStaticMarkup(React.createElement(InvitationsCard, { invitations: [invitation], now: NOW, ...props }))
 
@@ -112,6 +133,46 @@ describe("InvitationsCard", () => {
     expect(html).not.toContain("Accept the invitation")
     expect(html).toContain("Decline the invitation of Bob")
   })
+
+  it("is called Invitations, whatever they are for, and says which kind each row is", () => {
+    const html = card({ invitations: [invitation, { ...invitation, id: "i2", kind: "group" }, { ...invitation, id: "i3", kind: "join" }] })
+    expect(html).toContain('aria-label="Invitations"')
+    expect(html.match(/data-slot="invitation"/g)).toHaveLength(3)
+    expect(html).toContain('data-kind="table"')
+    expect(html).toContain('data-kind="group"')
+    expect(html).toContain('data-kind="join"')
+  })
+
+  it("says who invites the visitor to join their group, with the icon of a group in place of a game", () => {
+    const html = card({ invitations: [{ id: "g1", kind: "group", nickname: "Bob", tag: "0042", avatarUrl: null, expiresAt: "2026-11-13T10:30:00.000Z" }], onAnswer: nothing })
+    expect(html).toContain('<span class="ph-mask">Bob</span> invites you')
+    expect(html).toContain("To join their group")
+    expect(html).toContain("30 min left")
+    expect(html).not.toContain("Hanabi")
+    expect(html).toContain('aria-label="Accept the invitation of Bob to join their group"')
+    expect(html).toContain('title="Accept and join the group"')
+    expect(html).toContain('aria-label="Decline the invitation of Bob to join their group"')
+  })
+
+  it("says who asks to join the visitor's group, and lets them in with the same button as the others accept", () => {
+    const html = card({ invitations: [{ id: "j1", kind: "join", nickname: "Bob", tag: "0042", avatarUrl: null, expiresAt: "2026-11-13T10:30:00.000Z" }], onAnswer: nothing })
+    expect(html).toContain('<span class="ph-mask">Bob</span> asks to join')
+    expect(html).toContain("Your group")
+    expect(html).toContain('aria-label="Let Bob join your group"')
+    expect(html).toContain('title="Let them join"')
+    expect(html).toContain('aria-label="Decline the request of Bob to join your group"')
+  })
+
+  it("has no button for a group or a request when the page gives no way to answer, and can only decline one that expired", () => {
+    const group: Invitation = { id: "g1", kind: "group", nickname: "Bob", tag: "0042", avatarUrl: null, expiresAt: "2026-11-13T10:30:00.000Z" }
+    const late = Date.parse("2026-11-13T11:00:00.000Z")
+    expect(card({ invitations: [group] })).not.toContain("<button")
+    const html = card({ invitations: [group, { ...group, id: "j1", kind: "join" }], onAnswer: nothing, now: late })
+    expect(html).not.toContain("Accept")
+    expect(html).not.toContain("Let Bob join")
+    expect(html).toContain("Decline the invitation of Bob to join their group")
+    expect(html).toContain("Decline the request of Bob to join your group")
+  })
 })
 
 describe("ChatWindow", () => {
@@ -133,5 +194,27 @@ describe("ChatWindow", () => {
     const html = chat({ maxLength: 1000 })
     expect(html).toContain('maxLength="1000"')
     expect(/<input[^>]*class="[^"]*ph-mask/.test(html)).toBe(true)
+  })
+
+  // The menu is behind its button: what is checked is that there is one, which takes something to put in it
+  it("has no menu when the page gives it nothing to put in it", () => {
+    expect(chat()).not.toContain("More about")
+  })
+
+  it("has the menu as soon as there is something to do about groups with the friend: invite them when they are connected and in none, ask to join when they are in one", () => {
+    expect(chat({ onInvite: nothing })).toContain('aria-label="More about Bob"')
+    expect(chat({ friend: friend("Bob", "online", { group: "other" }), onJoin: nothing })).toContain('aria-label="More about Bob"')
+  })
+
+  it("has no group entry to offer for a friend who is away, nor for one in the visitor's group, nor for a handler the page does not give", () => {
+    expect(chat({ friend: friend("Bob", "offline"), onInvite: nothing, onJoin: nothing })).not.toContain("More about")
+    expect(chat({ friend: friend("Bob", "online", { group: "yours" }), onInvite: nothing, onJoin: nothing })).not.toContain("More about")
+    expect(chat({ friend: friend("Bob", "online", { group: "other" }), onInvite: nothing })).not.toContain("More about")
+    expect(chat({ onJoin: nothing })).not.toContain("More about")
+  })
+
+  it("keeps the menu for removing and blocking whatever the friend is doing", () => {
+    expect(chat({ friend: friend("Bob", "offline"), onRemove: nothing })).toContain('aria-label="More about Bob"')
+    expect(chat({ friend: friend("Bob", "online", { group: "yours" }), onBlock: nothing })).toContain('aria-label="More about Bob"')
   })
 })
