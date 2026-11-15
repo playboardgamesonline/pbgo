@@ -23,7 +23,7 @@ export type Rect = { left: number; top: number; right: number; bottom: number }
  */
 export const HUD = {
   ticker: { left: 24, top: 20, width: 320, height: 300 },
-  column: { right: 24, width: 240, top: 84, row: 47.5, padding: 0 },
+  column: { right: 24, width: 240, top: 84, row: 34, padding: 0 },
   gap: 12,
 }
 

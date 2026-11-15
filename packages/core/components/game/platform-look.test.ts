@@ -5,20 +5,20 @@ import { describe, expect, it } from "vitest"
 
 /**
  * Guard of the rule of a game's screen (`docs/design/01-guidelines/04-in-game-rules.md`): every interface of the screen is drawn in the game's look, its skin tokens and its `UI_THEME`, and the platform's look is kept for
- * the social dock with the menu its picture opens and for the screens of a table that starts. The check reads the files. What is in the game's look holds nothing of the platform's (its `platform` class, its components in `@pbgo/ui/platform`), the platform's wears it, and what has
+ * the social dock with the menu its picture opens, the card of a player and the screens of a table that starts. The check reads the files. What is in the game's look holds nothing of the platform's (its `platform` class, its components in `@pbgo/ui/platform`), the platform's wears it, and what has
  * not moved to the game's look yet is named, so that the work left is a list in the code: moving a file means moving its name from the last list to the first, and the check fails on a name left in the wrong one.
  */
 
 const HERE = fileURLToPath(new URL(".", import.meta.url))
 
 /** Drawn in the game's look. */
-const IN_THE_GAMES_LOOK = ["ticker.tsx", "game-over-card.tsx"]
+const IN_THE_GAMES_LOOK = ["ticker.tsx", "table-players.tsx", "game-over-card.tsx"]
 
-/** The platform's look, by decision: the social dock and the menu of its picture (`hud.tsx` holds the corner that mounts them), and the screens of a table that starts, which are the platform's own moment (PLT-107). */
-const THE_PLATFORMS = ["hud.tsx", "hud-dock.tsx", "game-menu.tsx", "start-screen.tsx", "ready-screen.tsx"]
+/** The platform's look, by decision: the social dock and the menu of its picture (`hud.tsx` holds the corner that mounts them), the card of a player that opens on a row of the list (the social side of a seat), and the screens of a table that starts, which are the platform's own moment (PLT-107). */
+const THE_PLATFORMS = ["hud.tsx", "hud-dock.tsx", "game-menu.tsx", "player-card.tsx", "start-screen.tsx", "ready-screen.tsx"]
 
 /** Still drawn in the platform's look, to move to the game's one at a time (the chat has its messages in the game's look already, its field and its palette are left). */
-const NOT_MOVED_YET = ["table-players.tsx", "chat.tsx", "game-windows.tsx", "leave-dialog.tsx", "prompt-host.tsx"]
+const NOT_MOVED_YET = ["chat.tsx", "game-windows.tsx", "leave-dialog.tsx", "prompt-host.tsx"]
 
 /** What is the platform's: its class, or a component of it, which carries the class itself. */
 const WEARS_THE_PLATFORM = /(?<![\w-])platform(?![\w-])\s+[a-z]|@pbgo\/ui\/platform\//
