@@ -1,0 +1,29 @@
+{
+  "_id": "drafts.expansion-<slug>",
+  "_type": "expansion",
+  "name": "<Name>",
+  "names": [{ "_key": "en", "_type": "internationalizedArrayLocalizedNameValue", "language": "en" }],
+  "slug": { "_type": "slug", "current": "<slug>" },
+  "baseGame": { "_type": "reference", "_ref": "game-<base game slug>" },
+  "bggId": "<number>",
+  "playersMin": "<number>",
+  "playersMax": "<number>",
+  "duration": "<minutes>",
+  "minAge": "<number under 16>",
+  "complexity": "<1 to 5>",
+  "releaseDate": "<YYYY-01-01>",
+  "categories": [{ "_key": "category-<name>", "_type": "reference", "_ref": "category-<name>" }],
+  "creators": [
+    {
+      "_key": "creator-<name>",
+      "_type": "gameCreator",
+      "creator": { "_type": "reference", "_ref": "creator-<name>" },
+      "roles": ["designer"]
+    }
+  ],
+  "publishers": [{ "_key": "publisher-<name>", "_type": "reference", "_ref": "publisher-<name>" }],
+  "description": [{ "_key": "en", "_type": "internationalizedArrayDescriptionValue", "language": "en", "value": "<240 characters at most>" }],
+  "rules": [{ "_key": "en", "_type": "internationalizedArrayUrlValue", "language": "en", "value": "<https://…>" }],
+  "cover": [{ "_key": "en", "_type": "internationalizedArrayImageValue", "language": "en" }],
+  "boxFront": [{ "_key": "en", "_type": "internationalizedArrayImageValue", "language": "en" }]
+}
