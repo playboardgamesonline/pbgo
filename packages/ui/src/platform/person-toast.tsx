@@ -10,7 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { Button } from "./button"
 import { TOAST_SURFACE, toast } from "./sonner"
 
-// The toasts about a person, in the platform's look: a friend request that the member sent (the button takes it back), one that came in (accept it or decline it in one press) and an invitation to a game (the one toast that stays, with the cross that dismisses it).
+// The toasts about a person, in the platform's look: a friend request that the member sent (the button takes it back), one that came in (accept it or decline it in one press), and the toasts that stay, with the cross that dismisses them: an invitation to a game, an invitation to
+// a group and a request to join the member's own group.
 // Each is a group named by who it is about and what it says, so that a screen reader reads it as one thing and finds its buttons in it, and none of them takes the focus: they are reached with the pointer, with Tab, or with sonner's hotkey for the toasts (Alt+T), which also
 // keeps them from going while they are read. The toast draws its own surface (`TOAST_SURFACE`) and carries the platform's variables (`platform`), so that it looks the same in the hub's toaster and in a game's, whose own theme is not the platform's.
 //
@@ -133,6 +134,39 @@ function FriendRequestSentToast({ person, onCancel, onDone, ...props }: Omit<Per
   )
 }
 
+/**
+ * The two answers of a toast that asks for one, in a row of their own under the person: the one that accepts, with the check, and the quiet one that declines, with the cross, each named for a screen reader. One answer at a time is awaited (`useAnswers`, which
+ * gives `busy` and `answer`).
+ */
+function AnswerButtons({
+  busy,
+  answer,
+  onAccept,
+  onDecline,
+  acceptLabel,
+  declineLabel,
+}: {
+  busy: boolean
+  answer: (handler?: ToastAnswer) => Promise<void>
+  onAccept?: ToastAnswer
+  onDecline?: ToastAnswer
+  acceptLabel: string
+  declineLabel: string
+}) {
+  return (
+    <>
+      <Button type="button" size="lg" className={INSIDE} aria-label={acceptLabel} disabled={busy} aria-busy={busy || undefined} onClick={() => answer(onAccept)}>
+        <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} data-icon="inline-start" />
+        Accept
+      </Button>
+      <Button type="button" variant="secondary" size="lg" className={QUIET} aria-label={declineLabel} disabled={busy} aria-busy={busy || undefined} onClick={() => answer(onDecline)}>
+        <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} data-icon="inline-start" />
+        Decline
+      </Button>
+    </>
+  )
+}
+
 /** A friend request that came in: the person, "wants to be your friend", and the two answers in one press, the check that accepts it and the cross that declines it. */
 function FriendRequestReceivedToast({
   person,
@@ -146,18 +180,38 @@ function FriendRequestReceivedToast({
     <PersonToast
       person={person}
       message="Wants to be your friend"
-      actions={
-        <>
-          <Button type="button" size="lg" className={INSIDE} aria-label={`Accept ${person.nickname}`} disabled={busy} aria-busy={busy || undefined} onClick={() => answer(onAccept)}>
-            <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} data-icon="inline-start" />
-            Accept
-          </Button>
-          <Button type="button" variant="secondary" size="lg" className={QUIET} aria-label={`Decline ${person.nickname}`} disabled={busy} aria-busy={busy || undefined} onClick={() => answer(onDecline)}>
-            <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} data-icon="inline-start" />
-            Decline
-          </Button>
-        </>
-      }
+      actions={<AnswerButtons busy={busy} answer={answer} onAccept={onAccept} onDecline={onDecline} acceptLabel={`Accept ${person.nickname}`} declineLabel={`Decline ${person.nickname}`} />}
+      {...props}
+    />
+  )
+}
+
+type InvitationToastProps = Omit<PersonToastProps, "message" | "detail" | "aside" | "actions"> & AnswerProps & { onAccept?: ToastAnswer; onDecline?: ToastAnswer }
+
+/**
+ * The toast that stays, whatever it is an invitation to: who it is from, what they ask, the two answers, and the cross at the top right corner, which takes the toast away without an answer (`onDismiss`). The three invitations below say what they ask and name their
+ * buttons; the page gives each the person and what the buttons do.
+ */
+function InvitationToast({
+  person,
+  message,
+  detail,
+  acceptLabel,
+  declineLabel,
+  onAccept,
+  onDecline,
+  onDone,
+  onDismiss,
+  ...props
+}: InvitationToastProps & { message: React.ReactNode; detail?: React.ReactNode; acceptLabel: string; declineLabel: string }) {
+  const { busy, answer } = useAnswers(onDone)
+  return (
+    <PersonToast
+      person={person}
+      message={message}
+      detail={detail}
+      actions={<AnswerButtons busy={busy} answer={answer} onAccept={onAccept} onDecline={onDecline} acceptLabel={acceptLabel} declineLabel={declineLabel} />}
+      onDismiss={onDismiss}
       {...props}
     />
   )
@@ -165,21 +219,11 @@ function FriendRequestReceivedToast({
 
 /**
  * An invitation to a game, the toast that stays: who invites, "invited you to play" and the game (with its icon when there is one), the two answers, and the cross at the top right corner, which takes the toast away without an answer (`onDismiss`).
- * The invitations to a table are PLT-109's: this is the toast they will raise, and a page gives it the person, the game and what each button does.
+ * The invitations to a table are PLT-109's: this is the toast they raise, and a page gives it the person, the game and what each button does.
  */
-function GameInvitationToast({
-  person,
-  game,
-  onAccept,
-  onDecline,
-  onDone,
-  onDismiss,
-  ...props
-}: Omit<PersonToastProps, "message" | "detail" | "aside" | "actions"> & AnswerProps & { game: ToastGame; onAccept?: ToastAnswer; onDecline?: ToastAnswer }) {
-  const { busy, answer } = useAnswers(onDone)
+function GameInvitationToast({ game, ...props }: InvitationToastProps & { game: ToastGame }) {
   return (
-    <PersonToast
-      person={person}
+    <InvitationToast
       message="Invited you to play"
       detail={
         <span className="flex items-center gap-1.5 text-foreground">
@@ -189,28 +233,32 @@ function GameInvitationToast({
           {game.name}
         </span>
       }
-      actions={
-        <>
-          <Button type="button" size="lg" className={INSIDE} aria-label={`Accept the invitation of ${person.nickname} to ${game.name}`} disabled={busy} aria-busy={busy || undefined} onClick={() => answer(onAccept)}>
-            <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} data-icon="inline-start" />
-            Accept
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="lg"
-            className={QUIET}
-            aria-label={`Decline the invitation of ${person.nickname} to ${game.name}`}
-            disabled={busy}
-            aria-busy={busy || undefined}
-            onClick={() => answer(onDecline)}
-          >
-            <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} data-icon="inline-start" />
-            Decline
-          </Button>
-        </>
-      }
-      onDismiss={onDismiss}
+      acceptLabel={`Accept the invitation of ${props.person.nickname} to ${game.name}`}
+      declineLabel={`Decline the invitation of ${props.person.nickname} to ${game.name}`}
+      {...props}
+    />
+  )
+}
+
+/** An invitation to a group, the toast that stays: who invites, "invited you to join their group", the two answers and the cross. Accepting makes the member one of the group (it is made then, if the sender had none). */
+function GroupInvitationToast(props: InvitationToastProps) {
+  return (
+    <InvitationToast
+      message="Invited you to join their group"
+      acceptLabel={`Accept the invitation of ${props.person.nickname} to join their group`}
+      declineLabel={`Decline the invitation of ${props.person.nickname} to join their group`}
+      {...props}
+    />
+  )
+}
+
+/** A request to join the member's own group, the toast that stays: who asks, "asks to join your group", the two answers and the cross. Any member of the group can answer it, and the first answer is everybody's. */
+function JoinRequestToast(props: InvitationToastProps) {
+  return (
+    <InvitationToast
+      message="Asks to join your group"
+      acceptLabel={`Let ${props.person.nickname} join your group`}
+      declineLabel={`Decline the request of ${props.person.nickname} to join your group`}
       {...props}
     />
   )
@@ -228,39 +276,20 @@ function showFriendRequestReceived({ person, onAccept, onDecline, id }: { person
 }
 
 /**
- * Raises the toast of an invitation to a game: it stays until the member answers it or closes it with the cross (it is `fixed`). `onAccept` and `onDecline` do the answer and say what became of it themselves; the toast closes once one went through. `onDismiss` runs when
- * it goes without an answer (the cross, a swipe, or `toast.dismiss(id)` from the page, say when the invitation was taken back), never after an answer. An `id` makes it one toast per invitation. Returns the id.
+ * Raises a toast that stays until the member answers it or closes it with the cross (it is `fixed`): `render` draws it with what it needs to close itself. `onDismiss` runs when it goes without an answer (the cross, a swipe, or `toast.dismiss(id)` from the page, say
+ * when the invitation was taken back), never after an answer. An `id` makes it one toast per invitation. Returns the id.
  */
-function showGameInvitation({
-  from,
-  game,
-  onAccept,
-  onDecline,
-  onDismiss,
-  id,
-}: {
-  from: ToastPerson
-  game: ToastGame
-  onAccept: ToastAnswer
-  onDecline: ToastAnswer
-  onDismiss?: () => void
-  id?: string
-}): string | number {
+function raiseFixed({ id, onDismiss, render }: { id?: string; onDismiss?: () => void; render: (close: { onDone: () => void; onDismiss: () => void }) => React.ReactElement }): string | number {
   let answered = false
   return toast.custom(
-    (toastId) => (
-      <GameInvitationToast
-        person={from}
-        game={game}
-        onAccept={onAccept}
-        onDecline={onDecline}
-        onDone={() => {
+    (toastId) =>
+      render({
+        onDone: () => {
           answered = true
           toast.dismiss(toastId)
-        }}
-        onDismiss={() => toast.dismiss(toastId)}
-      />
-    ),
+        },
+        onDismiss: () => toast.dismiss(toastId),
+      }),
     {
       id,
       fixed: true,
@@ -271,5 +300,24 @@ function showGameInvitation({
   )
 }
 
-export { FriendRequestReceivedToast, FriendRequestSentToast, GameInvitationToast, PersonToast, showFriendRequestReceived, showGameInvitation }
+type RaiseInvitation = { from: ToastPerson; onAccept: ToastAnswer; onDecline: ToastAnswer; onDismiss?: () => void; id?: string }
+
+/**
+ * Raises the toast of an invitation to a game: it stays until the member answers it or closes it with the cross. `onAccept` and `onDecline` do the answer and say what became of it themselves; the toast closes once one went through (`raiseFixed` has the rest).
+ */
+function showGameInvitation({ from, game, onAccept, onDecline, onDismiss, id }: RaiseInvitation & { game: ToastGame }): string | number {
+  return raiseFixed({ id, onDismiss, render: (close) => <GameInvitationToast person={from} game={game} onAccept={onAccept} onDecline={onDecline} {...close} /> })
+}
+
+/** Raises the toast of an invitation to a group, the way `showGameInvitation` raises the one to a game. */
+function showGroupInvitation({ from, onAccept, onDecline, onDismiss, id }: RaiseInvitation): string | number {
+  return raiseFixed({ id, onDismiss, render: (close) => <GroupInvitationToast person={from} onAccept={onAccept} onDecline={onDecline} {...close} /> })
+}
+
+/** Raises the toast of a request to join the member's group, the way `showGameInvitation` raises the one to a game. */
+function showJoinRequest({ from, onAccept, onDecline, onDismiss, id }: RaiseInvitation): string | number {
+  return raiseFixed({ id, onDismiss, render: (close) => <JoinRequestToast person={from} onAccept={onAccept} onDecline={onDecline} {...close} /> })
+}
+
+export { FriendRequestReceivedToast, FriendRequestSentToast, GameInvitationToast, GroupInvitationToast, JoinRequestToast, PersonToast, showFriendRequestReceived, showGameInvitation, showGroupInvitation, showJoinRequest }
 export type { ToastAnswer, ToastGame, ToastPerson }

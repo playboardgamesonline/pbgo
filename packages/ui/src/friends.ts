@@ -10,6 +10,12 @@ export type FriendGame = { slug: string; name: string }
 /** The table a friend is at: its code, how many players it has and how many it takes. */
 export type FriendTable = { code: string; size: number; max: number }
 
+/** Where a friend stands as to groups: in the visitor's own group, or in another one. Left out for a friend who is in none. */
+export type FriendGroup = "yours" | "other"
+
+/** What waits for a friend's answer: the visitor invited them to their group, or asked to join theirs. Left out when nothing does. */
+export type FriendPending = "invited" | "requested"
+
 export type Friend = {
   id: string
   nickname: string
@@ -24,6 +30,28 @@ export type Friend = {
   table?: FriendTable
   /** What the line under the name says: how long a friend who is playing has been, "In the lobby", when a friend who is away was last seen. */
   activity?: string
+  /** Whether they are in a group, and whose: a friend in the visitor's own group is not invited, and one in another group can be asked to let the visitor in. */
+  group?: FriendGroup
+  /** What waits for their answer. */
+  pending?: FriendPending
+}
+
+/** What the button of a friend's row (and the entry of their menu) does about groups: invite them to the visitor's group, or ask to join theirs. `pending` is a request that waits: the button says so and is off. */
+export type GroupAction = { kind: "invite" | "join"; label: string; title: string; pending: boolean }
+
+/**
+ * The one thing a visitor can do about groups with a friend, or none: a friend who is in the visitor's group has nothing; one who is in another group can be asked to let the visitor in ("Join"); one who is connected and in none can be invited ("Invite"). A friend who is away
+ * is invited from the picker of the group (the invitation waits for them), not from the row. A request that waits is "Invited" or "Requested", off, so that it is not sent twice.
+ */
+export function groupActionOf(friend: Friend): GroupAction | null {
+  if (friend.group === "yours") return null
+  if (friend.group === "other") {
+    const pending = friend.pending === "requested"
+    return { kind: "join", label: pending ? "Requested" : "Join", title: pending ? "Waiting for their answer" : "Ask to join their group", pending }
+  }
+  if (friend.status === "offline") return null
+  const pending = friend.pending === "invited"
+  return { kind: "invite", label: pending ? "Invited" : "Invite", title: pending ? "Waiting for their answer" : "Invite to your group", pending }
 }
 
 /** The sections of a list of friends, in the order they are drawn, with the word each is headed by. */
@@ -106,6 +134,11 @@ export function tablesOf(friends: readonly Friend[]): { table: FriendTable | nul
 /** The line under a friend's name when the game is not already said by where the friend is listed: the game, then what they are doing. */
 export function activityLine(friend: Friend): string | undefined {
   return [friend.game?.name, friend.activity].filter(Boolean).join(" · ") || undefined
+}
+
+/** What a friend's row says of their group, in the quiet line under their name: "In your group" for a friend in the visitor's own, "In a group" for one in another. Nothing for a friend who is in none. */
+export function groupWord(friend: Pick<Friend, "group">): string | undefined {
+  return friend.group === "yours" ? "In your group" : friend.group === "other" ? "In a group" : undefined
 }
 
 /** The word of a friend's presence, when nothing says more: "Online", "In a game", "Inactive", "Do not disturb", "Offline". */

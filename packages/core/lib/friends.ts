@@ -1,5 +1,6 @@
 import { TAG_MAX, TAG_MIN, checkNickname, tagOfRequest, type Handle } from "@pbgo/accounts"
 import type { FriendRequestSource } from "@pbgo/analytics"
+import { groupEntryOf, groupRelationOf, pendingOf, type FriendGroupRelation, type FriendPending, type GroupEntry } from "./groups"
 import { invitationOf, type InvitationEntry } from "./invitations"
 import { conversationOf, type ConversationEntry } from "./messages"
 
@@ -48,16 +49,27 @@ export type FriendPhase = "lobby" | "playing"
 /** The game a friend is at: its slug and the name the hub gives it. Never the table. */
 export type FriendGame = { slug: string; name: string }
 
-/** A friend: whether they are online (the server saw them in the last two minutes) and, when they are, the game they are at. */
-export type FriendEntry = Person & { online: boolean; game: FriendGame | null; phase: FriendPhase | null }
+/**
+ * A friend: whether they are online (the server saw them in the last two minutes) and, when they are, the game they are at; whether they are in a group (`yours`, the visitor's own, or `other`: only that they are in one, never whose) and what waits for their answer
+ * (`invited`: the visitor invited them to their group; `requested`: the visitor asked to join theirs).
+ */
+export type FriendEntry = Person & { online: boolean; game: FriendGame | null; phase: FriendPhase | null; group: FriendGroupRelation; pending: FriendPending | null }
 
 /** A request that waits, with the day it was sent (an ISO date). */
 export type RequestEntry = Person & { at: string }
 
-/** The whole social state of a member, as `GET /api/hub/friends` answers it. */
-export type SocialState = { friends: FriendEntry[]; incoming: RequestEntry[]; outgoing: RequestEntry[]; blocked: Person[]; invitations: InvitationEntry[]; conversations: ConversationEntry[] }
+/** The whole social state of a member, as `GET /api/hub/friends` answers it. `group` is the member's own group (PLT-23), null when they are in none. */
+export type SocialState = {
+  friends: FriendEntry[]
+  incoming: RequestEntry[]
+  outgoing: RequestEntry[]
+  blocked: Person[]
+  invitations: InvitationEntry[]
+  conversations: ConversationEntry[]
+  group: GroupEntry | null
+}
 
-export const NO_SOCIAL: SocialState = { friends: [], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [] }
+export const NO_SOCIAL: SocialState = { friends: [], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [], group: null }
 
 const isTag = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value >= TAG_MIN && value <= TAG_MAX
 
@@ -81,13 +93,13 @@ const requestOf = (value: unknown): RequestEntry | null => {
 function friendOf(value: unknown): FriendEntry | null {
   const person = personOf(value)
   if (!person) return null
-  const { online, game, phase } = value as Record<string, unknown>
+  const { online, game, phase, group, pending } = value as Record<string, unknown>
   if (typeof online !== "boolean") return null
   const gameOf = typeof game === "object" && game !== null ? (game as Record<string, unknown>) : null
   const named = gameOf && typeof gameOf.slug === "string" && typeof gameOf.name === "string" && gameOf.slug !== "" ? { slug: gameOf.slug, name: gameOf.name } : null
   const where = phase === "lobby" || phase === "playing" ? phase : null
-  // A friend is shown at a game only while they are online and the game is one that has a name; the phase goes with it
-  return { ...person, online, game: online && named && where ? named : null, phase: online && named && where ? where : null }
+  // A friend is shown at a game only while they are online and the game is one that has a name; the phase goes with it. An answer of an older server has no group
+  return { ...person, online, game: online && named && where ? named : null, phase: online && named && where ? where : null, group: groupRelationOf(group), pending: pendingOf(pending) }
 }
 
 const listOf = <T>(value: unknown, read: (item: unknown) => T | null): T[] => (Array.isArray(value) ? value.flatMap((item) => read(item) ?? []) : [])
@@ -95,10 +107,18 @@ const listOf = <T>(value: unknown, read: (item: unknown) => T | null): T[] => (A
 /** The state that an answer of `GET /api/hub/friends` says, or null when it is not one: each list drops the entries that are not what they should be. */
 export function socialStateOf(body: unknown): SocialState | null {
   if (typeof body !== "object" || body === null) return null
-  const { friends, incoming, outgoing, blocked, invitations, conversations } = body as Record<string, unknown>
+  const { friends, incoming, outgoing, blocked, invitations, conversations, group } = body as Record<string, unknown>
   if (!Array.isArray(friends) || !Array.isArray(incoming) || !Array.isArray(outgoing) || !Array.isArray(blocked)) return null
-  // `invitations` (PLT-109) and `conversations` (PLT-25) are the newest parts of the state: an answer without them is an older server's, which has none
-  return { friends: listOf(friends, friendOf), incoming: listOf(incoming, requestOf), outgoing: listOf(outgoing, requestOf), blocked: listOf(blocked, personOf), invitations: listOf(invitations, invitationOf), conversations: listOf(conversations, conversationOf) }
+  // `invitations` (PLT-109), `conversations` (PLT-25) and `group` (PLT-23) are the newest parts of the state: an answer without them is an older server's, which has none
+  return {
+    friends: listOf(friends, friendOf),
+    incoming: listOf(incoming, requestOf),
+    outgoing: listOf(outgoing, requestOf),
+    blocked: listOf(blocked, personOf),
+    invitations: listOf(invitations, invitationOf),
+    conversations: listOf(conversations, conversationOf),
+    group: groupEntryOf(group),
+  }
 }
 
 /** What is between the visitor and a member whose profile they look at: friends, a request that came in or went out, a member they blocked, or nothing. A member who blocked the visitor is nothing, as far as the visitor can tell. */

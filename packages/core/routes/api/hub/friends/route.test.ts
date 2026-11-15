@@ -333,7 +333,8 @@ describe("GET /api/hub/friends", () => {
     outgoing: [],
     blocked: [{ nickname: "Fay", tag: 5, avatarUrl: null }],
     conversations: [{ nickname: "Dan", tag: 9, avatarUrl: null, unread: 1, lastText: "hello", lastAt: "2026-11-13T10:00:00+00:00", lastMine: false }],
-    invitations: [{ id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Eve", tag: 1, avatarUrl: null }, game: "courtisans", at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }],
+    invitations: [{ id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", kind: "table" as const, from: { nickname: "Eve", tag: 1, avatarUrl: null }, game: "courtisans", at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }],
+    groups: { group: null, grouped: [], invited: [], requested: [] },
   }
 
   it("gives the whole state of the signed-in member, with each friend's game by name", async () => {
@@ -343,11 +344,12 @@ describe("GET /api/hub/friends", () => {
     expect(response.status).toBe(200)
     expect(mocks.readSocial).toHaveBeenCalledExactlyOnceWith(ANN)
     const state = await response.json()
-    expect(state.friends[0]).toEqual({ nickname: "Bob", tag: 42, avatarUrl: null, online: true, game: { slug: "courtisans", name: "Courtisans" }, phase: "lobby" })
+    expect(state.friends[0]).toEqual({ nickname: "Bob", tag: 42, avatarUrl: null, online: true, game: { slug: "courtisans", name: "Courtisans" }, phase: "lobby", group: "none", pending: null })
+    expect(state.group).toBeNull()
     expect(state.incoming).toHaveLength(1)
     expect(state.blocked).toHaveLength(1)
     // An invitation is told with the name of its game, never the table
-    expect(state.invitations).toEqual([{ id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Eve", tag: 1, avatarUrl: null }, game: { slug: "courtisans", name: "Courtisans" }, at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }])
+    expect(state.invitations).toEqual([{ id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", kind: "table", from: { nickname: "Eve", tag: 1, avatarUrl: null }, game: { slug: "courtisans", name: "Courtisans" }, at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }])
     expect(JSON.stringify(state)).not.toContain("code")
     expect(state.conversations).toEqual([{ nickname: "Dan", tag: 9, avatarUrl: null, unread: 1, lastText: "hello", lastAt: "2026-11-13T10:00:00+00:00", lastMine: false }])
   })
@@ -356,8 +358,33 @@ describe("GET /api/hub/friends", () => {
     mocks.account = { id: ANN }
     mocks.readSocial.mockResolvedValue(record)
     const { friends } = await (await get()).json()
-    expect(friends[1]).toEqual({ nickname: "Cat", tag: 7, avatarUrl: null, online: true, game: null, phase: null })
+    expect(friends[1]).toEqual({ nickname: "Cat", tag: 7, avatarUrl: null, online: true, game: null, phase: null, group: "none", pending: null })
     expect(friends[2].online).toBe(false)
+  })
+
+  it("tells the group of the member, each friend's group (the member's own, another one, none) and what waits for them, and the invitations to a group with no game", async () => {
+    mocks.account = { id: ANN }
+    const member = (nickname: string, tag: number, over: Record<string, unknown> = {}) => ({ nickname, tag, avatarUrl: null, leader: false, you: false, online: true, game: null, phase: null, ...over })
+    mocks.readSocial.mockResolvedValue({
+      ...record,
+      invitations: [...record.invitations, { id: "6e1f6c9f-7a9f-4a66-8e7f-4a2b3c5d6e7f", kind: "join" as const, from: { nickname: "Gus", tag: 8, avatarUrl: null }, game: null, at: "2026-11-13T10:01:00+00:00", expiresAt: "2026-11-13T10:31:00+00:00" }],
+      groups: {
+        group: { members: [member("Ann", 1, { leader: true, you: true, game: "courtisans", phase: "lobby" }), member("Bob", 42)] },
+        grouped: [{ nickname: "Bob", tag: 42, avatarUrl: null }, { nickname: "Cat", tag: 7, avatarUrl: null }],
+        invited: [{ nickname: "Dan", tag: 9, avatarUrl: null }],
+        requested: [],
+      },
+    })
+    const state = await (await get()).json()
+    expect(state.friends.map((friend: { nickname: string; group: string; pending: string | null }) => [friend.nickname, friend.group, friend.pending])).toEqual([["Bob", "yours", null], ["Cat", "other", null], ["Dan", "none", "invited"]])
+    expect(state.group).toEqual({
+      members: [
+        { nickname: "Ann", tag: 1, avatarUrl: null, leader: true, you: true, online: true, game: { slug: "courtisans", name: "Courtisans" }, phase: "lobby" },
+        { nickname: "Bob", tag: 42, avatarUrl: null, leader: false, you: false, online: true, game: null, phase: null },
+      ],
+    })
+    expect(state.invitations[1]).toEqual({ id: "6e1f6c9f-7a9f-4a66-8e7f-4a2b3c5d6e7f", kind: "join", from: { nickname: "Gus", tag: 8, avatarUrl: null }, at: "2026-11-13T10:01:00+00:00", expiresAt: "2026-11-13T10:31:00+00:00" })
+    expect(JSON.stringify(state)).not.toContain("code")
   })
 
   it("does the same when the names cannot be read, and says so in the log", async () => {
@@ -374,7 +401,8 @@ describe("GET /api/hub/friends", () => {
     mocks.readSocial.mockResolvedValue(record)
     const text = JSON.stringify(await (await get()).json())
     expect(text).not.toContain(ANN)
-    expect(text).not.toMatch(/"(user_?id|code|table)"/)
+    // No key of an account or a table ("table" as a value is the kind of an invitation)
+    expect(text).not.toMatch(/"(user_?id|code|table)":/)
   })
 
   it("refuses a visitor who is not signed in", async () => {
@@ -386,7 +414,7 @@ describe("GET /api/hub/friends", () => {
 
   it("has nobody for the demo account of development, whose friends the browser makes up", async () => {
     mocks.account = { id: "demo" }
-    expect(await (await get()).json()).toEqual({ friends: [], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [] })
+    expect(await (await get()).json()).toEqual({ friends: [], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [], group: null })
     expect(mocks.readSocial).not.toHaveBeenCalled()
   })
 
@@ -409,16 +437,16 @@ describe("GET /api/hub/friends", () => {
 describe("stateOf", () => {
   it("names the game of each friend and leaves the other lists as they are", () => {
     const state = stateOf(record(), names)
-    expect(state.friends).toEqual([{ nickname: "Bob", tag: 1, avatarUrl: null, online: true, game: { slug: "courtisans", name: "Courtisans" }, phase: "playing" }])
+    expect(state.friends).toEqual([{ nickname: "Bob", tag: 1, avatarUrl: null, online: true, game: { slug: "courtisans", name: "Courtisans" }, phase: "playing", group: "none", pending: null }])
     expect(state.incoming).toEqual([])
   })
 
   it("leaves out an invitation to a game the hub does not name", () => {
-    const state = stateOf({ ...record(), invitations: [{ id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Eve", tag: 1, avatarUrl: null }, game: "retired", at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }] }, names)
+    const state = stateOf({ ...record(), invitations: [{ id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", kind: "table", from: { nickname: "Eve", tag: 1, avatarUrl: null }, game: "retired", at: "2026-11-13T10:00:00+00:00", expiresAt: "2026-11-13T10:30:00+00:00" }] }, names)
     expect(state.invitations).toEqual([])
   })
 
   function record() {
-    return { friends: [{ nickname: "Bob", tag: 1, avatarUrl: null, online: true, game: "courtisans", phase: "playing" as const }], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [] }
+    return { friends: [{ nickname: "Bob", tag: 1, avatarUrl: null, online: true, game: "courtisans", phase: "playing" as const }], incoming: [], outgoing: [], blocked: [], invitations: [], conversations: [], groups: { group: null, grouped: [], invited: [], requested: [] } }
   }
 })

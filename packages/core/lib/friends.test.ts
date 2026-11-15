@@ -61,18 +61,44 @@ describe("personOf", () => {
 
 describe("socialStateOf", () => {
   const good = {
-    friends: [{ nickname: "Bob", tag: 2, avatarUrl: null, online: true, game: { slug: "courtisans", name: "Courtisans" }, phase: "lobby" }],
+    friends: [{ nickname: "Bob", tag: 2, avatarUrl: null, online: true, game: { slug: "courtisans", name: "Courtisans" }, phase: "lobby", group: "none", pending: null }],
     incoming: [{ nickname: "Cat", tag: 3, avatarUrl: null, at: "2026-11-09T10:00:00.000Z" }],
     outgoing: [{ nickname: "Dan", tag: 4, avatarUrl: null, at: "2026-11-08T10:00:00.000Z" }],
     blocked: [{ nickname: "Eve", tag: 5, avatarUrl: null }],
     conversations: [{ nickname: "Gus", tag: 8, avatarUrl: null, unread: 3, lastText: "hi", lastAt: "2026-11-13T10:00:00.000Z", lastMine: false }],
-    invitations: [{ id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Fay", tag: 6, avatarUrl: null }, game: { slug: "hanabi", name: "Hanabi" }, at: "2026-11-13T10:00:00.000Z", expiresAt: "2026-11-13T10:30:00.000Z" }],
+    invitations: [{ kind: "table", id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Fay", tag: 6, avatarUrl: null }, game: { slug: "hanabi", name: "Hanabi" }, at: "2026-11-13T10:00:00.000Z", expiresAt: "2026-11-13T10:30:00.000Z" }],
+    group: null,
   }
 
-  it("reads an answer of a server that has no invitations or conversations as one with none", () => {
-    const { invitations: _, conversations: __, ...older } = good
+  it("reads an answer of a server that has no invitations, conversations or group as one with none", () => {
+    const { invitations: _, conversations: __, group: ___, ...older } = good
     expect(socialStateOf(older)?.invitations).toEqual([])
     expect(socialStateOf(older)?.conversations).toEqual([])
+    expect(socialStateOf(older)?.group).toBeNull()
+  })
+
+  it("reads the group of the member, and the groups of their friends and what waits for them", () => {
+    const member = (nickname: string, tag: number, over: Record<string, unknown> = {}) => ({ nickname, tag, avatarUrl: null, leader: false, you: false, online: true, game: null, phase: null, ...over })
+    const state = socialStateOf({
+      ...good,
+      friends: [
+        { nickname: "Bob", tag: 2, online: true, group: "yours", pending: null },
+        { nickname: "Cat", tag: 3, online: true, group: "other", pending: "requested" },
+        { nickname: "Dan", tag: 4, online: false, pending: "invited" },
+        { nickname: "Eve", tag: 5, online: false, group: "elsewhere", pending: "soon" },
+      ],
+      group: { members: [member("Ann", 1, { leader: true, you: true }), member("Bob", 2)] },
+    })!
+    expect(state.friends.map((friend) => [friend.group, friend.pending])).toEqual([["yours", null], ["other", "requested"], ["none", "invited"], ["none", null]])
+    expect(state.group?.members.map((one) => [one.nickname, one.leader, one.you])).toEqual([["Ann", true, true], ["Bob", false, false]])
+  })
+
+  it("reads no group for one that is too small, has nobody who is the member, or is not one", () => {
+    const member = (nickname: string, tag: number, you = false) => ({ nickname, tag, avatarUrl: null, leader: false, you, online: true, game: null, phase: null })
+    expect(socialStateOf({ ...good, group: { members: [member("Ann", 1, true)] } })?.group).toBeNull()
+    expect(socialStateOf({ ...good, group: { members: [member("Ann", 1), member("Bob", 2)] } })?.group).toBeNull()
+    expect(socialStateOf({ ...good, group: { members: [member("Ann", 1, true), { nickname: "Bob" }] } })?.group).toBeNull()
+    for (const bad of ["x", 3, [], { members: "x" }]) expect(socialStateOf({ ...good, group: bad })?.group).toBeNull()
   })
 
   it("leaves out an invitation that is not one", () => {

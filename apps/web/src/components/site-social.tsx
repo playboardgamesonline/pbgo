@@ -19,6 +19,7 @@ import { cn } from "@pbgo/ui/utils"
 import { AccountMenu } from "@/components/account-menu"
 import { changeFriends, useFriendActions } from "@/components/friend-actions"
 import { useReceivedRequestToasts } from "@/components/friend-toasts"
+import { useGroupActions, useGroupNews } from "@/components/group-actions"
 import { useInvitationActions, useReceivedInvitationToasts } from "@/components/invitation-actions"
 import { OwnName } from "@/components/own-name"
 import { readFolded, writeFolded } from "@/lib/folded-games"
@@ -34,13 +35,14 @@ const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
 /**
  * What a signed-in visitor has on the navbar, the way the Riot Client has it, in one container on the right (`SocialDock`) that is a bar while it is closed and a real side
  * panel while it is open, the same element changing from one to the other with a transition. Closed, the bar has the friends who are connected, each a small picture with the dot of its presence (three at the most, then "+N", which opens the panel), then the games their friends are in (`FriendsBar`, with the list of a
- * game's friends under the pointer), then, behind a thin line, their picture, with the count of what waits for them on its corner (messages not read, requests and invitations to answer), which opens
+ * game's friends under the pointer), then, behind a thin line, their picture, with the count of what waits for them on its corner (messages not read, requests and invitations to answer, the requests to join their group included), which opens
  * the menu of their account (`AccountMenu`), and the button of the social panel (`SocialPanelToggle`: the icon of a panel on the right, which opens it and, once it is open, closes it).
  * Open, the bar is the header of the panel: the games fold away, the picture glides to the start of the bar and says who they are beside it (`SocialDockIdentity`: their name with its tag and
- * their status), the button stays where it was, and the panel (`SocialPanel`: friends game by game, messages, add a friend) is under it. A real account's friends and requests are the database's (PLT-23: `useSocial`, kept fresh while a tab is in view), and
+ * their status), the button stays where it was, and the panel (`SocialPanel`: friends game by game, the group, messages, add a friend) is under it. A real account's friends and requests are the database's (PLT-23: `useSocial`, kept fresh while a tab is in view), and
  * what the buttons do is `useFriendActions`'s: the form that adds a friend, the answers to a request, and the menu of a friend (their profile, remove, block). A press on a friend, or on a conversation, opens the chat (`ChatWindow`) next to the panel: a real account's is read from the server while it is open and what is written is kept (PLT-25, `useChatThread`); the demo account of development has made-up friends and conversations, and a message it sends is kept for as long as the page is open.
- * While the visitor looks for a game (the button of a game's page, `lib/matchmaking.ts`), the closed bar has a small pill for it before the games, and the panel a card at the top, over the tabs. Joining a friend and inviting one are not drawn for a real account (PLT-109);
- * the demo account has the buttons, and they do nothing. A visitor with no friend at a game has the button that invites a friend in the bar, which copies the address of the sign-in, where a friend can come and sign in.
+ * The group (PLT-23, `useGroupActions`) is the panel's group tab: the visitor's friend rows have the Invite button (to their group) and the Join button (ask to join the group of a friend who is in one), and so has the menu of the chat; the picker of the group tab invites any friend who is
+ * in no group, and a toast tells who joined or left the group (`useGroupNews`). While the visitor looks for a game (the button of a game's page, `lib/matchmaking.ts`), the closed bar has a small pill for it before the games, and the panel a card at the top, over the tabs. Joining a friend's
+ * table is not drawn: a table's code never reaches a friend, and the group is how people play together (the demo account's buttons call the routes, which say it is done). A visitor with no friend at a game has the button that invites a friend in the bar, which copies the address of the sign-in, where a friend can come and sign in.
  */
 export function SiteSocial({ account, game }: { account: Account; /** The rows of a game's screen for the menu of the picture, above the pages of the account: its sound, its language, its setup, the way out (`HudMenu` of core) */ game?: React.ReactNode }) {
   const social = useSocial(account)
@@ -62,6 +64,9 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
   // The invitations to a table: the card of the panel, a toast for each that comes in while the page is open (the demo account has none that come in), and what sits the visitor down at the table of one they accepted
   const invitations = useInvitationActions()
   useReceivedInvitationToasts(preview ? null : account.id, invitations.answer, gameIcon)
+  // The group: what its buttons do, and a toast for what changes in it that the member did not do themselves
+  const groups = useGroupActions(social.friends)
+  useGroupNews(preview ? null : account.id)
   const nothing = () => {}
   // The search for a game that the visitor has begun, wherever they began it (the button of a game's page, the home's Find a game): the bar shows it while the panel is closed, and the panel has a card for it
   const queue = useQueue()
@@ -180,6 +185,12 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
           requests={social.requests}
           invitations={social.invitations}
           onAnswerInvitation={(invitation, answer) => invitations.answer(invitation, answer)}
+          group={social.group}
+          onInviteToGroup={groups.openInvite}
+          onLeaveGroup={groups.leave}
+          onKickMember={groups.kick}
+          onMakeLeader={groups.makeLeader}
+          onViewMember={groups.viewProfile}
           onOpenChat={openChat}
           onViewProfile={friends.viewProfile}
           onRemove={friends.remove}
@@ -189,8 +200,8 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
             setFolded(next)
             writeFolded(next)
           }}
-          onJoin={preview ? nothing : undefined}
-          onInvite={preview ? nothing : undefined}
+          onJoin={groups.askToJoin}
+          onInvite={groups.invite}
           onNote={preview ? nothing : undefined}
           onSendRequest={friends.sendRequest}
           onAnswerRequest={friends.answer}
@@ -215,14 +226,15 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
             maxLength={MESSAGE_MAX_LENGTH}
             onSend={(text) => (preview ? send(chatWith, text) : thread.send(text))}
             onClose={() => setChatOpen(false)}
-            onJoin={preview ? nothing : undefined}
-            onInvite={preview ? nothing : undefined}
+            onJoin={groups.askToJoin}
+            onInvite={groups.invite}
             onRemove={preview ? nothing : (friend) => friends.remove(friend)}
             onBlock={preview ? nothing : (friend) => friends.block(friend)}
           />
         )}
       </PanelPresence>
       {friends.dialog}
+      {groups.dialogs}
       {invitations.joining}
     </>
   )
