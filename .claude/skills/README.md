@@ -22,7 +22,7 @@ A game goes through six stages, and `pnpm check:game <slug>` says which it has r
 
 | Step | Skill | Ends when | State |
 | --- | --- | --- | --- |
-| Identify the game: edition, publisher, rules version | `/game-scout` (GAM-32) | the owner confirms the edition | to write |
+| Identify the game: edition, publisher, rules version | `/game-scout` (GAM-32) | the owner confirms the edition | written |
 | Catalog entry in the platform's Sanity (a draft) | `platform-catalog-entry` (PLT-98) | the owner publishes it | to write |
 | Rules spec and the list of components | `game-rules-spec` (GAM-33) | the owner validates the spec | to write; `engine-rules` step 2 does the plan meanwhile |
 | Platform assets, game assets | `platform-assets` (PLT-99), `game-assets` (GAM-34) | the owner has handed the art over | to write |
@@ -37,6 +37,7 @@ The terminal pipeline planned in PLT-97 will run these steps in this order, one 
 ## Skills
 
 ### GAME
+- `game-scout` — identify a game before it is added: the edition (publisher, year, rules version), its BoardGameGeek popularity and complexity, its figures, an English slug and a type (an expansion or a reimplementation is suggested, with a base game of the platform's catalog), as a short report and a `scout.json` that `platform-catalog-entry` and the pipeline read, checked by `pnpm check:scout`, then a gate (`packages/games/src/scout.test.ts` keeps the shape of the file and the skill's example)
 - `game-new` — start a new game from nothing: the questions to ask the owner, `pnpm add-game` (code from the template, Sanity project, Studio, rules PDFs, environment) run after an explicit ok, then the hand-over to `game-sanity-create` for the fields
 - `game-sanity-create` — build or reshape a game's Sanity content model: the questions to ask the owner, the Studio-form rules and don'ts, the schemas, the guards, the seed and the Studio deploy
 - `game-go-live` — put a finished game live: the gate `check:game --stage content`, what only a person can say, the preview, the two switches of the registry, the checks of production
