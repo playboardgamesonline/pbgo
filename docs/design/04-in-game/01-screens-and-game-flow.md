@@ -11,7 +11,7 @@ The picture at the top right (the visitor's, in the social dock, or the initials
 
 ## Players
 
-The list of the players under the dock (`components/game/table-players.tsx`) is text laid on the table with no card (`table-ink`) and is always in view, under a small title (the `players` text, in the display font, in a quiet tone): a row for each player with their seat label in the game's look, who sits at the table, whom the game waits for (the others fade), who is away (the row fades more) and what each has so far, from `standings` in the view when the game gives it. The air between two rows is their own padding, so that the pointer never crosses a gap, and a little air is left at the right of the section. The pointer on a row opens the card of the player (`player-card.tsx`, in the dock's look: their profile, a friend request, a report).
+The list of the players under the dock (`components/game/table-players.tsx`) is text laid on the table with no card (`table-ink`) and is always in view, under a small title (the `players` text, in the display font, in a quiet tone, aligned to the right) over a hairline (the log's, turned the other way): a row for each player with their seat label in the game's look, who sits at the table, whom the game waits for (the others fade), who is away (the row fades more) and what each has so far, from `standings` in the view when the game gives it. The air between two rows is their own padding, so that the pointer never crosses a gap, and a little air is left at the right of the section. The pointer on a row opens the card of the player (`player-card.tsx`, in the dock's look: their profile, a friend request, a report).
 
 ## Chat
 

@@ -18,12 +18,12 @@ export type Rect = { left: number; top: number; right: number; bottom: number }
 
 /**
  * What the platform draws over the board, in pixels from the edges of the window: at the top left the log of the turns, text laid on the table (its box is 512 px wide, but the text fills what the longest line needs: a width of 320 is the room
- * kept for it), and at the top right the menu button and, under it, the list of the players: a title (the `padding`) and a row for each (the `row`). Measured on the HUD of `@pbgo/core`, which this board does not own: when the HUD changes, these numbers change with it. The
+ * kept for it), and at the top right the menu button and, under it, the list of the players: a title with its hairline (the `padding`) and a row for each (the `row`). Measured on the HUD of `@pbgo/core`, which this board does not own: when the HUD changes, these numbers change with it. The
  * table is kept clear of them, and of a `gap` of air around them.
  */
 export const HUD = {
   ticker: { left: 24, top: 20, width: 320, height: 300 },
-  column: { right: 24, width: 240, top: 84, row: 40, padding: 18 },
+  column: { right: 24, width: 240, top: 84, row: 40, padding: 27 },
   gap: 12,
 }
 

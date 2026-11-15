@@ -9,7 +9,7 @@ import { PlayerSeatLabel } from "./player-seat"
 
 /**
  * The players of the table, in the game's look, under the dock at the top right of the screen and in view for as long as the game runs: text laid straight on the table with no card behind it (`table-ink`, like the log of the turns), under a small title in
- * the display font (the quiet line of the log's status), a row for each player with their seat label (the game's `UI_THEME.seat`: its shape, its ring, the colour of its names) in the size of the text beside it, and what they have so far (`view.standings`, in seat
+ * the display font (the quiet line of the log's status), aligned to the right, over a hairline (the log's, turned the other way), a row for each player with their seat label (the game's `UI_THEME.seat`: its shape, its ring, the colour of its names) in the size of the text beside it, and what they have so far (`view.standings`, in seat
  * order). Whom the game waits for stays at full strength while the others fade, and a player who is away fades more; when the game waits for nobody, every row is the same. The pointer on a row opens the card of the player (`PlayerCard`, the social side of a seat,
  * in the dock's look). The air between two rows is the padding of the rows, so that the pointer never crosses a gap between them; and a little air is left at the right of the section.
  */
@@ -21,9 +21,10 @@ export function TablePlayers({ className }: { className?: string }) {
   const anyWaiting = game.status !== "over" && game.waitingFor.length > 0
   return (
     <div className={cn("table-ink flex w-fit max-w-60 flex-col pr-2 font-sans text-foreground", className)}>
-      <h2 id={titleId} className="font-display text-sm leading-tight tracking-[0.18em] text-foreground/70 uppercase short:text-xs">
+      <h2 id={titleId} className="-mr-[0.18em] text-right font-display text-sm leading-tight tracking-[0.18em] text-foreground/70 uppercase short:text-xs">
         {t("players")}
       </h2>
+      <div aria-hidden className="mt-2 h-px w-full bg-gradient-to-l from-foreground/40 to-transparent short:mt-1.5" />
       <ul aria-labelledby={titleId} className="flex flex-col">
         {game.players.map((player) => {
           const away = !game.present.includes(player.id)
