@@ -30,7 +30,7 @@ export { winnerAnnouncement } from "../../lib/game-over"
 /**
  * The end screen of a game, in the game's look (`GameOverCard`, dressed by `UI_THEME.gameOver` and `UI_THEME.seat` and the skin: its crown and its pattern): centered on the screen, over the board with no veil around it, it puts the players on a podium, says how the game ended for
  * the visitor, and has the two buttons that go on from it. "Continue" leaves the finished table and goes on to the platform (`useContinue`: `GameClient` owns where). "Rematch" votes for another game at the same table (`POST …/replay`) and says how many of the
- * players still there agreed; when somebody else asks first, a toast of the game has the button that agrees (`useRematchToasts`). A member of a table that counted for the rank sees the rank points the game gave or took (`useRankChange`). The share thumbnail is the share button's, drawn in the background.
+ * players still there agreed; when somebody else asks first, a toast of the game has the button that agrees (`useRematchToasts`). A member sees the experience the game gave them (+N XP, one point for each action they played, whatever the mode) and, for a table that counted for the rank, the rank points it gave or took (`useRankChange`). The share thumbnail is the share button's, drawn in the background.
  * `renderDetail`: the game's own rendering of a player's score breakdown (default: `label +n` chips). The table that lost together has no winner: the card says "Defeat".
  * `history`: the history of the game as the board gives its ticker (`groupTurns`); with it the card has its Stats and History tabs, and without it only the table of the scores.
  */
@@ -52,7 +52,7 @@ export function GameOver({ onUpdate, renderDetail, history }: { onUpdate: (p: Pu
   const lost = !!results && endingOf(results) === "defeat"
   const me = game.players.find((player) => player.id === game.meId)
   const rematch = rematchOf(game.players, game.replay, game.meId, GAME?.minPlayers ?? 1)
-  // A guest has no rank to move: only a member asks for the points
+  // A guest has no rank to move and earns no experience: only a member asks for the points
   const rank = useRankChange(game.code, !!results && !!me?.tag)
 
   const resultsKey = results ? `${game.code}|${results.coop ?? ""}|${results.winners.join()}|${results.players.map((j) => `${j.playerId}:${j.total}`).join()}` : null

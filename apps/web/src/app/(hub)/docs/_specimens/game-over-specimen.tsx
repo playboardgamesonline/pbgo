@@ -65,8 +65,9 @@ function resultsOf(ending: Ending, count: number, you: Standing): Results {
 
 const RANKS: Record<string, RankChange | null> = {
   none: null,
-  gain: { recorded: true, ranked: true, points: 18 },
-  loss: { recorded: true, ranked: true, points: -11 },
+  normal: { recorded: true, ranked: false, points: null, xp: 24 },
+  gain: { recorded: true, ranked: true, points: 18, xp: 31 },
+  loss: { recorded: true, ranked: true, points: -11, xp: 19 },
 }
 
 const VOTES = ["none", "asked", "agreed", "left"] as const
@@ -145,11 +146,12 @@ export function GameOverSpecimen({ looks }: { looks: readonly GameLook[] }) {
           />
         )}
         <Choice
-          label="Rank points"
+          label="Rank, XP"
           value={rank}
           onChange={setRank}
           options={[
             ["none", "None"],
+            ["normal", "XP only"],
             ["gain", "+18"],
             ["loss", "−11"],
           ]}

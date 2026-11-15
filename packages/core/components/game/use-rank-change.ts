@@ -5,7 +5,7 @@ import { useApi } from "../../lib/binding-context"
 import { RANK_ASKS, type RankChange } from "../../lib/rank-change"
 
 /**
- * What the game that has just ended did to the visitor's rank points, for the end screen. `active` is a member looking at a table that is over (a guest has no rank to move). The game is written down a moment after it ends, so the server says it
+ * What the game that has just ended did to the visitor's rank points and what it gave them in experience, for the end screen. `active` is a member looking at a table that is over (a guest has no rank to move and earns no experience). The game is written down a moment after it ends, so the server says it
  * is not yet (`recorded` false) and this asks again, `RANK_ASKS.tries` times at most; a request that fails is asked again the same way and, once the tries are spent, leaves the end screen without the points. Null until it is known.
  */
 export function useRankChange(code: string, active: boolean): RankChange | null {

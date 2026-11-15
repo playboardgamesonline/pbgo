@@ -7,6 +7,7 @@
     "./brands": "./src/brands.tsx",
     "./friends": "./src/friends.ts",
     "./game/*": "./src/game/*.tsx",
+    "./groups": "./src/groups.ts",
     "./leaderboard": "./src/leaderboard.ts",
     "./motion": "./src/motion.ts",
     "./platform/*": "./src/platform/*.tsx",

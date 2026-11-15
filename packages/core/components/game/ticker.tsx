@@ -7,6 +7,7 @@ import { useMotion } from "../../lib/use-motion"
 import { shortName } from "../../lib/short-name"
 import { useText } from "../skin-provider"
 import { useGame } from "./context"
+import { PlayerAvatar } from "./player-seat"
 
 /** One turn of the history: its author and the actions shown (each action is rendered by the game). */
 export type HistoryTurn = { key: string | number; playerId: string; entries: { key: string | number; node: React.ReactNode }[] }
@@ -60,6 +61,11 @@ function TurnLabel({ playerId, short }: { playerId: string; short?: boolean }) {
   )
 }
 
+/** A player's avatar at the start of a line of the history. A line (`text-base`, 24 px high) puts it level with its first line of text; a heading centres it on its own */
+function TurnAvatar({ playerId, line = false }: { playerId: string; line?: boolean }) {
+  return <PlayerAvatar playerId={playerId} size="sm" className={line ? "mt-0.5 short:mt-1" : undefined} />
+}
+
 /** "Waiting for A, B": several players are expected at once (a simultaneous step), each name in its player's color. */
 function WaitingLabel({ playerIds }: { playerIds: readonly string[] }) {
   const t = useText()
@@ -90,6 +96,9 @@ const fadeOf = (scrolled: boolean) => `linear-gradient(to bottom, ${scrolled ? "
  * announcement back (Courtisans during its opening animation) leaves it out. Without it, `activePlayerId` is whose turn it is.
  * Who has played and who is still to is the list of the players' (`TablePlayers`): the panel does not list the seats.
  *
+ * The history leads each turn with its player's avatar. A turn of one action is one line, `avatar nickname action` (`stays and banks 18`: a line is what the player did, and reads after their name); a turn of several is the avatar with "Ben's
+ * turn" as a heading, and the actions under it, in line with the heading's text. A game whose lines already say who did it (`Ben plays Duke`, `You play…`) gives `sentences`, and the ticker puts no nickname in front of them.
+ *
  * It is text over the table: the main line and the status let the pointer through to the table, and the history scrolls under the pointer (its box is as wide as its widest line, with no scrollbar, and it fades out at the bottom and, once scrolled, at the top), with nothing to fold. On a short
  * viewport (a phone held sideways) it has less height.
  */
@@ -99,6 +108,7 @@ export function Ticker({
   idle,
   status,
   history,
+  sentences = false,
 }: {
   activePlayerId: string | null
   waitingFor?: readonly string[]
@@ -107,6 +117,8 @@ export function Ticker({
   /** Global information under the main line (round, tokens…) */
   status?: React.ReactNode
   history: HistoryTurn[]
+  /** The lines of the history say who did what themselves (`Ben plays Duke`, `You play…`), so a line alone is shown with the player's avatar and no nickname before it. Default: a line is what the player did (`stays and banks 18`) and the ticker names them */
+  sentences?: boolean
 }) {
   const t = useText()
   const motionMode = useMotion()
@@ -144,25 +156,55 @@ export function Ticker({
             style={{ maskImage: fadeOf(scrolled), WebkitMaskImage: fadeOf(scrolled) }}
           >
             <ol className="flex flex-col items-start gap-3 text-base short:gap-2">
-              {history.map((turn) => (
-                <motion.li
-                  key={turn.key}
-                  layout="position"
-                  initial={{ opacity: 0, y: -travel(motionMode, 8) }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={enter}
-                  className="flex max-w-full flex-col items-start gap-1.5 short:gap-1"
-                >
-                  <span className="text-sm text-foreground/70">
-                    <TurnLabel playerId={turn.playerId} short />
-                  </span>
-                  {turn.entries.map((entry) => (
-                    <motion.div key={entry.key} initial={{ opacity: 0, y: -travel(motionMode, 6) }} animate={{ opacity: 1, y: 0 }} transition={enter} className="max-w-full">
-                      {entry.node}
-                    </motion.div>
-                  ))}
-                </motion.li>
-              ))}
+              {history.map((turn) => {
+                // One action is one line with its player's avatar before it; several are a heading and the actions under it. The entries keep their place in the list when a second one comes, so the first does not play its entrance again
+                const alone = turn.entries.length === 1
+                return (
+                  <motion.li
+                    key={turn.key}
+                    layout="position"
+                    initial={{ opacity: 0, y: -travel(motionMode, 8) }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={enter}
+                    className="flex max-w-full flex-col items-start gap-1.5 short:gap-1"
+                  >
+                    {!alone && (
+                      <span className="flex items-center gap-2 text-sm text-foreground/70">
+                        <TurnAvatar playerId={turn.playerId} />
+                        {/* one box, so that the label (text, a nickname, text) is not three items of the row */}
+                        <span>
+                          <TurnLabel playerId={turn.playerId} short />
+                        </span>
+                      </span>
+                    )}
+                    {turn.entries.map((entry) => (
+                      <motion.div
+                        key={entry.key}
+                        initial={{ opacity: 0, y: -travel(motionMode, 6) }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={enter}
+                        className={alone ? "flex max-w-full items-start gap-2" : "max-w-full pl-7 short:pl-6"}
+                      >
+                        {alone ? (
+                          <>
+                            <TurnAvatar playerId={turn.playerId} line />
+                            <span className="min-w-0">
+                              {!sentences && (
+                                <>
+                                  <PlayerName id={turn.playerId} />{" "}
+                                </>
+                              )}
+                              {entry.node}
+                            </span>
+                          </>
+                        ) : (
+                          entry.node
+                        )}
+                      </motion.div>
+                    ))}
+                  </motion.li>
+                )
+              })}
             </ol>
           </div>
         </>

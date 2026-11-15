@@ -1,7 +1,6 @@
 "use client"
 
 import type { Account } from "@pbgo/accounts"
-import { DEMO_ACCOUNT } from "@pbgo/accounts/demo"
 import type { SocialState } from "@pbgo/core/lib/friends"
 import { AddFriendForm } from "@pbgo/ui/platform/add-friend-form"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
@@ -12,6 +11,7 @@ import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@pbgo/ui/p
 import type { FriendRequest } from "@pbgo/ui/social"
 import { FriendsList } from "@/components/friends-list"
 import { useFriendActions } from "@/components/friend-actions"
+import { useGroupActions } from "@/components/group-actions"
 import { useSocial } from "@/lib/use-social"
 
 /** A request that waits for an answer: to accept or decline when it came in, to cancel when it went out. */
@@ -62,7 +62,7 @@ function Request({ request, onAnswer }: { request: FriendRequest; onAnswer: (req
 export function FriendsView({ accountId, initial }: { accountId: Account["id"]; initial: SocialState | null }) {
   const social = useSocial({ id: accountId }, initial)
   const actions = useFriendActions()
-  const preview = accountId === DEMO_ACCOUNT.id
+  const groups = useGroupActions(social.friends)
   const incoming = social.requests.filter((request) => request.direction === "incoming")
   const outgoing = social.requests.filter((request) => request.direction === "outgoing")
 
@@ -99,10 +99,11 @@ export function FriendsView({ accountId, initial }: { accountId: Account["id"]; 
 
       <section aria-label="Your friends">
         <div className="h-[32rem]">
-          <FriendsList friends={social.friends} preview={preview} onViewProfile={actions.viewProfile} onRemove={actions.remove} onBlock={actions.block} />
+          <FriendsList friends={social.friends} onViewProfile={actions.viewProfile} onRemove={actions.remove} onBlock={actions.block} onInvite={groups.invite} onJoin={groups.askToJoin} />
         </div>
       </section>
       {actions.dialog}
+      {groups.dialogs}
     </div>
   )
 }

@@ -133,6 +133,19 @@ export async function markGameStarted(game: Pick<GameEntry, "slug">, row: Pick<G
   }
 }
 
+/**
+ * Counts one more action played by a player at a table in play (`count_action`, migration 0026): the actions a player plays in a game are what gives them experience when the game is recorded, one point each. Only a move the player played
+ * themselves counts, never one the server played for them. Never throws: a failure, or a project where the migration is not applied yet, only loses a point and is logged. Call it from `after()`, once the move is written.
+ */
+export async function countAction(game: Pick<GameEntry, "slug">, code: string, playerId: string): Promise<void> {
+  try {
+    const { error } = await supabaseAdmin().rpc("count_action", { p_game: game.slug, p_code: code, p_player: playerId })
+    if (error) console.error("An action was not counted", { game: game.slug }, refusal(error))
+  } catch (error) {
+    console.error("An action was not counted", { game: game.slug }, error instanceof Error ? error.message : error)
+  }
+}
+
 /** Tells the database which players the others played for (the takeover), so that their seats count for no rating. Never throws; nothing is written for no player. Call it from `after()`, before `recordGameResult` when the same request ends the game. */
 export async function markTakenOver(game: Pick<GameEntry, "slug">, code: string, players: readonly string[]): Promise<void> {
   if (!players.length) return

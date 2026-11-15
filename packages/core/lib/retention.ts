@@ -26,6 +26,12 @@ export const FRIEND_REQUEST_RETENTION_DAYS = 30
 export const INVITATION_RETENTION_DAYS = 1
 
 /**
+ * A group (`friend_groups`, PLT-23) goes when nobody in it has been seen on the site for this many days (`member_presence`, which the nightly clean-up empties a day after the last beat): the group of a game night that nobody came back to. A group also goes at once when it has fewer than two members
+ * (a member leaves, is removed, closes or deletes their account: a trigger of migration 0027), and its invitations and requests are the invitations' (`INVITATION_RETENTION_DAYS`).
+ */
+export const GROUP_IDLE_DAYS = 1
+
+/**
  * A message between friends (`friend_messages`, PLT-25) goes this many days after it was written, read or not: the nightly clean-up deletes it. A conversation is also deleted at once when the two stop being friends (migration 0025), and with either account.
  * A default of the owner's to confirm: chats here are for a game night, not an archive.
  */

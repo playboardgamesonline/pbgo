@@ -34,6 +34,9 @@ const faceSlots: ArtSlot[] = CARD_LIST.map(({ category, key, id, engineKey }) =>
 
 const gameSlots: ArtSlot[] = [
   { name: "card-back", aliases: ["back"], label: "Back of the cards", ratio: CARD_RATIO, maxSize: 1400, docId: GAME_ID, place: setField("cardBack") },
+  // The two stickers that lie on the table over a player's line: an SVG each, kept as it is, whatever its proportions
+  { name: "bust", label: "Bust sticker", maxSize: 1200, docId: GAME_ID, place: setField("bust") },
+  { name: "bonus", label: "Flip 7 bonus badge (+15)", maxSize: 1200, docId: GAME_ID, place: setField("bonus") },
   { name: "box-front", label: "Box, front", maxSize: 2000, docId: GAME_ID, place: setField("boxFront") },
   { name: "box-back", label: "Box, back (optional)", maxSize: 2000, docId: GAME_ID, place: setField("boxBack") },
   { name: "mat", label: "Table mat (optional)", maxSize: 2400, docId: GAME_ID, place: setField("mat") },

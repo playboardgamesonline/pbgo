@@ -8,7 +8,7 @@ import { servedGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { markSeen } from "../../../../../server/presence"
 import { rateLimit } from "../../../../../server/rate-limit"
-import { markTakenOver, recordGameResult } from "../../../../../server/results"
+import { countAction, markTakenOver, recordGameResult } from "../../../../../server/results"
 import { hasLeft, settleLeavers } from "../../../../../server/table-rules"
 
 export const POST = handle(async (request: Request, { game, params }: GameRouteContext) => {
@@ -43,7 +43,14 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   // finds the table over and is refused (`GAME_OVER`), so the game is written down once
   if (row.status === "over") {
     trackGameFinished(game.slug, row, id)
-    after(() => (outcome.playedFor.length ? recordGameResult(game, row, { takenOver: outcome.playedFor }) : recordGameResult(game, row)))
+    // The move that ended the game is counted first: the result reads the counters of the table
+    after(async () => {
+      await countAction(game, row.code, id)
+      await (outcome.playedFor.length ? recordGameResult(game, row, { takenOver: outcome.playedFor }) : recordGameResult(game, row))
+    })
+  } else {
+    // The experience of a player is the actions they played themselves, one point each, counted while the game lasts and added to their profile when it is written down
+    after(() => countAction(game, row.code, id))
   }
   return servedGame(game, row, id)
 })

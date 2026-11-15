@@ -20,7 +20,7 @@ function reportMissing(slug: string, locale: Locale, catalog: ClientCatalog) {
 }
 
 /**
- * The catalog given to the board: the pictures of the cards and of their back, the name of each action card and the words of the board, all of it from the game's Sanity project. A picture it does not have is `null` and a text reads
+ * The catalog given to the board: the pictures of the cards, of their back and of the two stickers, the name of each action card and the words of the board, all of it from the game's Sanity project. A picture it does not have is `null` and a text reads
  * `[missing: <key>]`, in the language asked, else English, never another language.
  */
 export async function getClientCatalog({ game: module, locale, sanity }: LoaderContext): Promise<ClientCatalog> {
@@ -46,6 +46,8 @@ export async function getClientCatalog({ game: module, locale, sanity }: LoaderC
       faces,
       names,
       backUrl: url(game?.cardBack),
+      bustUrl: url(game?.bust),
+      bonusUrl: url(game?.bonus),
       words: Object.fromEntries(WORD_FIELDS.map((field) => [field, translate(texts?.[field], locale)?.trim() || missing(field)])) as Vocabulary,
     }
     reportMissing(module.slug, locale, catalog)

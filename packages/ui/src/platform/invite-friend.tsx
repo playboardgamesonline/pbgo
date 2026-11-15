@@ -11,9 +11,9 @@ import { PresenceDot } from "./friends-panel"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
 import { Spinner } from "./spinner"
 
-// The window that picks the friend a visitor invites to their table (PLT-109): opened by "Invite a friend" in the menu of a free seat. A search field, then the friends, the connected ones first as suggestions (the ones who are free, then the ones who
+// The window that picks the friend a visitor invites, to their table (PLT-109: opened by "Invite a friend" in the menu of a free seat) or to their group (PLT-23: opened by the button of the group tab of the social panel). A search field, then the friends, the connected ones first as suggestions (the ones who are free, then the ones who
 // are playing, with what each is doing: the game they are in), then the others, who are away: they are listed too, and the invitation waits for them. A press on a row sends the invitation and nothing else: the row says "Sending…", then "Invited" with a tick,
-// and stays in the list, so that the visitor can invite more than one friend to a table with several seats; the window is left by its close button or Escape. It decides nothing: `onInvite` does the sending and answers `false` (or a promise of it) when the
+// and stays in the list, so that the visitor can invite more than one friend to a table with several seats or to a group; the window is left by its close button or Escape. The window says what it is for in its title and under it (`title`, `description`). It decides nothing: `onInvite` does the sending and answers `false` (or a promise of it) when the
 // invitation was refused, which puts the row back. A row that has been sent is not sent twice while it says "Invited".
 
 type InviteFriendListProps = {
@@ -116,27 +116,40 @@ function InviteFriendList({ friends, onInvite, invited, className }: InviteFrien
   )
 }
 
-type InviteFriendDialogProps = InviteFriendListProps & {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+type InviteFriendHeaderProps = {
+  /** What the window is called: "Invite a friend" unless it says more (the group it is for, for instance). */
+  title?: string
   /** What the window says under its title; the table it is for, for instance. */
   description?: React.ReactNode
 }
 
+/** The head of the window: its title and what it says under it. It needs the context of a dialog, which gives the title its name for a screen reader. */
+function InviteFriendHeader({ title = "Invite a friend", description = "Friends who are online come first. One press sends the invitation." }: InviteFriendHeaderProps) {
+  return (
+    <DialogHeader>
+      <DialogTitle>{title}</DialogTitle>
+      <DialogDescription>{description}</DialogDescription>
+    </DialogHeader>
+  )
+}
+
+type InviteFriendDialogProps = InviteFriendListProps &
+  InviteFriendHeaderProps & {
+    open: boolean
+    onOpenChange: (open: boolean) => void
+  }
+
 /** The window of "Invite a friend": the picker in a dialog. The list is drawn anew each time it opens, so that the search and the rows start clean. */
-function InviteFriendDialog({ open, onOpenChange, description = "Friends who are online come first. One press sends the invitation.", ...list }: InviteFriendDialogProps) {
+function InviteFriendDialog({ open, onOpenChange, title, description, ...list }: InviteFriendDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent aria-describedby={undefined} data-slot="invite-friend-dialog">
-        <DialogHeader>
-          <DialogTitle>Invite a friend</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+        <InviteFriendHeader title={title} description={description} />
         <InviteFriendList {...list} />
       </DialogContent>
     </Dialog>
   )
 }
 
-export { InviteFriendDialog, InviteFriendList }
-export type { InviteFriendDialogProps, InviteFriendListProps }
+export { InviteFriendDialog, InviteFriendHeader, InviteFriendList }
+export type { InviteFriendDialogProps, InviteFriendHeaderProps, InviteFriendListProps }

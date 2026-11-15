@@ -17,7 +17,7 @@ const h = vi.hoisted(() => ({
   /** The paths of the objects in the `feedback` bucket */
   objects: new Set<string>(),
   log: [] as string[],
-  fail: { games: null as string | null, presence: null as string | null, friendRequests: null as { message: string; code?: string } | null, removal: null as string | null, removalCall: 1, feedbackDelete: null as string | null, silentDelete: false, rpc: {} as Record<string, string>, erase: {} as Record<string, string>, eraseGone: [] as string[] },
+  fail: { games: null as string | null, presence: null as string | null, friendRequests: null as { message: string; code?: string } | null, removal: null as string | null, removalCall: 1, feedbackDelete: null as string | null, silentDelete: false, rpc: {} as Record<string, string>, rpcCode: {} as Record<string, string>, erase: {} as Record<string, string>, eraseGone: [] as string[] },
   /** What each clean-up function of the database answers, one answer for each call: how many rows it deleted */
   rpcAnswers: {} as Record<string, number[]>,
   removals: 0,
@@ -122,7 +122,7 @@ vi.mock("./supabase", () => {
       }
       h.log.push(`rpc ${name} ${args.p_before} ${args.p_limit} ${args.p_dry}`)
       const failure = h.fail.rpc[name]
-      if (failure) return { data: null, error: { message: failure } }
+      if (failure) return { data: null, error: { message: failure, ...(h.fail.rpcCode[name] ? { code: h.fail.rpcCode[name] } : {}) } }
       return { data: h.rpcAnswers[name]?.shift() ?? 0, error: null }
     },
     storage: {
@@ -182,6 +182,7 @@ beforeEach(() => {
   h.fail.feedbackDelete = null
   h.fail.silentDelete = false
   h.fail.rpc = {}
+  h.fail.rpcCode = {}
   h.fail.erase = {}
   h.fail.eraseGone = []
   h.due = []
@@ -340,6 +341,33 @@ describe("invitations to a table", () => {
     const report = await purgeExpired({ now: NOW, dryRun: true })
     expect(report).toMatchObject({ dryRun: true, invitations: 1, errors: [] })
     expect(ids()).toEqual(["old", "fresh"])
+  })
+})
+
+describe("idle groups (PLT-23)", () => {
+  it("asks the database to delete the groups nobody in has been seen in for a day, and counts them", async () => {
+    h.rpcAnswers.groups_purge = [3]
+    const report = await purgeExpired({ now: NOW })
+    expect(report).toMatchObject({ groups: 3, errors: [] })
+    expect(h.log).toContain("rpc groups_purge undefined undefined false")
+  })
+
+  it("only counts them in a dry run", async () => {
+    h.rpcAnswers.groups_purge = [2]
+    const report = await purgeExpired({ now: NOW, dryRun: true })
+    expect(report).toMatchObject({ dryRun: true, groups: 2, errors: [] })
+    expect(h.log).toContain("rpc groups_purge undefined undefined true")
+  })
+
+  it("has none where migration 0027 is not applied yet, and reports the other failures without holding the other jobs back", async () => {
+    h.fail.rpc.groups_purge = "function public.groups_purge does not exist"
+    h.fail.rpcCode.groups_purge = "42883"
+    expect(await purgeExpired({ now: NOW })).toMatchObject({ groups: 0, errors: [] })
+    h.fail.rpcCode.groups_purge = "57014"
+    h.fail.rpc.groups_purge = "canceling statement due to statement timeout"
+    const report = await purgeExpired({ now: NOW })
+    expect(report.errors).toEqual(["groups: canceling statement due to statement timeout"])
+    expect(report.invitations).toBe(0)
   })
 })
 
@@ -584,7 +612,7 @@ describe("a dry run", () => {
     h.rpcAnswers.fold_old_results = [FOLD_BATCH_SIZE * 2]
     const report = await purgeExpired({ now: NOW, dryRun: true })
     expect(report).toMatchObject({ dryRun: true, states: STATE_BATCH_SIZE * 3, seats: FOLD_BATCH_SIZE * 2, errors: [] })
-    expect(h.log.filter((line) => line.startsWith("rpc"))).toEqual([`rpc drop_finished_states ${daysAgo(1)} ${STATE_BATCH_SIZE} true`, `rpc fold_old_results ${YEAR_AGO} ${FOLD_BATCH_SIZE} true`])
+    expect(h.log.filter((line) => line.startsWith("rpc") && !line.startsWith("rpc groups_purge"))).toEqual([`rpc drop_finished_states ${daysAgo(1)} ${STATE_BATCH_SIZE} true`, `rpc fold_old_results ${YEAR_AGO} ${FOLD_BATCH_SIZE} true`])
   })
 })
 

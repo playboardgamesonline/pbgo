@@ -7,12 +7,15 @@ import { Avatar, AvatarCount, AvatarFallback, AvatarImage } from "@pbgo/ui/platf
 import { ChatWindow } from "@pbgo/ui/platform/chat-window"
 import { FriendsBar, FriendsBarList } from "@pbgo/ui/platform/friends-bar"
 import { PresenceDot } from "@pbgo/ui/platform/friends-panel"
+import { GroupPane } from "@pbgo/ui/platform/group-panel"
+import { InvitationsCard } from "@pbgo/ui/platform/invitations-card"
 import { InviteFriendList } from "@pbgo/ui/platform/invite-friend"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { SocialDock, SocialDockIdentity } from "@pbgo/ui/platform/social-dock"
 import { SocialPanel, SocialPanelToggle, type SocialTab } from "@pbgo/ui/platform/social-panel"
 import { gamesOf, type Friend } from "@pbgo/ui/friends"
-import type { Conversation, FriendRequest, Message } from "@pbgo/ui/social"
+import type { Group, GroupMember } from "@pbgo/ui/groups"
+import type { Conversation, FriendRequest, Invitation, Message } from "@pbgo/ui/social"
 
 /** The picture of a game on the hub: its icon in the catalog (an initial on a tile where there is none). */
 const gameIcon = (slug: string) => `/api/catalog/${slug}/icon`
@@ -21,19 +24,90 @@ const COURTISANS = { slug: "courtisans", name: "Courtisans" }
 const SKULL_KING = { slug: "skull-king", name: "Skull King" }
 const HANABI = { slug: "hanabi", name: "Hanabi" }
 
-const MARLY: Friend = { id: "1", nickname: "Marly", tag: "4821", avatarUrl: DEMO_AVATARS.marly, status: "playing", game: COURTISANS, table: { code: "K7P", size: 3, max: 4 }, activity: "Table K7P · 12 min" }
+const MARLY: Friend = {
+  id: "1",
+  nickname: "Marly",
+  tag: "4821",
+  avatarUrl: DEMO_AVATARS.marly,
+  status: "playing",
+  game: COURTISANS,
+  table: { code: "K7P", size: 3, max: 4 },
+  activity: "Table K7P · 12 min",
+  group: "other",
+  pending: "requested",
+}
 
 const FRIENDS: readonly Friend[] = [
   MARLY,
-  { id: "2", nickname: "Hervé", tag: "0412", avatarUrl: DEMO_AVATARS.herve, status: "playing", game: SKULL_KING, table: { code: "9QD", size: 4, max: 6 }, activity: "Table 9QD · 4 min" },
-  { id: "3", nickname: "Zoé", tag: "1033", avatarUrl: DEMO_AVATARS.zoe, status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby" },
-  { id: "4", nickname: "Tom", tag: "7712", avatarUrl: DEMO_AVATARS.tom, status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby" },
-  { id: "5", nickname: "Lina", tag: "2290", avatarUrl: DEMO_AVATARS.lina, status: "inactive", game: HANABI, activity: "Inactive · 8 min" },
+  { id: "2", nickname: "Hervé", tag: "0412", avatarUrl: DEMO_AVATARS.herve, status: "playing", game: SKULL_KING, table: { code: "9QD", size: 4, max: 6 }, activity: "Table 9QD · 4 min", group: "other" },
+  { id: "3", nickname: "Zoé", tag: "1033", avatarUrl: DEMO_AVATARS.zoe, status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby", group: "yours" },
+  { id: "4", nickname: "Tom", tag: "7712", avatarUrl: DEMO_AVATARS.tom, status: "online", game: COURTISANS, table: { code: "M3R", size: 2, max: 4 }, activity: "In the lobby", group: "yours" },
+  { id: "5", nickname: "Lina", tag: "2290", avatarUrl: DEMO_AVATARS.lina, status: "inactive", game: HANABI, activity: "Inactive · 8 min", pending: "invited" },
   { id: "6", nickname: "Jade", tag: "6604", avatarUrl: DEMO_AVATARS.jade, status: "dnd", activity: "Do not disturb" },
   { id: "7", nickname: "Max", tag: "5501", avatarUrl: DEMO_AVATARS.max, status: "offline", activity: "2 h ago" },
   { id: "8", nickname: "Inès", tag: "3318", avatarUrl: DEMO_AVATARS.ines, status: "offline", activity: "Yesterday" },
   { id: "9", nickname: "Sam", tag: "9042", avatarUrl: DEMO_AVATARS.sam, status: "offline", activity: "3 days ago" },
 ]
+
+/** The visitor, and the members of their group: friends of the visitor in it, and a member who is nobody's friend of theirs (a group may hold players who only know the one who invited them). */
+const YOU: GroupMember = { id: "me", nickname: DEMO_ACCOUNT.nickname, tag: "0001", avatarUrl: DEMO_ACCOUNT.avatarUrl, status: "online", leader: false, you: true }
+const memberOf = (friend: Friend, rest: Partial<GroupMember> = {}): GroupMember => ({
+  id: friend.id,
+  nickname: friend.nickname,
+  tag: friend.tag,
+  avatarUrl: friend.avatarUrl,
+  status: friend.status,
+  ...(friend.game ? { game: friend.game } : {}),
+  ...(friend.activity ? { activity: friend.activity } : {}),
+  leader: false,
+  you: false,
+  ...rest,
+})
+const [MARLY_F, HERVE_F, ZOE_F, TOM_F, LINA_F, JADE_F, MAX_F] = FRIENDS as [Friend, Friend, Friend, Friend, Friend, Friend, Friend]
+const NOLAN: GroupMember = { id: "n1", nickname: "Nolan", tag: "6150", avatarUrl: DEMO_AVATARS.nolan, status: "offline", leader: false, you: false }
+
+/** What the group tab shows, in its four states: the visitor leads (the menus of the members are there), the visitor is a member, the group has all its members, and no group. */
+export type GroupState = "leader" | "member" | "full" | "none"
+
+const GROUPS: Record<GroupState, Group | null> = {
+  leader: { members: [{ ...YOU, leader: true }, memberOf(ZOE_F), memberOf(TOM_F), NOLAN], max: 8 },
+  member: { members: [YOU, memberOf(ZOE_F, { leader: true }), memberOf(TOM_F)], max: 8 },
+  full: {
+    members: [{ ...YOU, leader: true }, memberOf(ZOE_F), memberOf(TOM_F), memberOf(MARLY_F), memberOf(HERVE_F), memberOf(LINA_F), memberOf(JADE_F), memberOf(MAX_F)],
+    max: 8,
+  },
+  none: null,
+}
+
+/**
+ * The group pane in a column as high as the panel gives it, in one of its four states. Its buttons do nothing here, and the menu of a member (under the pointer and the focus) is there for the leader.
+ */
+export function GroupSpecimen({ state }: { state: GroupState }) {
+  const nothing = () => {}
+  return (
+    <div className="flex h-[34rem] w-full flex-col rounded-4xl border glass p-4 shadow-overlay">
+      <GroupPane group={GROUPS[state]} onInvite={nothing} onLeave={nothing} onKick={nothing} onMakeLeader={nothing} onViewProfile={nothing} />
+    </div>
+  )
+}
+
+/** The moment the invitations of the specimens count down from, so that the page says the same thing wherever and whenever it is drawn. */
+const NOW = Date.parse("2026-11-13T10:00:00.000Z")
+
+const INVITATIONS: readonly Invitation[] = [
+  { id: "i1", kind: "table", nickname: "Marly", tag: "4821", avatarUrl: DEMO_AVATARS.marly, game: COURTISANS, expiresAt: "2026-11-13T10:25:00.000Z" },
+  { id: "i2", kind: "group", nickname: "Zoé", tag: "1033", avatarUrl: DEMO_AVATARS.zoe, expiresAt: "2026-11-13T10:12:00.000Z" },
+  { id: "i3", kind: "join", nickname: "Nolan", tag: "6150", avatarUrl: DEMO_AVATARS.nolan, expiresAt: "2026-11-13T10:20:00.000Z" },
+]
+
+/** What waits for the visitor's answer, in the box the card makes at the top of the panel: an invitation to a table, one to a group and a request to join the visitor's group. The buttons do nothing here. */
+export function InvitationsSpecimen() {
+  return (
+    <div className="w-full max-w-sm rounded-4xl border glass p-4 shadow-overlay">
+      <InvitationsCard invitations={INVITATIONS} gameIcon={gameIcon} onAnswer={() => {}} now={NOW} />
+    </div>
+  )
+}
 
 /**
  * The friends' bar in a glass container of its own, at the right of a frame that stands for the navbar (the bar draws no container: the dock is the one that holds it on the hub): left to
@@ -97,6 +171,12 @@ export function DockSpecimen() {
             gameIcon={gameIcon}
             conversations={chats}
             requests={REQUESTS}
+            group={GROUPS.leader}
+            onInviteToGroup={nothing}
+            onLeaveGroup={nothing}
+            onKickMember={nothing}
+            onMakeLeader={nothing}
+            onViewMember={nothing}
             onOpenChat={nothing}
             onJoin={nothing}
             onInvite={nothing}
@@ -125,11 +205,14 @@ export function BarListSpecimen() {
   )
 }
 
-/** The picker of the friend to invite, on its own, in the box of the window that holds it: the connected friends first, then the others, a search over them. A press marks a friend invited, and sends nothing. */
+/**
+ * The picker of the friend to invite, on its own, in the box of the window that holds it: the connected friends first, then the others, a search over them. For a group it lists the friends who are in none, and shows the ones already invited as such. A press marks a friend
+ * invited, and sends nothing.
+ */
 export function InvitePickerSpecimen() {
   return (
     <div className="w-full max-w-md rounded-4xl bg-popover p-6 text-popover-foreground shadow-overlay ring-1 ring-foreground/10">
-      <InviteFriendList friends={FRIENDS} onInvite={() => true} />
+      <InviteFriendList friends={FRIENDS.filter((friend) => !friend.group)} invited={new Set(["5"])} onInvite={() => true} />
     </div>
   )
 }
@@ -165,7 +248,7 @@ function conversations(): Conversation[] {
 }
 
 /**
- * The social panel in a column as high as a page gives it, on one of its tabs, with its friends, its conversations and its requests, or with none. The buttons do
+ * The social panel in a column as high as a page gives it, on one of its tabs, with its friends, its group, its conversations and its requests, or with none. The buttons do
  * nothing here, and the search and the tabs work.
  */
 export function SocialSpecimen({ tab = "friends", empty = false }: { tab?: SocialTab; empty?: boolean }) {
@@ -192,6 +275,12 @@ export function SocialSpecimen({ tab = "friends", empty = false }: { tab?: Socia
       gameIcon={gameIcon}
       conversations={empty ? [] : chats}
       requests={empty ? [] : REQUESTS}
+      group={empty ? GROUPS.none : GROUPS.leader}
+      onInviteToGroup={nothing}
+      onLeaveGroup={nothing}
+      onKickMember={nothing}
+      onMakeLeader={nothing}
+      onViewMember={nothing}
       onOpenChat={nothing}
       onJoin={nothing}
       onInvite={nothing}

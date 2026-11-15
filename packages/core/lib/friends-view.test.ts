@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { conversationsOf, friendOf, handleOfPerson, messageOfChat, panelOf, personKey, requestOf } from "./friends-view"
+import { conversationsOf, friendOf, groupMemberOf, groupOfEntry, handleOfPerson, invitationOfEntry, messageOfChat, panelOf, personKey, requestOf } from "./friends-view"
 import type { FriendEntry, RequestEntry } from "./friends"
+import { MAX_GROUP_MEMBERS, type GroupEntry, type GroupMemberEntry } from "./groups"
 
 const person = { nickname: "Bob", tag: 42, avatarUrl: "https://cdn.example/bob.png" }
-const entry = (over: Partial<FriendEntry> = {}): FriendEntry => ({ ...person, online: true, game: null, phase: null, ...over })
+const entry = (over: Partial<FriendEntry> = {}): FriendEntry => ({ ...person, online: true, game: null, phase: null, group: "none", pending: null, ...over })
 const COURTISANS = { slug: "courtisans", name: "Courtisans" }
 
 describe("personKey", () => {
@@ -46,6 +47,52 @@ describe("friendOf", () => {
   it("keeps a picture that is none", () => {
     expect(friendOf(entry({ avatarUrl: null })).avatarUrl).toBeNull()
   })
+
+  it("says whether a friend is in a group, and what waits for their answer, only when there is something to say", () => {
+    expect(friendOf(entry({ group: "yours" })).group).toBe("yours")
+    expect(friendOf(entry({ group: "other", pending: "requested" }))).toMatchObject({ group: "other", pending: "requested" })
+    expect(friendOf(entry({ pending: "invited" }))).toMatchObject({ pending: "invited" })
+    const plain = friendOf(entry())
+    expect("group" in plain).toBe(false)
+    expect("pending" in plain).toBe(false)
+  })
+})
+
+describe("the group", () => {
+  const member = (over: Partial<GroupMemberEntry> = {}): GroupMemberEntry => ({ ...person, leader: false, you: false, online: true, game: null, phase: null, ...over })
+  const group: GroupEntry = { members: [member({ nickname: "Ann", tag: 1, leader: true, you: true }), member(), member({ nickname: "Cat", tag: 3, online: false })] }
+
+  it("draws a member the way a friend is drawn, with who leads and who the visitor is", () => {
+    expect(groupMemberOf(member({ game: COURTISANS, phase: "lobby" }))).toEqual({
+      id: "bob#42",
+      nickname: "Bob",
+      tag: "0042",
+      avatarUrl: "https://cdn.example/bob.png",
+      status: "online",
+      game: COURTISANS,
+      activity: "In the lobby",
+      leader: false,
+      you: false,
+    })
+    expect(groupMemberOf(member({ game: COURTISANS, phase: "playing" })).status).toBe("playing")
+    expect(groupMemberOf(member({ online: false })).status).toBe("offline")
+    expect(groupMemberOf(member({ online: false, game: COURTISANS, phase: "playing" })).game).toBeUndefined()
+  })
+
+  it("draws the visitor as online whatever the last beat of their tab said: they are here", () => {
+    expect(groupMemberOf(member({ you: true, online: false })).status).toBe("online")
+  })
+
+  it("is the group the panel draws, with the most it can hold, or none", () => {
+    expect(groupOfEntry(group)).toMatchObject({ max: MAX_GROUP_MEMBERS })
+    expect(groupOfEntry(group)?.members.map((one) => [one.nickname, one.leader, one.you])).toEqual([["Ann", true, true], ["Bob", false, false], ["Cat", false, false]])
+    expect(groupOfEntry(null)).toBeNull()
+  })
+
+  it("comes with the state of the panel, none by default", () => {
+    expect(panelOf({ friends: [], incoming: [], outgoing: [], group }).group?.members).toHaveLength(3)
+    expect(panelOf({ friends: [], incoming: [], outgoing: [] }).group).toBeNull()
+  })
 })
 
 describe("requestOf and panelOf", () => {
@@ -64,13 +111,20 @@ describe("requestOf and panelOf", () => {
   })
 
   it("draw nobody for a state with nobody", () => {
-    expect(panelOf({ friends: [], incoming: [], outgoing: [] })).toEqual({ friends: [], requests: [], invitations: [], conversations: [] })
+    expect(panelOf({ friends: [], incoming: [], outgoing: [] })).toEqual({ friends: [], requests: [], invitations: [], conversations: [], group: null })
   })
 
   it("draw the invitations to a table with who invited, the game and the time, and never a code", () => {
-    const invitation = { id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Cat", tag: 3, avatarUrl: null }, game: COURTISANS, at, expiresAt: "2026-11-09T10:30:00.000Z" }
+    const invitation = { kind: "table" as const, id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Cat", tag: 3, avatarUrl: null }, game: COURTISANS, at, expiresAt: "2026-11-09T10:30:00.000Z" }
     const { invitations } = panelOf({ friends: [], incoming: [], outgoing: [], invitations: [invitation] })
-    expect(invitations).toEqual([{ id: invitation.id, nickname: "Cat", tag: "0003", avatarUrl: null, game: COURTISANS, expiresAt: "2026-11-09T10:30:00.000Z" }])
+    expect(invitations).toEqual([{ kind: "table", id: invitation.id, nickname: "Cat", tag: "0003", avatarUrl: null, game: COURTISANS, expiresAt: "2026-11-09T10:30:00.000Z" }])
+  })
+
+  it("draw an invitation to a group, or a request to join one, with who sent it and no game", () => {
+    const base = { id: "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e", from: { nickname: "Cat", tag: 3, avatarUrl: null }, at, expiresAt: "2026-11-09T10:30:00.000Z" }
+    expect(invitationOfEntry({ ...base, kind: "group" })).toEqual({ kind: "group", id: base.id, nickname: "Cat", tag: "0003", avatarUrl: null, expiresAt: base.expiresAt })
+    expect(invitationOfEntry({ ...base, kind: "join" })).toEqual({ kind: "join", id: base.id, nickname: "Cat", tag: "0003", avatarUrl: null, expiresAt: base.expiresAt })
+    expect("game" in invitationOfEntry({ ...base, kind: "group" })).toBe(false)
   })
 })
 

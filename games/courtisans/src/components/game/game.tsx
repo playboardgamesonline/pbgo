@@ -317,7 +317,7 @@ function Board({
         <InteractionContext.Provider value={interaction}>
           <GameHud
             onLeave={onLeave}
-            ticker={<Ticker activePlayerId={shownTurn} waitingFor={openingHolds ? undefined : game.waitingFor} history={history} />}
+            ticker={<Ticker activePlayerId={shownTurn} waitingFor={openingHolds ? undefined : game.waitingFor} history={history} sentences />}
             overlay={
               <>
                 {(waitingOthers || (intro && showMissionsButton)) && (

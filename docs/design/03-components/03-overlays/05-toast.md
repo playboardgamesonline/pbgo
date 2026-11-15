@@ -50,10 +50,26 @@ toast-friend-request-received
 
 ### An invitation to a game
 
-The one toast about a person that stays: it is fixed, and its cross dismisses it without an answer. The page gives the person, the game and what each button does.
+A toast about a person that stays: it is fixed, and its cross dismisses it without an answer. The page gives the person, the game and what each button does.
 
 ```specimen
 toast-game-invitation
+```
+
+### An invitation to a group
+
+The same toast without a game: it says who invited the member to their group. Accepting makes the member one of the group.
+
+```specimen
+toast-group-invitation
+```
+
+### A request to join the member's group
+
+The same toast for the other way round: somebody asks to join the group the member is in. Accept lets them in. Any member of the group gets it, and the first answer is everybody's.
+
+```specimen
+toast-join-request
 ```
 
 ## Rules

@@ -34,7 +34,7 @@ const MODIFIER_KEYS = ["plus-2", "plus-4", "plus-6", "plus-8", "plus-10", "times
 /** A project that holds the 22 cards with a picture each, the back, and every word of the board in French and English. */
 function project() {
   return {
-    game: { cardBack: picture("ba") },
+    game: { cardBack: picture("ba"), bust: picture("bu"), bonus: picture("bo") },
     texts: Object.fromEntries(WORD_FIELDS.map((field) => [field, words({ fr: `${field} (fr)`, en: `${field} (en)` })])),
     numbers: NUMBER_FIGURES.map((key) => ({ key, image: picture(`a${key}`) })),
     actions: ACTION_KEYS.map((key) => ({ key, name: words(ACTION_NAMES[key]!), image: picture(key.replace(/\W/g, "")) })),
@@ -107,6 +107,18 @@ describe("the back of the cards", () => {
   })
 })
 
+describe("the stickers", () => {
+  it("are the bust stamp and the bonus badge of the game document, each null while it has none", async () => {
+    const { bustUrl, bonusUrl } = await load("en")
+    expect(bustUrl).toMatch(/cdn\.sanity\.io\/images\/ky3exlhe\/production\/bu0+-326x512\.svg$/)
+    expect(bonusUrl).toMatch(/cdn\.sanity\.io\/images\/ky3exlhe\/production\/bo0+-326x512\.svg$/)
+    sanity.catalog = { ...project(), game: { cardBack: picture("ba"), bust: null, bonus: picture("bo") } }
+    expect(await load("en")).toMatchObject({ bustUrl: null, bonusUrl: expect.stringContaining("bo0") })
+    sanity.catalog = { ...project(), game: null }
+    expect(await load("en")).toMatchObject({ bustUrl: null, bonusUrl: null })
+  })
+})
+
 describe("the names of the action cards", () => {
   it("are read in the language asked, else English", async () => {
     expect((await load("fr")).names.freeze).toBe("Gel")
@@ -167,6 +179,7 @@ describe("when Sanity is not there", () => {
   it("is the catalog of markers and no picture for a game with no Sanity client", async () => {
     expect(await load("en", { sanity: null })).toEqual(MISSING_CATALOG)
     expect(MISSING_CATALOG.backUrl).toBeNull()
+    expect([MISSING_CATALOG.bustUrl, MISSING_CATALOG.bonusUrl]).toEqual([null, null])
     expect(Object.values(MISSING_CATALOG.faces).every((url) => url === null)).toBe(true)
     expect(MISSING_CATALOG.words.hit).toBe("[missing: hit]")
     expect(MISSING_CATALOG.names.freeze).toBe("[missing: cards.freeze]")
