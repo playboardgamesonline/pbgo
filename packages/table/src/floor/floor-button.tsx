@@ -23,6 +23,8 @@ export type FloorButtonProps = {
   labelHeight?: number
   /** The CSS font of the lettering, `TABLE_FONT` by default */
   font?: string
+  /** The weight of the lettering (default 800) */
+  weight?: number
   /** What a screen reader says and what the keyboard focus lands on; defaults to `label`. A zone with no label must give one */
   ariaLabel?: string
   /** Pressing the pad (a click, a tap, Enter or Space on the focused pad) does this. Without it the pad is drawn and takes no press */
@@ -109,7 +111,7 @@ function padShape(w: number, d: number, border: number) {
  * A canvas takes no keyboard, so each enabled pad also puts one real, visually hidden `<button>` in the page: it takes the Tab key, shows the lift while focused, says `ariaLabel` to a screen reader and presses with Enter or Space. A disabled pad has none.
  * The same block is the big zones that a board presses to choose a seat or a cell: give them no `label` and an `ariaLabel`.
  */
-export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55, font = TABLE_FONT, ariaLabel, onPress, disabled = false, rim = RIM_HEIGHT, tint = 1, hitY = 0.02, children }: FloorButtonProps) {
+export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55, font = TABLE_FONT, weight = 800, ariaLabel, onPress, disabled = false, rim = RIM_HEIGHT, tint = 1, hitY = 0.02, children }: FloorButtonProps) {
   const reduced = usePrefersReducedMotion()
   const pressable = !!onPress && !disabled
   const [hovered, setHovered] = useState(false)
@@ -193,7 +195,7 @@ export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55,
     if (el.style.left !== left) el.style.left = left
     if (el.style.top !== top) el.style.top = top
   })
-  const lettering: TextStyle = { color: floorColours(colour, 0, disabled).label, weight: 800, shadow: "rgba(0,0,0,0.55)|10|3" }
+  const lettering: TextStyle = { color: floorColours(colour, 0, disabled).label, weight, shadow: "rgba(0,0,0,0.55)|10|3" }
   return (
     <group ref={root} position={[at.x, 0, at.z]} rotation-y={at.yaw ?? 0}>
       {/* The soft shadow under the rim: it shows as the rim lifts */}

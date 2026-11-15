@@ -31,6 +31,7 @@ A `FloorButton` is shared: `packages/table/src/floor/floor-button.tsx`. The prop
 | `label` | What is written on the pad, in the game's words and the visitor's language. Leave it out for a zone with nothing written on it |
 | `labelHeight` | The size of the letters in world units (default 0.55). A label too long for the pad, a word in another language, is set smaller to fit it on one line (`fitLabel` in `lift.ts`) |
 | `font` | The CSS font of the lettering, `TABLE_FONT` by default |
+| `weight` | The weight of the lettering, 800 by default |
 | `ariaLabel` | What a screen reader says and what the keyboard focus lands on; `label` when not given. A zone with no label must give one ("Give it to Alix") |
 | `onPress` | A click, a tap, or Enter or Space on the focused pad calls it. Without it the pad is drawn and takes no press |
 | `disabled` | The pad lies flat and dim, takes no pointer and is left out of the Tab order |
