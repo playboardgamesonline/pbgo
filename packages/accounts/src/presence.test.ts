@@ -74,7 +74,7 @@ describe("readBeatAnswer", () => {
 describe("takenToGame", () => {
   const LEGAL = ["/legal", "/legal/cookies", "/legal/privacy", "/legal/terms"]
   const PROFILES = ["/player/Marly-0042", "/player/Marly-0042/"]
-  const OWN = ["/me", "/me/games", "/me/friends", "/me/settings", "/me/settings/account", "/me/settings/language"]
+  const OWN = ["/me", "/me/profile", "/me/career", "/me/settings", "/me/settings/account", "/me/settings/language"]
   const OTHERS = ["/", "/home", "/games", "/game/courtisans", "/game/courtisans/ABC234", "/tables", "/tournaments", "/about", "/login", "/docs/design", "/auth/reopen-account"]
 
   it("takes a member whose table is in its ready check from every page of the hub but the legal ones: nobody misses the confirmation", () => {

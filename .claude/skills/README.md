@@ -23,7 +23,7 @@ A game goes through six stages, and `pnpm check:game <slug>` says which it has r
 | Step | Skill | Ends when | State |
 | --- | --- | --- | --- |
 | Identify the game: edition, publisher, rules version | `/game-scout` (GAM-32) | the owner confirms the edition | written |
-| Catalog entry in the platform's Sanity (a draft) | `platform-catalog-entry` (PLT-98) | the owner publishes it | to write |
+| Catalog entry in the platform's Sanity (a draft) | `platform-catalog-entry` (PLT-98) | the owner publishes it | written |
 | Rules spec and the list of components | `game-rules-spec` (GAM-33) | the owner validates the spec | to write; `engine-rules` step 2 does the plan meanwhile |
 | Platform assets, game assets | `platform-assets` (PLT-99), `game-assets` (GAM-34) | the owner has handed the art over | to write |
 | The game's folder, its Sanity project and Studio | `game-new` | the Studio is open | written |
@@ -47,7 +47,7 @@ The terminal pipeline planned in PLT-97 will run these steps in this order, one 
 - `engine-board` — (written by the engine lane, carried out by whoever mounts a board, usually the GAME agent) hand an engine to the app and draw its board on `@pbgo/table`: the binding and its three tests, the board from the blocks of the table, tuning, the checks in a browser (`pnpm check:board <slug>`: the windows, the controls pressed with the mouse, the cases of `GAME.debug` as frames, a reload, the start, a player who is away; two seats and a phone for the rest), the gate `check:game --stage board`
 
 ### PLATFORM
-None yet.
+- `platform-catalog-entry` — create or complete a game's entry in the platform's Sanity project as a draft, from the `/game-scout` file and official sources (English, official facts only, no pictures): what the catalog has already, what each field of each type gets, the link to the draft in the Studio, the gate, and the publication only on the owner's yes (`platform/apps/studio/catalog-entry-skill.test.ts` keeps its tables and skeletons the Studio's fields)
 
 ## Writing a skill
 1. One job per skill: `.claude/skills/<prefix>-<job>/SKILL.md`, `name` = the folder.

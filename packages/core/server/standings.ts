@@ -160,7 +160,7 @@ export async function readHistory(userId: string, game: string, limit: number): 
   }))
 }
 
-// What the pages of a member read across every game they played (`/me`, `/me/games`, the home): the games they finished, whichever the game, and the totals and the rank they have in each. A member's list is one query by their account and
+// What the pages of a member read across every game they played (their profile, their career, the home): the games they finished, whichever the game, and the totals and the rank they have in each. A member's list is one query by their account and
 // nothing is computed over the other players, so these read the tables with the server's key where the functions above call the database's own: no migration stands behind them.
 
 /** A game a member finished, whichever the game it was: a game of their history, with its game and whether it counted for a rank. */
@@ -199,17 +199,22 @@ async function recordsOf(userIds: readonly string[], games: readonly string[]): 
   return records
 }
 
-/** The games a member finished, the latest first, at most `limit` (`MEMBER_GAMES_MAX`): how each ended for them, the rank points it gave, the speed it was played at and the others at the table, by seat, each with their record in the game. */
-export async function readMemberGames(userId: string, limit: number): Promise<MemberGameRow[]> {
-  if (!USER_ID.test(userId)) return []
+/** What a game's slug looks like: the games that a history can be narrowed to. */
+const GAME_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+/**
+ * The games a member finished, the latest first, at most `limit` (`MEMBER_GAMES_MAX`): how each ended for them, the rank points it gave, the speed it was played at and the others at the table, by seat, each with their record in the game. `game` narrows them to one game: the latest
+ * `limit` of that game, not the ones of the latest `limit` that happen to be of it.
+ */
+export async function readMemberGames(userId: string, limit: number, game?: string): Promise<MemberGameRow[]> {
+  if (!USER_ID.test(userId) || (game !== undefined && !GAME_SLUG.test(game))) return []
   const db = supabaseAdmin()
   const ask = async (withPace: boolean): Promise<{ data: Row[] | null; error: { code?: string } | null }> => {
-    const { data, error } = await db
+    const mine = db
       .from("game_participants")
       .select(`game_result_id, seat, outcome, rank, score, finished_at, game_results!inner(game, ranked, player_count, duration_s, options${withPace ? ", pace" : ""})`)
       .eq("user_id", userId)
-      .order("finished_at", { ascending: false })
-      .limit(Math.min(limit, MEMBER_GAMES_MAX))
+    const { data, error } = await (game === undefined ? mine : mine.eq("game_results.game", game)).order("finished_at", { ascending: false }).limit(Math.min(limit, MEMBER_GAMES_MAX))
     return { data: data as Row[] | null, error }
   }
   let mine = await ask(true)

@@ -84,8 +84,6 @@ const O = {
 
 // The games of the demo account: what a finished game says of itself is what a real one has (`playedGameOf`): the table as it was played (ranked or normal, its speed, how long it lasted, its expansions), the score where the game counts points and how many sat at it.
 export const DEMO_GAMES: readonly PlayedGame[] = [
-  { id: "g1", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-29T20:41:00Z", table: "K7P", opponents: [O.marly, O.herve], state: "in-progress" },
-  { id: "g2", slug: "skull-king", name: "Skull King", playedAt: "2026-10-29T18:05:00Z", table: "9QD", opponents: [O.zoe, O.tom, O.lina], state: "in-progress" },
   { id: "g3", slug: "courtisans", name: "Courtisans", playedAt: "2026-10-28T21:12:00Z", opponents: [O.marly, O.max], state: "finished", result: "won", rank: 1, points: 18, score: 31, ranked: true, playerCount: 3, durationSeconds: 1680, pace: "normal", expansions: ["Diplomats & Confidants"] },
   { id: "g4", slug: "love-letter", name: "Love Letter", playedAt: "2026-10-27T19:30:00Z", opponents: [O.ines, O.sam, O.tom], state: "finished", result: "lost", rank: 3, ranked: false, playerCount: 4, durationSeconds: 540, pace: "fast" },
   { id: "g5", slug: "hanabi", name: "Hanabi", playedAt: "2026-10-24T20:00:00Z", opponents: [O.zoe], state: "finished", result: "won", score: 23, ranked: false, playerCount: 2, durationSeconds: 1320, pace: "none", expansions: ["Black Powder"] },

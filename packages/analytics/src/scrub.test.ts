@@ -178,7 +178,7 @@ describe("scrubText: the profile of a member", () => {
 
   it("leaves the other addresses as they are", () => {
     expect(scrubText("/players")).toBe("/players")
-    expect(scrubText("/me")).toBe("/me")
+    expect(scrubText("/me/profile")).toBe("/me/profile")
     expect(scrubText("/game/courtisans")).toBe("/game/courtisans")
     expect(scrubText("/api/hub/profile")).toBe("/api/hub/profile")
     expect(scrubText("Player profile")).toBe("Player profile")

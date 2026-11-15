@@ -7,7 +7,7 @@ import { readRelation } from "@pbgo/core/server/friends"
 import { ensureProfile, readProfileByHandle, readProfileDetails, readProfileXp, type ProfileWithDetails } from "@pbgo/core/server/profiles"
 import { memberGames, type MemberGames } from "./member-games"
 
-// What the pages of a profile say (PLT-39, PLT-111): the member's own (`/me`) and anybody's (`/player/<nickname>-<tag>`). A head (who and since when) and, unless the member hides them, their games.
+// What the pages of a profile say (PLT-39, PLT-111): the member's own (`/me/profile`) and anybody's (`/player/<nickname>-<tag>`). A head (who and since when) and, unless the member hides them, their games.
 // The profile is the database's (`@pbgo/core/server/profiles`), the games are the recorded ones (`member-games.ts`). The demo account is in no database: its profile is made up here.
 
 /** What the top of a profile says. */

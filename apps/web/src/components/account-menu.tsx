@@ -76,20 +76,14 @@ export function AccountMenu({ account, beside, game, children }: { account: Acco
           </>
         )}
         <DropdownMenuItem asChild>
-          <Link href="/me" {...away}>
+          <Link href="/me/profile" {...away}>
             Profile
             {arrow}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/me/games" {...away}>
-            My games
-            {arrow}
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/me/friends" {...away}>
-            Friends
+          <Link href="/me/career" {...away}>
+            Career
             {arrow}
           </Link>
         </DropdownMenuItem>
