@@ -11,10 +11,10 @@ export { UI_THEME } from "./lib/ui-theme"
 /** Colors of the game until they are set in /gamemaster/<slug>. The board, the buttons, the announcements and the game over all read them: nothing else in the game holds a colour. */
 export const SETTINGS_DEFAULTS: SettingsDefaults = {
   theme: {
-    background: "#133640",
+    background: "#021c22",
     foreground: "#f5f2ea",
     accent: "#f9dc4f",
-    surface: "#2f7683",
-    surfaceDark: "#1c4a55",
+    surface: "#094f5d",
+    surfaceDark: "#043039",
   },
 }

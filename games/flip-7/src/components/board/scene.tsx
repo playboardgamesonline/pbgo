@@ -3,8 +3,8 @@
 import type { Face, PlayerView, PublicSeat } from "@flip-7/engine"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { type CameraSettings, FloorButton, grainTexture, onTable, Pile, pile, PlayerSeat, standingDistance, Table, TableText, useSettings, useViewport, type Viewport, Zone, type ZoneCard } from "@pbgo/table"
-import { useDeferredValue, useEffect, useMemo, useState } from "react"
+import { FloorButton, onTable, Pile, pile, PlayerSeat, Table, TableText, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
+import { useDeferredValue, useMemo, useState } from "react"
 import { AdditiveBlending } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
 import { FLOOR_TONES } from "../../lib/floor-tones"
@@ -20,26 +20,7 @@ import { CARD_SIZE, matTexture, useFaces } from "./textures"
 /** The pool of light of the mat: how far across it spreads, in world units. Past it the table is the plain colour it fades into. */
 const MAT_SIZE = 44
 
-/** How wide a texel of the felt's grain is on the screen, in pixels at the point the camera looks at: the grain is as fine in a big window as in a small one, instead of growing with the table */
-const GRAIN_TEXEL = 0.85
-
-/** Pixels across the picture of the grain (the default of `grainTexture`) */
-const GRAIN_SIZE = 256
-
-/** How many world units one repeat of the table's grain covers, for a camera in a window: the size of the picture in texels, each as wide on the screen as `GRAIN_TEXEL` says */
-function grainTile(camera: CameraSettings, viewport: Viewport): number {
-  const unit = viewport.height / 2 / (standingDistance(camera, viewport) * Math.tan((camera.fov * Math.PI) / 360))
-  return (GRAIN_SIZE * GRAIN_TEXEL) / unit
-}
-
-/** The felt of the table: a grain painted in code (`grainTexture` of the kit, a 256-pixel tile) in the edge colour of the table, strong enough to be seen up close and quiet from the camera's distance, so that cards and plates keep their contrast */
-function useGrain(base: string) {
-  const grain = useMemo(() => grainTexture({ base, strength: 0.3 }), [base])
-  useEffect(() => () => grain.dispose(), [grain])
-  return grain
-}
-
-/** The pool of light the cards lie on: `surface` of the game's settings in the middle, falling away to `surfaceDark`, which is the colour of the endless table around it. It is added to the felt (additive blending), not laid over it, so the grain shows through it and it has no edge. */
+/** The pool of light the cards lie on: `surface` of the game's settings in the middle, falling away to `surfaceDark`, which is the colour of the endless table around it. It is added to the table (additive blending), not laid over it, so at its rim it adds nothing and it has no edge. */
 function Mat({ inner, outer }: { inner: string; outer: string }) {
   const map = useMemo(() => matTexture(inner, outer), [inner, outer])
   return (
@@ -256,10 +237,9 @@ export function Scene(props: SceneProps) {
   const viewport = useDeferredValue(useViewport())
   const seated = props.view.me !== null
   const camera = useMemo(() => cameraFor(players, viewport, seated), [players, viewport, seated])
-  // The endless table beyond the mat is the same felt, in the edge colour, and fades into it with distance
-  const felt = useGrain(theme.surfaceDark)
+  // The table is its edge colour, flat and endless, with no grain and no picture; the pool of light the cards lie on is the only thing on it that changes
   return (
-    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, map: felt, tile: grainTile(camera, viewport) }} held={props.held} onLoaded={props.onLoaded}>
+    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark }} held={props.held} onLoaded={props.onLoaded}>
       <Mat inner={theme.surface} outer={theme.surfaceDark} />
       <World {...props} />
     </Table>
