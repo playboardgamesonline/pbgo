@@ -1,6 +1,9 @@
 import { type SettingsFiles, UPLOADED_BODY_FONT, UPLOADED_TITLE_FONT } from "@pbgo/core/lib/settings"
 import { PLATE_FONT, TABLE_FONT } from "@pbgo/table"
 
+/** The weight of every lettering lying on the table (the names and the lines of the plates, the pads, the count of the draw pile, the sentences): the bold of the booklet's own fonts */
+export const TABLE_WEIGHT = 700
+
 /** The fonts of the lettering lying on the table: one for the names, the buttons and the counts (the display font), one for the sentences (the body font). Each is `undefined` for a game that uploaded no such font, so that the table keeps its own */
 export type TableFonts = { display: string | undefined; body: string | undefined }
 

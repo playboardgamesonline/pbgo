@@ -9,7 +9,7 @@ import { AdditiveBlending } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
 import { FLOOR_TONES } from "../../lib/floor-tones"
 import { madeFlip7 } from "../../lib/flip7-line"
-import { tableFonts } from "../../lib/table-fonts"
+import { TABLE_WEIGHT, tableFonts } from "../../lib/table-fonts"
 import { fill, type Vocabulary } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
 import { GLOWS } from "./glows"
@@ -75,6 +75,9 @@ export type SceneProps = {
   onLoaded?: () => void
 }
 
+/** What a plate changes in the kit's lettering: the table's lettering is all at 700 (`TABLE_WEIGHT`), where the kit's plates are at 600 */
+const LETTERING = { weight: TABLE_WEIGHT }
+
 /** The word under a player's line when they are out of the round: bust, frozen or stayed. A player still in has none. */
 const statusOf = (status: PublicSeat["status"], words: ClientCatalog["words"]) =>
   status === "busted" ? words.busted : status === "frozen" ? words.frozen : status === "stayed" ? words.stayed : undefined
@@ -88,7 +91,7 @@ function Prompt({ text, plan, color, font }: { text: string; plan: { x: number; 
   return (
     <>
       {lines.map((line, i) => (
-        <TableText key={i} text={line} style={{ color, weight: 800, shadow: "rgba(0,0,0,0.6)|10|3" }} height={height} position={[plan.x, 0.02, plan.z + (i - (lines.length - 1) / 2) * step]} font={font} />
+        <TableText key={i} text={line} style={{ color, weight: TABLE_WEIGHT, shadow: "rgba(0,0,0,0.6)|10|3" }} height={height} position={[plan.x, 0.02, plan.z + (i - (lines.length - 1) / 2) * step]} font={font} />
       ))}
     </>
   )
@@ -135,7 +138,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
     })
   // The engine's discard is top first and a pile layout is bottom first
   const discarded = [...view.discard].reverse()
-  const ink = { color: theme.foreground }
+  const ink = { color: theme.foreground, weight: TABLE_WEIGHT }
 
   return (
     <>
@@ -164,6 +167,8 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
                 line={pointsText(seat.total)}
                 status={statusOf(seat.status, words)}
                 font={fonts.display}
+                nameStyle={LETTERING}
+                lineStyle={LETTERING}
               />
             </group>
             {/* What lies in front of the player: every card is face up, and the line turns to face its player (`faceSeat`) */}
@@ -224,7 +229,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
       {/* On the viewer's turn Hit and Stay lie to the right of the draw pile, side by side and as deep as the pile: floor buttons, one blue-green and one grey with a hint of the same. Stay is there but dim when the viewer holds nothing to bank */}
       {myTurn && (
         <>
-          <FloorButton at={plan.hit} width={plan.hit.width} depth={plan.hit.depth} tone={FLOOR_TONES.hit} label={words.hit} font={fonts.display} onPress={onHit} />
+          <FloorButton at={plan.hit} width={plan.hit.width} depth={plan.hit.depth} tone={FLOOR_TONES.hit} label={words.hit} font={fonts.display} weight={TABLE_WEIGHT} onPress={onHit} />
           <FloorButton
             at={plan.stay}
             width={plan.stay.width}
@@ -232,6 +237,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
             tone={FLOOR_TONES.stay}
             label={words.stay}
             font={fonts.display}
+            weight={TABLE_WEIGHT}
             disabled={!phase.canStay}
             onPress={onStay}
           />
@@ -239,7 +245,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
       )}
 
       {/* Between two rounds the dealer deals the next one, from one pad across the room of the two */}
-      {dealing && <FloorButton at={plan.deal} width={plan.deal.width} depth={plan.deal.depth} tone={FLOOR_TONES.hit} label={words.deal} font={fonts.display} onPress={onDeal} />}
+      {dealing && <FloorButton at={plan.deal} width={plan.deal.width} depth={plan.deal.depth} tone={FLOOR_TONES.hit} label={words.deal} font={fonts.display} weight={TABLE_WEIGHT} onPress={onDeal} />}
 
       {/* An action card drawn lies face up in the place of Hit, for everybody, and for the one who holds it the words beside it, written flat on the table, say what to do: press the zone of a player */}
       {phase.kind === "target" && (
