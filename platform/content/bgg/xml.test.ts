@@ -212,6 +212,11 @@ describe("decode", () => {
     expect(decode("a &amp; b &lt;c&gt; &quot;d&quot; &#039;e&#039; &#x26; &apos;f&apos;")).toBe(`a & b <c> "d" 'e' & 'f'`)
   })
 
+  it("leaves a number that is no character as it is, and does not stop the reading", () => {
+    expect(decode("a &#1114112; b &#99999999999; c &#x110000; d")).toBe("a &#1114112; b &#99999999999; c &#x110000; d")
+    expect(parseSearch(`<items><item type="boardgame" id="7"><name type="primary" value="Seven &#1114112; &amp; Co" /></item></items>`)).toEqual([{ id: 7, name: "Seven &#1114112; & Co", year: null }])
+  })
+
   it("leaves an entity it does not know as it is", () => {
     expect(decode("a &unknown; b")).toBe("a &unknown; b")
   })

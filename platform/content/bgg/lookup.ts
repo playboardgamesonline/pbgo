@@ -18,14 +18,18 @@ export const LOOKUP_SHOWN = 6
 /** The types a search is made for: a name may be an expansion's. */
 const TYPES = ["boardgame", "boardgameexpansion"]
 
-/** A name as it is compared: capitals, accents and punctuation do not count ("6 nimmt!" is "6 Nimmt"). A name with nothing in it that can be compared is compared as it is. */
+/**
+ * A name as it is compared: capitals, the accents of Latin letters and punctuation do not count ("6 nimmt!" is "6 Nimmt"), the letters and digits of any script do. A name with nothing
+ * in it that can be compared is compared as it is.
+ */
 export function comparable(name: string): string {
   const plain = name
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/(\p{Script=Latin})\p{M}+/gu, "$1")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[^\p{L}\p{N}\p{M}]+/gu, " ")
     .trim()
+    .normalize("NFC")
   return plain || name.trim().toLowerCase()
 }
 
@@ -178,8 +182,8 @@ export type LookupArgs = { help: boolean; name: string; id: number | null; versi
 
 export const LOOKUP_HELP = `What BoardGameGeek says of a game, as JSON, for the scout (GAM-32). Read only: nothing is written anywhere.
 
-Usage: node content/bgg-lookup.ts "<name>" [--limit <n>]
-       node content/bgg-lookup.ts --id <n> [--versions [--language <language>]]
+Usage: pnpm --filter @pbgo/platform content:bgg-lookup "<name>" [--limit <n>]
+       pnpm --filter @pbgo/platform content:bgg-lookup --id <n> [--versions [--language <language>]]
 
   "<name>"       Search the games and the expansions of that name: the exact matches first, then the best known, each with its rank, its rating, how many rated it, its
                  weight (complexity, 1 to 5) and its type. The first twenty matches are read.
@@ -188,47 +192,68 @@ Usage: node content/bgg-lookup.ts "<name>" [--limit <n>]
                  reimplements) and how many expansions it has.
   --versions     With --id: its versions (publisher, year, languages, code on the box), the newest first, ${LOOKUP_VERSIONS} at most.
   --language <l> With --versions: only the versions printed in that language ("English").
+  --             What follows is the name, even when it starts with a dash.
   --help, -h     This text
 
-The token is BGG_API_TOKEN, in the environment, else in apps/web/.env.local (pnpm setup-env --no-push writes it there from ~/.config/pbgo/secrets.env). It is never printed.
+The token is BGG_API_TOKEN, in the environment, else in apps/web/.env.local (the pnpm script loads that file). It is never printed.
 BoardGameGeek's terms apply to what is read: show "Powered by BGG" next to the figures, unaltered, and no commercial use without their licence.`
 
-/** The options of the command line: a name or an id, never both. A value is `--flag value` or `--flag=value`. */
+/** The options of the command line: a name or an id, never both. A value is `--flag value` or `--flag=value`; a lone `--` makes what follows the name, a lone `-` is a word of it. */
 export function parseLookupArgs(argv: readonly string[]): LookupArgs {
   const args = argv[0] === "--" ? argv.slice(1) : argv
   const options: LookupArgs = { help: false, name: "", id: null, versions: false, language: null, limit: LOOKUP_CANDIDATES }
   const words: string[] = []
+  // What is wrong is told once the whole line is read, unless --help is there
+  const wrong: string[] = []
   let limitGiven = false
+  let literal = false
   let at = 0
   /** The value of a flag: what follows its equals sign, else the next argument (which is not another flag). */
-  const valueOf = (flag: string, inline: string | undefined): string => {
+  const valueOf = (flag: string, inline: string | undefined): string | null => {
     const next = args[at + 1]
     const found = inline ?? (next !== undefined && !next.startsWith("-") ? next : undefined)
-    if (found === undefined || found.trim() === "") throw new UsageError(`${flag} needs a value`)
+    if (found === undefined || found.trim() === "") {
+      wrong.push(`${flag} needs a value`)
+      return null
+    }
     if (inline === undefined) at += 1
     return found.trim()
   }
   for (; at < args.length; at += 1) {
     const arg = args[at] ?? ""
+    if (literal || arg === "-") {
+      words.push(arg)
+      continue
+    }
+    if (arg === "--") {
+      literal = true
+      continue
+    }
     const [flag = "", inline] = arg.startsWith("--") ? arg.split(/=(.*)/s, 2) : [arg]
     if (arg === "--help" || arg === "-h") options.help = true
     else if (arg === "--versions") options.versions = true
     else if (flag === "--id") {
       const text = valueOf(flag, inline)
-      if (!/^[1-9]\d*$/.test(text)) throw new UsageError(`--id is the number of an item of BoardGameGeek, got "${text}"`)
-      options.id = Number.parseInt(text, 10)
+      if (text === null) continue
+      if (/^[1-9]\d{0,8}$/.test(text)) options.id = Number.parseInt(text, 10)
+      else wrong.push(`--id is the number of an item of BoardGameGeek, got "${text}"`)
     } else if (flag === "--language") options.language = valueOf(flag, inline)
     else if (flag === "--limit") {
       const text = valueOf(flag, inline)
+      if (text === null) continue
       const number = /^\d+$/.test(text) ? Number.parseInt(text, 10) : 0
-      if (number < 1 || number > LOOKUP_READ) throw new UsageError(`--limit is a number from 1 to ${LOOKUP_READ}, got "${text}"`)
-      options.limit = number
-      limitGiven = true
-    } else if (arg.startsWith("-")) throw new UsageError(`Unknown option ${arg}`)
+      if (number < 1 || number > LOOKUP_READ) wrong.push(`--limit is a number from 1 to ${LOOKUP_READ}, got "${text}"`)
+      else {
+        options.limit = number
+        limitGiven = true
+      }
+    } else if (arg.startsWith("-")) wrong.push(`Unknown option ${arg}`)
     else words.push(arg)
   }
   options.name = words.join(" ").trim()
   if (options.help) return options
+  const first = wrong[0]
+  if (first !== undefined) throw new UsageError(first)
   if (options.name === "" && options.id === null) throw new UsageError("Give the name of a game, or --id and the number of an item")
   if (options.name !== "" && options.id !== null) throw new UsageError("A name and --id exclude each other")
   if ((options.versions || options.language !== null) && options.id === null) throw new UsageError("--versions and --language are for one item: give --id")

@@ -36,8 +36,11 @@ const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"'
 /** The text of an attribute, with the entities of XML undone. */
 export function decode(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, name: string) => {
-    if (name.startsWith("#x") || name.startsWith("#X")) return String.fromCodePoint(Number.parseInt(name.slice(2), 16))
-    if (name.startsWith("#")) return String.fromCodePoint(Number.parseInt(name.slice(1), 10))
+    if (name.startsWith("#")) {
+      const code = name[1] === "x" || name[1] === "X" ? Number.parseInt(name.slice(2), 16) : Number.parseInt(name.slice(1), 10)
+      // A number that is no character (past 0x10FFFF) is left as it is, like a name that is unknown, and does not stop the reading
+      return Number.isInteger(code) && code <= 0x10ffff ? String.fromCodePoint(code) : whole
+    }
     return ENTITIES[name.toLowerCase()] ?? whole
   })
 }

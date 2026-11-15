@@ -1,4 +1,4 @@
-// What BoardGameGeek says of a game that is not in the catalog yet, as JSON, for the scout (GAM-32): `node content/bgg-lookup.ts --help`.
+// What BoardGameGeek says of a game that is not in the catalog yet, as JSON, for the scout (GAM-32): `pnpm --filter @pbgo/platform content:bgg-lookup --help`.
 // Read only, and no token but BoardGameGeek's. Usage and guarantees: docs/platform-sanity.md ("Figures from BoardGameGeek").
 import { createBggClient } from "./bgg/client.ts"
 import { LOOKUP_HELP, UsageError, lookupByName, lookupItem, parseLookupArgs } from "./bgg/lookup.ts"
@@ -6,7 +6,7 @@ import { LOOKUP_HELP, UsageError, lookupByName, lookupItem, parseLookupArgs } fr
 /** BoardGameGeek's token, from the environment (`--env-file-if-exists` of the script loads apps/web/.env.local into it). */
 function readBggToken(): string {
   const token = process.env.BGG_API_TOKEN?.trim()
-  if (!token) throw new Error("BGG_API_TOKEN is not set (put it in ~/.config/pbgo/secrets.env and run `pnpm setup-env --no-push`, or in apps/web/.env.local)")
+  if (!token) throw new Error("BGG_API_TOKEN is not set: it is read from the environment, else from apps/web/.env.local")
   return token
 }
 

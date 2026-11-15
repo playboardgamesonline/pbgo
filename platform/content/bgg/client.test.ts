@@ -77,6 +77,21 @@ describe("things", () => {
     expect(calls.length).toBeLessThan(10)
   })
 
+  it("does not take a 200 that is no list of items for an answer, so that it does not read as nothing found", async () => {
+    for (const body of ["Rate limit exceeded.", "<html><body>Maintenance</body></html>", `<errors><error><message>Invalid</message></error></errors>`, ""]) {
+      const { send } = fakeFetch(xml(body), xml(body), xml(body))
+      const { bgg } = client(send)
+      await expect(bgg.things([1])).rejects.toThrow("did not answer with a list of items")
+      await expect(bgg.search("Trio")).rejects.toThrow(BggError)
+      await expect(bgg.detail(1)).rejects.toThrow(BggError)
+    }
+  })
+
+  it("takes an empty list of items for what it is, nothing found", async () => {
+    const { send } = fakeFetch(xml(`<items total="0" termsofuse="https://boardgamegeek.com/xmlapi/termsofuse"></items>`))
+    expect(await client(send).bgg.things([1])).toEqual(new Map())
+  })
+
   it("says that the token was refused, without repeating it", async () => {
     for (const status of [401, 403]) {
       const { send } = fakeFetch(xml("Unauthorized", status))

@@ -1,9 +1,9 @@
-import type { ScoutCatalogEntry, ScoutState } from "@pbgo/games/scout"
+import { printable, type ScoutCatalogEntry, type ScoutState } from "@pbgo/games/scout"
 import { PLATFORM_DATASET, PLATFORM_PROJECT_ID, SANITY_API_VERSION, SanityError, isRecord } from "./sanity.ts"
 
-// What `pnpm check:scout --online` reads of the platform's Sanity project (GAM-32): the published games and expansions, as far as a scouted game is compared with them (its slug, its
-// name, its BoardGameGeek id, its kind and its base game). Run by Node itself (type stripping), like `scripts/list.ts`: a value import has its `.ts` extension. No token: the dataset is
-// public, and a draft is not seen from outside, which `existing.catalog` says ("published").
+// What `pnpm check:scout --online` and `--list` read of the platform's Sanity project (GAM-32): the published games and expansions, as far as a scouted game is compared with them (their slug,
+// name, BoardGameGeek id, kind and base game). Run by Node itself (type stripping), like `scripts/list.ts`: a value import has its `.ts` extension. No token: the dataset is public, and a draft
+// is not seen from outside, which `existing.catalog` says ("published").
 
 /** The published `game` and `expansion` documents. */
 export const SCOUT_STATE_QUERY = `*[_type in ["game", "expansion"] && defined(slug.current)]{ _type, "slug": slug.current, name, bggId, kind, "baseGame": baseGame->slug.current }`
@@ -45,15 +45,38 @@ export async function readScoutState(options: ScoutStateOptions = {}): Promise<S
   if (!Array.isArray(result)) throw new SanityError("Sanity answered with something that is not a list of documents", 200)
 
   const games: ScoutCatalogEntry[] = []
-  const expansions: (ScoutCatalogEntry & { baseGame: string | null })[] = []
+  const expansions: ScoutCatalogEntry[] = []
   for (const raw of result) {
     if (!isRecord(raw)) continue
     const slug = text(raw.slug)
     const name = text(raw.name)
     if (slug === null || name === null) continue
     const bggId = wholeNumber(raw.bggId)
-    if (raw._type === "game") games.push({ slug, name, bggId, kind: raw.kind === "reimplementation" ? "reimplementation" : "game" })
-    else if (raw._type === "expansion") expansions.push({ slug, name, bggId, kind: null, baseGame: text(raw.baseGame) })
+    const baseGame = text(raw.baseGame)
+    if (raw._type === "game") games.push({ slug, name, bggId, kind: raw.kind === "reimplementation" ? "reimplementation" : "game", baseGame })
+    else if (raw._type === "expansion") expansions.push({ slug, name, bggId, kind: null, baseGame })
   }
   return { games, expansions }
+}
+
+/**
+ * What `pnpm check:scout --list` prints: every game and expansion that a scouted game is compared with, one a line (its slug, its type, its BoardGameGeek id, its base game, whether it has a
+ * folder in the repo and its name), then the games of the registry that the catalog does not have. It is what to read a game's slug and type from before scouting one.
+ */
+export function describeState(registry: readonly { slug: string; name: string }[], state: ScoutStateRead): string {
+  const folders = new Set(registry.map((game) => game.slug))
+  const rows = [
+    ...state.games.map((entry) => ({ slug: entry.slug, type: entry.kind ?? "game", bgg: entry.bggId, base: entry.baseGame, name: entry.name })),
+    ...state.expansions.map((entry) => ({ slug: entry.slug, type: "expansion", bgg: entry.bggId, base: entry.baseGame, name: entry.name })),
+  ]
+  const listed = new Set(rows.map((row) => row.slug))
+  for (const game of registry) if (!listed.has(game.slug)) rows.push({ slug: game.slug, type: "folder only", bgg: null, base: null, name: game.name })
+  rows.sort((a, b) => (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0))
+
+  const cells = [["slug", "type", "bgg", "base", "folder", "name"], ...rows.map((row) => [row.slug, row.type, row.bgg === null ? "-" : String(row.bgg), row.base ?? "-", folders.has(row.slug) ? "yes" : "no", row.name])].map((line) =>
+    line.map((cell) => printable(cell, 80)),
+  )
+  const widths = [0, 1, 2, 3, 4].map((column) => Math.max(...cells.map((line) => (line[column] ?? "").length)))
+  const lines = cells.map((line) => line.map((cell, column) => (column === line.length - 1 ? cell : cell.padEnd(widths[column] ?? 0))).join("  "))
+  return [`${state.games.length} games and ${state.expansions.length} expansions published in the platform's catalog, ${registry.length} games with a folder in the repo`, "", ...lines].join("\n")
 }

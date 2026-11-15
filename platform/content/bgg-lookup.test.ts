@@ -26,7 +26,8 @@ describe("content:bgg-lookup", () => {
   it("prints its usage for --help, and needs no token for that", () => {
     const run = lookup(["--help"], { token: "" })
     expect(run.status, run.stderr).toBe(0)
-    expect(run.stdout).toContain("Usage: node content/bgg-lookup.ts")
+    expect(run.stdout).toContain("Usage: pnpm --filter @pbgo/platform content:bgg-lookup")
+    expect(run.stdout).not.toContain("setup-env")
   })
 
   it("says what is wrong with the command line, and points to --help", () => {
@@ -37,10 +38,11 @@ describe("content:bgg-lookup", () => {
     expect(run.stdout).toBe("")
   })
 
-  it("says that the token is missing, and asks BoardGameGeek for nothing", () => {
+  it("says that the token is missing, without suggesting a command to run, and asks BoardGameGeek for nothing", () => {
     const run = lookup(["Skyjo"], { token: "" })
     expect(run.status).toBe(1)
     expect(run.stderr).toContain("BGG_API_TOKEN is not set")
+    expect(run.stderr).not.toContain("setup-env")
   })
 
   it("prints one item as JSON, with the figures BGG has, and never the token", () => {
@@ -70,11 +72,19 @@ describe("content:bgg-lookup", () => {
     expect(JSON.parse(run.stdout)).toEqual({ query: "Nothing Like It", matched: 0, candidates: [] })
   })
 
-  it("says why BoardGameGeek could not answer, without the token", () => {
-    const run = lookup(["--id", "7"], { answer: "" })
-    // an empty answer is no item at all
+  it("says that BoardGameGeek has no such item when it answers with an empty list", () => {
+    const run = lookup(["--id", "7"], { answer: `<items total="0"></items>` })
     expect(run.status).toBe(1)
     expect(run.stderr).toContain("BoardGameGeek has no item 7")
-    expect(run.stderr).not.toContain(TOKEN)
+  })
+
+  it("does not take an answer that is no list of items for 'nothing found', and never says the token", () => {
+    for (const args of [["--id", "7"], ["Take 5"]]) {
+      const run = lookup(args, { answer: "Rate limit exceeded." })
+      expect(run.status).toBe(1)
+      expect(run.stdout).toBe("")
+      expect(run.stderr).toContain("did not answer with a list of items")
+      expect(run.stderr).not.toContain(TOKEN)
+    }
   })
 })

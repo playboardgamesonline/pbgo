@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { SanityError } from "./sanity"
-import { SCOUT_STATE_QUERY, readScoutState } from "./scout-state"
+import { SCOUT_STATE_QUERY, describeState, readScoutState } from "./scout-state"
 
 // The published games and expansions of the platform's project, as `pnpm check:scout --online` compares a scouted game with them.
 
@@ -28,7 +28,7 @@ describe("readScoutState", () => {
       fetch: answering({
         result: [
           { _type: "game", slug: "flip-7", name: "Flip 7", bggId: 420087, kind: "game" },
-          { _type: "game", slug: "flip-7-vengeance", name: "Flip 7 Vengeance", bggId: null, kind: "reimplementation" },
+          { _type: "game", slug: "flip-7-vengeance", name: "Flip 7 Vengeance", bggId: null, kind: "reimplementation", baseGame: "flip-7" },
           { _type: "game", slug: "azul", name: "Azul" },
           { _type: "expansion", slug: "azul-stained-glass", name: "Azul: Stained Glass", bggId: 340000, baseGame: "azul" },
           { _type: "expansion", slug: "orphan-more", name: "Orphan: More", baseGame: null },
@@ -36,9 +36,9 @@ describe("readScoutState", () => {
       }),
     })
     expect(read.games).toEqual([
-      { slug: "flip-7", name: "Flip 7", bggId: 420087, kind: "game" },
-      { slug: "flip-7-vengeance", name: "Flip 7 Vengeance", bggId: null, kind: "reimplementation" },
-      { slug: "azul", name: "Azul", bggId: null, kind: "game" },
+      { slug: "flip-7", name: "Flip 7", bggId: 420087, kind: "game", baseGame: null },
+      { slug: "flip-7-vengeance", name: "Flip 7 Vengeance", bggId: null, kind: "reimplementation", baseGame: "flip-7" },
+      { slug: "azul", name: "Azul", bggId: null, kind: "game", baseGame: null },
     ])
     expect(read.expansions).toEqual([
       { slug: "azul-stained-glass", name: "Azul: Stained Glass", bggId: 340000, kind: null, baseGame: "azul" },
@@ -81,5 +81,41 @@ describe("readScoutState", () => {
   it("refuses an answer that is not a list of documents", async () => {
     await expect(readScoutState({ fetch: answering({ result: { games: [] } }) })).rejects.toThrow("not a list of documents")
     await expect(readScoutState({ fetch: answering("<html>") })).rejects.toThrow("not a list of documents")
+  })
+})
+
+describe("describeState", () => {
+  const state = {
+    games: [
+      { slug: "flip-7", name: "Flip 7", bggId: 420087, kind: "game" as const, baseGame: null },
+      { slug: "flip-7-vengeance", name: "Flip 7 Vengeance", bggId: null, kind: "reimplementation" as const, baseGame: "flip-7" },
+    ],
+    expansions: [{ slug: "bang-legends", name: "Legends", bggId: null, kind: null, baseGame: "bang" }],
+  }
+  const registry = [{ slug: "flip-7", name: "Flip 7" }, { slug: "template", name: "La Plus Haute" }]
+
+  it("says how many there are, then lists each one a line: slug, type, BoardGameGeek id, base game, folder and name", () => {
+    const lines = describeState(registry, state).split("\n")
+    expect(lines[0]).toBe("2 games and 1 expansions published in the platform's catalog, 2 games with a folder in the repo")
+    expect(lines[1]).toBe("")
+    const rows = lines.slice(2).map((line) => line.split(/\s{2,}/))
+    expect(rows[0]).toEqual(["slug", "type", "bgg", "base", "folder", "name"])
+    expect(rows).toContainEqual(["bang-legends", "expansion", "-", "bang", "no", "Legends"])
+    expect(rows).toContainEqual(["flip-7", "game", "420087", "-", "yes", "Flip 7"])
+    expect(rows).toContainEqual(["flip-7-vengeance", "reimplementation", "-", "flip-7", "no", "Flip 7 Vengeance"])
+  })
+
+  it("adds the games of the registry that the catalog does not have, and sorts by slug", () => {
+    const slugs = describeState(registry, state).split("\n").slice(3).map((line) => line.split(/\s{2,}/)[0])
+    expect(slugs).toEqual(["bang-legends", "flip-7", "flip-7-vengeance", "template"])
+    expect(describeState(registry, state)).toMatch(/template\s+folder only\s+-\s+-\s+yes\s+La Plus Haute/)
+  })
+
+  it("shows the characters that hide as their code point and keeps a name to a line", () => {
+    const hostile = { games: [{ slug: "bad", name: `Bad${String.fromCodePoint(0x1b)}[2J${"x".repeat(500)}`, bggId: null, kind: "game" as const, baseGame: null }], expansions: [] }
+    const text = describeState([], hostile)
+    expect(text).not.toMatch(/[\u0000-\u0009\u000b-\u001f]/)
+    expect(text).toContain("Bad\\u{1b}[2J")
+    for (const line of text.split("\n")) expect(line.length).toBeLessThan(200)
   })
 })

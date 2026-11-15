@@ -116,13 +116,45 @@ describe("pnpm check:scout", () => {
     expect(result.stderr).toContain("Sanity answered 503")
   })
 
+  it("lists the games and the expansions that a scouted game is compared with, with --list", () => {
+    const catalog = {
+      result: [
+        { _type: "game", slug: "flip-7", name: "Flip 7", bggId: 420087, kind: "game" },
+        { _type: "game", slug: "flip-7-vengeance", name: "Flip 7 Vengeance", kind: "reimplementation", baseGame: "flip-7" },
+        { _type: "expansion", slug: "bang-legends", name: "Legends", baseGame: "bang" },
+      ],
+    }
+    const result = run(["--list"], { answer: catalog })
+    expect(result.status, result.stderr).toBe(0)
+    expect(result.stdout).toContain("2 games and 1 expansions published in the platform's catalog")
+    expect(result.stdout).toMatch(/flip-7\s+game\s+420087\s+-\s+yes\s+Flip 7/)
+    expect(result.stdout).toMatch(/flip-7-vengeance\s+reimplementation\s+-\s+flip-7\s+no\s+Flip 7 Vengeance/)
+    expect(result.stdout).toMatch(/bang-legends\s+expansion\s+-\s+bang\s+no\s+Legends/)
+    // the games of the registry that the catalog does not have are there too
+    expect(result.stdout).toMatch(/skyjo\s+folder only/)
+  })
+
+  it("says that the catalog could not be read when it is listed, and exits 1", () => {
+    const result = run(["--list"], { status: 500, answer: {} })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain("Sanity answered 500")
+  })
+
   it("prints its usage for --help", () => {
     const result = run(["--help"])
     expect(result.status).toBe(0)
     expect(result.stdout).toContain("Usage: pnpm check:scout <file> [--online]")
+    expect(result.stdout).toContain("pnpm check:scout --list")
   })
 
-  it.each([[[]], [["--bogus", "x.json"]], [["a.json", "b.json"]]])("refuses the command line %j with the usage and exits 2", (args) => {
+  it("does not print what a terminal would obey from a file that holds it", () => {
+    const result = check("hostile.json", scoutFile({ slug: "\u001b[2J\u0007", "x\nok    /fake/path.json: Sample Game": 1 }))
+    expect(result.status).toBe(1)
+    expect(result.stdout).not.toMatch(/[\u0000-\u0009\u000b-\u001f]/)
+    expect(result.stdout).toContain("\\u{1b}")
+  })
+
+  it.each([[[]], [["--bogus", "x.json"]], [["a.json", "b.json"]], [["--list", "x.json"]], [["--list", "--online"]]])("refuses the command line %j with the usage and exits 2", (args) => {
     const result = run(args)
     expect(result.status).toBe(2)
     expect(result.stderr).toContain("Usage: pnpm check:scout")

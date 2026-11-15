@@ -23,9 +23,24 @@ describe("comparable", () => {
     expect(comparable("  Flip   7 ")).toBe("flip 7")
   })
 
-  it("compares a name with nothing in it to compare as it is", () => {
+  it("keeps the letters and the digits of every script, so that two names of one script are not one name", () => {
     expect(comparable("ゲーム")).toBe("ゲーム")
     expect(comparable("ゲーム")).not.toBe(comparable("カード"))
+    expect(comparable("Каркассон 2")).not.toBe(comparable("Крокодил 2"))
+    expect(comparable("三国杀 2")).not.toBe(comparable("狼人杀 2"))
+    expect(comparable("Łowcy")).not.toBe(comparable("Owcy"))
+    expect(comparable("Ørnen")).not.toBe(comparable("rnen"))
+    expect(comparable("Игра!")).toBe(comparable("игра"))
+  })
+
+  it("does not take a kana with its mark for the kana without", () => {
+    expect(comparable("がん")).not.toBe(comparable("かん"))
+    expect(comparable("й")).not.toBe(comparable("и"))
+  })
+
+  it("compares a name with nothing in it to compare as it is", () => {
+    expect(comparable("???")).toBe("???")
+    expect(comparable("???")).not.toBe(comparable("!!!"))
   })
 })
 
@@ -208,6 +223,13 @@ describe("parseLookupArgs", () => {
 
   it("ignores the leading -- that pnpm may pass", () => {
     expect(parseLookupArgs(["--", "Skyjo"]).name).toBe("Skyjo")
+    expect(parseLookupArgs(["--", "--id", "5"]).id).toBe(5)
+  })
+
+  it("takes a lone dash as a word of the name, and what follows a second -- as the name", () => {
+    expect(parseLookupArgs(["Catan", "-", "Seafarers"]).name).toBe("Catan - Seafarers")
+    expect(parseLookupArgs(["--", "--", "-1", "Game"]).name).toBe("-1 Game")
+    expect(parseLookupArgs(["Game", "--", "--id", "5"])).toMatchObject({ name: "Game --id 5", id: null })
   })
 
   it("takes --id, with its versions and a language, in the two ways of writing a value", () => {
@@ -227,11 +249,18 @@ describe("parseLookupArgs", () => {
     expect(parseLookupArgs(["Skyjo", "--help"]).help).toBe(true)
   })
 
+  it("lets --help win over what else is wrong with the line", () => {
+    expect(parseLookupArgs(["--help", "--limit", "99"]).help).toBe(true)
+    expect(parseLookupArgs(["--bogus", "--help"]).help).toBe(true)
+  })
+
   it.each([
     [[], "Give the name"],
     [["Skyjo", "--id", "5"], "exclude each other"],
     [["--id", "abc"], "--id is the number"],
     [["--id", "0"], "--id is the number"],
+    [["--id", "1234567890"], "--id is the number"],
+    [["--id", "99999999999999999999999"], "--id is the number"],
     [["--id"], "--id needs a value"],
     [["--id", "--versions"], "--id needs a value"],
     [["Skyjo", "--versions"], "for one item"],

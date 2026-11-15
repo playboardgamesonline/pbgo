@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import { SCOUT_TYPES, SCOUT_VERSION, readScout, scoutProblems, stateProblems, type Scout, type ScoutState } from "./scout"
 
+/** A character by its code point: the ones that hide are not written out in this file. */
+const char = (code: number) => String.fromCodePoint(code)
+
 // The scout file as the skill writes it, and every way for it to be wrong: what the pipeline reads must be what `scoutProblems` accepts, and nothing else.
 
 const valid = (): Scout => ({
@@ -106,13 +109,21 @@ describe("scoutProblems: what is not a scout file", () => {
     expect(scoutProblems({})).toEqual(["version: undefined is not the version this reader knows (1)"])
   })
 
-  it.each([["name"], ["slug"], ["type"], ["baseGame"], ["suggestion"], ["edition"], ["bgg"], ["facts"], ["existing"], ["notes"], ["sources"], ["edition.rules"], ["edition.year"], ["facts.complexity"], ["bgg.weight"]])(
+  it.each([["name"], ["slug"], ["type"], ["baseGame"], ["suggestion"], ["edition"], ["facts"], ["existing"], ["notes"], ["sources"], ["edition.rules"], ["edition.year"], ["facts.complexity"], ["bgg.rank"]])(
     "says that %s is missing, once, and does not read past it",
     (path) => {
       const problems = scoutProblems(changed(path, REMOVE))
       expect(problems).toEqual([`${path}: is missing (every key is there, null when it is not known)`])
     },
   )
+
+  it("says that bgg, or the weight in it, is missing, and that the complexity that rests on it has nothing to rest on", () => {
+    expect(scoutProblems(changed("bgg", REMOVE))).toEqual([
+      "bgg: is missing (every key is there, null when it is not known)",
+      "facts.complexity: 1.86 is not the weight that BoardGameGeek gives (none): the complexity is that weight, and null when it is not there",
+    ])
+    expect(scoutProblems(changed("bgg.weight", REMOVE))[0]).toBe("bgg.weight: is missing (every key is there, null when it is not known)")
+  })
 
   it("says which key is not one", () => {
     expect(scoutProblems(fileWith({ extra: 1 }))).toEqual(["extra: is not a key of a scout file"])
@@ -147,7 +158,7 @@ describe("scoutProblems: what is wrong with a key", () => {
     ["edition.publisher", "", "is empty"],
     ["edition.publisher", " Pub", "has spaces around it"],
     ["edition.publisher", "Pub\u001b[31m", "control character"],
-    ["edition.publisher", "P".repeat(121), "121 characters long, 120 at most"],
+    ["edition.publisher", "P".repeat(61), "61 characters long, 60 at most"],
     ["edition.year", 1700, "is under 1800"],
     ["edition.year", 3000, "is over"],
     ["edition.year", 2024.5, "is not a whole number"],
@@ -155,19 +166,23 @@ describe("scoutProblems: what is wrong with a key", () => {
     ["edition.label", "", "is empty"],
     ["edition.bggVersionId", 0, "is under 1"],
     ["edition.confidence", "sure", "is not one of high, medium, low"],
-    ["edition.rules.language", "English", "is not a language code"],
-    ["edition.rules.language", "", "is not a language code"],
+    ["edition.rules.language", "English", "is not a language id as the platform writes it"],
+    ["edition.rules.language", "", "is not a language id as the platform writes it"],
+    ["edition.rules.language", "en-US", "English (US) is en"],
+    ["edition.rules.language", "en-us", "is not a language id"],
+    ["edition.rules.language", "eng", "is not a language id"],
+    ["edition.rules.language", "pt-BR", "is not a language id"],
     ["edition.rules.url", "http://example.com/rules.pdf", "is not an https address"],
     ["edition.rules.url", "javascript:alert(1)", "is not an https address"],
     ["edition.rules.url", "https://user:secret@example.com/rules.pdf", "credentials"],
     ["edition.rules.url", "https://exa mple.com/rules.pdf", "is not an address"],
-    ["edition.rules.url", "not an address", "is not an address"],
+    ["edition.rules.url", "not an address", "is not an https address"],
     ["edition.rules.version", "", "is empty"],
     ["edition.rules.date", "2024-13", "is not a day of the calendar"],
     ["edition.rules.date", "March 2024", "is not a date"],
     ["bgg.id", 0, "is under 1"],
     ["bgg.type", "rpgitem", "is not one of boardgame, boardgameexpansion"],
-    ["bgg.year", 1500, "is under 1800"],
+    ["bgg.year", 0, "is under 1"],
     ["bgg.rank", 0, "is under 1"],
     ["bgg.rating", 11, "is over 10"],
     ["bgg.rating", "7.4", "is not a number"],
@@ -255,6 +270,145 @@ describe("scoutProblems: one key against another", () => {
   })
 })
 
+describe("scoutProblems: a game that has no publisher", () => {
+  it("may have no publisher and no year: a traditional game, whose rules are the page that states them", () => {
+    const file = fileWith({
+      name: "Sample Rummy",
+      slug: "sample-rummy",
+      edition: { publisher: null, year: null, label: null, bggVersionId: null, rules: { language: "en", url: "https://example.com/sample-rummy", version: null, date: null }, confidence: "low" },
+    })
+    expect(scoutProblems(file)).toEqual([])
+  })
+
+  it("wants a publisher's name to be one that the Studio keeps and that an id can be made of", () => {
+    expect(scoutProblems(changed("edition.publisher", "ホビージャパン")).join("\n")).toContain("has no Latin letter or digit that an id can be made of")
+    expect(scoutProblems(changed("edition.publisher", "!!!")).join("\n")).toContain("an id can be made of")
+    expect(scoutProblems(changed("edition.publisher", "Hobby Japan"))).toEqual([])
+    expect(scoutProblems(changed("edition.publisher", "Hobby  Japan")).join("\n")).toContain("has spaces around it or twice in a row")
+  })
+
+  it("takes a year from before 1800 for the year of a BoardGameGeek item, not of an edition", () => {
+    expect(scoutProblems(changed("bgg.year", 1475))).toEqual([])
+    expect(scoutProblems(changed("edition.year", 1475)).join("\n")).toContain("is under 1800")
+  })
+})
+
+describe("scoutProblems: the complexity", () => {
+  it("is BoardGameGeek's weight, as the file says it", () => {
+    expect(scoutProblems(changed("facts.complexity", 1.86))).toEqual([])
+    const other = scoutProblems(changed("facts.complexity", 3.5))
+    expect(other).toEqual(["facts.complexity: 3.5 is not the weight that BoardGameGeek gives (1.86): the complexity is that weight, and null when it is not there"])
+  })
+
+  it("is null when the game is not on BoardGameGeek", () => {
+    const problems = scoutProblems(fileWith({ bgg: null }))
+    expect(problems).toEqual(["facts.complexity: 1.86 is not the weight that BoardGameGeek gives (none): the complexity is that weight, and null when it is not there"])
+    expect(scoutProblems(fileWith({ bgg: null, facts: { playersMin: 2, playersMax: 6, duration: 30, minAge: 8, complexity: null } }))).toEqual([])
+  })
+
+  it("is null when fewer than ten people weighed the game", () => {
+    const few = fileWith({ bgg: { id: 123456, type: "boardgame", year: 2019, rank: null, rating: null, ratings: 3, weight: 1.86, weights: 3 } })
+    expect(scoutProblems(few)).toEqual(["facts.complexity: only 3 people weighed it, 10 are needed: it is null"])
+    const enough = fileWith({ bgg: { id: 123456, type: "boardgame", year: 2019, rank: null, rating: null, ratings: 10, weight: 1.86, weights: 10 } })
+    expect(scoutProblems(enough)).toEqual([])
+  })
+})
+
+describe("scoutProblems: an address", () => {
+  it.each([
+    ["https:example.com/x", "is not an https address"],
+    ["https:/example.com/x", "is not an https address"],
+    ["https:\\\\example.com\\x", "is not an https address"],
+    ["https:///example.com/x", "is not an https address"],
+    ["//example.com/x", "is not an https address"],
+    ["https://localhost/x", "is not a public address"],
+    ["https://127.0.0.1/x", "is not a public address"],
+    ["https://2130706433/", "is not a public address"],
+    ["https://[::1]/", "is not a public address"],
+    ["https://169.254.169.254/latest/meta-data/", "is not a public address"],
+    ["https://10.0.0.5/", "is not a public address"],
+    ["https://printer/x", "is not a public address"],
+    ["https://metadata.google.internal/", "is not a public address"],
+    ["https://nas.local/rules.pdf", "is not a public address"],
+    [`https://example.com/${char(0x202e)}/x`, "control character"],
+  ])("refuses %j", (url, message) => {
+    expect(scoutProblems(changed("edition.rules.url", url)).join("\n")).toContain(message)
+    expect(scoutProblems(changed("sources", [{ label: "Page", url }])).join("\n")).toContain(message)
+  })
+
+  it.each([["https://example.com/rules.pdf"], ["HTTPS://EXAMPLE.COM/rules.pdf"], ["https://www.example.co.uk/a?b=c#d"], ["https://bücher.example/x"], ["https://example.com:8443/x"]])("accepts %j", (url) => {
+    expect(scoutProblems(changed("edition.rules.url", url))).toEqual([])
+  })
+})
+
+describe("scoutProblems: a language", () => {
+  it.each([["en"], ["fr"], ["ja"], ["en-GB"]])("accepts %j, as the platform writes it", (language) => {
+    expect(scoutProblems(changed("edition.rules.language", language))).toEqual([])
+  })
+})
+
+describe("scoutProblems: what does not show", () => {
+  const HIDING = [0x200b, 0x202e, 0x2028, 0x2029, 0xfeff, 0xad, 0xd800, 0x85].map((code) => `a${char(code)}b`)
+
+  it.each(HIDING.map((text) => [text]))("refuses %j in a text", (text) => {
+    for (const path of ["notes", "edition.label", "sources", "edition.rules.version"]) {
+      const value = path === "notes" ? [text] : path === "sources" ? [{ label: text, url: "https://example.com" }] : text
+      expect(scoutProblems(changed(path, value)).join("\n"), path).toContain("control character")
+    }
+    expect(scoutProblems(fileWith({ suggestion: { type: "expansion", baseGame: FLIP_7, why: text } })).join("\n")).toContain("control character")
+  })
+
+  it.each(HIDING.map((text) => [text]))("refuses %j in a name, whoever it is the name of", (text) => {
+    // a name is held to the rules of slug.ts, which count what is a space as a space: either way it is refused
+    const refused = /control character|spaces/
+    expect(scoutProblems(changed("name", `Sample${text}Game`)).join("\n")).toMatch(refused)
+    expect(scoutProblems(changed("edition.publisher", `Sample${text}Publisher`)).join("\n")).toMatch(refused)
+    expect(scoutProblems(fileWith({ type: "reimplementation", baseGame: { slug: "flip-7", name: `Flip${text}7` } })).join("\n")).toMatch(refused)
+  })
+})
+
+describe("scoutProblems: what a terminal would obey, and how much is said", () => {
+  /** Any character that a terminal reads as a command, or that hides. */
+  const range = (from: number, to: number) => `${char(from)}-${char(to)}`
+  const HIDDEN = new RegExp(`[${range(0, 0x1f)}${range(0x7f, 0x9f)}${range(0x200b, 0x200f)}${range(0x2028, 0x202e)}${range(0x2066, 0x2069)}${char(0xfeff)}]`)
+
+  it("shows the characters that hide as their code point, in whatever sentence they come", () => {
+    const hostile = fileWith({ slug: "\u001b[2J\u001b]0;pwned\u0007ok", "x\nok    /fake/path.json: Sample Game (sample-game, base-game)": 1, type: "ba\u001bse" })
+    const problems = scoutProblems(hostile)
+    expect(problems.length).toBeGreaterThan(2)
+    for (const problem of problems) expect(problem).not.toMatch(HIDDEN)
+    expect(problems.join("\n")).toContain("\\u{1b}")
+    expect(problems.some((problem) => problem.startsWith("x\\u{a}ok"))).toBe(true)
+  })
+
+  it("keeps a sentence to a line of bounded length, whatever the value is", () => {
+    const problems = scoutProblems(fileWith({ slug: "x".repeat(1_000_000), name: "y".repeat(1_000_000), edition: { publisher: "p".repeat(10_000), year: Array.from({ length: 50_000 }, (_, index) => index), label: null, bggVersionId: null, rules: null, confidence: "high" } }))
+    expect(problems.length).toBeGreaterThan(2)
+    for (const problem of problems) expect(problem.length).toBeLessThanOrEqual(300)
+    expect(problems.join("\n")).toContain("edition.year: a list is not a whole number")
+  })
+
+  it("tells forty problems and says there are more, and reads no more of a list than it needs", () => {
+    const keys = Object.fromEntries(Array.from({ length: 500 }, (_, index) => [`extra${index}`, index]))
+    const problems = scoutProblems(fileWith({ ...keys, notes: Array.from({ length: 100_000 }, () => ""), sources: Array.from({ length: 100_000 }, () => 5) }))
+    expect(problems).toHaveLength(41)
+    expect(problems.at(-1)).toBe("… and more: these first")
+    const notes = scoutProblems(changed("notes", Array.from({ length: 100_000 }, () => "")))
+    expect(notes[0]).toBe("notes: holds 100000 notes, 20 at most")
+    expect(notes.length).toBeLessThanOrEqual(23)
+  })
+
+  it("names a number that is not finite as it is", () => {
+    expect(scoutProblems(changed("facts.complexity", Number.POSITIVE_INFINITY))).toEqual(["facts.complexity: Infinity is not a number"])
+    expect(scoutProblems(changed("facts.duration", Number.NaN))).toEqual(["facts.duration: NaN is not a whole number"])
+  })
+
+  it("says that a file is not JSON without echoing what a terminal would obey", () => {
+    const { problems } = readScout('{ "a": "\u001b[2J" ')
+    expect(problems[0]).not.toMatch(HIDDEN)
+  })
+})
+
 describe("readScout", () => {
   it("gives the file when it is sound", () => {
     const { scout, problems } = readScout(JSON.stringify(valid()))
@@ -275,13 +429,21 @@ describe("stateProblems", () => {
   const state: ScoutState = {
     registry: ["flip-7", "skyjo"],
     games: [
-      { slug: "flip-7", name: "Flip 7", bggId: 420087, kind: "game" },
-      { slug: "flip-7-vengeance", name: "Flip 7 Vengeance", bggId: null, kind: "reimplementation" },
-      { slug: "azul", name: "Azul", bggId: 230802, kind: "game" },
+      { slug: "flip-7", name: "Flip 7", bggId: 420087, kind: "game", baseGame: null },
+      { slug: "flip-7-vengeance", name: "Flip 7 Vengeance", bggId: null, kind: "reimplementation", baseGame: "flip-7" },
+      { slug: "azul", name: "Azul", bggId: 230802, kind: "game", baseGame: null },
+      { slug: "trio", name: "Trio", bggId: 286096, kind: "game", baseGame: null },
+      { slug: "odin", name: "Odin", bggId: null, kind: "game", baseGame: null },
+      { slug: "bang", name: "BANG!", bggId: null, kind: "game", baseGame: null },
     ],
-    expansions: [{ slug: "azul-stained-glass", name: "Azul: Stained Glass", bggId: 340000, kind: null, baseGame: "azul" }],
+    expansions: [
+      { slug: "azul-stained-glass", name: "Azul: Stained Glass", bggId: 340000, kind: null, baseGame: "azul" },
+      { slug: "bang-legends", name: "Legends", bggId: null, kind: null, baseGame: "bang" },
+    ],
   }
   const scout = (changes: Record<string, unknown> = {}): Scout => fileWith(changes) as Scout
+  const bgg = (id: number, over: Record<string, unknown> = {}) => ({ ...valid().bgg, id, ...over })
+  const EXPANSION = { type: "expansion", name: "Legends", bgg: null, facts: { playersMin: null, playersMax: null, duration: null, minAge: null, complexity: null } }
 
   it("has nothing to say about a new game", () => {
     expect(stateProblems(scout(), state)).toEqual([])
@@ -294,34 +456,65 @@ describe("stateProblems", () => {
 
   it("wants existing.catalog to say what the catalog holds", () => {
     expect(stateProblems(scout({ existing: { catalog: "published" } }), state)).toEqual(['existing.catalog: says "published", but the catalog has no published game "sample-game"'])
-    const published = scout({ name: "Azul", slug: "azul", existing: { catalog: "none" }, bgg: { ...valid().bgg, id: 230802 } })
+    const published = scout({ name: "Azul", slug: "azul", existing: { catalog: "none" }, bgg: bgg(230802) })
     expect(stateProblems(published, state)).toEqual(['existing.catalog: says "none", but the catalog has published the game "azul"'])
-    expect(stateProblems(scout({ name: "Azul", slug: "azul", existing: { catalog: "published" }, bgg: { ...valid().bgg, id: 230802 } }), state)).toEqual([])
+    expect(stateProblems(scout({ name: "Azul", slug: "azul", existing: { catalog: "published" }, bgg: bgg(230802) }), state)).toEqual([])
   })
 
   it("keeps the kind of the entry: a reimplementation is not scouted as a base game, nor the other way round", () => {
     const asGame = scout({ name: "Flip 7 Vengeance", slug: "flip-7-vengeance", existing: { catalog: "published" }, bgg: null })
     expect(stateProblems(asGame, state)).toEqual(['type: the catalog has "flip-7-vengeance" as a reimplementation, not as a base game'])
     const asReimplementation = scout({ name: "Azul", slug: "azul", type: "reimplementation", baseGame: FLIP_7, existing: { catalog: "published" }, bgg: null })
-    expect(stateProblems(asReimplementation, state)).toEqual(['type: the catalog has "azul" as a base game, not as a reimplementation'])
+    expect(stateProblems(asReimplementation, state)).toEqual([
+      'type: the catalog has "azul" as a base game, not as a reimplementation',
+      'baseGame: the catalog has "azul" as coming from no game, not from "flip-7"',
+    ])
     const same = scout({ name: "Flip 7 Vengeance", slug: "flip-7-vengeance", type: "reimplementation", baseGame: FLIP_7, existing: { catalog: "published" }, bgg: null })
+    expect(stateProblems(same, state)).toEqual([])
+  })
+
+  it("keeps the base game of the entry: an expansion or a reimplementation is not scouted from another game", () => {
+    const expansion = scout({ ...EXPANSION, slug: "bang-legends", baseGame: { slug: "odin", name: "Odin" }, existing: { catalog: "published" } })
+    expect(stateProblems(expansion, state)).toEqual(['baseGame: the catalog has "bang-legends" as coming from "bang", not from "odin"'])
+    const reimplementation = scout({ name: "Flip 7 Vengeance", slug: "flip-7-vengeance", type: "reimplementation", baseGame: { slug: "azul", name: "Azul" }, existing: { catalog: "published" }, bgg: null })
+    expect(stateProblems(reimplementation, state)).toEqual(['baseGame: the catalog has "flip-7-vengeance" as coming from "flip-7", not from "azul"'])
+    const same = scout({ ...EXPANSION, slug: "bang-legends", baseGame: { slug: "bang", name: "BANG!" }, existing: { catalog: "published" } })
     expect(stateProblems(same, state)).toEqual([])
   })
 
   it("finds a game that the catalog has under another slug: by its name, by its BoardGameGeek item", () => {
     const byName = stateProblems(scout({ name: "AZUL", slug: "azul-2", bgg: null }), state)
     expect(byName).toEqual(['slug: the catalog already has this game as the game "azul" (the same name): one game has one entry, with its slug and its type'])
-    const byItem = stateProblems(scout({ name: "Azul Classic", slug: "azul-classic", bgg: { ...valid().bgg, id: 230802 } }), state)
+    const byItem = stateProblems(scout({ name: "Azul Classic", slug: "azul-classic", bgg: bgg(230802) }), state)
     expect(byItem).toEqual(['slug: the catalog already has this game as the game "azul" (the same BoardGameGeek item): one game has one entry, with its slug and its type'])
   })
 
-  it("finds a game that the catalog has in the other type", () => {
-    const asExpansion = scout({ name: "Azul: Stained Glass", slug: "azul-stained-glass-2", type: "expansion", baseGame: { slug: "azul", name: "Azul" }, bgg: { ...valid().bgg, id: 340000, type: "boardgameexpansion" } })
-    expect(stateProblems(asExpansion, state)).toEqual(['slug: the catalog already has this game as the expansion "azul-stained-glass" (the same BoardGameGeek item, the same name): one game has one entry, with its slug and its type'])
+  it("does not take two games of one name for one game when BoardGameGeek tells them apart", () => {
+    expect(stateProblems(scout({ name: "Trio", slug: "trio-2012", bgg: bgg(12345) }), state)).toEqual([])
+    const unknown = stateProblems(scout({ name: "Trio", slug: "trio-2012", bgg: null }), state)
+    expect(unknown).toEqual(['slug: the catalog already has this game as the game "trio" (the same name): one game has one entry, with its slug and its type'])
+    const sameItem = stateProblems(scout({ name: "Trio", slug: "trio-2012", bgg: bgg(286096) }), state)
+    expect(sameItem).toEqual(['slug: the catalog already has this game as the game "trio" (the same BoardGameGeek item, the same name): one game has one entry, with its slug and its type'])
+  })
+
+  it("takes the expansions of two games named alike for two expansions, and of one game for one", () => {
+    const ofOdin = scout({ ...EXPANSION, slug: "odin-legends", baseGame: { slug: "odin", name: "Odin" } })
+    expect(stateProblems(ofOdin, state)).toEqual([])
+    const ofBang = scout({ ...EXPANSION, slug: "bang-legends-2", baseGame: { slug: "bang", name: "BANG!" } })
+    expect(stateProblems(ofBang, state)).toEqual(['slug: the catalog already has this game as the expansion "bang-legends" (the same name): one game has one entry, with its slug and its type'])
+  })
+
+  it("does not take a game for an expansion because they are named alike, but by its slug or its item", () => {
+    expect(stateProblems(scout({ name: "Legends", slug: "legends", bgg: null }), state)).toEqual([])
     const asGame = scout({ name: "Azul: Stained Glass", slug: "azul-stained-glass", bgg: null })
-    expect(stateProblems(asGame, state)).toEqual([
-      'slug: the catalog already has this game as the expansion "azul-stained-glass" (the same name, the same slug): one game has one entry, with its slug and its type',
-    ])
+    expect(stateProblems(asGame, state)).toEqual(['slug: the catalog already has this game as the expansion "azul-stained-glass" (the same slug): one game has one entry, with its slug and its type'])
+    const byItem = scout({ name: "Stained Glass", slug: "stained-glass", bgg: bgg(340000) })
+    expect(stateProblems(byItem, state)).toEqual(['slug: the catalog already has this game as the expansion "azul-stained-glass" (the same BoardGameGeek item): one game has one entry, with its slug and its type'])
+  })
+
+  it("finds an expansion that the catalog has already, by its item and its name", () => {
+    const asExpansion = scout({ name: "Azul: Stained Glass", slug: "azul-stained-glass-2", type: "expansion", baseGame: { slug: "azul", name: "Azul" }, bgg: bgg(340000, { type: "boardgameexpansion" }) })
+    expect(stateProblems(asExpansion, state)).toEqual(['slug: the catalog already has this game as the expansion "azul-stained-glass" (the same BoardGameGeek item, the same name): one game has one entry, with its slug and its type'])
   })
 
   it("wants the base game to be published, and named as the catalog names it", () => {
@@ -337,9 +530,10 @@ describe("stateProblems", () => {
     expect(stateProblems(scout({ suggestion: { type: "expansion", baseGame: FLIP_7, why: "It looks like one" } }), state)).toEqual([])
   })
 
-  it("tells every problem it finds", () => {
-    const problems = stateProblems(scout({ name: "Skyjo", slug: "skyjo", existing: { catalog: "published" }, type: "expansion", baseGame: { slug: "ghost", name: "Ghost" } }), state)
+  it("tells every problem it finds, and nothing that hides", () => {
+    const problems = stateProblems(scout({ name: "Skyjo", slug: "skyjo", existing: { catalog: "published" }, type: "expansion", baseGame: { slug: "ghost", name: "Gh\u001bost" } }), state)
     expect(problems.length).toBeGreaterThanOrEqual(3)
+    for (const problem of problems) expect(problem).not.toMatch(/[\u0000-\u001f]/)
   })
 })
 
@@ -381,6 +575,14 @@ describe("the skill game-scout", () => {
     const run = spawnSync("bash", ["-c", (command ?? "").replace("<name>", "Flip 7: Vengeance")], { cwd: fileURLToPath(REPO), encoding: "utf8", timeout: 20_000 })
     expect(run.status, run.stderr).toBe(0)
     expect(run.stdout.trim()).toBe("flip-7-vengeance ok")
+  })
+
+  it("has a line for the slug of an expansion that works as it is written", () => {
+    const command = /`(node --disable-warning=ExperimentalWarning -e '[^`]+' "<base slug>" "<name>")`/.exec(skill)?.[1]
+    expect(command).toBeDefined()
+    const run = spawnSync("bash", ["-c", (command ?? "").replace("<base slug>", "flip-7").replace("<name>", "The Village")], { cwd: fileURLToPath(REPO), encoding: "utf8", timeout: 20_000 })
+    expect(run.status, run.stderr).toBe(0)
+    expect(run.stdout.trim()).toBe("flip-7-the-village ok")
   })
 
   it("is in the list of the skills, and in the table of a game from A to Z as written", () => {

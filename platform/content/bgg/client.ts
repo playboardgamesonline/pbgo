@@ -71,7 +71,10 @@ export function createBggClient({ token, fetch: send = fetch, wait = sleep }: Bg
       if (response.status === 202 || response.status === 429) continue
       if (response.status === 401 || response.status === 403) throw new BggError(`BoardGameGeek refused the token (${response.status}): check BGG_API_TOKEN, and that the application is registered at boardgamegeek.com/applications`, response.status)
       if (!response.ok) throw new BggError(`BoardGameGeek answered ${response.status}`, response.status)
-      return response.text()
+      const body = await response.text()
+      // A 200 that is no list of items (a page, a plain "Rate limit exceeded", an error document) is no answer: read as an empty list it would say "nothing found"
+      if (!/<items\b/i.test(body)) throw new BggError("BoardGameGeek did not answer with a list of items: try again in a few minutes", response.status)
+      return body
     }
     throw new BggError("BoardGameGeek kept answering that it was busy: try again in a few minutes", 429)
   }
