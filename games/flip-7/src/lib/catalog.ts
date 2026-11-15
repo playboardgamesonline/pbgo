@@ -19,6 +19,10 @@ export type ClientCatalog = {
   names: Record<string, string>
   /** The back of every card: `cardBack` of the `game` document */
   backUrl: string | null
+  /** The BUST! stamp that lies on the line of a player who busts: `bust` of the `game` document, `null` while it has none (nothing is drawn then: the plate says it already) */
+  bustUrl: string | null
+  /** The "+15 point bonus" badge that lies by the line of a player who makes a Flip 7: `bonus` of the `game` document, `null` while it has none */
+  bonusUrl: string | null
   /** The words of the board (`WORD_FIELDS`), in the language asked */
   words: Vocabulary
 }
@@ -28,5 +32,7 @@ export const MISSING_CATALOG: ClientCatalog = {
   faces: Object.fromEntries(Object.keys(CARDS).map((key) => [key, null])),
   names: Object.fromEntries(ACTION_KEYS.map((key) => [key, missing(`cards.${key}`)])),
   backUrl: null,
+  bustUrl: null,
+  bonusUrl: null,
   words: Object.fromEntries(WORD_FIELDS.map((field) => [field, missing(field)])) as Vocabulary,
 }

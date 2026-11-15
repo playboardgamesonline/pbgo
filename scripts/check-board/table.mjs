@@ -139,7 +139,9 @@ export async function openTable({ base, slug, seats, options = {}, bot = null })
     },
   }
 
-  const first = await request(0, "POST", "", { nickname: names[0] })
+  // A table opens for the median of the game's players, six at the most, unless it is told how many: a check wants every seat it tests, so it says so, as the page that opens a table does
+  const settings = { visibility: "private", minRank: null, language: null, pace: "normal", seats }
+  const first = await request(0, "POST", "", { nickname: names[0], settings })
   if (first.http !== 200) throw refusal(`opening a table of ${slug}`, first)
   code = first.code
   if (Object.keys(options).length) {

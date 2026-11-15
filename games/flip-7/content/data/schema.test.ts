@@ -200,6 +200,8 @@ describe("the forms of the cards", () => {
     expect(groups.filter((group) => group.default).map((group) => group.name)).toEqual(["board"])
     expect(fields.map((field) => [field.name, field.group])).toEqual([
       ["mat", "board"],
+      ["bust", "board"],
+      ["bonus", "board"],
       ["cardBack", "backs"],
       ["boxFront", "box"],
       ["boxBack", "box"],

@@ -35,18 +35,47 @@ async function paint(url: string): Promise<Texture | null> {
   }
 }
 
-type Pictures = { faces: Record<string, Texture | null>; back: Texture | null }
+/** A sticker: a picture with its own proportions, painted on a canvas as wide as `STICKER_ACROSS` and as tall as the picture is, with nothing behind it. `aspect` is its width over its height */
+export type StickerPicture = { texture: Texture; aspect: number }
+
+/** Pixels across a sticker. The two of them are SVG files, drawn at this size: sharp from a few cards wide to a few more */
+const STICKER_ACROSS = 1024
+
+/** A sticker of Sanity painted at its own proportions, null when it cannot be loaded: nothing is drawn then. */
+async function paintSticker(url: string): Promise<StickerPicture | null> {
+  try {
+    const image = new Image()
+    image.crossOrigin = "anonymous"
+    image.src = url
+    await image.decode()
+    const aspect = image.naturalWidth > 0 && image.naturalHeight > 0 ? image.naturalWidth / image.naturalHeight : 1.6
+    const canvas = document.createElement("canvas")
+    canvas.width = STICKER_ACROSS
+    canvas.height = Math.round(STICKER_ACROSS / aspect)
+    canvas.getContext("2d")!.drawImage(image, 0, 0, canvas.width, canvas.height)
+    const texture = new CanvasTexture(canvas)
+    texture.colorSpace = SRGBColorSpace
+    texture.anisotropy = 8
+    return { texture, aspect }
+  } catch (error) {
+    console.error(`[textures] ${url} could not be loaded`, error)
+    return null
+  }
+}
+
+type Pictures = { faces: Record<string, Texture | null>; back: Texture | null; stickers: { bust: StickerPicture | null; bonus: StickerPicture | null } }
 
 const loading = new Map<string, Promise<Pictures>>()
 
 /** The pictures of a catalog, loaded once for the page: the same catalog asked for again gets the promise it had. */
-function load({ faces, backUrl }: ClientCatalog): Promise<Pictures> {
-  const key = JSON.stringify([faces, backUrl])
+function load({ faces, backUrl, bustUrl, bonusUrl }: ClientCatalog): Promise<Pictures> {
+  const key = JSON.stringify([faces, backUrl, bustUrl, bonusUrl])
   let promise = loading.get(key)
   if (!promise) {
     promise = (async () => {
       const entries = await Promise.all(Object.entries(faces).map(async ([card, url]) => [card, url ? await paint(url) : null] as const))
-      return { faces: Object.fromEntries(entries), back: backUrl ? await paint(backUrl) : null }
+      const [back, bust, bonus] = await Promise.all([backUrl ? paint(backUrl) : null, bustUrl ? paintSticker(bustUrl) : null, bonusUrl ? paintSticker(bonusUrl) : null])
+      return { faces: Object.fromEntries(entries), back, stickers: { bust, bonus } }
     })()
     loading.set(key, promise)
   }
@@ -58,10 +87,12 @@ export type Faces = {
   face: (key: string) => Texture
   /** The back of every card: the picture of the `game` document, or a stand-in that says `[missing: card back]` */
   back: Texture
+  /** The two stickers that lie on the table over a line: the BUST! stamp and the "+15 point bonus" badge, each null while the `game` document has none (nothing is drawn then) */
+  stickers: { bust: StickerPicture | null; bonus: StickerPicture | null }
 }
 
 /**
- * The faces and the back of the cards, from the pictures of the catalog. It suspends until they are all in, so the `Table` reports itself loaded (`onLoaded`) once the cards can be drawn: nothing shows a card half drawn.
+ * The faces and the back of the cards, and the two stickers, from the pictures of the catalog. It suspends until they are all in, so the `Table` reports itself loaded (`onLoaded`) once the cards can be drawn: nothing shows a card half drawn.
  * Every picture Sanity does not have shows as a stand-in with its key on it, so the gap stays in sight.
  */
 export function useFaces(catalog: ClientCatalog): Faces {
@@ -69,6 +100,7 @@ export function useFaces(catalog: ClientCatalog): Faces {
   return {
     face: (key) => pictures.faces[key] ?? standIn(key, CARD_SIZE, { label: missing(key) }),
     back: pictures.back ?? standIn("back", CARD_SIZE, { label: missing("card back") }),
+    stickers: pictures.stickers,
   }
 }
 

@@ -118,7 +118,7 @@ const pathOf = (url) => {
  * Starts a headless browser with one page and gives it back. What happens in the page is kept in `page.issues`: console errors and warnings, exceptions, resources that failed and answers of `/api/` that are errors, each with the
  * `page.phase` it happened in, so that a check reads what is its own.
  */
-export async function launchBrowser({ reducedMotion = false } = {}) {
+export async function launchBrowser({ reducedMotion = false, liftCors = false } = {}) {
   const found = findBrowser()
   if (!found) throw new Error("no Chromium in Playwright's cache")
   const profile = mkdtempSync(join(tmpdir(), "check-board-"))
@@ -222,6 +222,23 @@ export async function launchBrowser({ reducedMotion = false } = {}) {
     })
 
     for (const domain of ["Page", "Runtime", "Log", "Network", "Inspector"]) await send(`${domain}.enable`)
+    if (liftCors) {
+      // The game's pictures come from a CDN that answers 403 to any origin but http://localhost:3100. On another port the page's requests for them are fetched here, as that origin, and handed to the page, so that a second dev server can be checked beside the first
+      await send("Fetch.enable", { patterns: [{ urlPattern: "https://cdn.sanity.io/*", requestStage: "Request" }] })
+      on("Fetch.requestPaused", async (p) => {
+        try {
+          const response = await fetch(p.request.url, { headers: { Origin: "http://localhost:3100" } })
+          const body = Buffer.from(await response.arrayBuffer()).toString("base64")
+          const responseHeaders = [
+            { name: "Content-Type", value: response.headers.get("content-type") ?? "application/octet-stream" },
+            { name: "Access-Control-Allow-Origin", value: "*" },
+          ]
+          await send("Fetch.fulfillRequest", { requestId: p.requestId, responseCode: response.status, responseHeaders, body })
+        } catch {
+          await send("Fetch.failRequest", { requestId: p.requestId, errorReason: "Failed" }).catch(() => {})
+        }
+      })
+    }
     await send("Page.addScriptToEvaluateOnNewDocument", { source: `(${installProbe.toString()})()` })
     if (reducedMotion) await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] })
 

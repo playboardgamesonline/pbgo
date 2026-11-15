@@ -17,11 +17,14 @@ export function hexChannels(hex: string): [number, number, number] {
   return [0, 1, 2].map((i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16)) as [number, number, number]
 }
 
-/** The coarse grid of the mottling: `size / MOTTLE` cells across, wrapped, so the picture repeats with no seam */
-const MOTTLE = 32
+/** The coarse grid of the mottling: `size / MOTTLE` cells across, wrapped, so the picture repeats with no seam. Fine, so that it reads as the unevenness of a felt and not as clouds laid on the table */
+const MOTTLE = 12
+
+/** How much of the grain the fine speckle makes: the rest is the mottling, which only takes the flatness off */
+const SPECKLE = 0.92
 
 /**
- * The grain of a `size` by `size` square as numbers between -1 and 1, row by row: a fine speckle of one pixel and a slow mottling (random values on a coarse grid, smoothly interpolated, wrapping at the edges), the speckle three times as strong.
+ * The grain of a `size` by `size` square as numbers between -1 and 1, row by row: a fine speckle of one pixel and a slight mottling (random values on a coarse grid, smoothly interpolated, wrapping at the edges), the speckle a dozen times as strong.
  * The wrap is exact: the last row and column are followed by the first, so the square repeats with no seam.
  */
 export function grainField(size: number, seed: number): Float32Array {
@@ -43,7 +46,7 @@ export function grainField(size: number, seed: number): Float32Array {
       const bottom = at(x0, y0 + 1) + (at(x0 + 1, y0 + 1) - at(x0, y0 + 1)) * tx
       const mottle = top + (bottom - top) * ty
       const speckle = random() * 2 - 1
-      out[y * size + x] = speckle * 0.85 + mottle * 0.15
+      out[y * size + x] = speckle * SPECKLE + mottle * (1 - SPECKLE)
     }
   }
   return out
