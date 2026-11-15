@@ -26,6 +26,7 @@
 - `pnpm --filter @pbgo/platform content:migrate-expansions [--dry-run | --apply]` — the expansions made as games → the `expansion` type, in one transaction; a dry run by default (`docs/platform-sanity.md`)
 - `pnpm --filter @pbgo/platform content:migrate-translations [--dry-run | --apply] [--from <file>] [--verbose] [--show <id>]` — the texts and pictures of the catalog → the translated fields, in one transaction; a dry run by default, `--from` plans against a file of documents with no token (`docs/platform-sanity.md`)
 - `pnpm --filter @pbgo/platform content:bgg [--dry-run | --apply] [--find-ids | --set-ids | --refresh]` — the missing figures of the games (complexity, players, duration, age) from BoardGameGeek, as drafts, or with `--refresh` the complexity brought up to date where it is still BGG's; a dry run by default; needs `BGG_API_TOKEN` (`docs/platform-sanity.md`)
+- `pnpm --filter @pbgo/platform content:bgg-lookup "<name>" | --id <n> [--versions [--language <l>]]` — what BoardGameGeek says of a game that is not in the catalog yet, as JSON (the candidates of a name, or one item in full); read only, needs only `BGG_API_TOKEN` (`docs/platform-sanity.md`)
 - `pnpm --filter @pbgo/platform test` · `typecheck`, `pnpm --filter platform-studio test` · `typecheck`
 - `pnpm --filter @pbgo/platform deploy:studio` — only with the owner's go
 

@@ -1,4 +1,4 @@
-import { parseSearch, parseThings, type BggCandidate, type BggThing } from "./xml.ts"
+import { parseLinks, parseSearch, parseThings, parseVersions, type BggCandidate, type BggLink, type BggThing, type BggVersion } from "./xml.ts"
 
 // BoardGameGeek's XML API 2 (PLT-78), with the token of the application the owner registered there. The terms of BGG apply to everything read here: the figures are shown
 // with "Powered by BGG" and a link, unaltered, and the use is not a commercial one without a licence (`docs/platform-sanity.md`, "Figures from BoardGameGeek"). A plain
@@ -36,11 +36,16 @@ export type BggClientOptions = {
   wait?: (ms: number) => Promise<void>
 }
 
+/** One item with its links and, when they were asked for, its versions. */
+export type BggDetail = { thing: BggThing; links: BggLink[]; versions: BggVersion[] }
+
 export type BggClient = {
   /** The figures of these items, by id. An item BGG does not answer for is not in the map. */
   things(ids: readonly number[]): Promise<Map<number, BggThing>>
-  /** The board games whose name matches (the exact name first asked for by `exact`). */
-  search(name: string, options?: { exact?: boolean }): Promise<BggCandidate[]>
+  /** The items whose name matches (the exact name only when `exact` is asked for). `types` are BGG's own (`boardgame`, `boardgameexpansion`): board games only by default. */
+  search(name: string, options?: { exact?: boolean; types?: readonly string[] }): Promise<BggCandidate[]>
+  /** One item with its figures and its links and, with `versions`, its versions (a second request, since they hold items of their own). Null when BGG has no such item. */
+  detail(id: number, options?: { versions?: boolean }): Promise<BggDetail | null>
 }
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
@@ -82,8 +87,16 @@ export function createBggClient({ token, fetch: send = fetch, wait = sleep }: Bg
       return found
     },
 
-    async search(name, { exact = false } = {}) {
-      return parseSearch(await get(`search?query=${encodeURIComponent(name)}&type=boardgame${exact ? "&exact=1" : ""}`))
+    async search(name, { exact = false, types = ["boardgame"] } = {}) {
+      if (types.length === 0 || !types.every((type) => /^[a-z]+$/.test(type))) throw new BggError("A search is for types of items such as boardgame and boardgameexpansion", 0)
+      return parseSearch(await get(`search?query=${encodeURIComponent(name)}&type=${types.join(",")}${exact ? "&exact=1" : ""}`))
+    },
+
+    async detail(id, { versions = false } = {}) {
+      const xml = await get(`thing?id=${id}&stats=1`)
+      const [thing] = parseThings(xml)
+      if (thing === undefined) return null
+      return { thing, links: parseLinks(xml), versions: versions ? parseVersions(await get(`thing?id=${id}&versions=1`)) : [] }
     },
   }
 }
