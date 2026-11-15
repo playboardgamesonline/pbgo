@@ -6,6 +6,8 @@ The avatar is generated from the nickname and the seat colour; a player who sat 
 
 A nickname is written as typed, never in capitals, in Geist at the platform's weight 600 (the label's name is `font-semibold` unless a caller says otherwise; the game over's medallions keep their own capitals and Black, which is a different piece), the avatar always to its left, and it is drawn at most `NAME_LIMIT` (12) characters long: a longer one ends in an ellipsis (`shortName` of `@pbgo/core/lib/short-name`, counted in characters as the eye counts them, so an emoji or an accent is never cut in half), and the label's `title` keeps the full name. The same function cuts the name on the plate of the table, in the list of the players and in the ticker ([Long names](../../engine/02-components/03-seats.md#long-names)).
 
+A caller can draw another text in place of the nickname (`label`): the list of the players says "Me" (the `me` text of the game's languages) on the viewer's own row, which leaves the room to the others. The avatar still comes from the nickname, `title` still holds it, and the text is drawn as given, never cut.
+
 The crown in the specimen is a stand-in for the table's crown icon.
 
 ```specimen

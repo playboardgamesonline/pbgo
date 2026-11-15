@@ -21,8 +21,8 @@ const useSeatColors = (): string[] =>
   )
 
 /**
- * The players of the table in the platform's look at the top right of the screen, as `TablePlayers` is in a game: each player with the colour of their seat, the crown of the turn as a lighter row, and the points (the total, and the round's in brackets). `TablePlayers` itself reads the
- * game of the page (`useGame`), which the playground has not, so this is the same list drawn from the playground's own state.
+ * The players of the table at the top right of the screen, as `TablePlayers` lists them in a game: each player with the colour of their seat, the crown of the turn as a lighter row, and the points (the total, and the round's in brackets). `TablePlayers` itself lies on the table in the game's look and reads the
+ * game of the page (`useGame`), which the playground has not, so this is a look-alike drawn in the hub's own look from the playground's state.
  */
 export function Scoreboard({ state, onPick }: { state: PlayState; onPick: (seat: number) => void }) {
   const colors = useSeatColors()

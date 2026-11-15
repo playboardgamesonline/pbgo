@@ -16,11 +16,11 @@ export type Quad = readonly Ground[]
 
 /**
  * What the platform draws over a board, in pixels from the edges of the window: at the top left the log of the turns (its box is 512 px wide but the text fills what the longest line needs, so 320 px is the room kept for it), and at the top right the menu
- * button and, under it, the list of the players, a row for each. Measured on the HUD of `@pbgo/core`, which a board does not own: when the HUD changes, these numbers change with it, for every game at once.
+ * button and, under it, the list of the players: a title with its hairline (the `padding`) and a row for each (the `row`). Measured on the HUD of `@pbgo/core`, which a board does not own: when the HUD changes, these numbers change with it, for every game at once.
  */
 export const PLATFORM_HUD = {
   ticker: { left: 24, top: 20, width: 320, height: 300 },
-  column: { right: 24, width: 240, top: 84, row: 47.5, padding: 0 },
+  column: { right: 24, width: 240, top: 108, row: 40, padding: 27 },
   /** The air kept round those boxes, and round the window */
   gap: 12,
 }
