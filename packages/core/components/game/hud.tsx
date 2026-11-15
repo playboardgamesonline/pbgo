@@ -26,7 +26,7 @@ function TableCorner({ gameCode, options, onLeave, className }: { gameCode: stri
   const menu = useGameMenu({ gameCode, options, onLeave })
   const guest = <GuestDock menu={menu} />
   return (
-    <div className={cn("flex flex-col items-end gap-2", className)}>
+    <div className={cn("flex flex-col items-end gap-8 short:gap-6", className)}>
       {/* eslint-disable-next-line react-hooks/static-components -- the dock is the app's component, given once by the context for the life of the page: it is not made while drawing */}
       <div className="platform relative z-20 font-sans text-foreground">{Dock ? <Dock menu={menu} fallback={guest} /> : guest}</div>
       <TablePlayers className="relative z-10" />

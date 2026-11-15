@@ -176,6 +176,7 @@ export const UI_TEXTS = [
   { key: "lostWith", group: "game", title: "Share: text of a table that lost together ({names} = the players, {points} = the table's score)", fr: ENGLISH_ONLY_TEXTS.lostWith },
   { key: "pointsShort", group: "game", title: "Scoreboard and share image: points of a player, abbreviated ({points} = their score)", fr: "{points} pts" },
   { key: "players", group: "game", title: "Players: title of the list at the top right, and name of the players strip (screen readers)", fr: "Joueurs" },
+  { key: "me", group: "game", title: "Players: your own row, in place of your nickname", fr: "Moi" },
   { key: "playersReady", group: "game", title: "Players strip: seats that are done, when there are too many to list ({ready} of {total})", fr: "{ready}/{total} prêts" },
   { key: "seatDone", group: "game", title: "Players strip: this player is done", fr: "Prêt" },
   { key: "seatWaiting", group: "game", title: "Players strip: the game waits for this player", fr: "En attente" },
