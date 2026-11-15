@@ -74,6 +74,8 @@ const h = vi.hoisted(() => ({
   record: vi.fn<(game: { slug: string }, row: { code: string; status: string; version: number }, context?: object) => Promise<void>>(async () => {}),
   started: vi.fn<(game: { slug: string }, row: { code: string; status: string }) => Promise<void>>(async () => {}),
   takenOver: vi.fn<(game: { slug: string }, code: string, players: readonly string[]) => Promise<void>>(async () => {}),
+  /** What the action route tells the recorder once the response has left, for each move a player played themselves: their experience, one point an action (migration 0026) */
+  counted: vi.fn<(game: { slug: string }, code: string, playerId: string) => Promise<void>>(async () => {}),
   /** The `game_log` table: what each move said, under the version of the table that it produced */
   log: [] as Array<{ game: string; code: string; version: number; entries: unknown[] }>,
   /** The code that the calls on `game_log` fail with instead of working; null: they work */
@@ -97,7 +99,7 @@ vi.mock("@pbgo/accounts/server", () => ({ getAccount: async () => h.account }))
 vi.mock("./player", () => ({ getPlayerId: async () => h.playerId, getOrCreatePlayerId: async () => h.playerId }))
 vi.mock("./rate-limit", () => ({ rateLimit: async () => {} }))
 vi.mock("./presence", () => ({ markSeen: async () => {}, seatMember: h.seatMember }))
-vi.mock("./results", () => ({ recordGameResult: h.record, markGameStarted: h.started, markTakenOver: h.takenOver }))
+vi.mock("./results", () => ({ recordGameResult: h.record, markGameStarted: h.started, markTakenOver: h.takenOver, countAction: h.counted }))
 vi.mock("./supabase", () => {
   class Filters {
     filters: Record<string, unknown> = {}
@@ -258,6 +260,22 @@ function nextStep(state: SimultaneousState, playerId: string): SimultaneousState
   return pending.length ? { ...state, pending } : { ...state, pending: [...state.players], round: state.round + 1 }
 }
 
+/** A game where a turn takes two moves (draw, then play): after the first the player is still the one the game waits for. Each move is an action. */
+type TwoMovesState = { players: string[]; turn: number; moves: number; length: number }
+const upIn = (state: TwoMovesState) => state.players[state.turn % state.players.length]!
+const TWO_MOVES: AnyGameDefinition = {
+  ...GAME,
+  id: "twomoves",
+  apply: (state: TwoMovesState, { playerId }: { playerId: string }): TwoMovesState => {
+    if (state.turn >= state.length || upIn(state) !== playerId) throw new EngineError("NOT_YOUR_TURN")
+    return state.moves === 0 ? { ...state, moves: 1 } : { ...state, moves: 0, turn: state.turn + 1 }
+  },
+  view: (state: TwoMovesState, playerId: string | null) => ({ me: playerId ? { id: playerId } : null, turn: state.turn }),
+  isOver: (state: TwoMovesState) => state.turn >= state.length,
+  waitingFor: (state: TwoMovesState) => (state.turn >= state.length ? [] : [upIn(state)]),
+  autoPlayFor: (state: TwoMovesState) => ({ ...state, moves: 0, turn: state.turn + 1 }),
+}
+
 const SLUG = "testgame"
 const CODE = "ABC234"
 const KEY = `${SLUG}:${CODE}`
@@ -374,6 +392,7 @@ beforeEach(() => {
   h.record.mockClear()
   h.started.mockClear()
   h.takenOver.mockClear()
+  h.counted.mockClear()
   h.log = []
   h.logError = null
   h.logReads = 0
@@ -998,6 +1017,92 @@ describe("the result of a game", () => {
   })
 })
 
+describe("the experience of a player", () => {
+  it("is counted for the player who played a move, once the response has left, and for nobody else", async () => {
+    playing(["p1", "p2"], 1, 5)
+    h.playerId = "p2"
+    expect((await call(action, { type: "move" })).status).toBe(200)
+    expect(h.counted).not.toHaveBeenCalled()
+    await afterResponse()
+    expect(h.counted).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), CODE, "p2")
+    expect(h.record).not.toHaveBeenCalled()
+  })
+
+  it("counts the move that ends the game before the result is written, which reads what was counted", async () => {
+    playing(["p1", "p2"], 2, 3)
+    h.playerId = "p1"
+    let release: () => void = () => {}
+    h.counted.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = () => resolve()
+        }),
+    )
+    expect((await call(action, { type: "move" })).status).toBe(200)
+    const left = afterResponse()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(h.counted).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), CODE, "p1")
+    expect(h.record).not.toHaveBeenCalled()
+    release()
+    await left
+    expect(h.record).toHaveBeenCalledTimes(1)
+  })
+
+  it("counts every move of a turn that takes several: an action is a point, whatever the turn it belongs to", async () => {
+    const twoMoves = gameOf(TWO_MOVES)
+    seed({ status: "playing", players: [ann, bob], state: { players: ["p1", "p2"], turn: 0, moves: 0, length: 4 } satisfies TwoMovesState, version: 7 })
+    h.playerId = "p1"
+    // The first move of the turn: p1 is still the one the game waits for, and it counts
+    expect((await call(action, { type: "move" }, CODE, twoMoves)).status).toBe(200)
+    await afterResponse()
+    expect(h.counted).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ slug: SLUG }), CODE, "p1")
+    // The second move completes the turn and counts as well
+    expect((await call(action, { type: "move" }, CODE, twoMoves)).status).toBe(200)
+    await afterResponse()
+    expect(h.counted.mock.calls.map((args) => args[2])).toEqual(["p1", "p1"])
+  })
+
+  it("counts the move of each player of a step they play at once, the last one included", async () => {
+    const simultaneous = gameOf(SIMULTANEOUS)
+    seed({ status: "playing", players: [ann, bob, cy], state: { players: ["p1", "p2", "p3"], pending: ["p1", "p2", "p3"], round: 0 } satisfies SimultaneousState, version: 7 })
+    for (const player of ["p1", "p2", "p3"]) {
+      h.playerId = player
+      expect((await call(action, { type: "move" }, CODE, simultaneous)).status).toBe(200)
+    }
+    await afterResponse()
+    expect(h.counted.mock.calls.map((args) => args[2])).toEqual(["p1", "p2", "p3"])
+  })
+
+  it("is not counted for a move the engine refuses, nor for one that lost the race to the move that ended the game", async () => {
+    playing(["p1", "p2"], 2, 3)
+    h.playerId = "p2"
+    expect((await call(action, { type: "move" })).status).toBe(400)
+
+    h.playerId = "p1"
+    race(() => ({ status: "over", state: { players: ["p1", "p2"], turn: 3, length: 3 } satisfies TestState }))
+    expect((await call(action, { type: "move" })).status).toBe(409)
+    await afterResponse()
+    expect(h.counted).not.toHaveBeenCalled()
+  })
+
+  it("is not counted for what the server plays for a player: a takeover, nor a debug command", async () => {
+    stalled(["p1", "p2", "p3"], 1)
+    h.playerId = "p1"
+    expect((await call(takeover)).status).toBe(200)
+    h.playerId = "p3"
+    expect((await call(takeover)).status).toBe(200)
+    await afterResponse()
+    expect(h.takenOver).toHaveBeenCalledTimes(1)
+    expect(h.counted).not.toHaveBeenCalled()
+
+    const debuggable = gameOf({ ...GAME, debug: { turn: (state: TestState) => ({ ...state, turn: state.turn + 1 }) } })
+    h.playerId = "p1"
+    expect((await call(debug, { command: "turn" }, CODE, debuggable)).status).toBe(200)
+    await afterResponse()
+    expect(h.counted).not.toHaveBeenCalled()
+  })
+})
+
 describe("the start of a game", () => {
   it("is told to the table when the last player says they are ready, once the response has left, and not before", async () => {
     starting(["p1", "p2"], [])
@@ -1510,6 +1615,8 @@ describe("the clock of a game", () => {
     await call(read, undefined, CODE, timed)
     await flush()
     expect(h.takenOver).toHaveBeenCalledWith(expect.anything(), CODE, ["p1"])
+    // What the clock played gives nobody any experience
+    expect(h.counted).not.toHaveBeenCalled()
   })
 
   it("writes down a game that the clock ends, once", async () => {
@@ -1535,6 +1642,8 @@ describe("the clock of a game", () => {
     expect(state().turn).toBe(2)
     await flush()
     expect(h.takenOver).toHaveBeenCalledWith(expect.anything(), CODE, ["p1"])
+    // Only the move p2 played is counted: the one the clock played for p1 is not
+    expect(h.counted).toHaveBeenCalledExactlyOnceWith(expect.anything(), CODE, "p2")
   })
 
   it("is not lost when a move is refused after it: the next look plays it", async () => {

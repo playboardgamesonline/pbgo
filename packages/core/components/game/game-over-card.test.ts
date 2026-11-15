@@ -281,6 +281,23 @@ describe("a table that plays together", () => {
   })
 })
 
+describe("the experience", () => {
+  it("shows what the game gave, in any mode: with the rank points of a ranked game and alone for a normal one", () => {
+    const normal = markup({ rank: { recorded: true, ranked: false, points: null, xp: 24 } })
+    expect(normal).toContain("+24 XP")
+    expect(normal).not.toContain(">Ranked<")
+    const ranked = markup({ rank: { recorded: true, ranked: true, points: 18, xp: 31 } })
+    expect(ranked).toContain("+31 XP")
+    expect(ranked).toContain("+18")
+  })
+
+  it("says nothing of it for a guest, while the game is not written down, where it is not known, or when the game gave none", () => {
+    for (const rank of [undefined, null, { recorded: false, ranked: false, points: null, xp: 24 }, { recorded: true, ranked: false, points: null }, { recorded: true, ranked: false, points: null, xp: null }, { recorded: true, ranked: false, points: null, xp: 0 }]) {
+      expect(markup({ rank })).not.toContain(" XP")
+    }
+  })
+})
+
 describe("the rank points", () => {
   it("shows what a ranked game gave, in the accent, once it is known", () => {
     const html = markup({ rank: { recorded: true, ranked: true, points: 18 } })

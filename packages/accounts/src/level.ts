@@ -1,8 +1,8 @@
 // The level of a member, worked out from their experience (XP, the `xp` column of `profiles`, migration 0023). Only the points are stored; the table of levels is this file's, so that it can change with no migration.
-// Level 0 is where everybody starts, with 0 XP. Reaching level `n` takes `LEVEL_STEP * n * (n + 1) / 2` points in all (100, 300, 600, 1000…): each level asks `LEVEL_STEP` more than the one before. A first draft, for the owner to tune.
+// Level 0 is where everybody starts, with 0 XP, and every level takes the same: `XP_PER_LEVEL` points, so level `n` begins at `XP_PER_LEVEL * n`. A member earns one point for each action they play, in any game and any mode.
 
-/** The points that level 1 takes, and by how much each level after it asks more. */
-export const LEVEL_STEP = 100
+/** The points a level takes: the same for every level. */
+export const XP_PER_LEVEL = 300
 
 /** The level of a member, and where their points stand between it and the next one. */
 export type Level = {
@@ -16,15 +16,12 @@ export type Level = {
 }
 
 /** The points a member needs in all to be at `level`. */
-export const xpToReach = (level: number): number => (LEVEL_STEP * level * (level + 1)) / 2
+export const xpToReach = (level: number): number => XP_PER_LEVEL * level
 
 /** The level of a member with this many points. Anything that is not a whole number of points, zero or more, counts as 0. */
 export function levelOf(xp: number): Level {
   const points = Number.isSafeInteger(xp) && xp > 0 ? xp : 0
-  let level = Math.floor((Math.sqrt(1 + (8 * points) / LEVEL_STEP) - 1) / 2)
-  // The square root can be a hair off at the edges: settle on the level whose range holds the points
-  while (xpToReach(level + 1) <= points) level += 1
-  while (level > 0 && xpToReach(level) > points) level -= 1
+  const level = Math.floor(points / XP_PER_LEVEL)
   return { level, xp: points, from: xpToReach(level), to: xpToReach(level + 1) }
 }
 

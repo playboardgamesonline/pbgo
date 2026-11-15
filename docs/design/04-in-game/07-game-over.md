@@ -19,6 +19,7 @@ game-over
 
 - How the game ended for the visitor is at the very top of the card: a win, a draw, a place or a loss, and for a table that plays together a victory or a defeat.
 - A game that counted for the rank adds the ranked mark and the rank points it gave or took under it. A score is written only for a game that counts points.
+- A member sees the experience the game gave them, "+N XP", in any mode, once the game is written down; a guest earns none and sees none.
 - The scores of every player, with their lines (chips, or what the game draws itself with `renderDetail`), unfold under the podium with "Show scores". The visitor's row is lit.
 - The share is an icon in the corner.
 
