@@ -54,7 +54,7 @@ export function readBeatAnswer(value: unknown): BeatAnswer {
 /** The pages of the hub where a member is left alone whatever their table is at: the legal pages, which the cookie banner leads to and which have to be readable. */
 const STAYS_ON = ["/legal"]
 
-/** The pages where a member is left alone too while their game is being played: the profile of a player, which the seats of the table lead to, and the member's own pages (their profile, their games and friends, their settings). A member who plays may look at them. */
+/** The pages where a member is left alone too while their game is being played: the profile of a player, which the seats of the table lead to, and the member's own pages (their profile, their career, their settings). A member who plays may look at them. */
 const STAYS_ON_WHILE_PLAYING = ["/player", "/me"]
 
 const onPage = (pathname: string, pages: readonly string[]) => pages.some((page) => pathname === page || pathname.startsWith(`${page}/`))

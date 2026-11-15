@@ -266,6 +266,30 @@ describe("readMemberGames", () => {
     expect(log[0]?.calls).toContainEqual(["limit", [MEMBER_GAMES_MAX]])
   })
 
+  it("narrows the games to one game in the question itself, so that its latest games are the ones that come back and not the ones of the latest games that are of it", async () => {
+    const log = tables({ game_participants: [{ data: [], error: null }] })
+    await readMemberGames(USER, 20, "hanabi")
+    expect(log[0]?.calls).toEqual(
+      expect.arrayContaining([
+        ["eq", ["user_id", USER]],
+        ["eq", ["game_results.game", "hanabi"]],
+        ["order", ["finished_at", { ascending: false }]],
+        ["limit", [20]],
+      ]),
+    )
+  })
+
+  it("asks for no game when none is named", async () => {
+    const log = tables({ game_participants: [{ data: [], error: null }] })
+    await readMemberGames(USER, 20)
+    expect(log[0]?.calls.filter(([name, args]) => name === "eq" && String(args[0]).startsWith("game_results"))).toEqual([])
+  })
+
+  it("is empty, without asking the database, for a game that is no slug", async () => {
+    for (const game of ["", "Hanabi", "love letter", "a,b", "x)or(y", "-x", "x-"]) expect(await readMemberGames(USER, 20, game), game).toEqual([])
+    expect(mocks.from).not.toHaveBeenCalled()
+  })
+
   it("is empty after one question when the member finished nothing", async () => {
     const log = tables({ game_participants: [{ data: [], error: null }] })
     expect(await readMemberGames(USER, 20)).toEqual([])

@@ -3,7 +3,7 @@ import { AFTER_SIGN_IN, safeNext } from "./redirect"
 
 describe("safeNext", () => {
   it("goes back to a path of this site, query and fragment kept", () => {
-    expect(safeNext("/me/games")).toBe("/me/games")
+    expect(safeNext("/me/career?game=hanabi")).toBe("/me/career?game=hanabi")
     expect(safeNext("/games?category=Cards&players=5")).toBe("/games?category=Cards&players=5")
     expect(safeNext("/game/courtisans#rules")).toBe("/game/courtisans#rules")
     expect(safeNext("/")).toBe("/")
@@ -13,10 +13,10 @@ describe("safeNext", () => {
     expect(safeNext(null)).toBe(AFTER_SIGN_IN)
     expect(safeNext(undefined)).toBe(AFTER_SIGN_IN)
     expect(safeNext("")).toBe(AFTER_SIGN_IN)
-    expect(AFTER_SIGN_IN).toBe("/me")
+    expect(AFTER_SIGN_IN).toBe("/me/profile")
   })
 
-  it.each(["https://evil.example/me", "http://evil.example", "//evil.example/me", "///evil.example", "/\\evil.example", "\\\\evil.example", "javascript:alert(1)", "me/games", "evil.example"])(
+  it.each(["https://evil.example/me", "http://evil.example", "//evil.example/me", "///evil.example", "/\\evil.example", "\\\\evil.example", "javascript:alert(1)", "me/career", "evil.example"])(
     "refuses what is not a path of this site (%j)",
     (value) => {
       expect(safeNext(value)).toBe(AFTER_SIGN_IN)

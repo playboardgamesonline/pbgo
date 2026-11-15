@@ -27,7 +27,7 @@ export function confirmRequestOf(params: { get(name: string): string | null }): 
 
 /**
  * The page to land on: a path of this site (`safeNext`), as in every way back from a sign-in. The e-mail may write the address that the sign-up gave Supabase Auth as its redirect URL (`&next={{ .RedirectTo }}`), which is the
- * page the visitor came from on this site, whole: its path is taken when it is of `origin`, the site, and `/me` is when it is not (an address of another site is nowhere to send a visitor, signed in).
+ * page the visitor came from on this site, whole: its path is taken when it is of `origin`, the site, and `/me/profile` is when it is not (an address of another site is nowhere to send a visitor, signed in).
  */
 export function confirmNext(value: string | null, origin: string): string {
   if (value && /^https?:\/\//i.test(value)) {

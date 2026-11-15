@@ -2,7 +2,7 @@ import { mostPlayed, playedGameOf, statsFrom, type GameStats, type GameTotals, t
 import type { Rank } from "@pbgo/ui/ranks"
 import type { MemberGameRow, MemberGameTotals } from "../server/standings"
 
-// What the pages of a signed-in member say of the games they played (`/me`, `/me/games`, the home's Your games), made of what the database answers (`readMemberGames`, `readMemberTotals`: PLT-13): the games they finished, the latest first,
+// What the pages of a signed-in member say of the games they played (the profile, the career, the home's Your games), made of what the database answers (`readMemberGames`, `readMemberTotals`: PLT-13): the games they finished, the latest first,
 // their figures, what they played of each game and the rank they have in the ones they rated. Pure, so that it is tested as it is; the hub reads the database and names the games (`apps/web/src/lib/member-games.ts`).
 
 /** A member's rank in a game they rated: the rank their points read as, and how far they are through its division (null at the top, where a rank is a place and not a score). */
@@ -32,7 +32,7 @@ export function memberGamesOf(
   nameOf: (slug: string) => string,
   expansionsOf: (slug: string, options: Readonly<Record<string, unknown>>) => readonly string[] = () => [],
 ): MemberGames {
-  const played = totals.filter((row) => row.gamesPlayed > 0).map((row) => ({ slug: row.game, name: nameOf(row.game), played: row.gamesPlayed, wins: row.wins }))
+  const played = totals.filter((row) => row.gamesPlayed > 0).map((row) => ({ slug: row.game, name: nameOf(row.game), played: row.gamesPlayed, wins: row.wins, rated: row.ratedGames, seconds: row.secondsPlayed }))
   const ranked = totals.flatMap((row) => (row.rank && row.points !== null ? [{ points: row.points, slug: row.game, name: nameOf(row.game), rank: row.rank, progress: row.rankProgress }] : []))
   return {
     games: rows.map((row) => playedGameOf(row, nameOf(row.game), expansionsOf(row.game, row.options))),

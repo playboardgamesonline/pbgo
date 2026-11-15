@@ -10,16 +10,17 @@ import { UserCard } from "@pbgo/ui/platform/user-card"
 import { QUEUE_MODE_LABELS } from "@pbgo/ui/queue"
 import { pointsLabel, pointsTone } from "@pbgo/ui/results"
 import type { PlayerRecord, SeatedPlayer } from "@pbgo/ui/tables"
+import { cn } from "@pbgo/ui/utils"
 import { gameDate } from "@/lib/account-data"
 import { Duration, PaceFact, PlayerCount } from "./played-game-bits"
 
 /** How many of the others at a table are drawn as pictures: a table has ten seats at the most, and a row is not the place to list them. */
 const PICTURES_MAX = 6
 
-/** The picture of a game, from the catalog's route (the game's icon): the first letters of its name when the game has none. A tile (`rounded-tile`), never a circle: only the picture of a person is round. */
-export function GameThumb({ slug, name }: { slug: string; name: string }) {
+/** The picture of a game, from the catalog's route (the game's icon): the first letters of its name when the game has none. A tile (`rounded-tile`), never a circle: only the picture of a person is round. 2.5rem unless `className` gives it another size. */
+export function GameThumb({ slug, name, className }: { slug: string; name: string; className?: string }) {
   return (
-    <Avatar className="size-10 rounded-tile after:rounded-tile">
+    <Avatar className={cn("size-10 rounded-tile after:rounded-tile", className)}>
       <AvatarImage src={`/api/catalog/${slug}/icon`} alt="" className="rounded-tile" />
       <AvatarFallback className="rounded-tile text-xs">{name.slice(0, 2).toUpperCase()}</AvatarFallback>
     </Avatar>

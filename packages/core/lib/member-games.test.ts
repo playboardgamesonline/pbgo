@@ -73,9 +73,9 @@ describe("memberGamesOf", () => {
     expect(stats).toEqual({ played: 27, wins: 8, winRate: 30, favourite: "Courtisans" })
     // The most played first, then by name; a game with no game finished has no row
     expect(perGame).toEqual([
-      { slug: "courtisans", name: "Courtisans", played: 12, wins: 6 },
-      { slug: "zz", name: "zz", played: 12, wins: 0 },
-      { slug: "hanabi", name: "Hanabi", played: 3, wins: 2 },
+      { slug: "courtisans", name: "Courtisans", played: 12, wins: 6, rated: 0, seconds: 7200 },
+      { slug: "zz", name: "zz", played: 12, wins: 0, rated: 0, seconds: 7200 },
+      { slug: "hanabi", name: "Hanabi", played: 3, wins: 2, rated: 0, seconds: 7200 },
     ])
   })
 

@@ -42,8 +42,10 @@ export type PlayedGame = {
 /** The games that are over. */
 const finishedOf = (games: readonly PlayedGame[]): PlayedGame[] => games.filter((game) => game.state === "finished")
 
-/** What a visitor has played of one game: how many games of it are over and how many they won. */
-export type GameTotals = { slug: string; name: string; played: number; wins: number }
+/**
+ * What a visitor has played of one game: how many games of it are over and how many they won, how many of them counted for their rank (`rated`) and for how long they played (`seconds`). The last two are absent where the source does not say.
+ */
+export type GameTotals = { slug: string; name: string; played: number; wins: number; rated?: number; seconds?: number }
 
 /** The order the games of a visitor are listed in: the most played first, then by name. */
 export const mostPlayed = (a: GameTotals, b: GameTotals): number => b.played - a.played || a.name.localeCompare(b.name)
@@ -65,16 +67,34 @@ export function statsFrom(rows: readonly GameTotals[]): GameStats {
 /** The figures of the profile, from the games that are over (a game in progress counts for nothing yet). */
 export const statsOf = (games: readonly PlayedGame[]): GameStats => statsFrom(perGame(games))
 
-/** The games a visitor has finished, one row per game: how many, how many won, in the order of `mostPlayed`. */
+/** The games a visitor has finished, one row per game: how many, how many won, how many counted for their rank and how long they lasted, in the order of `mostPlayed`. */
 export function perGame(games: readonly PlayedGame[]): GameTotals[] {
-  const rows = new Map<string, GameTotals>()
+  const rows = new Map<string, Required<GameTotals>>()
   for (const game of finishedOf(games)) {
-    const row = rows.get(game.slug) ?? { slug: game.slug, name: game.name, played: 0, wins: 0 }
+    const row = rows.get(game.slug) ?? { slug: game.slug, name: game.name, played: 0, wins: 0, rated: 0, seconds: 0 }
     row.played += 1
     if (game.result === "won") row.wins += 1
+    if (game.ranked) row.rated += 1
+    row.seconds += game.durationSeconds ?? 0
     rows.set(game.slug, row)
   }
   return [...rows.values()].sort(mostPlayed)
+}
+
+/** What a visitor has done in some games, summed: the games that are over, the wins, the games that counted for their rank, the time played (in seconds) and the share of games won. */
+export type GameFigures = { played: number; wins: number; rated: number; seconds: number; winRate: number | null }
+
+/** The figures of the games in `rows`: one game's (a list of one) or every game's. A row that does not say how many games were rated or for how long adds none. */
+export function figuresOf(rows: readonly GameTotals[]): GameFigures {
+  const played = rows.reduce((sum, row) => sum + row.played, 0)
+  const wins = rows.reduce((sum, row) => sum + row.wins, 0)
+  return {
+    played,
+    wins,
+    rated: rows.reduce((sum, row) => sum + (row.rated ?? 0), 0),
+    seconds: rows.reduce((sum, row) => sum + (row.seconds ?? 0), 0),
+    winRate: played > 0 ? Math.round((wins / played) * 100) : null,
+  }
 }
 
 /** A game a member finished, as the database tells it (`MemberGameRow` of `@pbgo/core/server/standings`, which this is the part of that the pages list: `@pbgo/accounts` does not import core). */
