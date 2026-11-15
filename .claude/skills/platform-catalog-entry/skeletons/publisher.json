@@ -1,0 +1,6 @@
+{
+  "_id": "drafts.publisher-<name>",
+  "_type": "publisher",
+  "name": "<Name>",
+  "website": "<https://…>"
+}

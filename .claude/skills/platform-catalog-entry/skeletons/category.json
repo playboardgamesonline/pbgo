@@ -1,0 +1,6 @@
+{
+  "_id": "drafts.category-<name>",
+  "_type": "category",
+  "name": "<Name>",
+  "names": [{ "_key": "en", "_type": "internationalizedArrayLocalizedNameValue", "language": "en" }]
+}
