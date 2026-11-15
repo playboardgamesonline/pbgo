@@ -1,5 +1,5 @@
 import { localeString, localeText } from "@pbgo/content-kit"
-import type { SeedDoc } from "@pbgo/content-kit"
+import type { LanguageId, SeedDoc } from "@pbgo/content-kit"
 
 export const TEXTS_ID = "texts"
 
@@ -118,14 +118,51 @@ export const BOARD_WORDS = [
 ]
 
 /**
- * The part of the shared `texts` document that the seed fills: the engine's words, the messages of the game's own error codes (one keyed item each, the `_key` the Copy page writes) and the words of the board (one `localeString` each, under the name of
- * its field), so that the seed adds the ones Sanity lacks and keeps the ones edited in the Studio. Everything else of Copy (the interface labels, the victory phrases, the messages of the shared codes, which the platform words) is set in the Studio
+ * The sentences that crown the winner of a table, one is read when a game ends: the shared `victoryPhrases` of `texts` (a `localeStringList`, the phrases of a language kept or filled together). `{pseudo}` is the winner and `{points}` their total, the way
+ * the Copy page names them, and each sentence says both. They play on the pushing of one's luck: staying, hitting, the duplicate that busts. French, English, Spanish and German are written for the game, in the words of the board (encore, stop, doublon;
+ * hit, stay, bust; pedir carta, plantarse, repetida; ziehen, halten, doppelt): the Spanish and the German are for the owner to read.
+ */
+export const VICTORY_PHRASES = {
+  fr: [
+    "La chance sourit aux audacieux, et cette fois c’est {pseudo} ({points} pts)",
+    "{pseudo} a su exactement quand s’arrêter ({points} pts)",
+    "Sang-froid et cartes bien retournées : {pseudo} remporte la partie ({points} pts)",
+    "Encore ou stop ? {pseudo} avait toujours la réponse ({points} pts)",
+    "Pas un doublon à l’horizon quand ça comptait : {pseudo} gagne ({points} pts)",
+  ],
+  en: [
+    "Fortune favors the bold, and this time it’s {pseudo} ({points} pts)",
+    "{pseudo} knew exactly when to stay ({points} pts)",
+    "Cool nerves and well-flipped cards: {pseudo} takes the game ({points} pts)",
+    "Hit or stay? {pseudo} always had the answer ({points} pts)",
+    "Not a duplicate in sight when it mattered: {pseudo} wins ({points} pts)",
+  ],
+  es: [
+    "La suerte sonríe a los audaces, y esta vez es {pseudo} ({points} pts)",
+    "{pseudo} supo exactamente cuándo plantarse ({points} pts)",
+    "Sangre fría y cartas bien volteadas: {pseudo} gana la partida ({points} pts)",
+    "¿Pedir carta o plantarse? {pseudo} siempre tuvo la respuesta ({points} pts)",
+    "Ni una repetida a la vista cuando importaba: {pseudo} gana ({points} pts)",
+  ],
+  de: [
+    "Das Glück hilft den Mutigen, und diesmal ist es {pseudo} ({points} Pkt.)",
+    "{pseudo} wusste genau, wann man aufhören muss ({points} Pkt.)",
+    "Nerven aus Stahl und gut aufgedeckte Karten: {pseudo} gewinnt das Spiel ({points} Pkt.)",
+    "Ziehen oder halten? {pseudo} hatte immer die richtige Antwort ({points} Pkt.)",
+    "Keine doppelte Zahl, als es darauf ankam: {pseudo} gewinnt ({points} Pkt.)",
+  ],
+} satisfies Record<LanguageId, string[]>
+
+/**
+ * The part of the shared `texts` document that the seed fills: the engine's words, the messages of the game's own error codes (one keyed item each, the `_key` the Copy page writes), the words of the board (one `localeString` each, under the name of
+ * its field) and the victory phrases, so that the seed adds the ones Sanity lacks and keeps the ones edited in the Studio. Everything else of Copy (the interface labels, the messages of the shared codes, which the platform words) is set in the Studio
  * and left alone.
  */
 export function buildTexts(): SeedDoc {
   return {
     _id: TEXTS_ID,
     _type: "texts",
+    victoryPhrases: { _type: "localeStringList", fr: [...VICTORY_PHRASES.fr], en: [...VICTORY_PHRASES.en], es: [...VICTORY_PHRASES.es], de: [...VICTORY_PHRASES.de] },
     errorMessages: ERROR_MESSAGES.map(({ code, ...words }) => ({ _key: code, _type: "errorMessage", code, message: localeString(words) })),
     engineTexts: ENGINE_TEXTS.map(({ key, ...words }) => ({ _key: engineTextKey(key), _type: "engineText", key, text: localeText(words) })),
     ...Object.fromEntries(BOARD_WORDS.map(({ key, ...words }) => [key, localeString(words)])),
