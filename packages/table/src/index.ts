@@ -62,7 +62,7 @@ export { FACE_DOWN, FACE_UP, hashRandom, lean, type Offset, onTable, type OnTabl
 export { Aura, AURA_FIELDS, type AuraSettings, WINNER_AURA_SETTINGS, ZONE_AURA_SETTINGS } from "./seat/aura"
 export { TurnCrown } from "./seat/crown"
 export { auraForce, type Plate, plateOf, SEAT_FIELDS, SEAT_SETTINGS, type SeatMood, type SeatSettings } from "./seat/placement"
-export { PlayerSeat, Seat, type SeatProps } from "./seat/seat"
+export { PLATE_FONT, PLATE_WEIGHT, PlayerSeat, Seat, type SeatProps } from "./seat/seat"
 export { SeatAvatarMesh } from "./seat/seat-avatar-mesh"
 export { seatStateOf, type SeatState, type SeatTable } from "./seat/state"
 export { TABLE_FONT, TableText, type TextStyle } from "./seat/table-text"
