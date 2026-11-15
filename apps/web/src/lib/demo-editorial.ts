@@ -5,7 +5,7 @@ import type { Editorial } from "@pbgo/catalog/editorial"
 export function demoEditorial(): Editorial {
   return {
     announcements: [
-      { id: "demo-announcement", title: "A short break tonight", message: "The tables stay open; the chat may be slow for a few minutes.", tone: "info", link: null, game: null, dismissible: true, startsAt: null, endsAt: null },
+      { id: "demo-announcement", title: "A short break tonight", message: "The tables stay open; the chat may be slow for a few minutes.", tone: "info", link: { url: "/about#whats-new", label: "Read more" }, game: null, dismissible: false, startsAt: null, endsAt: null },
     ],
     entries: [],
   }

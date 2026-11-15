@@ -19,11 +19,11 @@ export const searchModeOf = (mode: PlayZoneMode): QueueMode | null => (mode === 
 /** The columns of the row of places: one for each seat of the largest table, so that a whole group sits on one line. */
 export const SLOT_COLUMNS = MAX_SEATS
 
-/** The column of the middle of the row, where the visitor stands. */
-const MIDDLE = Math.floor(SLOT_COLUMNS / 2)
+/** The column of the middle of the row, where the visitor stands: the widest, so that their picture is the largest. */
+export const SLOT_MIDDLE = Math.floor(SLOT_COLUMNS / 2)
 
 /** The order the places of the row fill in, by column: the visitor in the middle, then one place to its right, one to its left, and so on outwards. For nine columns: 4, 5, 3, 6, 2, 7, 1, 8, 0. */
-export const SLOT_ORDER: readonly number[] = Array.from({ length: SLOT_COLUMNS }, (_, index) => (index === 0 ? MIDDLE : MIDDLE + (index % 2 === 1 ? (index + 1) / 2 : -index / 2)))
+export const SLOT_ORDER: readonly number[] = Array.from({ length: SLOT_COLUMNS }, (_, index) => (index === 0 ? SLOT_MIDDLE : SLOT_MIDDLE + (index % 2 === 1 ? (index + 1) / 2 : -index / 2)))
 
 /** A column of the row: `null` when the row does not use it (a table of fewer seats), else a place that holds a person or, with `person` null, is free. */
 export type SlotCell<T> = { person: T | null } | null

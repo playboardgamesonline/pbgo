@@ -2,7 +2,7 @@
 
 Module: `@pbgo/ui/platform/player-slots`
 
-The row of places of the signed-in home's play zone: the people who play together, on one line. The visitor is in the middle place and the others fill outwards from them, one to the right and one to the left in turn. The row has a column for each seat of the largest table, nine, the most a lobby holds, so that a whole group fits, and it never wraps: the pictures shrink with the column.
+The row of places of the signed-in home's play zone: the people who play together, on one line. The visitor is in the middle place and the others fill outwards from them, one to the right and one to the left in turn. The row has a column for each seat of the largest table, nine, the most a lobby holds, so that a whole group fits, and it never wraps: the pictures are as large as their column and shrink with it. The row is wide, and the middle column is half as wide again as the others, so the visitor's picture is the largest. Each place stands in a box as tall as the middle column is wide, with its picture centred in it, so that every picture is level with the middle one and the names sit on one line under them.
 
 ```specimen
 player-slots

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { layoutRow, PLAY_ZONE_LABELS, PLAY_ZONE_MODES, searchModeOf, SLOT_COLUMNS, SLOT_ORDER } from "./play-zone"
+import { layoutRow, PLAY_ZONE_LABELS, PLAY_ZONE_MODES, searchModeOf, SLOT_COLUMNS, SLOT_MIDDLE, SLOT_ORDER } from "./play-zone"
 import { QUEUE_MODE_LABELS } from "./queue"
 import { MAX_SEATS } from "./tables"
 
@@ -32,6 +32,11 @@ describe("the row of places", () => {
 
   it("fills from the middle outwards, one to the right and one to the left in turn", () => {
     expect(SLOT_ORDER).toEqual([4, 5, 3, 6, 2, 7, 1, 8, 0])
+  })
+
+  it("has its middle column where the visitor stands, the first one it fills", () => {
+    expect(SLOT_MIDDLE).toBe(4)
+    expect(SLOT_ORDER[0]).toBe(SLOT_MIDDLE)
   })
 
   it("puts the visitor in the middle column and the others around them", () => {

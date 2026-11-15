@@ -4,7 +4,7 @@ import * as React from "react"
 import { CrownIcon, PlusSignIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { initials, type FriendStatus } from "../friends"
-import { layoutRow, SLOT_COLUMNS } from "../play-zone"
+import { layoutRow, SLOT_COLUMNS, SLOT_MIDDLE } from "../play-zone"
 import { cn } from "../utils"
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "./dropdown-menu"
@@ -14,8 +14,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 // The row of places of the signed-in home's play zone, the people who play together: the visitor in the middle and, around them, their group (a search) or the friends they will invite to the table they open (Custom), nine places on one line at the most, the most a table has, so that a
 // whole group fits. The visitor is always the middle place, and the others fill outwards from it, one to the right and one to the left in turn (`layoutRow`). The places are open whatever else the zone holds, even with no game picked: a place that nobody has is a dashed circle with a plus, and a press
 // on it opens a panel (`picker`: the friends, then a way to copy a link). A person is their picture with the dot of their presence, their name under it (the visitor's is "You") and a crown on the one who leads; an invitation that waits for an answer is a dashed outline
-// round a picture that is a little faint. A press on a person opens their menu (`menu`), when the page has one for them. The row has no label: what it is says itself. The pictures are as large as the row allows, 64px at the most, and shrink with it, so that nine places stay on
-// one line in a narrow column; the names are left out when they would not be read. It draws what it is given and decides nothing: who is in it, how many places it has and what a press does are the page's.
+// round a picture that is a little faint. A press on a person opens their menu (`menu`), when the page has one for them. The row has no label: what it is says itself. The pictures are as large as their column allows, and the row is wide (`max-w-4xl`): the middle column is half as wide again
+// as the others, so the visitor's picture is the largest, and every picture is level with it (each place stands in a box as tall as the middle column is wide, `stageOf`) with the names on one line under them. Nine places stay on one line in a narrow column, and the names are left out when they would
+// not be read. It draws what it is given and decides nothing: who is in it, how many places it has and what a press does are the page's.
 
 /** A person in the row: who they are, what their picture and their dot say, whether they lead, whether they are the visitor, and whether they were invited and have not answered. */
 type SlotPlayer = {
@@ -47,8 +48,11 @@ type PlayerSlotsProps = Omit<React.ComponentProps<"ul">, "children"> & {
   disabled?: boolean
 }
 
-/** The picture of a place fills its column, a ninth of the row less the room between the places, and is never larger than 64px. */
-const PICTURE = "size-auto w-full aspect-square max-w-16"
+/** The picture of a place fills its column: a ninth of the row less the room between the places, and, in the middle column, which is half as wide again, the visitor's. */
+const PICTURE = "size-auto w-full aspect-square"
+
+/** The box a place stands in: as tall as the middle column is wide. The picture of the middle column fills it, the others' are centred in it, so that the centres of all the pictures are level and the names sit on one line under them. */
+const stageOf = (middle: boolean) => cn("flex w-full items-center justify-center", middle ? "aspect-square" : "aspect-2/3")
 
 /** A free place: a dashed circle with a plus in it, as faint as the seats of a table that nobody has taken, a little more there under the pointer of what holds it (`group/slot`). */
 function FreePlace() {
@@ -78,34 +82,36 @@ function describe(player: SlotPlayer): string {
 }
 
 /** A person: the picture (a button that opens their menu when the page has one), a crown over it for the one who leads and their name under it. */
-function Person({ player, menu, disabled }: { player: SlotPlayer; menu?: (player: SlotPlayer) => React.ReactNode; disabled: boolean }) {
+function Person({ player, menu, disabled, middle }: { player: SlotPlayer; menu?: (player: SlotPlayer) => React.ReactNode; disabled: boolean; middle: boolean }) {
   const entries = menu?.(player)
   const picture = <Picture player={player} />
   return (
     <>
-      <span className="relative block w-full">
-        {player.leader && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3.5 left-1/2 z-10 size-5 -translate-x-1/2 @max-md/slots:-top-3 @max-md/slots:size-4" />}
-        {entries ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                disabled={disabled}
-                aria-label={`${describe(player)}: more`}
-                className="group/slot block w-full rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-default"
-              >
-                {picture}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-48">
-              {entries}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <span role="img" aria-label={describe(player)} className="block w-full">
-            {picture}
-          </span>
-        )}
+      <span className={stageOf(middle)}>
+        <span className="relative block w-full">
+          {player.leader && <HugeiconsIcon icon={CrownIcon} strokeWidth={2} aria-hidden="true" className="absolute -top-3.5 left-1/2 z-10 size-5 -translate-x-1/2 @max-md/slots:-top-3 @max-md/slots:size-4" />}
+          {entries ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  aria-label={`${describe(player)}: more`}
+                  className="group/slot block w-full rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-default"
+                >
+                  {picture}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-48">
+                {entries}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <span role="img" aria-label={describe(player)} className="block w-full">
+              {picture}
+            </span>
+          )}
+        </span>
       </span>
       <span aria-hidden="true" className="ph-mask w-full truncate text-center text-xs @max-md/slots:sr-only">
         {player.you ? "You" : player.name}
@@ -115,39 +121,54 @@ function Person({ player, menu, disabled }: { player: SlotPlayer; menu?: (player
 }
 
 /** A place that nobody has: a button that opens the panel of the friends when the page gives one. */
-function Free({ picker, disabled, tabbable }: { picker?: React.ReactNode; disabled: boolean; tabbable: boolean }) {
+function Free({ picker, disabled, tabbable, middle }: { picker?: React.ReactNode; disabled: boolean; tabbable: boolean; middle: boolean }) {
   if (!picker) {
     return (
-      <span className="group/slot block w-full">
-        <FreePlace />
+      <span className={stageOf(middle)}>
+        <span className="group/slot block w-full">
+          <FreePlace />
+        </span>
       </span>
     )
   }
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button type="button" disabled={disabled} aria-label="Add a player" tabIndex={tabbable ? undefined : -1} className="group/slot block w-full rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-default">
-          <FreePlace />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent aria-label="Add a player" align="center" className="w-80 gap-0 rounded-2xl p-3">
-        {picker}
-      </PopoverContent>
-    </Popover>
+    <span className={stageOf(middle)}>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" disabled={disabled} aria-label="Add a player" tabIndex={tabbable ? undefined : -1} className="group/slot block w-full rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-default">
+            <FreePlace />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent aria-label="Add a player" align="center" className="w-80 gap-0 rounded-2xl p-3">
+          {picker}
+        </PopoverContent>
+      </Popover>
+    </span>
   )
 }
 
-/** One column for each seat of the largest table (`SLOT_COLUMNS`): the row never wraps, whatever the width of its column. */
+/** One column for each seat of the largest table (`SLOT_COLUMNS`), the middle one half as wide again as the others: the row never wraps, whatever the width of its column. */
 function PlayerSlots({ players, size, picker, menu, disabled = false, className, ...props }: PlayerSlotsProps) {
   const cells = layoutRow(players, size)
   // The free places all open the same panel, so only the first of them is a stop for the keyboard's Tab, as the free seats of a table are
   const firstFree = cells.findIndex((cell) => cell !== null && cell.person === null)
   return (
     <div data-slot="player-slots-frame" className="@container/slots flex w-full justify-center">
-      <ul data-slot="player-slots" aria-label="Players" data-columns={SLOT_COLUMNS} className={cn("grid w-full max-w-2xl grid-cols-9 items-start gap-x-1.5 @md/slots:gap-x-3", className)} {...props}>
+      <ul
+        data-slot="player-slots"
+        aria-label="Players"
+        data-columns={SLOT_COLUMNS}
+        className={cn("grid w-full max-w-4xl grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.5fr)_repeat(4,minmax(0,1fr))] items-start gap-x-1.5 @md/slots:gap-x-3", className)}
+        {...props}
+      >
         {cells.map((cell, column) => (
           <li key={column} data-slot="player-slot" data-free={cell && cell.person === null ? "" : undefined} aria-hidden={cell ? undefined : "true"} className="flex min-w-0 flex-col items-center gap-1.5">
-            {cell && (cell.person ? <Person player={cell.person} menu={menu} disabled={disabled} /> : <Free picker={picker} disabled={disabled} tabbable={column === firstFree} />)}
+            {cell &&
+              (cell.person ? (
+                <Person player={cell.person} menu={menu} disabled={disabled} middle={column === SLOT_MIDDLE} />
+              ) : (
+                <Free picker={picker} disabled={disabled} tabbable={column === firstFree} middle={column === SLOT_MIDDLE} />
+              ))}
           </li>
         ))}
       </ul>

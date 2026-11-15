@@ -73,8 +73,23 @@ describe("the row of players", () => {
   it("has nine columns on one line, whatever the places it holds", () => {
     const html = row()
     expect(html).toContain('data-columns="9"')
-    expect(html).toContain("grid-cols-9")
     expect(cellsOf(html)).toHaveLength(9)
+  })
+
+  it("makes the middle column half as wide again as the others, so that the visitor's picture is the largest", () => {
+    const html = row()
+    expect(html).toContain("grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.5fr)_repeat(4,minmax(0,1fr))]")
+    expect(html).toContain("max-w-4xl")
+  })
+
+  it("lets the pictures be as large as their column, with no cap, and levels them all with the middle one", () => {
+    const cells = cellsOf(row({ players: [you, ann], size: 5 }))
+    expect(row()).not.toContain("max-w-16")
+    // The middle place stands in a square box, the others in a box as tall as the middle one is wide, their picture centred in it
+    expect(cells[4]).toContain("aspect-square")
+    expect(cells[5]).toContain("aspect-2/3")
+    expect(cells[3]).toContain("aspect-2/3")
+    expect(cells[5]).toContain("items-center justify-center")
   })
 
   it("puts the visitor in the middle column and their name 'You' under their picture", () => {
