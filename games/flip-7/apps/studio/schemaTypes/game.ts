@@ -13,6 +13,8 @@ export const game = defineType({
   ],
   fields: [
     defineField({ name: "mat", title: "Game mat", type: "image", group: "board" }),
+    defineField({ name: "bust", title: "Bust sticker", type: "image", group: "board" }),
+    defineField({ name: "bonus", title: "Flip 7 bonus badge (+15)", type: "image", group: "board" }),
     defineField({ name: "cardBack", title: "Card back", type: "image", group: "backs" }),
     defineField({ name: "boxFront", title: "Box (front)", type: "image", group: "box" }),
     defineField({ name: "boxBack", title: "Box (back)", type: "image", group: "box" }),

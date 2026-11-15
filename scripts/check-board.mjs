@@ -31,7 +31,7 @@ a reload in the middle of a game, the normal start and a player who is away. Wri
   --out <dir>              where the sheets and the report go (default: a folder of the system's temporary files; keep it out of the repo)
   --reduced-motion         the visitor asks for less motion
   --keep-tables            leave the tables as they are (default: the guests leave, which deletes them)
-  --port 3100              the dev server's port (the pictures of the game load only from http://localhost:3100)
+  --port 3100              the dev server's port (the pictures of the game load only from http://localhost:3100; on another port the tool fetches them itself, as that origin)
   --absent-seconds 85      how long the others are away in the absent check (the platform counts a seat present for 75 s)
 
 Needs: \`pnpm dev <slug>\` running, Chromium in Playwright's cache (\`npx playwright install chromium\`), ffmpeg (\`brew install ffmpeg\`). What is the game's own is in games/<slug>/check-board.config.mjs.`

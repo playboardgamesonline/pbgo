@@ -3,24 +3,34 @@
 import type { Face, PlayerView, PublicSeat } from "@flip-7/engine"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { FloorButton, grainTexture, onTable, Pile, pile, PlayerSeat, Table, TableText, useSettings, Zone, type ZoneCard } from "@pbgo/table"
+import { type CameraSettings, FloorButton, grainTexture, onTable, Pile, pile, PlayerSeat, standingDistance, Table, TableText, useSettings, useViewport, type Viewport, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useEffect, useMemo, useState } from "react"
 import { AdditiveBlending } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
 import { FLOOR_TONES } from "../../lib/floor-tones"
+import { madeFlip7 } from "../../lib/flip7-line"
 import { fill, type Vocabulary } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
 import { GLOWS } from "./glows"
-import { CARD, dealtFrom, fitPrompt, floorPlan, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, plateAt, seatSpots, zones } from "./layout"
+import { CARD, dealtFrom, fitPrompt, floorPlan, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, plateAt, seatSpots, stickerPlaces, zones } from "./layout"
 import { PACE_FIELDS, PACE_SETTINGS } from "./pacing"
+import { Sticker } from "./stickers"
 import { CARD_SIZE, matTexture, useFaces } from "./textures"
-import { useViewport } from "./viewport"
 
 /** The pool of light of the mat: how far across it spreads, in world units. Past it the table is the plain colour it fades into. */
 const MAT_SIZE = 44
 
-/** How many world units one repeat of the table's grain covers */
-const GRAIN_TILE = 2
+/** How wide a texel of the felt's grain is on the screen, in pixels at the point the camera looks at: the grain is as fine in a big window as in a small one, instead of growing with the table */
+const GRAIN_TEXEL = 0.85
+
+/** Pixels across the picture of the grain (the default of `grainTexture`) */
+const GRAIN_SIZE = 256
+
+/** How many world units one repeat of the table's grain covers, for a camera in a window: the size of the picture in texels, each as wide on the screen as `GRAIN_TEXEL` says */
+function grainTile(camera: CameraSettings, viewport: Viewport): number {
+  const unit = viewport.height / 2 / (standingDistance(camera, viewport) * Math.tan((camera.fov * Math.PI) / 360))
+  return (GRAIN_SIZE * GRAIN_TEXEL) / unit
+}
 
 /** The felt of the table: a grain painted in code (`grainTexture` of the kit, a 256-pixel tile) in the edge colour of the table, strong enough to be seen up close and quiet from the camera's distance, so that cards and plates keep their contrast */
 function useGrain(base: string) {
@@ -136,6 +146,10 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         const out = seat.status === "busted"
         const spot = spots.get(player.id)!
         const plate = plateAt(spot, line)
+        // The BUST! stamp and the "+15 point bonus" badge lie on the table when the table says so, that is once the move has played out (`said`), and stay until the next round. A stamp is drawn only if the game document has its picture
+        const { bust, bonus } = faces.stickers
+        const places = stickerPlaces(line, bust?.aspect ?? 1.8, bonus?.aspect ?? 1.65)
+        const bonusEarned = seat.status === "stayed" && madeFlip7(player.cards)
         return (
           <group key={player.id}>
             {/* The plate stands beyond its line, turned the way its text reads (never upside down): the seat is drawn in its own frame, with its centre at the plate's */}
@@ -165,6 +179,8 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
                 onPress={() => onTarget(player.id)}
               />
             )}
+            {!held && out && bust && <Sticker picture={bust} {...places.bust} />}
+            {!held && bonusEarned && bonus && <Sticker picture={bonus} {...places.bonus} />}
           </group>
         )
       })}
@@ -243,7 +259,7 @@ export function Scene(props: SceneProps) {
   // The endless table beyond the mat is the same felt, in the edge colour, and fades into it with distance
   const felt = useGrain(theme.surfaceDark)
   return (
-    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, map: felt, tile: GRAIN_TILE }} held={props.held} onLoaded={props.onLoaded}>
+    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, map: felt, tile: grainTile(camera, viewport) }} held={props.held} onLoaded={props.onLoaded}>
       <Mat inner={theme.surface} outer={theme.surfaceDark} />
       <World {...props} />
     </Table>

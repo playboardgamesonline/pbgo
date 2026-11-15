@@ -361,10 +361,10 @@ describe("the art slots", () => {
   const faces = ART_SLOTS.filter(isFace)
   const docOf = (slot: (typeof ART_SLOTS)[number]) => docs().find((candidate) => candidate._id === slot.docId) as Doc
 
-  it("are 27: one per card (22), the card back, the box (front and back), the mat and the logo", () => {
-    expect(ART_SLOTS).toHaveLength(27)
+  it("are 29: one per card (22), the card back, the bust sticker and the bonus badge, the box (front and back), the mat and the logo", () => {
+    expect(ART_SLOTS).toHaveLength(29)
     expect(faces).toHaveLength(22)
-    expect(ART_SLOTS.filter((slot) => slot.docId === GAME_ID).map((slot) => slot.name)).toEqual(["card-back", "box-front", "box-back", "mat"])
+    expect(ART_SLOTS.filter((slot) => slot.docId === GAME_ID).map((slot) => slot.name)).toEqual(["card-back", "bust", "bonus", "box-front", "box-back", "mat"])
     expect(ART_SLOTS.filter((slot) => slot.docId === SETTINGS_ID).map((slot) => slot.name)).toEqual(["logo"])
   })
 
@@ -456,6 +456,8 @@ describe("the art slots", () => {
 
     it("the images of the game singleton and the shared logo of the settings", () => {
       expect(where("card-back")).toBe("game:$.cardBack")
+      expect(where("bust")).toBe("game:$.bust")
+      expect(where("bonus")).toBe("game:$.bonus")
       expect(where("box-front")).toBe("game:$.boxFront")
       expect(where("box-back")).toBe("game:$.boxBack")
       expect(where("mat")).toBe("game:$.mat")
