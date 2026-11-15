@@ -45,7 +45,7 @@ Each part is the component of the package as the page of its own shows it, given
 | Sheet | Switch it on and the camera backs off to show a sheet of twenty-four numbered boxes on the left of the table: pick a tick, a cross or a circle, press a box to write it and press it again to take it off | [Sheets](02-components/23-sheets.md) |
 | Tiles | Switch it on and the camera backs off to show a small table of tiles at the far right: press the tile in hand to turn it, press a ringed cell to lay it where it fits, or let the button lay it, and the closed roads and cities are counted | [Tiles](02-components/24-tiles.md) |
 | Seats | Seat two to eight players round the table (`seats` of the kit), the viewer at the bottom, each plate (avatar, name, points and status, a ★ and a count in its `trailing` slot) turned to face its player, the crown on the turn, the cards the others hold face down in front of them (two or three are drawn, the rest is a count). The plate does not react to the pointer, as in a game: pick a player from the scoreboard list |
-| Scoreboard | The players' list at the top right (the look of `TablePlayers`, drawn from the playground's state since `TablePlayers` reads a game), the points under each plate, the round and a ticker of the log | [Score](02-components/09-score.md) |
+| Scoreboard | The players' list at the top right (a look-alike of `TablePlayers`, drawn from the playground's state since `TablePlayers` reads a game), the points under each plate, the round and a ticker of the log | [Score](02-components/09-score.md) |
 | Floor buttons | Hit, Stay and Deal beside the draw pile and, as in Flip 7, one zone for each player that contains the plate and its cards and gives it a card; the rim lifts under the pointer or the keyboard. Flip 7's tones | [Floor buttons](02-components/25-floor-buttons.md) | [Seats](02-components/03-seats.md) |
 | Camera | Move it back or forward, look from above | [Camera](02-components/02-camera.md) |
 
@@ -63,6 +63,6 @@ The Play tab and the keys trigger the motion of the table's blocks: a card dealt
 
 ## Left out
 
-- The platform's `TablePlayers` and ticker read a running game (`useGame`), so the scoreboard is a look-alike made from the same tokens and `SeatLabel`.
+- Core's `TablePlayers` and ticker read a running game (`useGame`), so the scoreboard is a look-alike drawn in the hub's own look, with `SeatLabel`.
 - The camera does not frame the seats by their turned boxes as Flip 7's board does (`tableBoxes`): the playground picks a distance for each number of players (`ringZoom`).
 - Hex and ring boards have no rules of the board ([Rules of the board](02-components/26-rules-of-the-board.md)): the hop walks to the next free neighbour.
