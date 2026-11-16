@@ -31,8 +31,8 @@ The job is a draft, the link to its page, the owner's yes and the publication, i
 | `baseGame.slug` | `baseGame` | a reference to `game-<slug>`: required for an expansion, written for a reimplementation when the file has one |
 | `bgg.id` | `bggId` | |
 | `facts.playersMin`, `playersMax`, `duration`, `minAge`, `complexity` | the same fields | `null` is not written. An empty maximum is "or more" on the hub: say it at the gate. A `minAge` of 16 or more is not written either: it makes the game one for adults, which the owner decides (`docs/accounts.md`, "The age check") |
-| `bgg.year`, else `edition.year` | `releaseDate` | `YYYY-01-01`, or `YYYY-MM-01` when an official page gives the month: the hub shows the year |
-| `edition.publisher` | `publishers` | a `publisher` document (step 3) |
+| `bgg.year`, else `edition.year` | `releaseDate` | `YYYY-01-01`, or `YYYY-MM-01` when an official page gives the month: the hub shows the year. Both years `null` (a game with no edition, like a traditional one): nothing is written, and `Left empty` of the report says that the date is empty for that reason |
+| `edition.publisher` | `publishers` | a `publisher` document (step 3). `null` (a game with no publisher): no document and nothing in `publishers`, and `Left empty` says that the credits have no publisher |
 | `edition.rules` | `rules` | the row `en`, when its `language` is `en`. Another language is not written (the Studio refuses a language that English does not have): it goes in the report |
 | `notes`, `sources` | nothing | into the report |
 | the rest (`suggestion`, `existing`, `bgg.rank`, `edition.confidence`…) | nothing | `existing` is a snapshot of the published catalog, so step 2 reads it again, drafts included. A `suggestion` still set was not taken by the owner: ignore it and say so |
