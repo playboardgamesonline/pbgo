@@ -91,7 +91,7 @@ type ProfileSectionsProps = {
 }
 
 /**
- * What a profile says of a member's games, the same on their own page and on anybody's: the games they play the most, their figures in two blocks (the time they played with the games, their win rate with their wins), their friends (their own page only), games with rank and record, and the latest games with their opponents (each opponent with an account links to their profile). The games are the recorded ones (PLT-13). When the member hides their games, another visitor sees only a line that says so. The member sees everything, with a note that the others do not.
+ * What a profile says of a member's games, the same on their own page and on anybody's: the games they play the most, their figures in two blocks (the time they played with the games, their win rate with their wins), their friends (their own page only), a table of the games with rank and record (with no title on the page), and the latest games with their opponents (each opponent with an account links to their profile). The games are the recorded ones (PLT-13). When the member hides their games, another visitor sees only a line that says so. The member sees everything, with a note that the others do not.
  */
 export function ProfileSections({ games, own, hideHistory, friends, recent, allGamesHref, timeFormat }: ProfileSectionsProps) {
   if (games === null) {
@@ -142,8 +142,9 @@ export function ProfileSections({ games, own, hideHistory, friends, recent, allG
       {friends && <ProfileFriends friends={friends} />}
 
       <section aria-labelledby="per-game">
-        <h2 id="per-game" className="mb-4 font-heading text-2xl">
-          Board games
+        {/* No title on the page: its columns say what the table is, and the heading of the games played the most is the only one that shows. This one is for screen readers */}
+        <h2 id="per-game" className="sr-only">
+          Stats by game
         </h2>
         {perGame.length > 0 ? (
           <div className="overflow-hidden rounded-2xl border">
