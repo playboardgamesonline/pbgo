@@ -108,7 +108,8 @@ export function LocationField({
 
   const here = city !== null ? cityText(city) : country !== null ? countryName(country) : undefined
   const value = city !== null ? `city|${city.country}|${city.name}|` : country !== null ? countryKey(country) : null
-  const countryOptions = (list: readonly { code: string; name: string }[]) => list.map((entry) => ({ value: countryKey(entry.code), label: entry.name, description: "Country" }))
+  // Among cities a country says it is one; in a list of countries alone there is nothing to say
+  const countryOptions = (list: readonly { code: string; name: string }[], among: boolean) => list.map((entry) => ({ value: countryKey(entry.code), label: entry.name, ...(among ? { description: "Country" } : {}) }))
 
   function pick(next: string | null) {
     if (next === null) return onChange({ country: null, city: null })
@@ -124,7 +125,7 @@ export function LocationField({
   const common = { id, className: "ph-mask", selectedLabel: here, value, onValueChange: pick, placeholder: "Not set", clearLabel: "Clear", disabled, "aria-label": "Location" }
 
   // Without the search of a city the field is a search among the countries, which the list filters itself
-  if (!cities) return <SearchSelect {...common} options={countryOptions(countries)} searchPlaceholder="Search countries..." empty="No country matches." />
+  if (!cities) return <SearchSelect {...common} options={countryOptions(countries, false)} searchPlaceholder="Search countries..." empty="No country matches." />
 
   const matching = query.trim() === "" ? [] : countries.filter((entry) => optionMatches(entry.name, query)).slice(0, COUNTRIES_SHOWN)
   return (
@@ -132,7 +133,7 @@ export function LocationField({
       <SearchSelect
         {...common}
         options={[
-          ...countryOptions(matching),
+          ...countryOptions(matching, true),
           ...results.map((found) => ({ value: cityKey(found), label: found.name, description: [found.region, countryName(found.country)].filter(Boolean).join(", ") })),
         ]}
         onQueryChange={search}

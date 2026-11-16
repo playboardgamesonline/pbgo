@@ -31,6 +31,8 @@ const COLUMNS = "user_id, nickname, tag, avatar_url, hide_history, created_at"
 
 // What a member says of themselves is read apart from the identity: the seats, the leaderboards and the histories read the identity of a hundred members at a time and never need it, and a database that has not got migration 0018 yet still answers them
 const DETAIL_COLUMNS = "pronouns, country, favorite_games, bio, city_name, city_country"
+// The languages a member speaks (migration 0029) are read with them, and without them where that migration is not applied yet: the rest of what a member says of themselves is drawn as ever
+const LANGUAGE_COLUMN = "languages"
 
 /** A profile of a member, as a handle names it. */
 export const handleOf = (profile: Pick<ProfileRecord, "nickname" | "tag">): Handle => ({ nickname: profile.nickname, tag: profile.tag })
@@ -72,11 +74,14 @@ export async function readProfileByHandle(handle: Handle): Promise<ProfileWithDe
 }
 
 /**
- * What one account says of itself on its profile: pronouns, country, city, favourite games, bio. It says nothing for an account that has no profile, for the demo account (which is in no database) and where migration 0018 is not applied. Throws what else the database says.
+ * What one account says of itself on its profile: pronouns, country, city, favourite games, bio, languages. It says nothing for an account that has no profile, for the demo account (which is in no database) and where migration 0018 is not applied. Throws what else the database says.
  */
 export async function readProfileDetails(userId: string): Promise<ProfileDetails> {
   if (!USER_ID.test(userId)) return noProfileDetails()
-  const { data, error } = await supabaseAdmin().from("profiles").select(DETAIL_COLUMNS).eq("user_id", userId).maybeSingle()
+  const read = (columns: string) => supabaseAdmin().from("profiles").select(columns).eq("user_id", userId).maybeSingle()
+  let { data, error } = await read(`${DETAIL_COLUMNS}, ${LANGUAGE_COLUMN}`)
+  // Where migration 0029 is not applied yet its column is not there: the rest of what the member says of themselves is read without it
+  if (error && isMissingColumn(error)) ({ data, error } = await read(DETAIL_COLUMNS))
   if (error) {
     if (notApplied(error) || isMissingColumn(error)) return noProfileDetails()
     throw error
@@ -146,7 +151,7 @@ export async function ensureProfile(account: Pick<Account, "id" | "nickname" | "
 export type ProfileChange = "ok" | "taken" | "invalid" | "missing"
 
 /** The name of each field of an edit in the object that `set_profile` takes (the columns of the table). */
-const COLUMN_OF: Readonly<Record<keyof ProfileEdit, string>> = { nickname: "nickname", tag: "tag", pronouns: "pronouns", country: "country", city: "city", favoriteGames: "favorite_games", bio: "bio" }
+const COLUMN_OF: Readonly<Record<keyof ProfileEdit, string>> = { nickname: "nickname", tag: "tag", pronouns: "pronouns", country: "country", city: "city", favoriteGames: "favorite_games", bio: "bio", languages: "languages" }
 
 /**
  * Changes what a member's profile says (`set_profile`, the only writer): the fields of `edit` that are there, all or none, in one statement, so that the database decides when two members ask for the same nickname and tag at once. A field that is not there stays as it is. The
