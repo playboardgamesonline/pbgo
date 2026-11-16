@@ -81,6 +81,21 @@ export function perGame(games: readonly PlayedGame[]): GameTotals[] {
   return [...rows.values()].sort(mostPlayed)
 }
 
+/** The slugs of the games a visitor has finished, each once, the one they played last first: what `mostRecent` puts a row of games in. A game in progress is not one they have played yet. */
+export function recentOf(games: readonly PlayedGame[]): string[] {
+  const latest = finishedOf(games).sort((a, b) => Date.parse(b.playedAt) - Date.parse(a.playedAt))
+  return [...new Set(latest.map((game) => game.slug))]
+}
+
+/** The rows of some games with the one played last first: `recent` lists the slugs in that order (`recentOf`, or what the database says), and a game it does not list comes after the others, in the order it had. */
+export function mostRecent<Row extends { slug: string }>(rows: readonly Row[], recent: readonly string[]): Row[] {
+  const place = (slug: string): number => {
+    const at = recent.indexOf(slug)
+    return at === -1 ? recent.length : at
+  }
+  return [...rows].sort((a, b) => place(a.slug) - place(b.slug))
+}
+
 /** What a visitor has done in some games, summed: the games that are over, the wins, the games that counted for their rank, the time played (in seconds) and the share of games won. */
 export type GameFigures = { played: number; wins: number; rated: number; seconds: number; winRate: number | null }
 

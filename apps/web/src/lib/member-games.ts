@@ -1,10 +1,10 @@
 import "server-only"
-import { perGame, statsOf, type Account } from "@pbgo/accounts"
+import { perGame, recentOf, statsOf, type Account } from "@pbgo/accounts"
 import { isDemoAccount } from "@pbgo/accounts/demo"
 import { expansionsOf } from "@pbgo/catalog"
 import { getCatalog } from "@pbgo/catalog/server"
 import { memberGamesOf, NO_GAMES, type MemberGames, type MemberRank } from "@pbgo/core/lib/member-games"
-import { readMemberGames, readMemberTotals } from "@pbgo/core/server/standings"
+import { readMemberGameOrder, readMemberGames, readMemberTotals } from "@pbgo/core/server/standings"
 import { DEMO_GAMES } from "./demo-data"
 
 export type { MemberGames, MemberRank }
@@ -39,5 +39,19 @@ export async function memberGames(account: Pick<Account, "id">, limit: number, g
   } catch (error) {
     console.error("The games of a member could not be read", error)
     return NO_GAMES
+  }
+}
+
+/**
+ * The games this member finished, by slug, the one they played last first: the order of the career's row of games, which does not change with the game the career is narrowed to (`readMemberGameOrder`). The development account's come from its made-up games, and a database
+ * that cannot be read answers none, so that the row keeps the order of their figures (`mostRecent`).
+ */
+export async function recentGames(account: Pick<Account, "id">): Promise<readonly string[]> {
+  if (isDemoAccount(account)) return recentOf(DEMO_GAMES)
+  try {
+    return await readMemberGameOrder(account.id)
+  } catch (error) {
+    console.error("The order of the games of a member could not be read", error)
+    return []
   }
 }
