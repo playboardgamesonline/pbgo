@@ -7,7 +7,6 @@ import { Avatar, AvatarCount, AvatarFallback, AvatarImage } from "@pbgo/ui/platf
 import { ChatWindow } from "@pbgo/ui/platform/chat-window"
 import { FriendsBar, FriendsBarList } from "@pbgo/ui/platform/friends-bar"
 import { PresenceDot } from "@pbgo/ui/platform/friends-panel"
-import { GroupPane } from "@pbgo/ui/platform/group-panel"
 import { InvitationsCard } from "@pbgo/ui/platform/invitations-card"
 import { DropdownMenuItem } from "@pbgo/ui/platform/dropdown-menu"
 import { FriendPicker, InviteFriendList } from "@pbgo/ui/platform/invite-friend"
@@ -15,8 +14,8 @@ import { PlayerSlots, type SlotPlayer } from "@pbgo/ui/platform/player-slots"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { SocialDock, SocialDockIdentity } from "@pbgo/ui/platform/social-dock"
 import { SocialPanel, SocialPanelToggle, type SocialTab } from "@pbgo/ui/platform/social-panel"
+import { placesFor } from "@pbgo/ui/play-zone"
 import { gamesOf, type Friend } from "@pbgo/ui/friends"
-import type { Group, GroupMember } from "@pbgo/ui/groups"
 import type { Conversation, FriendRequest, Invitation, Message } from "@pbgo/ui/social"
 
 /** The picture of a game on the hub: its icon in the catalog (an initial on a tile where there is none). */
@@ -50,48 +49,6 @@ const FRIENDS: readonly Friend[] = [
   { id: "8", nickname: "Inès", tag: "3318", avatarUrl: DEMO_AVATARS.ines, status: "offline", activity: "Yesterday" },
   { id: "9", nickname: "Sam", tag: "9042", avatarUrl: DEMO_AVATARS.sam, status: "offline", activity: "3 days ago" },
 ]
-
-/** The visitor, and the members of their group: friends of the visitor in it, and a member who is nobody's friend of theirs (a group may hold players who only know the one who invited them). */
-const YOU: GroupMember = { id: "me", nickname: DEMO_ACCOUNT.nickname, tag: "0001", avatarUrl: DEMO_ACCOUNT.avatarUrl, status: "online", leader: false, you: true }
-const memberOf = (friend: Friend, rest: Partial<GroupMember> = {}): GroupMember => ({
-  id: friend.id,
-  nickname: friend.nickname,
-  tag: friend.tag,
-  avatarUrl: friend.avatarUrl,
-  status: friend.status,
-  ...(friend.game ? { game: friend.game } : {}),
-  ...(friend.activity ? { activity: friend.activity } : {}),
-  leader: false,
-  you: false,
-  ...rest,
-})
-const [MARLY_F, HERVE_F, ZOE_F, TOM_F, LINA_F, JADE_F, MAX_F] = FRIENDS as [Friend, Friend, Friend, Friend, Friend, Friend, Friend]
-const NOLAN: GroupMember = { id: "n1", nickname: "Nolan", tag: "6150", avatarUrl: DEMO_AVATARS.nolan, status: "offline", leader: false, you: false }
-
-/** What the group tab shows, in its four states: the visitor leads (the menus of the members are there), the visitor is a member, the group has all its members, and no group. */
-export type GroupState = "leader" | "member" | "full" | "none"
-
-const GROUPS: Record<GroupState, Group | null> = {
-  leader: { members: [{ ...YOU, leader: true }, memberOf(ZOE_F), memberOf(TOM_F), NOLAN], max: 8 },
-  member: { members: [YOU, memberOf(ZOE_F, { leader: true }), memberOf(TOM_F)], max: 8 },
-  full: {
-    members: [{ ...YOU, leader: true }, memberOf(ZOE_F), memberOf(TOM_F), memberOf(MARLY_F), memberOf(HERVE_F), memberOf(LINA_F), memberOf(JADE_F), memberOf(MAX_F)],
-    max: 8,
-  },
-  none: null,
-}
-
-/**
- * The group pane in a column as high as the panel gives it, in one of its four states. Its buttons do nothing here, and the menu of a member (under the pointer and the focus) is there for the leader.
- */
-export function GroupSpecimen({ state }: { state: GroupState }) {
-  const nothing = () => {}
-  return (
-    <div className="flex h-[34rem] w-full flex-col rounded-4xl border glass p-4 shadow-overlay">
-      <GroupPane group={GROUPS[state]} onInvite={nothing} onLeave={nothing} onKick={nothing} onMakeLeader={nothing} onViewProfile={nothing} />
-    </div>
-  )
-}
 
 /** The moment the invitations of the specimens count down from, so that the page says the same thing wherever and whenever it is drawn. */
 const NOW = Date.parse("2026-11-13T10:00:00.000Z")
@@ -173,12 +130,6 @@ export function DockSpecimen() {
             gameIcon={gameIcon}
             conversations={chats}
             requests={REQUESTS}
-            group={GROUPS.leader}
-            onInviteToGroup={nothing}
-            onLeaveGroup={nothing}
-            onKickMember={nothing}
-            onMakeLeader={nothing}
-            onViewMember={nothing}
             onOpenChat={nothing}
             onJoin={nothing}
             onInvite={nothing}
@@ -250,7 +201,7 @@ function conversations(): Conversation[] {
 }
 
 /**
- * The social panel in a column as high as a page gives it, on one of its tabs, with its friends, its group, its conversations and its requests, or with none. The buttons do
+ * The social panel in a column as high as a page gives it, on one of its tabs, with its friends, its conversations and its requests, or with none. The buttons do
  * nothing here, and the search and the tabs work.
  */
 export function SocialSpecimen({ tab = "friends", empty = false }: { tab?: SocialTab; empty?: boolean }) {
@@ -277,12 +228,6 @@ export function SocialSpecimen({ tab = "friends", empty = false }: { tab?: Socia
       gameIcon={gameIcon}
       conversations={empty ? [] : chats}
       requests={empty ? [] : REQUESTS}
-      group={empty ? GROUPS.none : GROUPS.leader}
-      onInviteToGroup={nothing}
-      onLeaveGroup={nothing}
-      onKickMember={nothing}
-      onMakeLeader={nothing}
-      onViewMember={nothing}
       onOpenChat={nothing}
       onJoin={nothing}
       onInvite={nothing}
@@ -362,9 +307,9 @@ export function FriendPickerSpecimen() {
 }
 
 /**
- * The row of players: the visitor in the middle, a member who leads, one who is playing, a friend who was invited and has not answered, and the places that nobody has, which open the panel of the friends. A press on a person opens their menu; nothing is sent.
+ * The row of players: the visitor first, a member who leads, one who is playing, a friend who was invited and has not answered, and the places that nobody has, which open the panel of the friends. A press on a person opens their menu; nothing is sent.
  */
-export function PlayerSlotsSpecimen({ size = 9, alone = false }: { size?: number; alone?: boolean }) {
+export function PlayerSlotsSpecimen({ alone = false }: { alone?: boolean }) {
   const players: SlotPlayer[] = [
     { id: "me", name: DEMO_ACCOUNT.nickname, avatarUrl: DEMO_ACCOUNT.avatarUrl, you: true },
     ...(alone
@@ -378,7 +323,7 @@ export function PlayerSlotsSpecimen({ size = 9, alone = false }: { size?: number
   return (
     <PlayerSlots
       players={players}
-      size={size}
+      size={placesFor(players.length)}
       picker={<FriendPicker friends={FRIENDS.filter((friend) => !friend.group)} limit={6} onInvite={() => true} link={{ onCopy: () => {} }} />}
       menu={(player) => (player.you || player.pending ? null : <DropdownMenuItem>View profile</DropdownMenuItem>)}
     />

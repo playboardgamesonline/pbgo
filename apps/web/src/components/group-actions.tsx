@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { handleText, profilePath, type Handle } from "@pbgo/accounts"
 import { gameRequest } from "@pbgo/core/lib/api"
@@ -12,12 +12,11 @@ import type { Friend } from "@pbgo/ui/friends"
 import type { GroupMember } from "@pbgo/ui/groups"
 import { Button } from "@pbgo/ui/platform/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@pbgo/ui/platform/dialog"
-import { InviteFriendDialog } from "@pbgo/ui/platform/invite-friend"
 import { toast } from "@pbgo/ui/platform/sonner"
 import { refreshSocial, useSocialState } from "@/lib/social-store"
 import { messageOf } from "@/lib/table-door"
 
-// What a member does with their group from the screens (PLT-23): invite a friend to it (a friend's row, the menu of the chat, the picker of the group tab), ask to join the group of a friend, leave, remove a member and hand the lead over (the leader's). Inviting and asking are
+// What a member does with their group from the screens (PLT-23): invite a friend to it (a friend's row, the menu of the chat, the panel of friends of the play zone), ask to join the group of a friend, leave, remove a member and hand the lead over (the leader's). Inviting and asking are
 // invitations (`POST /api/hub/invitations/send`, `kind` `group` and `join`: the one mechanism of the invitations to a table); the rest are `POST`s under `/api/hub/groups`. Each says what it did in a toast (the names in it are `ph-mask`) and reads the social state again either
 // way, so that every list on the page shows what the server says: the group comes with it. Removing a member asks first, in a window. The demo account of development is told it is done by the same routes and its group, which the browser makes up, does not change.
 // `useGroupNews` tells what changed in the group between two reads (somebody joined, somebody left, the group is over), since the others' changes are the only thing the member's own presses do not tell.
@@ -127,16 +126,15 @@ function ConfirmRemoveMember({ member, busy, onConfirm, onCancel }: { member: Gr
 }
 
 /**
- * What the group's screens do (the panel of the navbar, the chat's menu, the page of the friends): the handlers to give them, and the `dialogs` to render beside the panel, as `useFriendActions` does. `friends` are the member's friends, for the picker of the group tab (a friend in
- * a group is not listed: they are asked to let the member in, from their row; the friends already invited show as sent). `invite` and `askToJoin` are for a friend's row; `openInvite` opens the picker and `inviteFromPicker` is what a picker of one's own calls (the play zone's
- * panel of friends: it answers whether the invitation went, so that the row says "Invited"); `leave`, `kick` (it asks first), `makeLeader` and `viewProfile` are for the group tab and the play zone's row of players. A change that is on its way is not sent twice.
+ * What the group's screens do (the friends' panel of the navbar, the chat's menu, the home's play zone): the handlers to give them, and the `dialogs` to render beside the zone, as `useFriendActions` does. `invite` and `askToJoin` are for a friend's row; `inviteFromPicker` is what a picker of
+ * one's own calls (the play zone's panel of friends: it answers whether the invitation went, so that the row says "Invited"); `leave`, `kick` (it asks first), `makeLeader` and `viewProfile` are for the play zone's row of players, the only place a group is managed. A change that is on
+ * its way is not sent twice.
  */
-export function useGroupActions(friends: readonly Friend[]) {
+export function useGroupActions() {
   const router = useRouter()
   const running = useRef(new Set<string>())
   const [removing, setRemoving] = useState<GroupMember | null>(null)
   const [busy, setBusy] = useState(false)
-  const [picking, setPicking] = useState(false)
 
   /** Runs a change unless the same one is on its way. */
   const once = useCallback(async (key: string, run: () => Promise<boolean>): Promise<boolean> => {
@@ -189,26 +187,9 @@ export function useGroupActions(friends: readonly Friend[]) {
     [router],
   )
 
-  // The picker lists the friends who are in no group and shows the ones already invited as sent
-  const listed = useMemo(() => friends.filter((friend) => friend.group === undefined), [friends])
-  const invited = useMemo(() => new Set(friends.filter((friend) => friend.pending === "invited").map((friend) => friend.id)), [friends])
+  const dialogs = <ConfirmRemoveMember member={removing} busy={busy} onConfirm={confirmRemove} onCancel={() => setRemoving(null)} />
 
-  const dialogs = (
-    <>
-      <ConfirmRemoveMember member={removing} busy={busy} onConfirm={confirmRemove} onCancel={() => setRemoving(null)} />
-      <InviteFriendDialog
-        open={picking}
-        onOpenChange={setPicking}
-        friends={listed}
-        invited={invited}
-        onInvite={inviteFromPicker}
-        title="Invite to your group"
-        description="Friends who are online come first. One press sends the invitation to your group."
-      />
-    </>
-  )
-
-  return { invite, askToJoin, inviteFromPicker, leave, makeLeader, viewProfile, kick: (member: GroupMember) => setRemoving(member), openInvite: () => setPicking(true), dialogs }
+  return { invite, askToJoin, inviteFromPicker, leave, makeLeader, viewProfile, kick: (member: GroupMember) => setRemoving(member), dialogs }
 }
 
 /** The nicknames of a few members in a sentence: "Bob", "Bob and Cat", and a count for more. */

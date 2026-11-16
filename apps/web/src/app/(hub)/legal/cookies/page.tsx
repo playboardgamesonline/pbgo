@@ -114,7 +114,7 @@ export default function CookiePolicy() {
             },
             {
               name: "pbgo:queue",
-              text: "Session storage. The games you asked to look for a table of, whether you want a ranked or a normal one, how you want the tables of each game to be played (the speed and the expansions), since when, and the tables the search sat you at (the game, the table's code and how many are seated), so that reloading the page does not lose your search. It goes when you close the tab.",
+              text: "Session storage. The games you asked to look for a table of, whether you want a ranked or a normal one, how you want the tables of each game to be played (the speed, the expansions and the most players at a table), since when, and the tables the search sat you at (the game, the table's code and how many are seated), so that reloading the page does not lose your search. It goes when you close the tab.",
             },
           ]}
         />

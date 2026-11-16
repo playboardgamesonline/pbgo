@@ -165,10 +165,16 @@ describe("parseCriteria", () => {
     expect(parseCriteria({ pace: "none" })).toEqual({ pace: "none" })
     expect(parseCriteria({ expansions: [] })).toEqual({ expansions: [] })
     expect(parseCriteria({})).toEqual({})
+    expect(parseCriteria({ maxPlayers: 4 })).toEqual({ maxPlayers: 4 })
+    expect(parseCriteria({ pace: "fast", maxPlayers: 9 })).toEqual({ pace: "fast", maxPlayers: 9 })
   })
 
   it("leaves out a key that is not one of ours", () => {
     expect(parseCriteria({ pace: "slow", cheat: true })).toEqual({ pace: "slow" })
+  })
+
+  it("is nothing for a number of players that no table has: none, a fraction, over nine, or not a number", () => {
+    for (const maxPlayers of [0, -2, 2.5, 10, "3", null, Number.NaN, Number.POSITIVE_INFINITY]) expect(parseCriteria({ maxPlayers })).toBeNull()
   })
 
   it("is nothing for what is not criteria: another speed, a list that is not slugs, too many expansions", () => {
@@ -187,6 +193,8 @@ describe("parseCriteriaOf", () => {
 
   it("keeps what is asked of each game, and nothing for a game that asks for the usual speed and no expansion", () => {
     expect(parseCriteriaOf({ a: { pace: "fast" }, b: { pace: "normal", expansions: [] }, c: { expansions: ["x"] } }, ["a", "b", "c"])).toEqual({ a: { pace: "fast" }, c: { expansions: ["x"] } })
+    // The most players is kept whenever it is given: the page sends it only when it is under the game's most
+    expect(parseCriteriaOf({ a: { maxPlayers: 3 }, b: { pace: "normal" } }, ["a", "b"])).toEqual({ a: { maxPlayers: 3 } })
   })
 
   it("is nothing when it asks of a game that is not in the search, or when a game's criteria are not criteria", () => {

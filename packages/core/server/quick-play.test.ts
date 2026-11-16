@@ -1034,3 +1034,53 @@ describe("a search that asks for a speed and for expansions", () => {
     expect(parsePlayRequest({ games: ["delta"], mode: "normal", criteria: { delta: { pace: "async" } } })).toBeNull()
   })
 })
+
+describe("a search that accepts at most some players", () => {
+  const AT_MOST_TWO = { delta: { maxPlayers: 2 } }
+  const AT_MOST_THREE = { delta: { maxPlayers: 3 } }
+
+  it("opens a table set for no more seats than it accepts", async () => {
+    const { tables } = await search(member("Ann"), ["delta"], "normal", { criteria: AT_MOST_TWO })
+    expect(stored("delta", tables[0]!.code)!.settings).toMatchObject({ visibility: "public", seats: 2 })
+    expect(tables[0]).toMatchObject({ seats: 2, opened: true })
+  })
+
+  it("opens a table for the game's usual seats when it accepts more than that", async () => {
+    const { tables } = await search(member("Ann"), ["delta"], "normal", { criteria: { delta: { maxPlayers: 4 } } })
+    expect(stored("delta", tables[0]!.code)!.settings).toMatchObject({ seats: 3 })
+  })
+
+  it("sits at a table set for no more than that and passes the larger ones", async () => {
+    table("delta", "BIGGER", [member("Eve")], { settings: { ...PUBLIC, seats: 4 } })
+    table("delta", "SMALLR", [member("Fay")], { settings: { ...PUBLIC, seats: 2 } })
+    const { tables } = await search(member("Ann"), ["delta"], "normal", { criteria: AT_MOST_TWO })
+    expect(tables[0]).toMatchObject({ code: "SMALLR", opened: false, players: 2, seats: 2 })
+  })
+
+  it("takes a table that kept no seats for one of the game's most, and opens its own when that is more than it accepts", async () => {
+    table("delta", "UNSETT", [member("Eve")], { settings: PUBLIC })
+    const { tables } = await search(member("Ann"), ["delta"], "normal", { criteria: AT_MOST_THREE })
+    expect(tables[0]).toMatchObject({ opened: true, players: 1 })
+    expect(tablesOf("delta")).toHaveLength(2)
+  })
+
+  it("finds again the table it opened when it asks again, and the one another searcher who accepts the same opened", async () => {
+    const ann = member("Ann")
+    const first = (await search(ann, ["delta"], "normal", { criteria: AT_MOST_TWO })).tables[0]!
+    expect((await search(ann, ["delta"], "normal", { criteria: AT_MOST_TWO, poll: true })).tables[0]).toMatchObject({ code: first.code, opened: false })
+    const bob = (await search(member("Bob"), ["delta"], "normal", { criteria: AT_MOST_TWO })).tables[0]!
+    expect(bob).toMatchObject({ code: first.code, players: 2, opened: false })
+    expect(tablesOf("delta")).toHaveLength(1)
+  })
+
+  it("is asked in a ranked search too", async () => {
+    const { tables } = await search(member("Ann"), ["delta"], "ranked", { criteria: AT_MOST_TWO })
+    expect(stored("delta", tables[0]!.code)!.settings).toMatchObject({ ranked: true, seats: 2 })
+  })
+
+  it("is refused for a number of players that no table has", () => {
+    for (const maxPlayers of [0, 10, 2.5, "3", null, -1]) expect(parsePlayRequest({ games: ["delta"], mode: "normal", criteria: { delta: { maxPlayers } } })).toBeNull()
+    expect(parsePlayRequest({ games: ["delta"], mode: "normal", criteria: { delta: { maxPlayers: 3 } } })?.criteria).toEqual({ delta: { maxPlayers: 3 } })
+  })
+})
+

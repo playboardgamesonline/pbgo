@@ -51,12 +51,14 @@ function ButtonSizes() {
 <Button size="sm">Small</Button>
 <Button>Default</Button>
 <Button size="lg">Large</Button>
-<Button size="xl">Extra large</Button>`}>
+<Button size="xl">Extra large</Button>
+<Button size="2xl">Huge</Button>`}>
       <Button size="xs">Extra small</Button>
       <Button size="sm">Small</Button>
       <Button>Default</Button>
       <Button size="lg">Large</Button>
       <Button size="xl">Extra large</Button>
+      <Button size="2xl">Huge</Button>
     </Frame>
   )
 }
@@ -79,6 +81,9 @@ function ButtonIconButtons() {
         <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
       </Button>
       <Button variant="outline" size="icon-xl" aria-label="Search">
+        <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
+      </Button>
+      <Button variant="outline" size="icon-2xl" aria-label="Search">
         <HugeiconsIcon icon={Search01Icon} strokeWidth={2} />
       </Button>
     </Frame>

@@ -1,7 +1,7 @@
 // The live specimens of the social pages of the design docs (`docs/design`): one component for each piece the markdown shows, registered by name below. The words around them are the page's.
 
 import type { Specimens } from "@pbgo/docs/markdown"
-import { BarListSpecimen, BarSpecimen, ChatSpecimen, DockSpecimen, FriendPickerSpecimen, GroupSpecimen, InvitationsSpecimen, InvitePickerSpecimen, PlayerSlotsSpecimen, PresenceLegend, SocialSpecimen } from "./friends-specimen"
+import { BarListSpecimen, BarSpecimen, ChatSpecimen, DockSpecimen, FriendPickerSpecimen, InvitationsSpecimen, InvitePickerSpecimen, PlayerSlotsSpecimen, PresenceLegend, SocialSpecimen } from "./friends-specimen"
 import { Frame } from "./text"
 
 function PresenceDotsFrame() {
@@ -61,7 +61,7 @@ function SocialDockFrame() {
   }
   toggle={<SocialPanelToggle open={open} onClick={() => setOpen(!open)} />}
 >
-  <SocialPanel bare tab={tab} onTabChange={setTab} friends={friends} group={group} … />
+  <SocialPanel bare tab={tab} onTabChange={setTab} friends={friends} … />
 </SocialDock>`}>
       <DockSpecimen />
     </Frame>
@@ -76,15 +76,9 @@ function SocialTabsFrame() {
   gameIcon={(slug) => iconOf(slug)}
   conversations={conversations}
   requests={requests}
-  group={group} // null for no group; left out, the panel has three tabs
   invitations={invitations}
   onInvite={(friend) => inviteToGroup(friend)}
   onJoin={(friend) => askToJoin(friend)}
-  onInviteToGroup={openPicker}
-  onLeaveGroup={leave}
-  onKickMember={(member) => …}
-  onMakeLeader={(member) => …}
-  onViewMember={(member) => …}
   onAnswerInvitation={(invitation, answer) => …}
   onOpenChat={(friend) => …}
   onViewProfile={(friend) => …}
@@ -95,29 +89,9 @@ function SocialTabsFrame() {
   onShareLink={copyLink}
 />`}>
       <SocialSpecimen />
-      <SocialSpecimen tab="group" />
       <SocialSpecimen tab="messages" />
       <SocialSpecimen tab="add" />
       <SocialSpecimen empty />
-      <SocialSpecimen tab="group" empty />
-    </Frame>
-  )
-}
-
-function GroupPaneFrame() {
-  return (
-    <Frame className="grid gap-6 sm:grid-cols-2" code={`<GroupPane
-  group={group} // { members, max }, or null for no group
-  onInvite={openPicker}
-  onLeave={leave}
-  onKick={(member) => confirmRemoval(member)}
-  onMakeLeader={(member) => handOver(member)}
-  onViewProfile={(member) => openProfile(member)}
-/>`}>
-      <GroupSpecimen state="leader" />
-      <GroupSpecimen state="member" />
-      <GroupSpecimen state="full" />
-      <GroupSpecimen state="none" />
     </Frame>
   )
 }
@@ -191,10 +165,10 @@ function FriendPickerFrame() {
 function PlayerSlotsFrame() {
   return (
     <Frame code={`<PlayerSlots
-  // the visitor first: they have the middle place, the others fill outwards from it
+  // the visitor first: they have the first place, the others follow
   players={[{ id: "me", name: "Oré", you: true }, { id: "1", name: "Marly", leader: true, status: "playing" }]}
-  // how many places the row has, from 1 to nine; it is never fewer than the people in it
-  size={9}
+  // how many places the row has: five to begin with, one more as soon as every place is taken, nine at the most
+  size={placesFor(players.length)}
   // what a free place opens
   picker={<FriendPicker friends={friends} onInvite={invite} />}
   // what a press on a person opens
@@ -202,7 +176,7 @@ function PlayerSlotsFrame() {
 />`}>
       <div className="flex flex-col gap-10">
         <PlayerSlotsSpecimen />
-        <PlayerSlotsSpecimen size={4} alone />
+        <PlayerSlotsSpecimen alone />
       </div>
     </Frame>
   )
@@ -214,7 +188,6 @@ export const socialSpecimens: Specimens = {
   "friends-bar-panel": FriendsBarPanelFrame,
   "social-dock": SocialDockFrame,
   "social-tabs": SocialTabsFrame,
-  "group-pane": GroupPaneFrame,
   "invitations-card": InvitationsCardFrame,
   "chat-window": ChatWindowFrame,
   "invite-friend": InvitePickerFrame,
