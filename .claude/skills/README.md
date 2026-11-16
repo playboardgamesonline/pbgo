@@ -32,7 +32,7 @@ A game goes through six stages, and `pnpm check:game <slug>` says which it has r
 | The binding and the board | `engine-board` | `check:game --stage board` exits 0 | written |
 | Content and go-live | `game-go-live` | `check:game --stage content` exits 0, then the switches are turned | written |
 
-The terminal pipeline planned in PLT-97 will run these steps in this order, one gate each; the engine, the board, the content and go-live, the last four rows, are the steps its first version leaves out. A gap in the blocks of the kit or the table found while planning is not worked around in the game: it goes to the engine lane (`engine-rules` step 2), and the first game of a family tells the engine lane what was awkward ("Friction" in its plan).
+`pnpm add-game "<name>"` (PLT-97, `packages/pipeline`, `docs/scripts.md`) runs the first two rows in this order, one gate each; the other rows are the steps its next versions add (a skill, a `StepDefinition` in `packages/pipeline/src/steps.ts`, and the row above). A gap in the blocks of the kit or the table found while planning is not worked around in the game: it goes to the engine lane (`engine-rules` step 2), and the first game of a family tells the engine lane what was awkward ("Friction" in its plan).
 
 ## Skills
 
