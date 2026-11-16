@@ -4,9 +4,11 @@
 // Usage: pnpm check:game <slug>                  every stage, as a report (exit 0)
 //        pnpm check:game <slug> --stage engine   a gate: exit 1 when a check up to that stage fails, so "ready for the next step" is a command
 //        pnpm check:game --all                   every game of the registry: the last stage it passed, and what stops it
+//        pnpm check:game <slug> --json           one line of JSON (slug, missing, reached, failing): what `pnpm add-game` reads
 // A check is `ok`, `warn` (look at it: a convention or something only a person can judge) or `fail` (the stage is not done). What a machine cannot see, the words of the rules, the look of the board, a table played with two seats, is in the skills
 // (`.claude/skills/engine-rules`, `engine-board`, `game-go-live`); this script is the part of them that does not need a person. It reads files only: no network, no build.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
+import { homedir } from "node:os"
 import { dirname, join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -208,6 +210,21 @@ function check(slug) {
   return { slug, missing: false, results, reached }
 }
 
+/**
+ * A game with no folder yet may be on its way through `pnpm add-game "<Name>"`: its state is one JSON file outside the repo (`packages/pipeline`), read here and
+ * never copied, so that this report and the pipeline's cannot disagree. The stages above are this script's; the pipeline's steps come before them.
+ */
+function pipelineOf(slug) {
+  const assets = process.env.PBGO_ASSETS_DIR || join(homedir(), "Companies", "PBGO", "assets")
+  try {
+    const state = JSON.parse(readFileSync(join(assets, slug, "pipeline.json"), "utf8"))
+    const steps = Object.entries(state.steps ?? {}).map(([id, step]) => `${id} ${step?.status ?? "?"}`)
+    return { name: typeof state.name === "string" ? state.name : slug, steps: steps.join(" · ") || "no step yet" }
+  } catch {
+    return null
+  }
+}
+
 const MARK = { ok: "✓", warn: "•", fail: "✗" }
 const args = process.argv.slice(2)
 const stageAt = args.indexOf("--stage")
@@ -234,8 +251,19 @@ if (!slug) {
   process.exit(2)
 }
 const done = check(slug)
+if (args.includes("--json")) {
+  // For the programs that ask (`pnpm add-game`): where the game has got to, and the first check that stops it
+  const stop = done.results.find((result) => result.level === "fail")
+  console.log(JSON.stringify({ slug, missing: done.missing, reached: done.reached, failing: stop ? { stage: stop.stage, name: stop.name, message: stop.message } : null }))
+  process.exit(done.missing ? 2 : 0)
+}
 if (done.missing) {
-  console.error(`There is no game ${slug}: games/${slug} does not exist. \`pnpm add-game\` makes one.`)
+  const pipeline = pipelineOf(slug)
+  console.error(
+    pipeline
+      ? `There is no game ${slug} in the repo yet: games/${slug} does not exist. It is in the pipeline (${pipeline.steps}): \`pnpm add-game "${pipeline.name}"\` goes on, and \`pnpm add-game ${slug}\` makes its folder.`
+      : `There is no game ${slug}: games/${slug} does not exist. \`pnpm add-game "<Game Name>"\` starts one (its identity, its catalog entry), \`pnpm add-game ${slug}\` makes its folder.`,
+  )
   process.exit(2)
 }
 const upTo = gate ? STAGES.indexOf(gate) : STAGES.length - 1

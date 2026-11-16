@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
+# pnpm add-game "<Game Name>" [options]          the pipeline (packages/pipeline): the game's identity, then its entry in the platform's
+#                                                catalog, one headless Claude Code step at a time with a gate after each; --list, --check
 # pnpm add-game                                  guided: asks for the name and the rules PDF, then does all of it
 # pnpm add-game <slug> [options]                 e.g. pnpm add-game the-crew --name "The Crew" --rules the-crew.pdf
 # pnpm add-game --name "<Game Name>" [options]   the slug comes from the name (The Crew → the-crew)
+# A name (a capital letter or a space: it is not a slug) or a flag of the pipeline hands over to packages/pipeline; everything below is the other
+# behaviour, which runs as it always did, whatever the pipeline does:
 # A new game, from nothing to its Sanity Studio: new-game (games/<slug> from the template, registered in packages/games),
 # go-live (Sanity project, public dataset, CORS, write token, Studio deployed), the rules PDFs into the draft of the game's
 # Settings (the rulebook tool of @pbgo/content-kit), setup-env (pending Supabase migrations, apps/web/.env.local, variables
@@ -19,14 +23,23 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # --rules and of the answers are read from there
 USER_CWD="${INIT_CWD:-$PWD}"
 cd "$ROOT"
+
+# A game's name, or a flag of the pipeline, is the pipeline's (packages/pipeline decides, route.ts); when it cannot answer (no install, say) the script below runs
+# as it always did
+if [ "$(node --disable-warning=ExperimentalWarning "$ROOT/packages/pipeline/bin/route.ts" "$@" 2>/dev/null || true)" = pipeline ]; then
+  exec node --disable-warning=ExperimentalWarning "$ROOT/packages/pipeline/bin/add-game.ts" "$@"
+fi
+
 source scripts/lib.sh
 
 usage() {
   cat <<'EOF'
-Usage: pnpm add-game                                  guided: asks the name and the rules PDF, then does all of it
+Usage: pnpm add-game "<Game Name>" [options]          the pipeline: the game's identity, then its entry in the platform's catalog, a gate after each
+                                                      step (pnpm add-game --help lists its options, --list the games in it, --check the machine)
+       pnpm add-game                                  guided: asks the name and the rules PDF, then does all of it
        pnpm add-game <slug> [options]                 e.g. pnpm add-game the-crew --name "The Crew" --rules the-crew.pdf
        pnpm add-game --name "<Game Name>" [options]   the slug comes from the name (The Crew → the-crew)
-Options:
+The last three make the game's folder, its Sanity project and its Studio. Options:
   --name "<Game Name>"      what the hub, the Studio and the docs print (default: the slug, capitalised)
   --rules [<lang>=]<file>   a rulebook PDF, once per language (fr, en, es, de; no language = English)
   --yes, -y                 do not ask before creating anything

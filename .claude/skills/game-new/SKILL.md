@@ -5,6 +5,8 @@ description: "[GAME agent] Start a new game from nothing. Asks the owner the nam
 
 # Start a new game
 
+`pnpm add-game "<Name>"` (a name with a capital letter or a space: `packages/pipeline`) comes before this skill: it scouts the game and makes its entry in the platform's catalog, one gate after each. This skill starts at the game's folder, with the script's own forms (a slug, `--name`, `--rules`: the pipeline leaves them to the script).
+
 The script does the plumbing (`scripts/add-game.sh`), the agent asks the questions and shows what leaves the machine, and the fields of the Studio are proposed from the rulebook before anything is built. The job ends when the owner has the Studio open and the plan of its fields in front of them. The argument is the slug of a game `pnpm add-game` already created, or the name of a game to create; ask if there is none.
 
 The rules of the fields (kinds, categories, order, don'ts, guards) are not repeated here: `game-sanity-create` is their only copy.
