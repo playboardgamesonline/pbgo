@@ -1,0 +1,20 @@
+{
+  "name": "@pbgo/pipeline",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "`pnpm add-game \"<name>\"`: the terminal pipeline that takes a game from its name to the platform's catalog, one headless Claude Code step at a time (`claude -p`, the owner's login) with a gate in the terminal after each. `bin/` holds the entries Node runs (type stripping), `src/` the parts (the state of a game, the steps, the call and its stream, the gates, the policy that is the allowlist of a headless step, the Linear bookkeeping), `hook/` the PreToolUse hook that enforces the policy.",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pbgo/games": "workspace:*"
+  },
+  "devDependencies": {
+    "@pbgo/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
