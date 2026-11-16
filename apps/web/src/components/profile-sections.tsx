@@ -32,7 +32,7 @@ type ProfileSectionsProps = {
 }
 
 /**
- * What a profile says under its head, the same on their own page and on anybody's: in a card of its own the bio with the languages they speak under it, and in another, just at its right, the favourite games they picked, whose rank and record are one hover away; the figures in zones (the playtime with a podium of the games
+ * What a profile says under its head, the same on their own page and on anybody's: the bio in a card of its own with the languages they speak under it, and a card of the favourite games they picked just at its right, whose rank and record are one hover away; the figures in zones (the playtime with a podium of the games
  * they spent the most time at, the win rate with a podium of the games they win the most often and, on their own page, their friends); and the latest games with their opponents (each opponent with an account links to their profile). The games are the recorded ones (PLT-13). When the member
  * hides their games, another visitor sees the bio, the favourites with no card on them and a line that says so. The member sees everything, with a note that the others do not. A member who has played nothing has an empty state in place of the games.
  */
@@ -49,8 +49,8 @@ export async function ProfileSections({ details, games, own, hideHistory, friend
     // What they did at a game is their games': left out where the visitor may not see them
     return [{ slug, name: entry.game.name, picture: gameThumb(entry.game), record: games === null ? null : { played: row?.played ?? 0, wins: row?.wins ?? 0, rank: rankIn.get(slug) ?? null } }]
   })
-  // What the member says of themselves is two cards, each with its own fill: the bio with the languages they speak under it and, just at its right (under it below `lg`, where five tiles do not leave the bio its room), the favourite games they picked. The bio card keeps a reading width, so that
-  // the favourites stay next to it and not at the far end of the row
+  // What the member says of themselves: the bio in a card of its own with the languages they speak under it (each a chip with its own fill) and, just at its right (under it below `lg`, where five tiles do not leave the bio its room), a card of the favourite games they picked. The bio keeps a
+  // reading width, so that the favourites stay next to it and not at the far end of the row
   const about = (hasAbout(details) || favorites.length > 0) && (
     <div className="flex flex-col gap-4 lg:flex-row">
       <ProfileAbout details={details} className="lg:max-w-reading lg:flex-1" />

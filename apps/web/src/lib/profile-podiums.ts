@@ -6,11 +6,11 @@ import type { GameTotals } from "@pbgo/accounts"
 /** A game on a podium: which, and what put it there, written as the page shows it under its step. */
 export type PodiumGame = { slug: string; name: string; value: string }
 
-/** How many places a podium has. */
-export const PODIUM_PLACES = 3
+/** How many places a podium has: the first two. */
+export const PODIUM_PLACES = 2
 
 /**
- * The games they spent the most time at, the most first: more time, then more games played, then the name. A game with no time told (its games had no start) is not on it.
+ * The two games they spent the most time at, the most first: more time, then more games played, then the name. A game with no time told (its games had no start) is not on it.
  */
 export function playtimePodium(perGame: readonly GameTotals[]): PodiumGame[] {
   return perGame
@@ -21,7 +21,7 @@ export function playtimePodium(perGame: readonly GameTotals[]): PodiumGame[] {
 }
 
 /**
- * The games they win the most often, the best share first (the share of games won, not rounded), then the more played, then the name. A game they never won is not on it, and the value is the share in whole percent, as everywhere else on the profile.
+ * The two games they win the most often, the best share first (the share of games won, not rounded), then the more played, then the name. A game they never won is not on it, and the value is the share in whole percent, as everywhere else on the profile.
  */
 export function winRatePodium(perGame: readonly GameTotals[]): PodiumGame[] {
   return perGame

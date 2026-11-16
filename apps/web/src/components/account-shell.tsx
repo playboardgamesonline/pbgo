@@ -9,7 +9,7 @@ import { cn } from "@pbgo/ui/utils"
 export function AccountShell({ wide = false, children }: { wide?: boolean; children: ReactNode }) {
   return (
     <main className="pt-navbar">
-      <div className={cn("mx-auto w-full px-gutter pb-section", wide ? "max-w-7xl pt-8" : "max-w-6xl pt-section")}>{children}</div>
+      <div className={cn("mx-auto w-full px-gutter pb-section", wide ? "max-w-7xl pt-8" : "max-w-272 pt-section")}>{children}</div>
     </main>
   )
 }
