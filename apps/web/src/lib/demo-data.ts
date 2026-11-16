@@ -25,6 +25,9 @@ const SAM: Friend = { id: "f8", nickname: "Sam", tag: "9042", avatarUrl: DEMO_AV
 
 export const DEMO_FRIENDS: readonly Friend[] = [MARLY, HERVE, ZOE, TOM, LINA, JADE, MAX, INES, SAM]
 
+/** How many games each made-up friend finished, by nickname: what the Friends block of the demo account's profile lists beside them. */
+export const DEMO_FRIEND_GAMES: Readonly<Record<string, number>> = { Marly: 128, "Hervé": 96, "Zoé": 74, Tom: 51, Lina: 33, Jade: 20, Max: 12, "Inès": 7, Sam: 3 }
+
 /** The group of the demo account (PLT-23): the account leads it, with two of its friends. Made up like the rest: its buttons call the routes, which say they are done, and the group does not change. */
 export const DEMO_GROUP: Group = {
   max: MAX_GROUP_MEMBERS,

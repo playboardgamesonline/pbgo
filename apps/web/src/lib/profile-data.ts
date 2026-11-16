@@ -22,7 +22,7 @@ export type ProfileHead = {
   hideHistory: boolean
   /** What they say of themselves, to every visitor: pronouns, country, favourite games, bio. Empty fields are for the page to leave out. */
   details: ProfileDetails
-  /** Their level, from their experience (`profiles.xp`, 0 to begin with): a badge with the number to every visitor, the experience gauge to the member alone. */
+  /** Their level, from their experience (`profiles.xp`, 0 to begin with): a badge with the number, to every visitor. */
   level: Level
 }
 

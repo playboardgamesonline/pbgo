@@ -307,3 +307,35 @@ export async function readMemberTotals(userId: string): Promise<MemberGameTotals
     }
   })
 }
+
+/** How many rows a read of `player_stats` asks for at a time: the database answers 1,000 at most, and a player has a row for each game they played. */
+const STATS_PAGE = 1000
+/** How many players a read of `player_stats` names at a time, so that the address of the request stays short. */
+const STATS_PLAYERS = 100
+
+/**
+ * The games each of these players finished, over every game they played, ranked or not (`player_stats`), by the player's account id; a player with none is not in the map. The rows are read in pages and the players in groups, since a friend list holds a few hundred
+ * players and each has a row for every game: the totals are never cut short. Throws what the database says.
+ */
+export async function readGamesPlayed(userIds: readonly string[]): Promise<Map<string, number>> {
+  const ids = [...new Set(userIds.filter((id) => USER_ID.test(id)))]
+  const totals = new Map<string, number>()
+  const db = supabaseAdmin()
+  for (let first = 0; first < ids.length; first += STATS_PLAYERS) {
+    const group = ids.slice(first, first + STATS_PLAYERS)
+    for (let start = 0; ; start += STATS_PAGE) {
+      const { data, error } = await db
+        .from("player_stats")
+        .select("user_id, games_played")
+        .in("user_id", group)
+        .order("user_id")
+        .order("game")
+        .range(start, start + STATS_PAGE - 1)
+      if (error) throw error
+      const rows = (data ?? []) as Row[]
+      for (const row of rows) totals.set(String(row.user_id), (totals.get(String(row.user_id)) ?? 0) + count(row.games_played))
+      if (rows.length < STATS_PAGE) break
+    }
+  }
+  return totals
+}
