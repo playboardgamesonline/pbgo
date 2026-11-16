@@ -21,7 +21,7 @@ function ArticleCard({ article }: { article: HomeArticle }) {
   return (
     <Card size="sm">
       {article.picture && (
-        // eslint-disable-next-line @next/next/no-img-element
+        // eslint-disable-next-line @next/next/no-img-element -- the cover is a URL of the platform's image CDN, drawn as the game cards draw theirs
         <img src={article.picture} alt="" loading="lazy" decoding="async" className="aspect-video w-full object-cover" />
       )}
       <CardHeader>
