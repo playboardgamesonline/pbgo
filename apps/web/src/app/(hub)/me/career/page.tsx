@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Career" }
 const HISTORY_GAMES = 50
 
 /**
- * The member's career, with no head of its own: the history of the games they finished, the latest first, on the left, in a page wider than the other pages of an account (`AccountShell wide`), and on the right their ranks and their figures. A row of buttons over the history, one for each game they
+ * The member's career, under the title of the pages of the navbar's tabs (`AccountShell`'s `title`: Career is a tab of the bar): the history of the games they finished, the latest first, on the left, in a page wider than the other pages of an account (`AccountShell wide`), and on the right their ranks and their figures. A row of buttons over the history, one for each game they
  * finished (`GameFilter`), narrows the career to a game: `?game=<slug>` (the link of a game's page, "See history", lands on it), and the right side is then that game's rank, as the first card of its page says it, with its figures in a list under it; for every game it is the rank in each
  * game they rated, a row each, with their figures over all of them. With one game played there is nothing to narrow to, and the right side is that game's. Under `lg` the right side comes first, in a single column that is `grid-cols-1` (a track that may be narrower than what is in it), so that a long name beside a long rank cannot widen the page. The games are the recorded ones (PLT-13: `memberGames`): a game that is being played is a table,
  * which the home lists, and is not part of a career yet.
@@ -32,8 +32,7 @@ export default async function CareerPage({ searchParams }: { searchParams: Promi
   const selected = filter ?? (perGame.length === 1 ? (perGame[0]?.slug ?? null) : null)
 
   return (
-    <AccountShell wide>
-      <h1 className="sr-only">Career</h1>
+    <AccountShell wide title="Career">
       <div className="grid grid-cols-1 items-start gap-x-8 gap-y-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)] lg:grid-rows-[auto_1fr] lg:gap-y-0">
         {perGame.length > 1 && <GameFilter games={perGame.map(({ slug, name }) => ({ slug, name }))} selected={filter} className="lg:col-start-1 lg:row-start-1 lg:mb-6" />}
         <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">
