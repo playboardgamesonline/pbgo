@@ -5,13 +5,13 @@ import { initialsOf, profilePath } from "@pbgo/accounts"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@pbgo/ui/platform/dialog"
-import { StatBarItem, StatBarNote } from "@pbgo/ui/platform/stat-bar"
+import { StatBarItem, StatBarValue } from "@pbgo/ui/platform/stat-bar"
 import { cn } from "@pbgo/ui/utils"
 import type { ProfileFriend } from "@/lib/profile-friends"
 
 // The Friends zone of the member's own profile, the third of the row of figures: the friends as pictures with their names under them, centred, five at the most (the ones who played the most first), and a "See all" at the top of the zone that opens a window with every friend: their picture and name,
-// the games they finished at the right of the name and under it the place they came at on average and the share they won, the way a list of players with their figures is drawn. A friend leads to their profile. A friend who keeps their games private has dashes. A member with no friend has a line
-// that says where they will be. A server component: only the window is the client's, and it brings the list with it.
+// the games they finished at the right of the name and under it the place they came at on average and the share they won, the way a list of players with their figures is drawn. A friend leads to their profile. A friend who keeps their games private has dashes. A member with no friend has "None yet",
+// as a game's card of achievements does. A server component: only the window is the client's, and it brings the list with it.
 
 /** How many friends the zone shows before the window that lists them all: what a row of pictures of that size holds in the zone at its narrowest. */
 const SHOWN = 5
@@ -47,7 +47,7 @@ export function FriendsZone({ friends, className }: { friends: readonly ProfileF
   if (friends.length === 0) {
     return (
       <StatBarItem label="Friends" className={className}>
-        <StatBarNote>The friends you add are listed here, with the games they played.</StatBarNote>
+        <StatBarValue>None yet</StatBarValue>
       </StatBarItem>
     )
   }
