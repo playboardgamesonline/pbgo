@@ -92,7 +92,7 @@ function Leaderboard({ rows, you, size = rows.length, label = "Leaderboard", emp
     )
   }
   return (
-    <div data-slot="leaderboard" className={cn("@container flex flex-col overflow-hidden rounded-4xl bg-card py-2 text-card-foreground shadow-surface ring-1 ring-foreground/10", className)} {...props}>
+    <div data-slot="leaderboard" className={cn("@container flex flex-col overflow-hidden rounded-4xl bg-card py-2 text-card-foreground shadow-surface", className)} {...props}>
       {/* The borders are the cells' (`border-separate`): a collapsed border belongs to the whole table and would scroll away from a `sticky` cell */}
       <Table
         className="border-separate border-spacing-0 [&_td]:border-b [&_th]:border-b [&_tbody_tr:last-child>td]:border-b-0"

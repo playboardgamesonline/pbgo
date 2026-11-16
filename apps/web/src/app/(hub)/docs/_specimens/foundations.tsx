@@ -123,13 +123,17 @@ function Shadows() {
 function Rings() {
   return (
     <Frame>
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-3">
+        <div className="flex flex-col gap-2 rounded-4xl bg-card p-6">
+          <Code className="w-fit">bg-card</Code>
+          <p className="text-sm text-muted-foreground">A section of a page: a fill, no outline.</p>
+        </div>
         <div className="flex flex-col gap-2 rounded-4xl bg-card p-6 ring-1 ring-foreground/10">
           <Code className="w-fit">ring-1 ring-foreground/10</Code>
-          <p className="text-sm text-muted-foreground">Outline of a surface.</p>
+          <p className="text-sm text-muted-foreground">What floats over the page, or is a picture.</p>
         </div>
         <div className="flex flex-col gap-2 rounded-4xl border border-ring bg-card p-6 ring-3 ring-ring/30">
-          <Code className="w-fit">border-ring ring-3 ring-ring/30</Code>
+          <Code className="w-fit max-w-full break-all whitespace-normal">border-ring ring-3 ring-ring/30</Code>
           <p className="text-sm text-muted-foreground">Focus, shown here without focusing anything.</p>
         </div>
       </div>
