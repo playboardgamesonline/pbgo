@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { BIO_LINE_BREAKS_MAX, BIO_MAX, FAVORITES_MAX, PRONOUNS, bioCharactersLeft, checkBio, cityOfRequest, cityText, cleanBio, detailsOf, favoriteGamesOf, hasProfileDetails, isGameSlug, isPronouns, noProfileDetails, parseProfileEdit, pronounsLabel } from "./profile-details"
+import { BIO_LINE_BREAKS_MAX, BIO_MAX, PRONOUNS, bioCharactersLeft, checkBio, cityOfRequest, cityText, cleanBio, detailsOf, hasProfileDetails, isPronouns, noProfileDetails, parseProfileEdit, pronounsLabel } from "./profile-details"
 
 describe("the pronouns", () => {
   it("are a fixed list, each with a key the database keeps and the words a page writes", () => {
@@ -107,33 +107,9 @@ describe("bioCharactersLeft", () => {
   })
 })
 
-describe("the favourite games", () => {
-  it("are slugs: lowercase letters and digits, words joined by single dashes, 48 characters at most", () => {
-    for (const slug of ["courtisans", "flip-7", "6-nimmt", "a", "the-werewolves-of-millers-hollow-the-village", "a".repeat(48)]) expect(isGameSlug(slug), slug).toBe(true)
-    for (const slug of ["", "Flip-7", "flip 7", "flip--7", "-flip", "flip-", "a/b", "a_b", "é", "a".repeat(49), 7, null, undefined, ["a"]]) expect(isGameSlug(slug), String(slug)).toBe(false)
-  })
-
-  it("are a list of five at most with no slug twice, in the order they were put", () => {
-    expect(FAVORITES_MAX).toBe(5)
-    expect(favoriteGamesOf(["flip-7", "courtisans", "hanabi"])).toEqual(["flip-7", "courtisans", "hanabi"])
-    expect(favoriteGamesOf([])).toEqual([])
-    expect(favoriteGamesOf(["a", "b", "c", "d", "e"])).toEqual(["a", "b", "c", "d", "e"])
-  })
-
-  it("are refused when they are six, twice the same, not slugs, or not a list", () => {
-    expect(favoriteGamesOf(["a", "b", "c", "d", "e", "f"])).toBeNull()
-    expect(favoriteGamesOf(["a", "b", "a"])).toBeNull()
-    expect(favoriteGamesOf(["Flip 7"])).toBeNull()
-    expect(favoriteGamesOf([7])).toBeNull()
-    expect(favoriteGamesOf([null])).toBeNull()
-    expect(favoriteGamesOf([["a"]])).toBeNull()
-    for (const value of ["flip-7", 7, null, undefined, {}, { 0: "a", length: 1 }]) expect(favoriteGamesOf(value), String(value)).toBeNull()
-  })
-})
-
 describe("detailsOf", () => {
   it("reads what a row of the database says", () => {
-    expect(detailsOf({ pronouns: "they/them", country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "Hello\nthere" })).toEqual({ pronouns: "they/them", country: "FR", city: null, favoriteGames: ["courtisans", "flip-7"], bio: "Hello\nthere" })
+    expect(detailsOf({ pronouns: "they/them", country: "FR", bio: "Hello\nthere" })).toEqual({ pronouns: "they/them", country: "FR", city: null, bio: "Hello\nthere" })
   })
 
   it("says nothing for a row that has none of it, or no row (the migration is not applied)", () => {
@@ -141,23 +117,26 @@ describe("detailsOf", () => {
     expect(detailsOf({ user_id: "x", nickname: "Ann" })).toEqual(noProfileDetails())
     expect(detailsOf(null)).toEqual(noProfileDetails())
     expect(detailsOf(undefined)).toEqual(noProfileDetails())
-    expect(detailsOf({ pronouns: null, country: null, favorite_games: [], bio: null })).toEqual(noProfileDetails())
+    expect(detailsOf({ pronouns: null, country: null, bio: null })).toEqual(noProfileDetails())
   })
 
-  it("never draws what it does not hold: a pronoun off the list, a country that is no country, slugs that are not slugs, a bio that is not text", () => {
-    expect(detailsOf({ pronouns: "xe/xem", country: "ZZ", favorite_games: "flip-7", bio: 12 })).toEqual(noProfileDetails())
+  it("never draws what it does not hold: a pronoun off the list, a country that is no country, a bio that is not text", () => {
+    expect(detailsOf({ pronouns: "xe/xem", country: "ZZ", bio: 12 })).toEqual(noProfileDetails())
     expect(detailsOf({ country: "fr" }).country).toBeNull()
-    expect(detailsOf({ favorite_games: ["Flip 7", 7, null, "flip-7"] }).favoriteGames).toEqual(["flip-7"])
-    expect(detailsOf({ favorite_games: ["a", "b", "a"] }).favoriteGames).toEqual(["a", "b"])
-    expect(detailsOf({ favorite_games: ["a", "b", "c", "d", "e", "f", "g"] }).favoriteGames).toEqual(["a", "b", "c", "d", "e"])
     expect(detailsOf({ bio: "x".repeat(201) }).bio).toBeNull()
     expect(detailsOf({ bio: "   " }).bio).toBeNull()
   })
 
-  it("gives a new object each time, so that nobody shares the list of another", () => {
+  it("leaves out the favourite games that a row of an older database may still hold: a profile does not have them any more", () => {
+    expect(detailsOf({ pronouns: "any", favorite_games: ["courtisans", "flip-7"], bio: "Hi" })).toEqual({ pronouns: "any", country: null, city: null, bio: "Hi" })
+    expect(detailsOf({ favorite_games: ["courtisans"] })).toEqual(noProfileDetails())
+  })
+
+  it("gives a new object each time, so that nobody shares the details of another", () => {
     const one = noProfileDetails()
-    one.favoriteGames.push("x")
-    expect(noProfileDetails().favoriteGames).toEqual([])
+    one.bio = "Hi"
+    expect(noProfileDetails().bio).toBeNull()
+    expect(noProfileDetails()).not.toBe(noProfileDetails())
   })
 })
 
@@ -166,16 +145,15 @@ describe("hasProfileDetails", () => {
     expect(hasProfileDetails(noProfileDetails())).toBe(false)
     expect(hasProfileDetails({ ...noProfileDetails(), pronouns: "any" })).toBe(true)
     expect(hasProfileDetails({ ...noProfileDetails(), country: "BE" })).toBe(true)
-    expect(hasProfileDetails({ ...noProfileDetails(), favoriteGames: ["hanabi"] })).toBe(true)
     expect(hasProfileDetails({ ...noProfileDetails(), bio: "Hi" })).toBe(true)
   })
 })
 
 describe("parseProfileEdit", () => {
   it("keeps the fields that are there, cleaned as the profile keeps them", () => {
-    expect(parseProfileEdit({ nickname: "  Marly   74 ", tag: " #0042 ", pronouns: "she/her", country: "fr", favoriteGames: ["courtisans", "flip-7"], bio: "  Hi\r\nthere  " })).toEqual({
+    expect(parseProfileEdit({ nickname: "  Marly   74 ", tag: " #0042 ", pronouns: "she/her", country: "fr", bio: "  Hi\r\nthere  " })).toEqual({
       ok: true,
-      edit: { nickname: "Marly 74", tag: 42, pronouns: "she/her", country: "FR", favoriteGames: ["courtisans", "flip-7"], bio: "Hi\nthere" },
+      edit: { nickname: "Marly 74", tag: 42, pronouns: "she/her", country: "FR", bio: "Hi\nthere" },
     })
   })
 
@@ -185,9 +163,9 @@ describe("parseProfileEdit", () => {
     expect(parseProfileEdit({ nickname: "Alex", pronouns: undefined })).toEqual({ ok: true, edit: { nickname: "Alex" } })
   })
 
-  it("takes the pronouns, the country, the favourites and the bio away with null or nothing", () => {
-    expect(parseProfileEdit({ pronouns: null, country: null, favoriteGames: null, bio: null })).toEqual({ ok: true, edit: { pronouns: null, country: null, favoriteGames: [], bio: null } })
-    expect(parseProfileEdit({ pronouns: "", country: "", favoriteGames: [], bio: "   " })).toEqual({ ok: true, edit: { pronouns: null, country: null, favoriteGames: [], bio: null } })
+  it("takes the pronouns, the country and the bio away with null or nothing", () => {
+    expect(parseProfileEdit({ pronouns: null, country: null, bio: null })).toEqual({ ok: true, edit: { pronouns: null, country: null, bio: null } })
+    expect(parseProfileEdit({ pronouns: "", country: "", bio: "   " })).toEqual({ ok: true, edit: { pronouns: null, country: null, bio: null } })
   })
 
   it("refuses a field that no profile can hold, and keeps nothing of the rest", () => {
@@ -214,12 +192,6 @@ describe("parseProfileEdit", () => {
       { country: "FRA" },
       { country: 12 },
       { country: ["FR"] },
-      { favoriteGames: "flip-7" },
-      { favoriteGames: ["a", "b", "c", "d", "e", "f"] },
-      { favoriteGames: ["a", "a"] },
-      { favoriteGames: ["Flip 7"] },
-      { favoriteGames: [7] },
-      { favoriteGames: {} },
       { bio: "b".repeat(201) },
       { bio: "a\nb\nc\nd\ne" },
       { bio: 12 },
@@ -241,6 +213,12 @@ describe("parseProfileEdit", () => {
 
   it("ignores a key it does not know: a client cannot say whose profile it is", () => {
     expect(parseProfileEdit({ nickname: "Alex", user_id: "someone-else", userId: "someone-else", hide_history: true })).toEqual({ ok: true, edit: { nickname: "Alex" } })
+  })
+
+  it("ignores the favourite games, which a profile does not have any more: a client that still sends them changes the rest and nothing else", () => {
+    expect(parseProfileEdit({ nickname: "Alex", favoriteGames: ["courtisans", "flip-7"] })).toEqual({ ok: true, edit: { nickname: "Alex" } })
+    expect(parseProfileEdit({ bio: "Hi", favoriteGames: "not even a list" })).toEqual({ ok: true, edit: { bio: "Hi" } })
+    expect(parseProfileEdit({ favoriteGames: ["courtisans"] })).toEqual({ ok: false })
   })
 
   it("does not read what a prototype says: only the fields the body holds itself", () => {

@@ -132,7 +132,6 @@ export function EditProfileDialog({
       pronouns: edit.pronouns === undefined ? saved.pronouns : edit.pronouns,
       country: edit.country === undefined ? saved.country : edit.country,
       city: edit.city === undefined ? saved.city : edit.city,
-      favoriteGames: saved.favoriteGames,
       bio: edit.bio === undefined ? saved.bio : edit.bio,
     }
     // The account keeps a copy of the username for the navbar: the profile is changed already, so a copy that cannot be written is no reason to say the change failed

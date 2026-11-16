@@ -71,10 +71,9 @@ export const CORE_ERROR_MESSAGES: Record<string, string> = {
   BIRTHDATE_INVALID: "This date of birth is not valid.",
   BIRTHDATE_UNDER_MINIMUM: "You must be at least 13 to use the site.",
   BIRTHDATE_LOCKED: "Your date of birth is already saved and cannot be changed here. Write to us if it needs to be corrected.",
-  // What the profile route refuses with (PLT-39): a username and a tag that somebody else has, a profile that is not what a profile can be, a favourite game that is not a game of the site, or a profile that cannot be saved yet
+  // What the profile route refuses with (PLT-39): a username and a tag that somebody else has, a profile that is not what a profile can be, a city that Geoapify does not know, or a profile that cannot be saved yet
   PROFILE_TAKEN: "Somebody already goes by that username and tag. Choose another tag.",
   PROFILE_INVALID: "Something in this profile is not valid. Check the fields and try again.",
-  PROFILE_GAME_UNKNOWN: "One of your favourite games is not on the site any more. Remove it and try again.",
   PROFILE_CITY_UNKNOWN: "This city is not on the list. Pick one from the list.",
   CITIES_UNAVAILABLE: "Cities can't be searched right now, try again later.",
   PROFILE_UNAVAILABLE: "Your profile can't be saved right now, try again later.",

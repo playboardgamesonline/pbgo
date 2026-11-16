@@ -93,7 +93,7 @@ export { PROFILE_PATH, PROFILE_SOURCES, TAG_DIGITS, TAG_MAX, TAG_MIN, checkTag, 
 export type { Handle, OwnHandle, ProfileSource } from "./profile"
 export { XP_PER_LEVEL, levelOf, levelProgress, xpToReach } from "./level"
 export type { Level } from "./level"
-export { BIO_LINE_BREAKS_MAX, BIO_MAX, FAVORITES_MAX, PRONOUNS, bioCharactersLeft, checkBio, cityOfRequest, cityText, cleanBio, detailsOf, favoriteGamesOf, hasProfileDetails, isGameSlug, isPronouns, noProfileDetails, parseProfileEdit, pronounsLabel } from "./profile-details"
+export { BIO_LINE_BREAKS_MAX, BIO_MAX, PRONOUNS, bioCharactersLeft, checkBio, cityOfRequest, cityText, cleanBio, detailsOf, hasProfileDetails, isPronouns, noProfileDetails, parseProfileEdit, pronounsLabel } from "./profile-details"
 export type { ProfileCity, ProfileDetails, ProfileEdit, Pronouns } from "./profile-details"
 export { figuresOf, mostPlayed, ordinal, perGame, playedGameOf, statsFrom, statsOf } from "./games"
 export type { FinishedGame, GameFigures, GameStats, GameTotals, OpponentRecord, PlayedGame } from "./games"
