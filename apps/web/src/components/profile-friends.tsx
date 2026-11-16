@@ -4,7 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { initialsOf, profilePath } from "@pbgo/accounts"
 import { Avatar, AvatarFallback, AvatarImage } from "@pbgo/ui/platform/avatar"
 import { Button } from "@pbgo/ui/platform/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@pbgo/ui/platform/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@pbgo/ui/platform/dialog"
 import { StatBarItem, StatBarNote } from "@pbgo/ui/platform/stat-bar"
 import { cn } from "@pbgo/ui/utils"
 import type { ProfileFriend } from "@/lib/profile-friends"
@@ -78,12 +78,9 @@ export function FriendsZone({ friends, className }: { friends: readonly ProfileF
           ))}
         </ul>
       </StatBarItem>
-      <DialogContent className="gap-0 overflow-hidden p-0">
+      <DialogContent aria-describedby={undefined} className="gap-0 overflow-hidden p-0">
         <DialogHeader className="p-6 pr-16">
           <DialogTitle>Friends</DialogTitle>
-          <DialogDescription>
-            {friends.length} {friends.length === 1 ? "friend" : "friends"}, the ones who played the most first.
-          </DialogDescription>
         </DialogHeader>
         <ul className="flex max-h-[min(32rem,65svh)] flex-col overflow-y-auto overscroll-contain border-t">
           {friends.map((friend) => (
