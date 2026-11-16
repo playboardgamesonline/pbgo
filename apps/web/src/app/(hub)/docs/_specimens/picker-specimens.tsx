@@ -3,7 +3,7 @@
 import { useRef, useState } from "react"
 import { CountedTextarea } from "@pbgo/ui/platform/counted-textarea"
 import { CoverTile } from "@pbgo/ui/platform/cover-tile"
-import { Calendar01Icon, DiceIcon, SlidersHorizontalIcon, TrophyIcon } from "@hugeicons/core-free-icons"
+import { DiceIcon, SlidersHorizontalIcon, TrophyIcon } from "@hugeicons/core-free-icons"
 import type { IconSvgElement } from "@hugeicons/react"
 import { GameSelect } from "@pbgo/ui/platform/game-select"
 import { ModeSwitch } from "@pbgo/ui/platform/mode-switch"
@@ -103,9 +103,9 @@ export function SearchSelectRemoteSpecimen() {
   )
 }
 
-const MODE_ICONS: Record<PlayZoneMode, IconSvgElement> = { normal: DiceIcon, ranked: TrophyIcon, tournaments: Calendar01Icon, custom: SlidersHorizontalIcon }
+const MODE_ICONS: Record<PlayZoneMode, IconSvgElement> = { normal: DiceIcon, ranked: TrophyIcon, custom: SlidersHorizontalIcon }
 
-/** The switch of the home's play zone, with its four modes: it keeps the one that is picked as long as the page is open. */
+/** The switch of the home's play zone, with its three modes: it keeps the one that is picked as long as the page is open. */
 export function ModeSwitchSpecimen() {
   const [mode, setMode] = useState<PlayZoneMode>("normal")
   const options = PLAY_ZONE_MODES.map((value) => ({ value, label: PLAY_ZONE_LABELS[value], icon: MODE_ICONS[value] }))

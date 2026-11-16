@@ -41,7 +41,7 @@ export type GroupAction = { kind: "invite" | "join"; label: string; title: strin
 
 /**
  * The one thing a visitor can do about groups with a friend, or none: a friend who is in the visitor's group has nothing; one who is in another group can be asked to let the visitor in ("Join"); one who is connected and in none can be invited ("Invite"). A friend who is away
- * is invited from the picker of the group (the invitation waits for them), not from the row. A request that waits is "Invited" or "Requested", off, so that it is not sent twice.
+ * is invited from the panel of friends of the play zone (the invitation waits for them), not from the row. A request that waits is "Invited" or "Requested", off, so that it is not sent twice.
  */
 export function groupActionOf(friend: Friend): GroupAction | null {
   if (friend.group === "yours") return null

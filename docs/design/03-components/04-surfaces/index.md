@@ -11,3 +11,4 @@ The containers and what they hold.
 - [Empty](07-empty.md)
 - [Item](08-item.md)
 - [Table](09-table.md)
+- [Pager](10-pager.md)

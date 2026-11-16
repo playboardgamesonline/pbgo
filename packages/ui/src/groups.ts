@@ -1,4 +1,4 @@
-// What a group is made of, for `@pbgo/ui/platform/group-panel` (the group tab of the social panel): the members, who leads, who the visitor is, and what the page may do with a group. No React in this file, so that it is tested as it is.
+// What a group is made of, for the play zone of the signed-in home (its row of places, `@pbgo/ui/platform/player-slots`, and the menus of its members): the members, who leads, who the visitor is. No React in this file, so that it is tested as it is.
 
 import type { FriendGame, FriendStatus } from "./friends"
 
@@ -15,7 +15,7 @@ export type GroupMember = {
   game?: FriendGame
   /** What the line under the name says: how long a member who is playing has been, "In the lobby". */
   activity?: string
-  /** Whether they lead the group: the only one who can remove a member and hand the lead over. */
+  /** Whether they lead the group: the only one who can remove a member and hand the lead over, and who looks for a game or opens a table for it. */
   leader: boolean
   /** Whether they are the visitor themselves. */
   you: boolean
@@ -27,13 +27,7 @@ export type Group = { members: readonly GroupMember[]; max: number }
 /** Whether the visitor leads the group. */
 export const youLead = (group: Group): boolean => group.members.some((member) => member.you && member.leader)
 
-/** Whether the group has all the members it can hold. */
-export const isFull = (group: Group): boolean => group.members.length >= group.max
-
-/** The line under the name of a group, how many are in it out of how many it takes: "3 of 8". */
-export const sizeLine = (group: Group): string => `${group.members.length} of ${group.max}`
-
-/** The members as the pane draws them: the visitor's group as it is given, the leader first. */
+/** The members as the row of places draws them: the visitor's group as it is given, the leader first. */
 export function orderedMembers(group: Group): GroupMember[] {
   return [...group.members].sort((a, b) => Number(b.leader) - Number(a.leader))
 }

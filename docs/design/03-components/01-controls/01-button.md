@@ -14,7 +14,7 @@ button-variants
 
 ## Sizes
 
-Use `sm` and `xs` inside dense UI (tables, toolbars, the gamemaster), `lg` for a hero action and `xl` for the one or two buttons that a page is for.
+Use `sm` and `xs` inside dense UI (tables, toolbars, the gamemaster), `lg` for a hero action, `xl` for the one or two buttons that a page is for and `2xl` for the single button that a whole screen is built around, such as the one that starts a search.
 
 ```specimen
 button-sizes

@@ -5,7 +5,7 @@ import { TIERS, type Tier } from "@pbgo/ui/ranks"
 import type { AgeRulesSource } from "../lib/age-rules"
 import type { PlayableGame } from "../lib/binding"
 import type { GameStatus } from "../lib/game-types"
-import { matchesWanted, olderLobby, openingSettings, rankLobbies, seated, settleOwn, wantedPace, type CancelRequest, type Lobby, type PlayCriteria, type PlayMode, type PlayRequest, type PlayState, type PlayTable, type Wanted } from "../lib/quick-play"
+import { matchesWanted, olderLobby, openingSettings, rankLobbies, seated, settleOwn, wantedMaxSeats, wantedPace, type CancelRequest, type Lobby, type PlayCriteria, type PlayMode, type PlayRequest, type PlayState, type PlayTable, type Wanted } from "../lib/quick-play"
 import { gameOptions } from "../lib/settings"
 import { loadSettings } from "../lib/settings-server"
 import { asksSomething, effectiveSettings, modeOf, tierOf, type TableSettings, type Viewer } from "../lib/table-settings"
@@ -105,7 +105,7 @@ async function viewerIn(search: Search, slug: string, lobbies: readonly Lobby[])
 }
 
 /**
- * What the search wants of the tables of a game: the speed it asks and the expansions. The expansions a table can have on are those of the game that its engine has an option for and the gamemaster did not hide; of them, the ones asked are on and the others off, and what that
+ * What the search wants of the tables of a game: the speed it asks, the most players and the expansions. The expansions a table can have on are those of the game that its engine has an option for and the gamemaster did not hide; of them, the ones asked are on and the others off, and what that
  * comes to once the options are normalized (an expansion that conflicts with another is off) is what the search wants, so that the table it opens is one it finds again.
  */
 async function wantedFor(search: Search, game: PlayableGame, options: Parameters<typeof gameOptions>[1]): Promise<Wanted> {
@@ -114,7 +114,8 @@ async function wantedFor(search: Search, game: PlayableGame, options: Parameters
   const offered = (await search.deps.expansionsOf(game.slug)).filter((id) => engineKeys.includes(id) && !options.hidden.includes(id))
   const asked = new Set(criteria?.expansions ?? [])
   const normalized = gameOptions(game.binding, options, Object.fromEntries(offered.map((id) => [id, asked.has(id)])))
-  return { pace: wantedPace(search.mode, criteria), offered, expansions: offered.filter((id) => normalized[id] === true) }
+  const maxSeats = wantedMaxSeats(criteria)
+  return { pace: wantedPace(search.mode, criteria), offered, expansions: offered.filter((id) => normalized[id] === true), ...(maxSeats !== undefined ? { maxSeats } : {}) }
 }
 
 /** The options a search opens a table with: the admin's defaults with the expansions it wants on and the others off, and, for a ranked table, no helpers. */
@@ -163,19 +164,19 @@ async function tryJoin(search: Search, game: PlayableGame, gate: AgeGate, lobby:
   }
 }
 
-/** Opens a lobby of the search: public, at the usual speed, with the game's seats (`openingSettings`). Opening is as limited as opening a table by hand. */
+/** Opens a lobby of the search: public, at the speed it asks, with the game's seats kept under the most players the search accepts (`openingSettings`). Opening is as limited as opening a table by hand. */
 async function open(search: Search, game: PlayableGame, gate: AgeGate, range: { min: number; max: number }, options: Awaited<ReturnType<typeof optionsFor>>, wanted: Wanted): Promise<Found> {
   await rateLimit(game.slug, search.request, "create")
   const sitter = await sitterFor(search, game)
-  const settings = openingSettings(search.mode, range, search.mode === "ranked" ? await tierIn(search, game.slug) : TIERS[0], wanted.pace)
+  const settings = openingSettings(search.mode, range, search.mode === "ranked" ? await tierIn(search, game.slug) : TIERS[0], wanted.pace, wanted.maxSeats)
   const row = await openTable(game, sitter, { gate, options, settings, ranked: search.mode === "ranked", maxPlayers: range.max })
   keepAlive(game.slug, row, sitter.id)
   return { table: tableOf(game.slug, row, settings, range.max, true), seat: sitter.id, hostId: row.host_id }
 }
 
-/** Whether a lobby is of the kind a search keeps the visitor at: public, of the mode of the search, and played the way the search wants (its speed and its expansions). */
-const isSearchKind = (settings: TableSettings | undefined, options: Readonly<Record<string, unknown>> | undefined, mode: PlayMode, wanted: Wanted): boolean =>
-  settings?.visibility === "public" && modeOf(settings) === mode && matchesWanted({ settings, options }, wanted)
+/** Whether a lobby is of the kind a search keeps the visitor at: public, of the mode of the search, and played the way the search wants (its speed, its seats and its expansions). */
+const isSearchKind = (settings: TableSettings | undefined, options: Readonly<Record<string, unknown>> | undefined, mode: PlayMode, wanted: Wanted, maxPlayers: number): boolean =>
+  settings?.visibility === "public" && modeOf(settings) === mode && matchesWanted({ settings, options }, wanted, maxPlayers)
 
 /** Gives up the spare lobbies of the visitor, where they sit alone. Never throws: a lobby that could not be left is logged, and stays until its seat is left or the nightly clean-up takes it. */
 async function giveUp(game: PlayableGame, spares: readonly MemberTable[]): Promise<void> {
@@ -199,7 +200,7 @@ async function settleTwins(search: Search, game: PlayableGame, opened: Found, ma
     const held = (await tablesOf(search.actor, [game.slug])).filter((table) => table.game === game.slug && table.status === "lobby")
     if (held.length < 2) return opened
     const kept = await readTableSettings(game.slug, held.map((table) => table.code))
-    const { stay, spares } = settleOwn(held.filter((table) => isSearchKind(kept.get(table.code), table.options, search.mode, wanted)))
+    const { stay, spares } = settleOwn(held.filter((table) => isSearchKind(kept.get(table.code), table.options, search.mode, wanted, maxPlayers)))
     await giveUp(game, spares)
     if (!stay || stay.code === opened.table.code) return opened
     return { table: tableOf(game.slug, stay, kept.get(stay.code) ?? {}, maxPlayers, false), seat: stay.seat, hostId: stay.hostId }
@@ -218,7 +219,7 @@ async function searchGame(search: Search, game: PlayableGame): Promise<Found> {
   const held = search.mine.filter((table) => table.game === game.slug && table.status === "lobby")
   const [kept, lobbies] = await Promise.all([readTableSettings(game.slug, held.map((table) => table.code)), readPublicTables(game.slug)])
   // The lobbies of the kind a search keeps the visitor at: one, and when two calls of the same moment each opened one, the one that stays is theirs and the others, where they sit alone, are given up (`settleOwn`)
-  const { stay: mineHere, spares } = settleOwn(held.filter((table) => isSearchKind(kept.get(table.code), table.options, search.mode, wanted)))
+  const { stay: mineHere, spares } = settleOwn(held.filter((table) => isSearchKind(kept.get(table.code), table.options, search.mode, wanted, maxPlayers)))
   await giveUp(game, spares)
   const viewer = await viewerIn(search, game.slug, lobbies)
   const candidates = rankLobbies(lobbies, { mode: search.mode, viewer: () => viewer, maxOf: () => maxPlayers, wanted: () => wanted, mine: new Set(held.map((table) => `${table.game}:${table.code}`)), now: search.now })

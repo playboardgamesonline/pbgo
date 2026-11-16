@@ -1,9 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Alert02Icon, ArrowRight01Icon, Calendar01Icon, DiceIcon, PlayIcon, SlidersHorizontalIcon, TrophyIcon } from "@hugeicons/core-free-icons"
+import { Alert02Icon, ArrowRight01Icon, DiceIcon, PlayIcon, SlidersHorizontalIcon, TrophyIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import type { AgeRefusal } from "@pbgo/accounts"
 import { createApi } from "@pbgo/core/lib/api"
@@ -14,9 +13,9 @@ import { creationSettings, PRIVATE_TABLE, type AccessChoice } from "@pbgo/core/l
 import type { Friend } from "@pbgo/ui/friends"
 import { orderedMembers, youLead, type GroupMember } from "@pbgo/ui/groups"
 import { Button } from "@pbgo/ui/platform/button"
+import { Card } from "@pbgo/ui/platform/card"
 import type { ComboboxOption } from "@pbgo/ui/platform/combobox"
 import { DropdownMenuItem, DropdownMenuSeparator } from "@pbgo/ui/platform/dropdown-menu"
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { GameSelect } from "@pbgo/ui/platform/game-select"
 import { FriendPicker } from "@pbgo/ui/platform/invite-friend"
 import { LobbyAccess, type LanguageOption } from "@pbgo/ui/platform/lobby-access"
@@ -25,11 +24,11 @@ import { ModeSwitch, type ModeOption } from "@pbgo/ui/platform/mode-switch"
 import { AddGameTile, PickedGame } from "@pbgo/ui/platform/picked-game"
 import { PlayerSlots, type SlotPlayer } from "@pbgo/ui/platform/player-slots"
 import { QueueButton } from "@pbgo/ui/platform/queue"
-import { Section, SectionAction } from "@pbgo/ui/platform/section"
-import { PLAY_ZONE_LABELS, PLAY_ZONE_MODES, SLOT_COLUMNS, searchModeOf, type PlayZoneMode } from "@pbgo/ui/play-zone"
+import { PLAY_ZONE_LABELS, PLAY_ZONE_MODES, placesFor, searchModeOf, SLOT_BASE, type PlayZoneMode } from "@pbgo/ui/play-zone"
 import type { QueueCriteria } from "@pbgo/ui/queue"
 import { rankLabel, type Rank } from "@pbgo/ui/ranks"
 import { defaultSeats, type Pace } from "@pbgo/ui/tables"
+import { cn } from "@pbgo/ui/utils"
 import { leaveQueue, startSearch, useQueue, useQueueSeconds } from "@/lib/matchmaking"
 import { useCopied } from "@/lib/use-copied"
 import { useSocial } from "@/lib/use-social"
@@ -49,50 +48,36 @@ export type PlayGame = {
   expansions: readonly ExpansionOption[]
 }
 
-/** What the member sets for one game, in a search or at the table they open: how fast it is played and the expansions it is played with. The usual is the usual speed and no expansion. */
-type GameConfig = { pace: Pace; expansions: readonly string[] }
+/** What the member sets for one game, in a search or at the table they open: how fast it is played, the expansions it is played with and, for a search, the most players at a table (none set is the game's most: any size). The usual is the usual speed, no expansion and no limit. */
+type GameConfig = { pace: Pace; expansions: readonly string[]; maxPlayers?: number }
 const USUAL: GameConfig = { pace: "normal", expansions: [] }
 
-const MODE_ICONS: Record<PlayZoneMode, IconSvgElement> = { normal: DiceIcon, ranked: TrophyIcon, tournaments: Calendar01Icon, custom: SlidersHorizontalIcon }
+const MODE_ICONS: Record<PlayZoneMode, IconSvgElement> = { normal: DiceIcon, ranked: TrophyIcon, custom: SlidersHorizontalIcon }
 
 const MODES: readonly ModeOption<PlayZoneMode>[] = PLAY_ZONE_MODES.map((value) => ({ value, label: PLAY_ZONE_LABELS[value], icon: MODE_ICONS[value] }))
 
 /** The friends the panel of a free place lists before the search: the connected ones first, then the others, never more than this. */
 const FRIENDS_LISTED = 8
 
-/** How wide a tile is for how many there are, as the old zone sized them: up to four games have large tiles, up to nine medium ones and more small ones, so that one game and ten both fit the column. A phone has smaller ones. */
-const TILE_WIDTHS = { large: "w-36 sm:w-44", medium: "w-28 sm:w-32", small: "w-20 sm:w-24" }
-const tileWidth = (count: number) => TILE_WIDTHS[count <= 4 ? "large" : count <= 9 ? "medium" : "small"]
-
-/** The tournaments, until there are some: the empty state of the page of their tab, and the way to it. */
-function TournamentsPanel() {
-  return (
-    <div className="flex w-full max-w-2xl flex-col items-center gap-6">
-      <Empty className="border p-6">
-        <EmptyHeader>
-          <EmptyTitle>No tournament yet</EmptyTitle>
-          <EmptyDescription>Your tournaments, and the coming ones on the games you play, are listed here.</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-      <SectionAction asChild>
-        <Link href="/tournaments">See all tournaments</Link>
-      </SectionAction>
-    </div>
-  )
-}
+/**
+ * A game's tile is as wide and as tall as this whatever the number of games and whatever it says under its picture (a rank in Ranked, nothing in Normal), so that the zone under the games never moves: ten fit in two rows of five in the narrowest card of the home, and a card too narrow
+ * for them wraps them to another row rather than shrink them.
+ */
+const TILE = "h-38 w-32"
 
 /**
- * The play zone of the signed-in home, one central interface with no title and no surface, its parts floating on the page's black: a switch at the top that fits its cases (Normal, Ranked, Tournaments, Custom: PLT-21, PLT-119, PLT-135), under it the select of the games, the games that are
- * picked as tiles (a press on one opens its settings: its speed and its expansions), the row of players, nine places on one line with the member in the middle, and the button. Normal and Ranked look for a table among players the member does not know, in as many games as they pick (ten at the most),
- * the places being their group; Custom opens a table of one game for friends, private to begin with, the places being its seats, whose number the game's settings set; a friend picked in a place is invited when the table opens. Tournaments has the empty state of the tournaments.
- * A game that the group cannot play stays in the list and as a tile, off, with the reason; the same reason is in small type above the button. The button says "Find a game" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left and for a member of a group who is not its leader
- * (`@pbgo/core/lib/play-eligibility`). The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it,
- * the zone shows its games and its kind and cannot be changed until it is stopped.
+ * The play zone of the signed-in home: one central interface in a card that takes the height of what is left of the screen, with the same margin at its two sides and under it, in the left column of the home (the right one is `HomeAside`'s: PLT-21, PLT-119, PLT-135). Its four parts are spread over the
+ * height of the card at equal distances (`justify-between`, never closer than a fixed distance): a switch that fits its cases (Normal, Ranked, Custom) at the top, then the "Board games" (the games that are picked as tiles of one size, whatever their number, ten at the most, wrapping to a second row; a
+ * press on a tile opens its settings: its speed, its expansions and, for a search, the most players at a table), then the "Group" (the row of players, every place of one size too, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little
+ * room at their sides, and at the foot of the card the button, with what says why it is off at its right. Normal and Ranked look for a table among players the member does not know, in as many games as they pick, the places being their group; Custom opens a table of one game for friends, private to
+ * begin with, the places being its seats, whose number the game's settings set; a friend picked in a place is invited when the table opens. A game that the group cannot play stays in the list and as a tile, off, with the reason; the same reason is at the right of the button. The button says
+ * "Find a game" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left and for a member of a group who is not its leader (`@pbgo/core/lib/play-eligibility`). The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it, the zone shows
+ * its games and its kind and cannot be changed until it is stopped.
  */
-export function HomePlay({ games, languages, account }: { games: readonly PlayGame[]; languages: readonly LanguageOption[]; account: { id: string; nickname: string; avatarUrl?: string | null } }) {
+export function HomePlay({ games, languages, account, className }: { games: readonly PlayGame[]; languages: readonly LanguageOption[]; account: { id: string; nickname: string; avatarUrl?: string | null }; className?: string }) {
   const router = useRouter()
   const { friends, group } = useSocial(account)
-  const groups = useGroupActions(friends)
+  const groups = useGroupActions()
   const [copied, copy] = useCopied()
   const { guard, demand, fail, dialog: ageDialog } = useAgeGate()
   const queue = useQueue()
@@ -118,7 +103,9 @@ export function HomePlay({ games, languages, account }: { games: readonly PlayGa
   const shown = games.filter((game) => chosen.includes(game.slug))
   const customGame = games.find((game) => game.slug === customSlug)
   const configOf = (slug: string): GameConfig => configs[slug] ?? USUAL
-  const isUsual = (slug: string) => configOf(slug).pace === USUAL.pace && configOf(slug).expansions.length === 0
+  // The most players at a table that a search accepts in a game: the number set, else the game's most, which asks nothing
+  const maxPlayersOf = (game: PlayGame) => Math.min(game.range.max, configOf(game.slug).maxPlayers ?? game.range.max)
+  const isUsual = (game: PlayGame) => configOf(game.slug).pace === USUAL.pace && configOf(game.slug).expansions.length === 0 && maxPlayersOf(game) === game.range.max
 
   // The member and the people who play with them: their group (the leader first), the friends invited to it who have not answered, or, for a table of their own, the friends they picked
   const members = group ? orderedMembers(group).filter((member) => !member.you) : []
@@ -128,8 +115,9 @@ export function HomePlay({ games, languages, account }: { games: readonly PlayGa
   const players: SlotPlayer[] = searchMode
     ? [me, ...members.map((member) => slotOf(member, { leader: member.leader })), ...waiting.map((friend) => slotOf(friend, { pending: true }))]
     : [me, ...invitees.map((friend) => slotOf(friend, { pending: true }))]
-  const tableSeats = seats ?? (customGame ? defaultSeats(customGame.range.min, customGame.range.max) : SLOT_COLUMNS)
-  const size = searchMode ? SLOT_COLUMNS : customGame ? Math.max(tableSeats, players.length) : SLOT_COLUMNS
+  const tableSeats = seats ?? (customGame ? defaultSeats(customGame.range.min, customGame.range.max) : SLOT_BASE)
+  // A group has five places to begin with and one more each time they are all taken; a table of one's own has the seats of its game, five until a game is picked
+  const size = searchMode ? placesFor(players.length) : customGame ? Math.max(tableSeats, players.length) : SLOT_BASE
 
   // What the group cannot do: games it is too large for stay, off, a member who is in a game stops the search, and only the leader of a group looks for a game or opens a table
   const playGroup: PlayGroup = { size: group ? group.members.length : 1, inGame: members.filter((member) => member.status === "playing").map((member) => member.nickname), leads: group ? youLead(group) : true }
@@ -142,7 +130,6 @@ export function HomePlay({ games, languages, account }: { games: readonly PlayGa
 
   // The tile that adds a game ends the row while a game can still be added: a search takes ten, a table of one's own one, and a search that is on is read and not set
   const canAdd = !searching && games.length > 0 && (searchMode ? true : customSlug === null)
-  const tiles = shown.length + (canAdd ? 1 : 0)
 
   const options: ComboboxOption[] = games.map((game) => ({
     value: game.slug,
@@ -159,7 +146,7 @@ export function HomePlay({ games, languages, account }: { games: readonly PlayGa
     if (game) setInvitees((current) => current.slice(0, Math.max(0, game.range.max - 1)))
   }
 
-  /** The settings panel of a game's tile: the speed (not for a ranked search, which is played at the usual speed), the number of players of a table of one's own, and the expansions. */
+  /** The settings panel of a game's tile: for a search the most players at a table, above the speed (not for a ranked search, which is played at the usual speed), the number of players of a table of one's own, and the expansions. */
   function settingsOf(game: PlayGame) {
     return (
       <LobbySettings
@@ -167,11 +154,22 @@ export function HomePlay({ games, languages, account }: { games: readonly PlayGa
         key={`${game.slug}:${shownMode}`}
         editable
         speed={shownMode !== "ranked"}
+        beforeSpeed={
+          searchMode && game.range.max > game.range.min ? (
+            <LobbyPlayerCount
+              title="Max players"
+              label="Most players at the table"
+              range={game.range}
+              count={maxPlayersOf(game)}
+              onCountChange={(count) => setConfigs((all) => ({ ...all, [game.slug]: { ...configOf(game.slug), maxPlayers: count } }))}
+            />
+          ) : undefined
+        }
         pace={configOf(game.slug).pace}
         chosen={configOf(game.slug).expansions}
         expansions={game.expansions}
         afterSpeed={shownMode === "custom" ? <LobbyPlayerCount range={game.range} count={Math.max(tableSeats, players.length)} onCountChange={setSeats} disabled={opening} /> : undefined}
-        onChange={(value) => setConfigs((all) => ({ ...all, [game.slug]: { pace: value.pace, expansions: value.expansions } }))}
+        onChange={(value) => setConfigs((all) => ({ ...all, [game.slug]: { ...configOf(game.slug), pace: value.pace, expansions: value.expansions } }))}
         onLockedPick={(_id, locked) => void demand(locked.kind as AgeRefusal)}
       />
     )
@@ -234,11 +232,11 @@ export function HomePlay({ games, languages, account }: { games: readonly PlayGa
     if (!searchMode) return
     // A game for adults needs the member's date of birth before the search begins
     if (asked.some((game) => game.refusal === "date") && !(await demand("date"))) return
-    // What the member set on each tile goes with the search: a speed other than the usual one (not in a ranked search, which is played at it) and the expansions
+    // What the member set on each tile goes with the search: a speed other than the usual one (not in a ranked search, which is played at it), the expansions and a limit on the players at a table
     const criteria = Object.fromEntries(
       asked.flatMap((game) => {
         const config = configOf(game.slug)
-        const entry: QueueCriteria = { ...(searchMode === "normal" && config.pace !== USUAL.pace ? { pace: config.pace } : {}), ...(config.expansions.length > 0 ? { expansions: [...config.expansions] } : {}) }
+        const entry: QueueCriteria = { ...(searchMode === "normal" && config.pace !== USUAL.pace ? { pace: config.pace } : {}), ...(config.expansions.length > 0 ? { expansions: [...config.expansions] } : {}), ...(maxPlayersOf(game) < game.range.max ? { maxPlayers: maxPlayersOf(game) } : {}) }
         return Object.keys(entry).length > 0 ? [[game.slug, entry] as const] : []
       }),
     )
@@ -269,24 +267,30 @@ export function HomePlay({ games, languages, account }: { games: readonly PlayGa
   }
 
   return (
-    <Section aria-labelledby="home-play" className="items-center gap-10 pt-4">
-      <h2 id="home-play" className="sr-only">
-        Play
-      </h2>
-      <ModeSwitch options={MODES} value={shownMode} onValueChange={setMode} disabled={searching} aria-label="What to play" />
-      {shownMode === "tournaments" ? (
-        <TournamentsPanel />
-      ) : (
-        <div className="flex w-full max-w-4xl flex-col items-center gap-10">
+    <Card
+      role="region"
+      aria-labelledby="home-play"
+      className={cn("min-h-[calc(100svh-var(--consent-h,0px)-var(--spacing-navbar)-1rem-var(--spacing-gutter))] min-w-0 gap-0 overflow-visible py-0 [--cutout:var(--card)]", className)}
+    >
+      {/* The four parts of the card are spread over its height at equal distances: the switch at the top, the games, the group and, at the foot, the button. The games and the group have a little room at their sides */}
+      <div className="flex flex-1 flex-col justify-between gap-6 p-6">
+        <h2 id="home-play" className="sr-only">
+          Play
+        </h2>
+        <ModeSwitch options={MODES} value={shownMode} onValueChange={setMode} disabled={searching} aria-label="What to play" className="justify-start" />
+        <section aria-labelledby="home-games" className="flex flex-col gap-4 px-2">
+          <h3 id="home-games" className="font-heading text-lg">
+            {searchMode ? "Board games" : "Board game"}
+          </h3>
           {games.length === 0 ? (
             <p className="text-sm text-muted-foreground">The games you can play are listed here.</p>
           ) : (
-            <div className="flex w-full flex-col items-center gap-6">
-              <div role="group" aria-label="Games to play" className="flex w-full max-w-2xl flex-wrap justify-center gap-x-4 gap-y-6">
+            <>
+              <div role="group" aria-label="Games to play" className="flex flex-wrap gap-x-3 gap-y-6">
                 {shown.map((game, index) => (
                   <PickedGame
                     key={game.slug}
-                    className={tileWidth(tiles)}
+                    className={TILE}
                     name={game.name}
                     picture={game.picture}
                     logo={game.logo}
@@ -294,7 +298,7 @@ export function HomePlay({ games, languages, account }: { games: readonly PlayGa
                     rank={game.rank}
                     unavailable={refusals.get(game.slug)}
                     config={searching ? undefined : settingsOf(game)}
-                    configured={!isUsual(game.slug)}
+                    configured={!isUsual(game)}
                     onRemove={searching ? undefined : searchMode ? () => setPicked(picked.filter((slug) => slug !== game.slug)) : () => pickCustom(undefined)}
                     loading={index < 6 ? "eager" : "lazy"}
                   />
@@ -310,46 +314,52 @@ export function HomePlay({ games, languages, account }: { games: readonly PlayGa
                     fullNote={`A search takes ${SEARCH_MAX_GAMES} games at the most. Take one out to add another.`}
                     aria-label="Games"
                   >
-                    <AddGameTile label={searchMode ? "Add a game" : "Choose a game"} className={tileWidth(tiles)} />
+                    <AddGameTile label={searchMode ? "Add a game" : "Choose a game"} className={TILE} />
                   </GameSelect>
                 )}
               </div>
               <p aria-live="polite" className="sr-only">
                 {chosen.length === 0 ? (searchMode ? "Pick at least one game" : "Pick a game") : `${chosen.length} selected`}
               </p>
+            </>
+          )}
+        </section>
+        <section aria-labelledby="home-group" className="flex flex-col gap-4 px-2">
+          <h3 id="home-group" className="font-heading text-lg">
+            Group
+          </h3>
+          <PlayerSlots players={players} size={size} picker={picker} menu={menuOf} disabled={searching || opening} />
+        </section>
+        {/* The button is at the foot of the card, which is the foot of the screen, with what says why it is off at its right. Under `xl` a card taller than the screen keeps it in view above the consent banner, over what scrolls under it (the fade is the card's own grey); from `xl` the card is made to fit the screen and it stays at its foot */}
+        <div className="sticky bottom-[var(--consent-h,0px)] z-10 -mx-6 -mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-b-4xl bg-gradient-to-t from-card from-70% to-transparent px-6 pt-4 pb-6 xl:static xl:m-0 xl:bg-none xl:p-0">
+          {searchMode ? (
+            <QueueButton size="2xl" searching={searching} seconds={seconds} disabled={asked.length === 0 || searchBlocked !== null} onSearch={search} onCancel={leaveQueue}>
+              <HugeiconsIcon icon={PlayIcon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />
+              Find a game
+            </QueueButton>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Button size="2xl" disabled={opening || !customGame || tableBlocked !== null} onClick={open}>
+                Start game
+                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
+              </Button>
+              <LobbyAccess languages={languages} defaultVisibility="private" onChange={setAccess} size="icon-2xl" disabled={opening} />
             </div>
           )}
-          <PlayerSlots players={players} size={size} picker={picker} menu={menuOf} disabled={searching || opening} />
-          <div className="flex flex-col items-center gap-4">
-            {notices.length > 0 && (
-              <div role="status" className="flex max-w-md flex-col gap-1 text-center text-sm text-muted-foreground">
-                {notices.map((text) => (
-                  <p key={text} className="ph-mask flex items-start justify-center gap-2">
-                    <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-destructive" />
-                    {text}
-                  </p>
-                ))}
-              </div>
-            )}
-            {searchMode ? (
-              <QueueButton size="xl" searching={searching} seconds={seconds} disabled={asked.length === 0 || searchBlocked !== null} onSearch={search} onCancel={leaveQueue}>
-                <HugeiconsIcon icon={PlayIcon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />
-                Find a game
-              </QueueButton>
-            ) : (
-              <div className="flex items-center gap-3">
-                <Button size="xl" disabled={opening || !customGame || tableBlocked !== null} onClick={open}>
-                  Start game
-                  <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
-                </Button>
-                <LobbyAccess languages={languages} defaultVisibility="private" onChange={setAccess} size="icon-xl" disabled={opening} />
-              </div>
-            )}
-          </div>
+          {notices.length > 0 && (
+            <div role="status" className="flex min-w-0 max-w-md flex-col gap-1 text-sm text-muted-foreground">
+              {notices.map((text) => (
+                <p key={text} className="ph-mask flex items-start gap-2">
+                  <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-destructive" />
+                  {text}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
       {groups.dialogs}
       {ageDialog}
-    </Section>
+    </Card>
   )
 }

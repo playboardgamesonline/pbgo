@@ -1,4 +1,4 @@
-import { SPEEDS, type Pace } from "./tables"
+import { MAX_SEATS, SPEEDS, type Pace } from "./tables"
 
 // The queue of a visitor who is looking for a table, for the buttons that start a search (a game's page, the signed-in home) and for the social panel, which both show it: the games they look for, whether the table is ranked or normal, and since when, the tables the search has
 // sat them at and how full they are, the time they have waited as a counter ("0:12"), and the way a queue that was kept in the browser is read back. Pure, so that it is tested as it is. The hub keeps the queue in the page (`apps/web/src/lib/matchmaking.ts`) and the blocks draw
@@ -21,9 +21,10 @@ export type QueueGame = { slug: string; name: string }
 
 /**
  * What a search asks of the tables of one game besides how they count: how fast they are played (a speed of a lobby; none asked is the usual one, and a ranked search is always played at it) and the expansions they are played with (the platform's slugs of the game's expansions;
- * none asked is none). A table that is played another way is not sat at, and the one a search opens is played this way. Each is the visitor's choice for one game, in the settings of its tile on the home.
+ * none asked is none) and the most players at a table (`maxPlayers`, a whole number up to the most seats a table has: none asked is no limit, a table of any size the game has). A table that is played another way, or is set for more
+ * players than that, is not sat at, and the one a search opens is played this way. Each is the visitor's choice for one game, in the settings of its tile on the home.
  */
-export type QueueCriteria = { pace?: Pace; expansions?: string[] }
+export type QueueCriteria = { pace?: Pace; expansions?: string[]; maxPlayers?: number }
 
 /** The most expansions a game's criteria hold: a game has a few, and what a browser keeps is anybody's. */
 export const QUEUE_EXPANSIONS_MAX = 20
@@ -82,7 +83,7 @@ const isCount = (value: unknown): value is number => typeof value === "number" &
 const STATUSES: readonly QueueTable["status"][] = ["lobby", "starting", "playing"]
 const isId = (value: unknown): value is string => typeof value === "string" && /^[a-z0-9][a-z0-9-]{0,63}$/.test(value)
 
-/** The criteria of one game as they were sent or kept, or null for anything that is not one: a speed that a lobby offers, expansions that are slugs, each listed once and `QUEUE_EXPANSIONS_MAX` at the most. A key that is not one of ours is left out. */
+/** The criteria of one game as they were sent or kept, or null for anything that is not one: a speed that a lobby offers, expansions that are slugs, each listed once and `QUEUE_EXPANSIONS_MAX` at the most, a number of players that a table can have. A key that is not one of ours is left out. */
 export function parseCriteria(raw: unknown): QueueCriteria | null {
   if (!isRecord(raw)) return null
   const criteria: QueueCriteria = {}
@@ -98,6 +99,10 @@ export function parseCriteria(raw: unknown): QueueCriteria | null {
       if (!ids.includes(id)) ids.push(id)
     }
     criteria.expansions = ids
+  }
+  if (raw.maxPlayers !== undefined) {
+    if (typeof raw.maxPlayers !== "number" || !Number.isInteger(raw.maxPlayers) || raw.maxPlayers < 1 || raw.maxPlayers > MAX_SEATS) return null
+    criteria.maxPlayers = raw.maxPlayers
   }
   return criteria
 }
@@ -115,6 +120,7 @@ export function parseCriteriaOf(raw: unknown, slugs: readonly string[]): Record<
     if (!slugs.includes(slug) || !criteria) return null
     if (criteria.pace !== undefined && criteria.pace !== "normal") all[slug] = { ...all[slug], pace: criteria.pace }
     if (criteria.expansions !== undefined && criteria.expansions.length > 0) all[slug] = { ...all[slug], expansions: criteria.expansions }
+    if (criteria.maxPlayers !== undefined) all[slug] = { ...all[slug], maxPlayers: criteria.maxPlayers }
   }
   return all
 }

@@ -24,8 +24,8 @@ type LanguageOption = { value: string; label: string }
 type LobbyAccessValue = { visibility: LobbyVisibilityValue; minRank: Tier | null; language: string | null }
 
 type LobbyAccessProps = Omit<React.ComponentProps<typeof Button>, "variant" | "size" | "onChange" | "children" | "defaultValue"> & {
-  /** How big the button is: `icon-sm` at the top right of a lobby's panel, `icon-xl` beside the main button of the play zone, which is as tall as it. */
-  size?: "icon-sm" | "icon-xl"
+  /** How big the button is: `icon-sm` at the top right of a lobby's panel, `icon-2xl` beside the main button of the play zone, which is as tall as it. */
+  size?: "icon-sm" | "icon-2xl"
   /** What it is set to when it is drawn: the table's own, or `public` for a lobby that is about to be opened. */
   defaultVisibility?: LobbyVisibilityValue
   /** The least rank a player must have to sit at the table, a tier, or none. */

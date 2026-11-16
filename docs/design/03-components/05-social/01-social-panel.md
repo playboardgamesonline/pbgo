@@ -12,16 +12,34 @@ The navbar lets the pointer through, so the dock and the chat window take it bac
 
 ## The tabs
 
-Under the header, three or four tabs, each an icon: the friends, the group (when the page has groups), the conversations and the way to add a friend. The pane of a tab comes in from the side its tab is on; with less motion nothing travels. A visitor with no friend, group, message or request has an empty state in each tab.
+Under the header, three tabs, each an icon: the friends, the conversations and the way to add a friend. The pane of a tab comes in from the side its tab is on; with less motion nothing travels. A visitor with no friend, group, message or request has an empty state in each tab.
 
-- **Friends:** the roster, game by game with the most crowded first and then, by status, the friends in no game. The head of a game folds its friends away and unfolds them, and a search shows what it finds whether its game is folded or not. A friend's row has the one button that does something about groups with them, Invite or Join (see [Group](05-group.md#in-a-friends-row)), and a `···` menu (the same entry, view their profile, remove them, block them) when the page gives its handlers; both are under the pointer and the focus, and always on a touch screen. An entry whose handler is missing is not drawn.
-- **Group:** the visitor's group and the way to invite a friend to it, or an empty state with none: see [Group](05-group.md). The tab is there when the page gives a group (`group`, null for none); left out, the panel has the other three.
+- **Friends:** the roster, game by game with the most crowded first and then, by status, the friends in no game. The head of a game folds its friends away and unfolds them, and a search shows what it finds whether its game is folded or not. A friend's row has the one button that does something about groups with them, Invite or Join (see [Groups in a friend's row](#groups-in-a-friends-row)), and a `···` menu (the same entry, view their profile, remove them, block them) when the page gives its handlers; both are under the pointer and the focus, and always on a touch screen. An entry whose handler is missing is not drawn.
 - **Conversations:** the picture and the dot of the friend, their name, the last message, how long ago it was written and how many are not read; the latest comes first. What is new is white and what was read is grey.
 - **Add a friend:** the username and the tag, then the requests that wait, the ones that came in first and then the ones that went out, each with its answer: white to accept, grey to decline or cancel. The form keeps what was typed when the page says the request was refused, and its button is off while the answer is awaited. A request that was sent, or that came in, is also a [toast](../03-overlays/05-toast.md) with the same answers.
 
 ```specimen
 social-tabs
 ```
+
+## Groups in a friend's row
+
+The panel has no tab for the visitor's group: a group is managed from the row of places of the home's play zone ([`PlayerSlots`](06-player-slots.md)). What the panel does about groups is on the rows of the friends, and in the invitations card.
+
+A friend's row has the one thing that can be done about groups with them (`groupActionOf` of `@pbgo/ui/friends`), as a button under the pointer and the focus and as the first entry of the `···` menu. The [chat window](#the-chat-window) has the same entry in its menu.
+
+| The friend | Button | Menu entry |
+| --- | --- | --- |
+| Connected, in no group | Invite | Invite to your group |
+| In another group | Join | Ask to join their group |
+| In the visitor's group | none | none |
+| Away, in no group | none: invite them from the [panel of friends](04-invite-friend.md#as-a-panel) of a free place | none |
+| Invited, or asked to let the visitor in | Invited or Requested, off | the same, off |
+
+- What waits for an answer stays in view and cannot be sent twice.
+- The quiet line under a friend's name says "In your group" or "In a group".
+- A friend's table is never joined from a row: only groups are.
+- An invitation to a group and a request to join one are rows of the [invitations card](#the-invitations-card) and the [toasts](../03-overlays/05-toast.md#about-a-person) that stay, answered with the same two buttons as an invitation to a table.
 
 ## The card under the pointer
 
