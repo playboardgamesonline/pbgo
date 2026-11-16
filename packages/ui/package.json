@@ -9,6 +9,7 @@
     "./game/*": "./src/game/*.tsx",
     "./groups": "./src/groups.ts",
     "./leaderboard": "./src/leaderboard.ts",
+    "./match-options": "./src/match-options.ts",
     "./motion": "./src/motion.ts",
     "./platform/*": "./src/platform/*.tsx",
     "./play-zone": "./src/play-zone.ts",

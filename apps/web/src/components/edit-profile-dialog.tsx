@@ -27,11 +27,10 @@ import { CountedTextarea } from "@pbgo/ui/platform/counted-textarea"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@pbgo/ui/platform/dialog"
 import { Field, FieldError, FieldLabel } from "@pbgo/ui/platform/field"
 import { Input } from "@pbgo/ui/platform/input"
-import { SearchSelect } from "@pbgo/ui/platform/search-select"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { toast } from "@pbgo/ui/platform/sonner"
 import { Spinner } from "@pbgo/ui/platform/spinner"
-import { CityField } from "@/components/city-field"
+import { LocationField } from "@/components/location-field"
 import { changing } from "@/lib/settings-change"
 import { messageOf } from "@/lib/table-door"
 import { rememberOwnHandle } from "@/lib/use-own-handle"
@@ -47,7 +46,7 @@ type Saved = { nickname: string; tag: number } & ProfileDetails
 const sameCity = (a: ProfileCity | null, b: ProfileCity | null): boolean => a?.name === b?.name && a?.country === b?.country
 
 /**
- * The Edit profile window of a member's own profile (`/me/profile` and their public page): their username and tag, their pronouns (a list), their country (searched in a list), their city (searched at Geoapify, never typed: `CityField`) and a short bio. The games they play the most are not picked here: what they played says it (`ProfileSections`). One Save sends
+ * The Edit profile window of a member's own profile (`/me/profile` and their public page): their username and tag, their pronouns (a list), where they are (`LocationField`: a city, searched at Geoapify and never typed, or a country alone) and a short bio. The games they play the most are not picked here: what they played says it (`ProfileSections`). One Save sends
  * what changed, and only that, to `POST /api/hub/profile`, which keeps it whole or not at all: the pair that somebody else has is told in place and nothing else is changed. The window closes on Save and the page behind it is drawn again (on the public page, the new
  * address when the pair changed). The account keeps a copy of the username for the navbar (`saveNickname`). The picture is the provider's and is not edited here. `address` says which page the member is on.
  */
@@ -253,44 +252,22 @@ export function EditProfileDialog({
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="profile-country">Country / region</FieldLabel>
-                <SearchSelect
-                  id="profile-country"
-                  className="ph-mask"
-                  options={countries.map((entry) => ({ value: entry.code, label: entry.name }))}
-                  value={country}
-                  onValueChange={(next) => {
-                    setCountry(next)
-                    // A city belongs to its country: another country, or none, takes it away
-                    if (city && city.country !== next) setCity(null)
+                <FieldLabel htmlFor="profile-location">Location</FieldLabel>
+                <LocationField
+                  id="profile-location"
+                  country={country}
+                  city={city}
+                  countries={countries}
+                  cities={cities}
+                  disabled={pending}
+                  onChange={(place) => {
+                    // A city comes with its country, and a country picked alone leaves no city
+                    setCountry(place.country)
+                    setCity(place.city)
                     setError(null)
                   }}
-                  placeholder="Not set"
-                  searchPlaceholder="Search countries..."
-                  empty="No country matches."
-                  clearLabel="Clear"
-                  disabled={pending}
-                  aria-label="Country / region"
                 />
               </Field>
-
-              {cities && (
-                <Field>
-                  <FieldLabel htmlFor="profile-city">City</FieldLabel>
-                  <CityField
-                    id="profile-city"
-                    city={city}
-                    country={country}
-                    disabled={pending}
-                    onCityChange={(next) => {
-                      setCity(next)
-                      // A city comes with its country
-                      if (next) setCountry(next.country)
-                      setError(null)
-                    }}
-                  />
-                </Field>
-              )}
 
               <Field data-invalid={bioProblem ? true : undefined}>
                 <FieldLabel htmlFor="profile-bio">Bio</FieldLabel>
