@@ -28,6 +28,7 @@ describe("what Linear should say", () => {
       ["catalog-entry", "Love Letter: catalog entry", "Todo", null, "Platform lane"],
       ["rules-spec", "Love Letter: rules spec", "Todo", null, "Game lane"],
       ["platform-assets", "Love Letter: platform assets", "Todo", null, "Platform lane"],
+      ["game-assets", "Love Letter: game assets", "Todo", null, "Game lane"],
     ])
     expect(made.issues.every((issue) => issue.comment === null)).toBe(true)
   })
@@ -35,7 +36,7 @@ describe("what Linear should say", () => {
   it("is written into the state from the answer, and then says nothing more", () => {
     const state = fresh()
     const made = order(state)
-    expect(applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec", "platform-assets"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), made)).toEqual([])
+    expect(applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec", "platform-assets", "game-assets"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), made)).toEqual([])
     expect(state.linear.parent).toMatchObject({ id: "id-parent", identifier: "GAM-41", title: "Love Letter: add the game", applied: "In Progress", commented: false })
     expect(state.linear.labelId).toBe("label-1")
     expect(stepOf(state, "scout").issue).toMatchObject({ identifier: "GAM-42", applied: "In Progress" })
@@ -44,7 +45,7 @@ describe("what Linear should say", () => {
 
   it("moves the next step to In Progress and comments the one that was validated, once", () => {
     const state = fresh()
-    applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec", "platform-assets"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
+    applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec", "platform-assets", "game-assets"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
     const scout = stepOf(state, "scout")
     scout.status = "validated"
     scout.validatedAt = "2026-11-16T10:05:00.000Z"
@@ -65,10 +66,10 @@ describe("what Linear should say", () => {
 
   it("renames the issues when the scout settled another name", () => {
     const state = fresh()
-    applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec", "platform-assets"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
+    applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec", "platform-assets", "game-assets"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
     state.name = "6 nimmt!"
     const made = order(state)
-    expect(made.issues.map((issue) => issue.wantTitle)).toEqual(["6 nimmt!: add the game", "6 nimmt!: scout", "6 nimmt!: catalog entry", "6 nimmt!: rules spec", "6 nimmt!: platform assets"])
+    expect(made.issues.map((issue) => issue.wantTitle)).toEqual(["6 nimmt!: add the game", "6 nimmt!: scout", "6 nimmt!: catalog entry", "6 nimmt!: rules spec", "6 nimmt!: platform assets", "6 nimmt!: game assets"])
     expect(made.issues.every((issue) => issue.id !== null)).toBe(true)
   })
 
@@ -76,12 +77,12 @@ describe("what Linear should say", () => {
     const state = fresh()
     for (const step of STEPS) stepOf(state, step.id).status = "validated"
     const made = order(state)
-    expect(made.issues.map((issue) => issue.wantState)).toEqual(["In Progress", "Done", "Done", "Done", "Done"])
+    expect(made.issues.map((issue) => issue.wantState)).toEqual(["In Progress", "Done", "Done", "Done", "Done", "Done"])
   })
 
   it("tells what the answer lacks", () => {
     const state = fresh()
-    expect(applyResult(state, answer(["parent", "scout"]), order(state))).toEqual(["no issue came back for catalog-entry", "no issue came back for rules-spec", "no issue came back for platform-assets"])
+    expect(applyResult(state, answer(["parent", "scout"]), order(state))).toEqual(["no issue came back for catalog-entry", "no issue came back for rules-spec", "no issue came back for platform-assets", "no issue came back for game-assets"])
     expect(applyResult(state, "nope", order(state))).toEqual(["the answer is not an object"])
   })
 

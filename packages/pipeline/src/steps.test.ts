@@ -3,14 +3,14 @@ import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { REPO_ROOT } from "./config.ts"
 import { PLATFORM_SANITY } from "./policy.ts"
-import { allowedTools, CATALOG_ENTRY, firstOpen, gameOf, PLATFORM_ASSETS, RULES_SPEC, SCOUT, STEPS } from "./steps.ts"
+import { allowedTools, CATALOG_ENTRY, firstOpen, GAME_ASSETS, gameOf, PLATFORM_ASSETS, RULES_SPEC, SCOUT, STEPS } from "./steps.ts"
 
 const game = gameOf("/assets", "Love Letter", "love-letter")
 const extras = { composioServer: "claude_ai_Composio", publishIds: [], gamesDocs: "/repo/docs/games" }
 
 describe("the steps", () => {
-  it("are the scout, the catalog entry, the rules spec, then the platform assets, each with the skill that is in the repo", () => {
-    expect(STEPS.map((step) => step.id)).toEqual(["scout", "catalog-entry", "rules-spec", "platform-assets"])
+  it("are the scout, the catalog entry, the rules spec, the platform assets, then the game assets, each with the skill that is in the repo", () => {
+    expect(STEPS.map((step) => step.id)).toEqual(["scout", "catalog-entry", "rules-spec", "platform-assets", "game-assets"])
     for (const step of STEPS) expect(existsSync(join(REPO_ROOT, step.skillFile)), step.skillFile).toBe(true)
     expect(new Set(STEPS.map((step) => step.id)).size).toBe(STEPS.length)
   })
@@ -21,13 +21,18 @@ describe("the steps", () => {
     expect(CATALOG_ENTRY.prompt(game)).toBe("/platform-catalog-entry /assets/love-letter/scout.json")
     expect(RULES_SPEC.prompt(game)).toBe("/game-rules-spec /assets/love-letter/scout.json")
     expect(PLATFORM_ASSETS.prompt(game)).toBe("/platform-assets /assets/love-letter/scout.json")
+    expect(GAME_ASSETS.prompt(game)).toBe("/game-assets love-letter")
   })
 
   it("are headless calls, but for the pictures: a session of the owner's, which has no policy and no list of tools", () => {
-    expect(STEPS.map((step) => step.mode)).toEqual(["headless", "headless", "headless", "session"])
+    expect(STEPS.map((step) => step.mode)).toEqual(["headless", "headless", "headless", "session", "session"])
     expect(PLATFORM_ASSETS.mode).toBe("session")
     expect(PLATFORM_ASSETS.folder(game)).toBe("/assets/love-letter/platform")
     expect(PLATFORM_ASSETS.lane).toBe("Platform lane")
+    expect(GAME_ASSETS.mode).toBe("session")
+    expect(GAME_ASSETS.lane).toBe("Game lane")
+    // the art folder of the game is its folder of working files, outside the repo: the seed reads it there
+    expect(GAME_ASSETS.folder(game)).toBe("/assets/love-letter")
     expect(Object.keys(PLATFORM_ASSETS).sort()).toEqual(["folder", "gates", "id", "lane", "mode", "prompt", "skill", "skillFile", "title"])
   })
 
@@ -36,6 +41,11 @@ describe("the steps", () => {
     expect(CATALOG_ENTRY.gates).toEqual(["validate", "publish"])
     expect(RULES_SPEC.gates).toEqual(["validate"])
     expect(PLATFORM_ASSETS.gates).toEqual(["validate"])
+    expect(GAME_ASSETS.gates).toEqual(["validate"])
+  })
+
+  it("say which of them wait for the game's folder in the repo: the game assets do, the ones before do not", () => {
+    expect(STEPS.map((step) => [step.id, step.needsFolder === true])).toEqual([["scout", false], ["catalog-entry", false], ["rules-spec", false], ["platform-assets", false], ["game-assets", true]])
   })
 
   it("allow by name the read-only tools, and Composio's lookup tools to the step that uses Composio, never its executor", () => {
@@ -82,6 +92,7 @@ describe("the steps", () => {
     expect(firstOpen((id) => id === "scout")?.id).toBe("catalog-entry")
     expect(firstOpen((id) => id !== "rules-spec")?.id).toBe("rules-spec")
     expect(firstOpen((id) => id !== "platform-assets")?.id).toBe("platform-assets")
+    expect(firstOpen((id) => id !== "game-assets")?.id).toBe("game-assets")
     expect(firstOpen(() => true)).toBeUndefined()
   })
 })

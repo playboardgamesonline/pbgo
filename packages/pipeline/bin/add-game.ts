@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { parseCli, USAGE } from "../src/cli.ts"
 import { runCheck } from "../src/commands.ts"
 import { runClaude, runSession } from "../src/claude.ts"
-import { assetsRoot, checkPicturesBin, checkRulesBin, checkScoutBin, claudeBin, REPO_ROOT } from "../src/config.ts"
+import { assetsRoot, checkArtBin, checkPicturesBin, checkRulesBin, checkScoutBin, claudeBin, REPO_ROOT } from "../src/config.ts"
 import { DownloadError, downloadPdf } from "../src/download.ts"
 import { makeIo } from "../src/io.ts"
 import { EXIT, listPipeline, runPipeline, type CheckResult, type Deps, type RulebookFetch } from "../src/pipeline.ts"
@@ -48,6 +48,27 @@ async function checkPictures(slug: string): Promise<CheckResult> {
   return { ok: result.code === 0, lines: lines.length > 0 ? lines : [result.code === 0 ? "ok" : "failed"] }
 }
 
+/**
+ * What the game's own seed says of its art folder: a dry run on it, which writes nothing, and of its report the "Art" part (which slots have a file, which have none, which files match no slot). A seed
+ * that cannot be run (no `content/seed.ts`, no token) is the one thing that fails the check: the owner may leave slots empty.
+ */
+async function checkArt(slug: string, dir: string): Promise<CheckResult> {
+  const bin = checkArtBin(env)
+  const result = bin
+    ? await exec(bin, [slug, dir], { cwd: REPO_ROOT, timeoutMs: 180_000 })
+    : await exec("pnpm", ["-C", `games/${slug}`, "content:seed", "--dry-run", "--art-dir", dir], { cwd: REPO_ROOT, timeoutMs: 180_000 })
+  const all = `${result.stdout}\n${result.stderr}`
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => !line.startsWith("$ ") && !line.startsWith("> "))
+  const start = all.findIndex((line) => line.startsWith("Art ("))
+  const block = start < 0 ? [] : all.slice(start)
+  const end = block.findIndex((line) => line.trim() === "")
+  const art = end === -1 ? block : block.slice(0, end)
+  const lines = art.length > 0 ? art : all.filter((line) => line.trim() !== "").slice(-8)
+  return { ok: result.code === 0, lines: lines.length > 0 ? lines : [result.code === 0 ? "ok" : "failed"] }
+}
+
 /** The rulebook the scout found, fetched to a file by the command itself (`download.ts` says how it is bounded). */
 async function fetchRulebook(url: string, dest: string): Promise<RulebookFetch> {
   try {
@@ -79,6 +100,7 @@ const deps: Deps = {
   checkRules,
   fetchRulebook,
   checkPictures,
+  checkArt,
   session: runSession,
   stageOf,
   verifyPublished: (ids) => missingPublished(ids, { base: env.PBGO_SANITY_API_BASE }),

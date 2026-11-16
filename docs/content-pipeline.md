@@ -127,7 +127,7 @@ Undoing a first run: discard the drafts it listed in the Studio. Uploaded images
 
 ## Art
 
-The seed does not make art and does not fetch it. It takes the files someone gives it.
+The seed does not make art and does not fetch it. It takes the files someone gives it. The skill `game-assets` (`.claude/skills/game-assets`, a session of the owner's own, the step `pnpm add-game` opens after the game's folder) does the steps below with the owner: it sorts their files into the folder, runs the dry run and uploads on their yes.
 
 1. Put the images in one folder outside the repo (Hanabi: `~/Companies/PBGO/assets/hanabi`, the same folder as the raw files; Exploding Kittens: `~/Companies/PBGO/assets/exploding-kittens`). The seed only reads it: it never writes, moves or deletes anything there. Only the top level is read, so files kept in a sub-folder (the Exploding Kittens spec keeps its cards in `cards/`) are copied next to the others. Files starting with a dot are skipped, and a file whose name is not a slot is only listed.
 2. Name each file after its slot (tables below). Case does not matter, and spaces and underscores count as hyphens: `Card_Red 3.PNG` is `card-red-3.png`, and the names of the Exploding Kittens spec (`DEFUSE_3`, `TACOCAT`, `BACK`) fill their slots as they are.

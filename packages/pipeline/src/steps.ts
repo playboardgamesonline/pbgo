@@ -39,6 +39,8 @@ type StepBase = {
   gates: GateKind[]
   /** the first message of the step: the skill, as a slash command */
   prompt: (game: Game) => string
+  /** the step works in the game's folder of the repo (`games/<slug>`, which `game-new` makes): the command stops before it while the game has none */
+  needsFolder?: boolean
 }
 
 /** One call that works alone (`claude -p`), bounded by what its policy allows. */
@@ -146,7 +148,21 @@ export const PLATFORM_ASSETS: SessionStep = {
   folder: (game) => game.picturesDir,
 }
 
-export const STEPS: readonly StepDefinition[] = [SCOUT, CATALOG_ENTRY, RULES_SPEC, PLATFORM_ASSETS]
+export const GAME_ASSETS: SessionStep = {
+  id: "game-assets",
+  mode: "session",
+  title: "game assets",
+  skill: "game-assets",
+  lane: "Game lane",
+  skillFile: ".claude/skills/game-assets/SKILL.md",
+  gates: ["validate"],
+  // the game has its folder, its Sanity project and the slots of its seed: the skill sorts the owner's files into the art folder and the seed uploads them, in the session, after the owner's yes
+  needsFolder: true,
+  prompt: (game) => `/game-assets ${game.slug}`,
+  folder: (game) => game.dir,
+}
+
+export const STEPS: readonly StepDefinition[] = [SCOUT, CATALOG_ENTRY, RULES_SPEC, PLATFORM_ASSETS, GAME_ASSETS]
 
 /** The tools a call is allowed by name: the read-only ones. Everything that writes or runs something is allowed by the hook alone, so that a hook that does not load refuses it. */
 export function allowedTools(step: HeadlessStep, composioPrefix: string): string[] {

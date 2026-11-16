@@ -22,6 +22,8 @@ export type CallSpec = {
   writes?: { path: string; content: string }[]
   /** a session of the owner's (no `-p`) that leaves the stand-in for the check of the pictures saying this: the exit code and the lines */
   pictures?: { exit: number; lines: string[] }
+  /** same, for the stand-in of the dry run of a game's seed on its art folder */
+  art?: { exit: number; lines: string[] }
   tools?: { name: string; input?: Record<string, unknown> }[]
   denials?: { tool: string; input?: Record<string, unknown>; reason?: string; hook?: boolean }[]
   structured?: unknown
@@ -111,6 +113,7 @@ export async function runCli(options: RunOptions): Promise<Run> {
   executable(join(bin, "check-scout"), `#!/bin/sh\nexec "${process.execPath}" "${join(PACKAGE, "test", "fake-check-scout.mjs")}" "$@"\n`)
   // the check of a spec is the real one (`pnpm check:rules` without pnpm), reading the specs of the temporary world
   executable(join(bin, "check-pictures"), `#!/bin/sh\nexec "${process.execPath}" "${join(PACKAGE, "test", "fake-check-pictures.mjs")}" "$@"\n`)
+  executable(join(bin, "check-art"), `#!/bin/sh\nexec "${process.execPath}" "${join(PACKAGE, "test", "fake-check-art.mjs")}" "$@"\n`)
   executable(join(bin, "check-rules"), `#!/bin/sh\nexec "${process.execPath}" --disable-warning=ExperimentalWarning "${join(REPO, "packages", "games", "scripts", "check-rules.ts")}" "$@"\n`)
   writeFileSync(join(base, "scenario.json"), JSON.stringify(options.scenario ?? {}))
   // a log and a list of the calls already answered for each run, so that a run that comes back to the same world reads only its own
@@ -126,6 +129,8 @@ export async function runCli(options: RunOptions): Promise<Run> {
     PBGO_CHECK_SCOUT_BIN: join(bin, "check-scout"),
     PBGO_CHECK_RULES_BIN: join(bin, "check-rules"),
     PBGO_CHECK_PICTURES_BIN: join(bin, "check-pictures"),
+    PBGO_CHECK_ART_BIN: join(bin, "check-art"),
+    FAKE_ART_FILE: join(base, "art.json"),
     FAKE_PICTURES_FILE: join(base, "pictures.json"),
     PBGO_GAMES_DOCS_DIR: docs,
     // no test fetches a rulebook from the network: one that wants to see the fetch tried sets this to "" and an address that cannot be resolved (.invalid)
@@ -210,7 +215,7 @@ export function scoutJson(name: string, slug: string, extra: Record<string, unkn
 
 /** What a bookkeeping call answers: the ids of the issues it made or moved. */
 export function linearAnswer(keys: string[], state: Record<string, string> = {}, extra: { commented?: string[] } = {}): unknown {
-  const number = (key: string) => 40 + ["parent", "scout", "catalog-entry", "rules-spec", "platform-assets"].indexOf(key)
+  const number = (key: string) => 40 + ["parent", "scout", "catalog-entry", "rules-spec", "platform-assets", "game-assets"].indexOf(key)
   return {
     labelId: "label-1",
     issues: keys.map((key) => ({

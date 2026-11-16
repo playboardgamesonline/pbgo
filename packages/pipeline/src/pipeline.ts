@@ -66,6 +66,8 @@ export type Deps = {
   fetchRulebook: (url: string, dest: string) => Promise<RulebookFetch>
   /** which pictures the published entry of a game has in the platform's Sanity (`pnpm catalog:pictures <slug>`) */
   checkPictures: (slug: string) => Promise<CheckResult>
+  /** what the game's own seed says of the art folder, in a dry run (`pnpm -C games/<slug> content:seed --dry-run --art-dir <folder>`): its "Art" part */
+  checkArt: (slug: string, dir: string) => Promise<CheckResult>
   /** a session of Claude Code on the owner's terminal, until they leave it */
   session: (options: SessionRunOptions) => Promise<SessionOutcome>
   /** the stage `pnpm check:game` gives a game that has a folder */
@@ -420,6 +422,15 @@ function stampSpec(ctx: Ctx): string | null {
   }
 }
 
+// ---------- the art ----------
+
+/** What the game's seed says of its art folder in a dry run: which slots have a file, which have none, which files match no slot. The owner may leave slots empty: only a seed that cannot run is refused. */
+async function checkArtStep(ctx: Ctx): Promise<void> {
+  const s = stepOf(ctx.state, "game-assets")
+  const verdict = await ctx.deps.checkArt(ctx.state.slug, ctx.game.dir)
+  s.check = { ok: verdict.ok, lines: verdict.lines }
+}
+
 // ---------- the pictures ----------
 
 /** What the platform's public API says of the entry of the game once the session is over: published, and which of the five pictures it has (`pnpm catalog:pictures <slug>`). */
@@ -575,6 +586,7 @@ async function afterCall(ctx: Ctx, step: StepDefinition): Promise<void> {
   if (step.id === "scout") await checkScoutStep(ctx)
   if (step.id === "rules-spec") await checkRulesStep(ctx)
   if (step.id === "platform-assets") await checkPicturesStep(ctx)
+  if (step.id === "game-assets") await checkArtStep(ctx)
 }
 
 async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
@@ -584,7 +596,7 @@ async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
   for (;;) {
     const gate = step.gates[s.gate] ?? "validate"
     if (gate === "publish") io.out(`${pal.bold("publish")} · b to change something · q stops (the drafts stay)`)
-    else io.out(`${pal.bold("validate")}${step.gates.length > 1 ? " (the drafts are right)" : ""} · or type what to change · ${step.id === "catalog-entry" ? "o opens the draft · " : step.id === "rules-spec" ? "o opens the spec · " : step.id === "platform-assets" ? "o opens the pictures · " : ""}q stops (everything is saved)`)
+    else io.out(`${pal.bold("validate")}${step.gates.length > 1 ? " (the drafts are right)" : ""} · or type what to change · ${step.id === "catalog-entry" ? "o opens the draft · " : step.id === "rules-spec" ? "o opens the spec · " : step.id === "platform-assets" ? "o opens the pictures · " : step.id === "game-assets" ? "o opens the art folder · " : ""}q stops (everything is saved)`)
     const line = await io.ask("> ")
     if (line === null) {
       io.out("")
@@ -622,6 +634,15 @@ async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
           const problem = settleScout(ctx)
           if (problem) {
             io.out(pal.red(`✗ ${problem}`))
+            break
+          }
+        }
+        if (step.id === "game-assets") {
+          // the seed is asked again: the owner may have changed the folder since the session ended
+          await checkArtStep(ctx)
+          if (!s.check?.ok) {
+            for (const line of s.check?.lines ?? []) io.out(`${pal.red("✗")} ${tildeAll(line)}`)
+            io.out(pal.red("✗ The game's seed cannot be run on the art folder: type what to change (a session opens again with your message)."))
             break
           }
         }
@@ -751,10 +772,18 @@ function printNext(ctx: Ctx): void {
   const rulebook = existsSync(ctx.game.rulesPdf) && language !== null && RULEBOOK_LANGUAGES.includes(language) ? `${language}=${ctx.game.rulesPdf}` : "en=<the rulebook PDF>"
   io.out(`  pnpm add-game ${state.slug} --name ${shellQuote(state.name)} --rules ${shellQuote(rulebook)}`)
   if (scout?.edition.rules) io.out(pal.dim(`  rulebook found by the scout: ${scout.edition.rules.url} (${scout.edition.rules.language}${scout.edition.rules.version ? `, ${scout.edition.rules.version}` : ""})`))
-  io.out("Then /game-new proposes the fields of its Studio, and the engine is written from the spec (/engine-rules).")
+  io.out(`Then /game-new proposes the fields of its Studio (/game-sanity-create). Once the folder is there, \`pnpm add-game ${shellQuote(state.name)}\` comes back to this game: its next step is its art (/game-assets), and the engine is written from the spec (/engine-rules).`)
 }
 
-/** The game has a folder in the repo: its stages are `pnpm check:game`'s, this command has nothing to add. */
+/** Every step of the pipeline is validated for a game that has its folder: what comes after is `pnpm check:game`'s (the engine, the board, the content, going live). */
+function printDone(ctx: Ctx): void {
+  const { io, pal, state } = ctx
+  io.out("")
+  io.out(rule(`${state.name}: every step of the command is validated`, pal))
+  io.out(`What comes next is the game's own work, step by step: \`pnpm check:game ${state.slug}\` says which (the engine, the board, the content, going live), and the skill of each says how.`)
+}
+
+/** The game has a folder in the repo and was not added by this command: its stages are `pnpm check:game`'s, this command has nothing to add. */
 async function folderCase(args: { io: Io; deps: Deps; pal: Palette; slug: string; state: PipelineState | null }): Promise<number> {
   const { io, deps, pal, slug, state } = args
   const stage = await deps.stageOf(slug)
@@ -784,7 +813,9 @@ export async function runPipeline(opts: Options, io: Io, deps: Deps): Promise<nu
     return EXIT.usage
   }
   const slug = found?.state.slug ?? slugFromName(name)
-  if (existsSync(join(deps.repoRoot, "games", slug))) return folderCase({ io, deps, pal, slug, state: found?.state ?? null })
+  // a game that has a folder and that the pipeline did not add is not scouted: `check:game` says where it stands. A game the pipeline added goes on, its folder made by the steps before
+  const folder = () => existsSync(join(deps.repoRoot, "games", slug))
+  if (folder() && !found) return folderCase({ io, deps, pal, slug, state: null })
 
   const check = await preflight({ exec: deps.exec, env: deps.env, repoRoot: deps.repoRoot, claudeBin: deps.claudeBin, needsComposio: true })
   if (/[^A-Za-z0-9._/~@%+=,:-]/.test(deps.assets)) check.problems.push(`the folder of the games' files (${deps.assets}) has a space or a special character in its path: the skills take it as one word, set PBGO_ASSETS_DIR to a plain path`)
@@ -845,13 +876,19 @@ export async function runPipeline(opts: Options, io: Io, deps: Deps): Promise<nu
     if ((await syncLinear(ctx, found ? "bringing the issues up to date" : "making the issues")) === "interrupted") return EXIT.interrupted
 
     for (const step of STEPS) {
+      // a step that works in the game's folder waits for it: the command says what makes it and stops, and the same command comes back to the step once the folder is there
+      if (step.needsFolder && stepOf(state, step.id).status !== "validated" && !folder()) {
+        printNext(ctx)
+        return EXIT.ok
+      }
       const outcome = await runStep(ctx, step)
       if (outcome === "validated") continue
       if (outcome === "interrupted") return EXIT.interrupted
       if (outcome === "eof") return EXIT.noInput
       return outcome === "failed" ? EXIT.failed : EXIT.ok
     }
-    printNext(ctx)
+    if (folder()) printDone(ctx)
+    else printNext(ctx)
     return EXIT.ok
   } finally {
     process.off("exit", release)
