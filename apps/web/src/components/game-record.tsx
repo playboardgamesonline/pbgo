@@ -6,6 +6,7 @@ import { Badge } from "@pbgo/ui/platform/badge"
 import { Button } from "@pbgo/ui/platform/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@pbgo/ui/platform/hover-card"
 import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@pbgo/ui/platform/item"
+import { Separator } from "@pbgo/ui/platform/separator"
 import { UserCard } from "@pbgo/ui/platform/user-card"
 import { QUEUE_MODE_LABELS } from "@pbgo/ui/queue"
 import { pointsLabel, pointsTone } from "@pbgo/ui/results"
@@ -16,6 +17,9 @@ import { Duration, PaceFact, PlayerCount } from "./played-game-bits"
 
 /** How many of the others at a table are drawn as pictures: a table has ten seats at the most, and a row is not the place to list them. */
 const PICTURES_MAX = 6
+
+/** Where the visitor came, with the score after it in brackets: quiet, and on one line. */
+const PLACE = "text-sm whitespace-nowrap text-muted-foreground"
 
 /** The picture of a game, from the catalog's route (the game's icon): the first letters of its name when the game has none. A tile (`rounded-tile`), never a circle: only the picture of a person is round. 2.5rem unless `className` gives it another size. */
 export function GameThumb({ slug, name, className }: { slug: string; name: string; className?: string }) {
@@ -81,11 +85,14 @@ function Opponents({ opponents }: { opponents: PlayedGame["opponents"] }) {
 
 /**
  * One game of a visitor, as a row, in the language of the recent games of a game's page (`GamePlayerBar`, which shares its small facts: `played-game-bits.tsx`): the game with how its table counted ("Ranked", gold, or "Normal"), under it when it was played (the time written
- * as the member chose, `timeFormat`), how long it lasted, the speed, the score where the game counts points and the expansions it was played with; at the right how many sat at the table with their pictures (the others: no names here, their card is under the pointer), where
- * the visitor came, and the rank points it gave or took. A game in progress (its table, and a button to go back to it) has none of that yet; a game with no place (played together) says how it ended instead.
+ * as the member chose, `timeFormat`), how long it lasted, the speed and the expansions it was played with, on one baseline; at the right how many sat at the table with their pictures (the others: no names here, their card is under the pointer), a line, then where
+ * the visitor came with the score after it in brackets where the game counts points ("1st (32pts)"), and the rank points it gave or took. A game in progress (its table, and a button to go back to it) has none of that yet; a game with no place (played together) says how it ended instead.
  */
 export function GameRecord({ game, timeFormat = "auto" }: { game: PlayedGame; timeFormat?: TimeFormat }) {
   const players = game.playerCount ?? game.opponents.length + 1
+  // The score of a game that counts points, in brackets after where the visitor came: "1st (32pts)"
+  const score = game.score !== undefined ? `(${game.score}pts)` : null
+  const hasResult = game.rank !== undefined || game.result !== undefined || score !== null || game.points !== undefined
   return (
     <Item size="sm">
       <ItemMedia>
@@ -104,7 +111,6 @@ export function GameRecord({ game, timeFormat = "auto" }: { game: PlayedGame; ti
           <time dateTime={game.playedAt}>{gameDate(game.playedAt, timeFormat)}</time>
           {game.durationSeconds !== undefined && <Duration seconds={game.durationSeconds} />}
           {game.pace !== undefined && <PaceFact value={game.pace} className="text-xs" />}
-          {game.score !== undefined && <span className="text-xs tabular-nums">Score {game.score}</span>}
           {game.expansions && game.expansions.length > 0 && (
             <span className="max-w-full truncate text-xs" title={game.expansions.join(", ")}>
               + {game.expansions.join(", ")}
@@ -127,14 +133,24 @@ export function GameRecord({ game, timeFormat = "auto" }: { game: PlayedGame; ti
             )}
           </>
         ) : (
-          <>
-            {game.rank !== undefined ? <span className="text-sm text-muted-foreground">{ordinal(game.rank)}</span> : game.result && <ResultBadge result={game.result} />}
-            {game.points !== undefined && (
-              <Badge variant={pointsTone(game.points)} className="tabular-nums">
-                {pointsLabel(game.points)}
-              </Badge>
-            )}
-          </>
+          hasResult && (
+            <>
+              <Separator orientation="vertical" className="h-6 self-center" />
+              {game.rank !== undefined ? (
+                <span className={PLACE}>{score === null ? ordinal(game.rank) : `${ordinal(game.rank)} ${score}`}</span>
+              ) : (
+                <>
+                  {game.result && <ResultBadge result={game.result} />}
+                  {score !== null && <span className={PLACE}>{score}</span>}
+                </>
+              )}
+              {game.points !== undefined && (
+                <Badge variant={pointsTone(game.points)} className="tabular-nums">
+                  {pointsLabel(game.points)}
+                </Badge>
+              )}
+            </>
+          )
         )}
       </ItemActions>
     </Item>

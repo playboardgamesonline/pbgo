@@ -10,26 +10,32 @@ import { findGame } from "@pbgo/games/registry"
 import { Button } from "@pbgo/ui/platform/button"
 import { Logo } from "@pbgo/ui/platform/logo"
 import { Navbar, NavbarBack, NavbarBrand, NavbarEnd, NavbarSeparator, NavbarStart, NavbarTab, NavbarTabs } from "@pbgo/ui/platform/navbar"
+import { cn } from "@pbgo/ui/utils"
 import { SiteSocial } from "@/components/site-social"
 import { PRICING_OPEN, SITE_NAME } from "@/site"
 
 /**
- * The tabs of the navbar, in order, each with the page it leads to and its `group`: the ones for playing, then the ones about the site, with a hairline between the two groups (`NavbarSeparator`).
- * The home is the logo's, not a tab's. The tabs about the site leave the bar under `lg` (they would not fit between the logo and the account on a tablet): the ones for playing stay.
- * The Pricing tab is drawn only while the page is open (`PRICING_OPEN`, which it is not for now).
+ * The tabs of the navbar, in order, each with the page it leads to and its `group`: the ones for playing, then the member's own (Profile and Career, for a visitor who is signed in: a visitor who is not has no page of the kind), then the ones about the site,
+ * with a hairline between the groups (`NavbarSeparator`). The home is the logo's, not a tab's. The tabs about the site leave the bar under `lg` and the member's own under `xl` (they would not fit between the logo and the dock of the account, which is wide
+ * when a member's friends are in games: `TAB_ROOM`): the ones for playing stay, and the account menu leads to the member's own pages. The Pricing tab is drawn only while the page is open (`PRICING_OPEN`, which it is not for now).
  */
 const TABS = [
   { id: "games", label: "Games", href: "/games", group: "play" },
   { id: "tables", label: "Tables", href: "/tables", group: "play" },
   { id: "tournaments", label: "Tournaments", href: "/tournaments", group: "play" },
+  { id: "profile", label: "Profile", href: "/me/profile", group: "member" },
+  { id: "career", label: "Career", href: "/me/career", group: "member" },
   { id: "about", label: "About", href: "/about", group: "about" },
   { id: "pricing", label: "Pricing", href: "/pricing", group: "about" },
 ] as const
 
 const SITE_TABS = TABS.filter((tab) => tab.id !== "pricing" || PRICING_OPEN)
 
-/** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`, `profile`, `docs`: pages that have the bar and no tab). */
-type SiteCurrent = (typeof TABS)[number]["id"] | "home" | "account" | "profile" | "docs"
+/** From which width the tabs of a group are drawn: the ones for playing always, the ones about the site from `lg`, the member's own from `xl`. */
+const TAB_ROOM = { play: undefined, about: "max-lg:hidden", member: "max-xl:hidden" } as const
+
+/** What the bar marks as current: a tab, or the logo (`home`, the front page, which no tab leads to), or nothing (`account`, `player`, `docs`: pages that have the bar and no tab). */
+type SiteCurrent = (typeof TABS)[number]["id"] | "home" | "account" | "player" | "docs"
 
 /**
  * The address the bar reads. Once Vercel has regenerated the front page in the background, the server renders it at `/index` (the route in the page's flight data
@@ -42,14 +48,14 @@ const addressOf = (pathname: string) => (pathname === "/index" ? "/" : pathname)
 const isGamePage = (pathname: string) => pathname.startsWith("/game/") || findGame(pathname.replace(/^\/|\/$/g, "")) !== null
 
 /**
- * What the bar marks as current on a page of the hub, from its address: the logo on the front page, a tab on the page of that tab, Games on a
- * game's page on the hub (`/game/<slug>`, or `/<slug>`), and nothing on the pages of an account (`/me`), a public profile (`/player/<nickname>-<tag>`) and the way into the docs (`/docs`), which have the bar and no tab. `null` on a
+ * What the bar marks as current on a page of the hub, from its address: the logo on the front page, a tab on the page of that tab (Profile and Career on the member's own pages, `/me/profile` and `/me/career`), Games on a
+ * game's page on the hub (`/game/<slug>`, or `/<slug>`), and nothing on the other pages of an account (`/me`: the settings, when their address is the page), a public profile (`/player/<nickname>-<tag>`) and the way into the docs (`/docs`), which have the bar and no tab. `null` on a
  * page that has no bar (the sign-in and the sign-up, which are a page of their own with the logo alone (`AuthShell`), the pages of a doc, which have a side menu of their own, the legal pages, the 404).
  */
 function currentOf(pathname: string): SiteCurrent | null {
   if (pathname === "/" || pathname === "/home") return "home"
-  if (pathname === "/me" || pathname.startsWith("/me/")) return "account"
-  if (pathname.startsWith("/player/")) return "profile"
+  if (pathname === "/me" || pathname.startsWith("/me/")) return SITE_TABS.find((tab) => tab.href === pathname)?.id ?? "account"
+  if (pathname.startsWith("/player/")) return "player"
   if (pathname === "/docs") return "docs"
   if (isGamePage(pathname)) return "games"
   return SITE_TABS.find((tab) => tab.href === pathname)?.id ?? null
@@ -65,7 +71,7 @@ function currentOf(pathname: string): SiteCurrent | null {
  * The account is on the right: Sign in (to `/login`, which brings the visitor back to this page) and Let's play (to the sign-up, `/signup?next=/games`: a visitor who is not signed in has no account yet, and the new account lands on the games), or, once the
  * browser has read a session, the dock of their friends (`SiteSocial`: one container that is a bar, with the games their friends are in, their picture and the button of the panel, and that grows into a side panel, with the friends, the messages and the requests).
  * The server renders every page as if nobody were signed in, so the static pages stay static; while the browser has not read its session the two buttons keep
- * their place but are not drawn, so a signed-in visitor never sees them flash.
+ * their place but are not drawn, so a signed-in visitor never sees them flash. The member's tabs (Profile and Career) come with the dock, once the browser has read a session: the bar the server drew has none, as it has no account.
  */
 export function SiteHeader() {
   const address = addressOf(usePathname())
@@ -78,6 +84,8 @@ export function SiteHeader() {
   const account = useAccount()
   if (current === null) return null
   const hidden = account.status === "loading" ? "invisible" : undefined
+  // The tabs the visitor has: the member's own are for a signed-in visitor alone
+  const tabs = SITE_TABS.filter((tab) => tab.group !== "member" || account.status === "signed-in")
   // A game's page has the way back to the games in an island of its own, at the left of the first one, from `sm`: on a phone the bar has no room for it next to the dock, and the head of the page has the way back itself
   const back = isGamePage(pathname)
 
@@ -98,14 +106,18 @@ export function SiteHeader() {
             </Link>
           </NavbarBrand>
           <NavbarTabs aria-label="Main">
-            {SITE_TABS.map((tab, index) => (
-              <Fragment key={tab.id}>
-                {index > 0 && SITE_TABS[index - 1].group !== tab.group && <NavbarSeparator className="max-lg:hidden" />}
-                <NavbarTab asChild current={tab.id === current} className={tab.group === "about" ? "max-lg:hidden" : undefined}>
-                  <Link href={tab.href}>{tab.label}</Link>
-                </NavbarTab>
-              </Fragment>
-            ))}
+            {tabs.map((tab, index) => {
+              const previous = tabs[index - 1]
+              // Between two groups, a hairline; the one after the member's tabs goes with them, so that where they are not drawn the first one stands between the tabs for playing and the ones about the site
+              return (
+                <Fragment key={tab.id}>
+                  {previous && previous.group !== tab.group && <NavbarSeparator className={cn("max-lg:hidden", previous.group === "member" && "max-xl:hidden")} />}
+                  <NavbarTab asChild current={tab.id === current} className={TAB_ROOM[tab.group]}>
+                    <Link href={tab.href}>{tab.label}</Link>
+                  </NavbarTab>
+                </Fragment>
+              )
+            })}
           </NavbarTabs>
         </NavbarStart>
       </div>
