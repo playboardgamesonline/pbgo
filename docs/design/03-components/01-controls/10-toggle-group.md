@@ -14,7 +14,7 @@ toggle-group-single
 
 ## Segmented
 
-`variant="segmented"` puts the chips in one container, as the tabs of a tab list are, with a primary thumb that glides to the picked chip (`SPRING_TRAVEL`; it jumps when less motion is asked for). For a choice of a few words that a form is about, such as a speed. A chip that should be narrower, an icon alone, is `fit`; its name is then for a screen reader and the pointer (`aria-label`, `title`).
+`variant="segmented"` puts the chips in one container, as the tabs of a tab list are, with a primary thumb that glides to the picked chip (`SPRING_TRAVEL`; it jumps when less motion is asked for). For a choice of a few words that a form is about, such as a speed. A chip that should be narrower, an icon alone, is `fit`; its name is then for a screen reader and the pointer (`aria-label`, `title`). The thumb takes the corner of the chip it is behind, so a taller chip, such as the [mode switch](16-mode-switch.md)'s, gives it the corner it sets.
 
 ```specimen
 toggle-group-segmented

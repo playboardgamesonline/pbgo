@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Search01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { Link01Icon, Search01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { initials, statusLine, suggestionsOf, type Friend } from "../friends"
 import { cn } from "../utils"
@@ -22,19 +22,25 @@ type InviteFriendListProps = {
   onInvite: (friend: Friend) => void | boolean | Promise<boolean | void>
   /** The friends who were invited already (by id), shown as "Invited". */
   invited?: ReadonlySet<string>
+  /** At most this many friends are listed, the connected ones first, and a line says how many the search will find: for a list in a small panel. None: all of them. */
+  limit?: number
+  /** The words of the button of a row and of its done state: "Invite" and "Invited" unless the page says more ("Add" and "Added", for a table that does not exist yet). */
+  labels?: { action: string; done: string }
   className?: string
 }
 
 type RowState = "sending" | "sent"
 
-function InviteRow({ friend, state, onPress }: { friend: Friend; state?: RowState; onPress: () => void }) {
+const INVITE_LABELS = { action: "Invite", done: "Invited" }
+
+function InviteRow({ friend, state, labels, onPress }: { friend: Friend; state?: RowState; labels: { action: string; done: string }; onPress: () => void }) {
   const line = statusLine(friend)
   return (
     <li data-slot="invite-friend" data-status={friend.status} data-state={state}>
       <button
         type="button"
         disabled={state !== undefined}
-        aria-label={state === "sent" ? `${friend.nickname} is invited` : `Invite ${friend.nickname}`}
+        aria-label={state === "sent" ? `${friend.nickname} is ${labels.done.toLowerCase()}` : `${labels.action} ${friend.nickname}`}
         onClick={onPress}
         className="group/invite flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-default disabled:hover:bg-transparent"
       >
@@ -59,7 +65,7 @@ function InviteRow({ friend, state, onPress }: { friend: Friend; state?: RowStat
         >
           {state === "sending" && <Spinner className="size-3" />}
           {state === "sent" && <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} className="size-3.5" />}
-          {state === "sending" ? "Sending…" : state === "sent" ? "Invited" : "Invite"}
+          {state === "sending" ? "Sending…" : state === "sent" ? labels.done : labels.action}
         </span>
       </button>
     </li>
@@ -67,10 +73,15 @@ function InviteRow({ friend, state, onPress }: { friend: Friend; state?: RowStat
 }
 
 /** What the picker lists, with its search: it is the content of the window, and is drawn on its own by the design docs. */
-function InviteFriendList({ friends, onInvite, invited, className }: InviteFriendListProps) {
+function InviteFriendList({ friends, onInvite, invited, limit, labels = INVITE_LABELS, className }: InviteFriendListProps) {
   const [query, setQuery] = React.useState("")
   const [rows, setRows] = React.useState<Record<string, RowState>>({})
-  const { online, offline } = suggestionsOf(friends, query)
+  const found = suggestionsOf(friends, query)
+  // With a limit the connected friends come first and the away ones fill what is left; the search finds the rest
+  const room = limit === undefined ? Infinity : Math.max(0, limit)
+  const online = found.online.slice(0, room)
+  const offline = found.offline.slice(0, Math.max(0, room - online.length))
+  const hidden = found.online.length + found.offline.length - online.length - offline.length
   const stateOf = (friend: Friend): RowState | undefined => rows[friend.id] ?? (invited?.has(friend.id) ? "sent" : undefined)
 
   const press = async (friend: Friend) => {
@@ -89,7 +100,7 @@ function InviteFriendList({ friends, onInvite, invited, className }: InviteFrien
         <h3 className="px-2 text-xs text-muted-foreground">{label}</h3>
         <ul className="flex flex-col">
           {list.map((friend) => (
-            <InviteRow key={friend.id} friend={friend} state={stateOf(friend)} onPress={() => void press(friend)} />
+            <InviteRow key={friend.id} friend={friend} state={stateOf(friend)} labels={labels} onPress={() => void press(friend)} />
           ))}
         </ul>
       </section>
@@ -106,6 +117,11 @@ function InviteFriendList({ friends, onInvite, invited, className }: InviteFrien
       <div className="flex max-h-80 min-h-0 flex-col gap-4 overflow-y-auto">
         {section("Online", online)}
         {section("Offline", offline)}
+        {hidden > 0 && (
+          <p data-slot="invite-friend-more" className="px-2 text-center text-xs text-muted-foreground">
+            Search to see {hidden} more.
+          </p>
+        )}
         {online.length + offline.length === 0 && (
           <p data-slot="invite-friend-empty" className="px-2 py-6 text-center text-sm text-muted-foreground">
             {friends.length === 0 ? "You have no friends yet. Add one from the friends tab of the panel." : "No friend matches this search."}
@@ -151,5 +167,32 @@ function InviteFriendDialog({ open, onOpenChange, title, description, ...list }:
   )
 }
 
-export { InviteFriendDialog, InviteFriendHeader, InviteFriendList }
-export type { InviteFriendDialogProps, InviteFriendHeaderProps, InviteFriendListProps }
+type FriendPickerProps = InviteFriendListProps & {
+  /** The way to bring somebody who is not a friend yet: a "Copy link" row under the list, which says so for a moment once it is copied. None: no row. */
+  link?: { onCopy: () => void; copied?: boolean }
+}
+
+/**
+ * The picker as a panel, for the free place of a row of players (`PlayerSlots`): the friends right away, with no menu in front of them (the connected ones first, the others after, a limit and a search) and, under them, "Copy link". It is the content of a `Popover`, which
+ * brings the friend list to the press on a place instead of a menu that leads to a window.
+ */
+function FriendPicker({ link, className, ...list }: FriendPickerProps) {
+  return (
+    <div data-slot="friend-picker" className={cn("flex min-h-0 flex-col gap-3", className)}>
+      <InviteFriendList {...list} />
+      {link && (
+        <button
+          type="button"
+          onClick={link.onCopy}
+          className="flex items-center gap-3 rounded-xl border-t px-2 py-2.5 text-left text-sm outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30"
+        >
+          <HugeiconsIcon icon={link.copied ? Tick02Icon : Link01Icon} strokeWidth={2} aria-hidden="true" className="size-4 text-muted-foreground" />
+          {link.copied ? "Link copied" : "Copy link"}
+        </button>
+      )}
+    </div>
+  )
+}
+
+export { FriendPicker, InviteFriendDialog, InviteFriendHeader, InviteFriendList }
+export type { FriendPickerProps, InviteFriendDialogProps, InviteFriendHeaderProps, InviteFriendListProps }

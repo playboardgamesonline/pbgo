@@ -78,7 +78,7 @@ function SearchSelect({ options, value, onValueChange, placeholder, searchPlaceh
         id={panelId}
         aria-label={label}
         align="start"
-        className="w-(--radix-popover-trigger-width) min-w-52 gap-0 p-0 pt-2"
+        className="w-(--radix-popover-trigger-width) min-w-52 gap-0 rounded-2xl p-0 pt-2"
         onOpenAutoFocus={(event) => {
           if (window.matchMedia("(pointer: coarse)").matches) return
           event.preventDefault()

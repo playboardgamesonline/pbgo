@@ -191,14 +191,14 @@ vi.mock("./supabase", () => {
   return { supabaseAdmin: () => db }
 })
 
-const engine = (id: string, minPlayers: number, maxPlayers: number): AnyGameDefinition =>
+const engine = (id: string, minPlayers: number, maxPlayers: number, extra: Record<string, unknown> = {}): AnyGameDefinition =>
   ({
     id,
     name: id,
     minPlayers,
     maxPlayers,
     // `hint` is one of the aids of the game: a ranked table is opened with it off
-    options: { hint: { type: "boolean", defaultValue: true } },
+    options: { hint: { type: "boolean", defaultValue: true }, ...extra },
     clientActions: ["play"],
     setup: ({ players }: { players: Array<{ id: string }> }) => ({ players: players.map((player) => player.id) }),
     apply: (state: unknown) => state,
@@ -207,15 +207,20 @@ const engine = (id: string, minPlayers: number, maxPlayers: number): AnyGameDefi
     waitingFor: () => [],
   }) as unknown as AnyGameDefinition
 
-const gameOf = (slug: string, min: number, max: number) => ({ slug, name: slug, tagline: "", sanityProjectId: "", live: true, indexable: false, binding: { SLUG: slug, NAME: slug, GAME: engine(slug, min, max) } }) as unknown as PlayableGame
+const gameOf = (slug: string, min: number, max: number, extra: Record<string, unknown> = {}) =>
+  ({ slug, name: slug, tagline: "", sanityProjectId: "", live: true, indexable: false, binding: { SLUG: slug, NAME: slug, GAME: engine(slug, min, max, extra) } }) as unknown as PlayableGame
 
-const GAMES: Record<string, PlayableGame> = { alpha: gameOf("alpha", 2, 4), beta: gameOf("beta", 2, 2), gamma: gameOf("gamma", 3, 3) }
+/** `delta` has two expansions that its engine has an option for (`deluxe` and `queens`) and a third (`no-option`) that it has none for */
+const EXPANSIONS = { deluxe: { type: "boolean", defaultValue: false }, queens: { type: "boolean", defaultValue: false } }
+
+const GAMES: Record<string, PlayableGame> = { alpha: gameOf("alpha", 2, 4), beta: gameOf("beta", 2, 2), gamma: gameOf("gamma", 3, 3), delta: gameOf("delta", 2, 4, EXPANSIONS) }
 const SLUGS = Object.keys(GAMES)
 
 const deps: PlayDeps = {
   ageRules: async (slug) => (h.ages[slug] as AgeRules | undefined) ?? NO_AGE_RULES,
   loadGame: async (slug) => GAMES[slug] ?? null,
   helpersOf: async (slug) => (slug === "alpha" ? ["hint"] : []),
+  expansionsOf: async (slug) => (slug === "delta" ? ["deluxe", "queens", "no-option"] : []),
 }
 
 type Account = NonNullable<typeof h.account>
@@ -321,6 +326,7 @@ beforeEach(() => {
     alpha: { minPlayers: 2, maxPlayers: 4, options: { defaults: {}, hidden: [] } },
     beta: { minPlayers: 2, maxPlayers: 2, options: { defaults: {}, hidden: [] } },
     gamma: { minPlayers: 3, maxPlayers: 3, options: { defaults: {}, hidden: [] } },
+    delta: { minPlayers: 2, maxPlayers: 4, options: { defaults: {}, hidden: [] } },
   }
   vi.spyOn(console, "error").mockImplementation(() => {})
 })
@@ -944,5 +950,87 @@ describe("what the search asks of the browser's requests", () => {
   it("is nothing for a body that is not a search or not a cancel", () => {
     expect(parsePlayRequest({ games: [], mode: "normal" })).toBeNull()
     expect(parseCancelRequest({ tables: "x" })).toBeNull()
+  })
+})
+
+describe("a search that asks for a speed and for expansions", () => {
+  const FAST = { delta: { pace: "fast" } }
+  const DELUXE = { delta: { expansions: ["deluxe"] } }
+
+  it("opens a table played at the speed it asks", async () => {
+    const { tables } = await search(member("Ann"), ["delta"], "normal", { criteria: FAST })
+    expect(stored("delta", tables[0]!.code)!.settings).toMatchObject({ visibility: "public", pace: "fast" })
+  })
+
+  it("opens a table with the expansions it asks on and the others of the game off, and none for the usual search", async () => {
+    const { tables } = await search(member("Ann"), ["delta"], "normal", { criteria: { delta: { expansions: ["deluxe"] } } })
+    expect(stored("delta", tables[0]!.code)!.options).toEqual({ hint: true, deluxe: true, queens: false })
+    const plain = await search(member("Bob"), ["delta"])
+    expect(stored("delta", plain.tables[0]!.code)!.options).toEqual({ hint: true, deluxe: false, queens: false })
+  })
+
+  it("leaves out an expansion that its engine has no option for, and one that the gamemaster hid", async () => {
+    h.settings.delta!.options = { defaults: { queens: false }, hidden: ["queens"] }
+    const { tables } = await search(member("Ann"), ["delta"], "normal", { criteria: { delta: { expansions: ["no-option", "queens", "deluxe"] } } })
+    expect(stored("delta", tables[0]!.code)!.options).toEqual({ hint: true, deluxe: true, queens: false })
+  })
+
+  it("sits at a table played the way it asks and passes the ones that are not", async () => {
+    table("delta", "WRONGS", [member("Eve")], { settings: PUBLIC, options: { hint: true, deluxe: true, queens: false } })
+    table("delta", "WRONGE", [member("Fay")], { settings: { ...PUBLIC, pace: "fast" }, options: { hint: true, deluxe: false, queens: false } })
+    table("delta", "FASTDE", [member("Gil")], { settings: { ...PUBLIC, pace: "fast" }, options: { hint: true, deluxe: true, queens: false } })
+    const { tables } = await search(member("Ann"), ["delta"], "normal", { criteria: { delta: { pace: "fast", expansions: ["deluxe"] } } })
+    expect(tables[0]).toMatchObject({ code: "FASTDE", opened: false, players: 2 })
+  })
+
+  it("opens its own when every table is played another way", async () => {
+    table("delta", "USUALS", [member("Eve")], { settings: PUBLIC })
+    const { tables } = await search(member("Ann"), ["delta"], "normal", { criteria: FAST })
+    expect(tables[0]).toMatchObject({ opened: true, players: 1 })
+    expect(tablesOf("delta")).toHaveLength(2)
+  })
+
+  it("does not sit a search that asks nothing at a table with an expansion on: it wants the game as the admin set it", async () => {
+    table("delta", "WITHDE", [member("Eve")], { settings: PUBLIC, options: { hint: true, deluxe: true, queens: false } })
+    table("delta", "PLAINP", [member("Fay")], { settings: PUBLIC, options: { hint: true, deluxe: false, queens: false } })
+    expect((await search(member("Ann"), ["delta"])).tables[0]).toMatchObject({ code: "PLAINP", opened: false })
+  })
+
+  it("keeps the table it opened when it asks again, so that no table is opened at each call", async () => {
+    const ann = member("Ann")
+    const first = (await search(ann, ["delta"], "normal", { criteria: { delta: { pace: "slow", expansions: ["deluxe", "queens", "no-option"] } } })).tables[0]!
+    const again = (await search(ann, ["delta"], "normal", { criteria: { delta: { pace: "slow", expansions: ["deluxe", "queens", "no-option"] } }, poll: true })).tables[0]!
+    expect(again).toMatchObject({ code: first.code, opened: false })
+    expect(tablesOf("delta")).toHaveLength(1)
+  })
+
+  it("finds the table of another searcher who asked the same, and begins when it is full", async () => {
+    const ann = member("Ann")
+    const bob = member("Bob")
+    const first = (await search(ann, ["delta"], "normal", { criteria: DELUXE })).tables[0]!
+    const second = (await search(bob, ["delta"], "normal", { criteria: DELUXE })).tables[0]!
+    expect(second).toMatchObject({ code: first.code, players: 2, opened: false })
+  })
+
+  it("never meets a table that another search opened with other criteria, even for a visitor who sits at both", async () => {
+    const ann = member("Ann")
+    const slow = (await search(ann, ["delta"], "normal", { criteria: { delta: { pace: "slow" } } })).tables[0]!
+    await cancel(ann, { tables: [{ game: "delta", code: slow.code }] })
+    const fast = (await search(ann, ["delta"], "normal", { criteria: FAST })).tables[0]!
+    expect(fast.code).not.toBe(slow.code)
+    expect(stored("delta", fast.code)!.settings).toMatchObject({ pace: "fast" })
+  })
+
+  it("is asked in a ranked search for the expansions only: the speed stays the usual one", async () => {
+    const ann = member("Ann")
+    const { tables } = await search(ann, ["delta"], "ranked", { criteria: { delta: { pace: "fast", expansions: ["queens"] } } })
+    const row = stored("delta", tables[0]!.code)!
+    expect(row.settings).toMatchObject({ ranked: true, pace: "normal" })
+    expect(row.options).toEqual({ hint: true, deluxe: false, queens: true })
+  })
+
+  it("is refused when it asks what it does not look for, or a speed a lobby does not offer", () => {
+    expect(parsePlayRequest({ games: ["delta"], mode: "normal", criteria: { alpha: { pace: "fast" } } })).toBeNull()
+    expect(parsePlayRequest({ games: ["delta"], mode: "normal", criteria: { delta: { pace: "async" } } })).toBeNull()
   })
 })

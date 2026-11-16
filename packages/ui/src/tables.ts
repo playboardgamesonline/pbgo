@@ -39,8 +39,8 @@ export const PACES: readonly { value: Pace; label: string }[] = [
 /** The paces a lobby offers to the visitor who sets it, in that order: a table that is played a day a turn (`async`) is not one of them, and is still read as what it is. */
 export const SPEEDS: readonly Pace[] = ["none", "slow", "normal", "fast"]
 
-/** The most seats a table is drawn with: three rows of five. */
-export const MAX_SEATS = 15
+/** The most seats a table has, whatever the game takes: nine, the one rule of the platform that keeps a lobby small enough for its servers. A group (`MAX_GROUP_MEMBERS`) is never larger than a table. */
+export const MAX_SEATS = 9
 
 /**
  * How many players a lobby may be set for: from the game's least to its most, and never more than the seats a table is drawn with. A game that says no most ("3 or more") goes up to the seats there are, one that says

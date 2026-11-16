@@ -3,7 +3,13 @@
 import { useRef, useState } from "react"
 import { CountedTextarea } from "@pbgo/ui/platform/counted-textarea"
 import { CoverTile } from "@pbgo/ui/platform/cover-tile"
+import { Calendar01Icon, DiceIcon, SlidersHorizontalIcon, TrophyIcon } from "@hugeicons/core-free-icons"
+import type { IconSvgElement } from "@hugeicons/react"
+import { GameSelect } from "@pbgo/ui/platform/game-select"
+import { ModeSwitch } from "@pbgo/ui/platform/mode-switch"
 import { MultiSelect } from "@pbgo/ui/platform/multi-select"
+import { AddGameTile, PickedGame } from "@pbgo/ui/platform/picked-game"
+import { PLAY_ZONE_LABELS, PLAY_ZONE_MODES, type PlayZoneMode } from "@pbgo/ui/play-zone"
 import { SearchSelect } from "@pbgo/ui/platform/search-select"
 
 // The live specimens of the pickers (`SearchSelect`, `MultiSelect`, `CountedTextarea`, `CoverTile`): they keep their picks as long as the page is open. The pictures are drawn by the browser, so no address is needed: the tiles are plain frames.
@@ -93,6 +99,34 @@ export function SearchSelectRemoteSpecimen() {
         clearLabel="Clear"
         aria-label="Country"
       />
+    </div>
+  )
+}
+
+const MODE_ICONS: Record<PlayZoneMode, IconSvgElement> = { normal: DiceIcon, ranked: TrophyIcon, tournaments: Calendar01Icon, custom: SlidersHorizontalIcon }
+
+/** The switch of the home's play zone, with its four modes: it keeps the one that is picked as long as the page is open. */
+export function ModeSwitchSpecimen() {
+  const [mode, setMode] = useState<PlayZoneMode>("normal")
+  const options = PLAY_ZONE_MODES.map((value) => ({ value, label: PLAY_ZONE_LABELS[value], icon: MODE_ICONS[value] }))
+  return <ModeSwitch options={options} value={mode} onValueChange={setMode} aria-label="What to play" />
+}
+
+/** The games of a search: the tiles of the games that are in, and the tile that adds one, which opens the panel of the games (one of them a game that a group of four cannot play). A press on a tile's cross takes the game out. */
+export function GameSelectSpecimen({ single = false }: { single?: boolean }) {
+  const [picked, setPicked] = useState<string[]>(single ? ["flip-7"] : ["courtisans", "hanabi"])
+  const options = GAMES.map((game) => (game.value === "the-crew" ? { ...game, unavailable: "Your group has 4 players and this game takes 3 at most." } : game))
+  const shown = options.filter((game) => picked.includes(game.value))
+  return (
+    <div className="flex w-full flex-wrap justify-center gap-x-4 gap-y-6">
+      {shown.map((game) => (
+        <PickedGame key={game.value} className="w-36" name={game.label} onRemove={() => setPicked(picked.filter((slug) => slug !== game.value))} />
+      ))}
+      {(!single || picked.length === 0) && (
+        <GameSelect options={options} value={picked} onValueChange={setPicked} max={single ? 1 : 10} searchPlaceholder="Search games..." empty="No game matches." fullNote="A search takes 10 games at the most. Take one out to add another." aria-label="Games">
+          <AddGameTile label={single ? "Choose a game" : "Add a game"} className="w-36" />
+        </GameSelect>
+      )}
     </div>
   )
 }

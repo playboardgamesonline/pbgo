@@ -9,7 +9,9 @@ import { FriendsBar, FriendsBarList } from "@pbgo/ui/platform/friends-bar"
 import { PresenceDot } from "@pbgo/ui/platform/friends-panel"
 import { GroupPane } from "@pbgo/ui/platform/group-panel"
 import { InvitationsCard } from "@pbgo/ui/platform/invitations-card"
-import { InviteFriendList } from "@pbgo/ui/platform/invite-friend"
+import { DropdownMenuItem } from "@pbgo/ui/platform/dropdown-menu"
+import { FriendPicker, InviteFriendList } from "@pbgo/ui/platform/invite-friend"
+import { PlayerSlots, type SlotPlayer } from "@pbgo/ui/platform/player-slots"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { SocialDock, SocialDockIdentity } from "@pbgo/ui/platform/social-dock"
 import { SocialPanel, SocialPanelToggle, type SocialTab } from "@pbgo/ui/platform/social-panel"
@@ -345,5 +347,40 @@ export function PresenceLegend() {
         </div>
       ))}
     </div>
+  )
+}
+
+/**
+ * The panel of the friends of a free place, on its own, in the box of the popover that holds it: the friends right away, the connected ones first, a limit and a search, and "Copy link" under them. A press marks a friend invited, and sends nothing.
+ */
+export function FriendPickerSpecimen() {
+  return (
+    <div className="w-full max-w-xs rounded-2xl bg-popover p-3 text-popover-foreground shadow-overlay ring-1 ring-foreground/10">
+      <FriendPicker friends={FRIENDS.filter((friend) => !friend.group)} limit={4} onInvite={() => true} link={{ onCopy: () => {} }} />
+    </div>
+  )
+}
+
+/**
+ * The row of players: the visitor in the middle, a member who leads, one who is playing, a friend who was invited and has not answered, and the places that nobody has, which open the panel of the friends. A press on a person opens their menu; nothing is sent.
+ */
+export function PlayerSlotsSpecimen({ size = 9, alone = false }: { size?: number; alone?: boolean }) {
+  const players: SlotPlayer[] = [
+    { id: "me", name: DEMO_ACCOUNT.nickname, avatarUrl: DEMO_ACCOUNT.avatarUrl, you: true },
+    ...(alone
+      ? []
+      : [
+          { id: "1", name: "Marly", avatarUrl: DEMO_AVATARS.marly, status: "playing", leader: true } satisfies SlotPlayer,
+          { id: "3", name: "Zoé", avatarUrl: DEMO_AVATARS.zoe, status: "online" } satisfies SlotPlayer,
+          { id: "5", name: "Lina", avatarUrl: DEMO_AVATARS.lina, status: "inactive", pending: true } satisfies SlotPlayer,
+        ]),
+  ]
+  return (
+    <PlayerSlots
+      players={players}
+      size={size}
+      picker={<FriendPicker friends={FRIENDS.filter((friend) => !friend.group)} limit={6} onInvite={() => true} link={{ onCopy: () => {} }} />}
+      menu={(player) => (player.you || player.pending ? null : <DropdownMenuItem>View profile</DropdownMenuItem>)}
+    />
   )
 }

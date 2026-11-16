@@ -11,6 +11,7 @@
     "./leaderboard": "./src/leaderboard.ts",
     "./motion": "./src/motion.ts",
     "./platform/*": "./src/platform/*.tsx",
+    "./play-zone": "./src/play-zone.ts",
     "./queue": "./src/queue.ts",
     "./ranks": "./src/ranks.ts",
     "./reduced-motion": "./src/reduced-motion.tsx",

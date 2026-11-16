@@ -6,7 +6,7 @@ const GROUP = { members: [member("Ann", 1, { leader: true, you: true }), member(
 
 describe("the groups' constants", () => {
   it("cap a group at eight members, the leader included", () => {
-    expect(MAX_GROUP_MEMBERS).toBe(8)
+    expect(MAX_GROUP_MEMBERS).toBe(9)
   })
 
   it("are one address for each action, under the groups'", () => {

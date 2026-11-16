@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Search01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { Alert02Icon, Search01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { cn } from "../utils"
 import { optionMatches } from "../match-options"
 import { CoverTile, type CoverTileProps } from "./cover-tile"
@@ -10,7 +10,7 @@ import { Input } from "./input"
 
 // A list of options with a search field above it, for a panel (a `Popover` with no padding of its own, which draws its title above) whose options are more
 // than chips can hold, and may be more tomorrow: the categories of the games. An option is a name and, if it wants one, an icon that stands before it; the
-// check of a pick is at the other end of the row. The rows are rounded like the rows of a menu and 4px from each edge of the panel (`px-1`), and the field has a
+// check of a pick is at the other end of the row. The panel that holds the list is `rounded-2xl`, the row step and not the surface's (a popover of a search and a list, as tall as it is wide, is not a capsule), and its rows are `rounded-xl`, 4px from each edge of the panel (`px-1`): the corner of the panel less the room round a row. The field has a
 // margin of its own and no ring: it has the focus when the panel opens and the caret says where the text goes. Typing keeps
 // the options that hold the text, whatever the case and the accents (`matchOptions`). The arrow keys move along the list without leaving the field, Enter
 // picks or unpicks the option they are on, and so does a click: the list stays open, since any number of options can be picked. The field takes the focus
@@ -31,6 +31,8 @@ type ComboboxOption = {
   cover?: CoverTileProps | null
   /** A quiet line under the name: where a city is. */
   description?: string
+  /** Why the option cannot be picked now: it is shown off, with the reason in the line under its name and a warning at its end, and a press on it does nothing (one that is picked can still be put back). */
+  unavailable?: string
 }
 
 type ComboboxProps = Omit<React.ComponentProps<"div">, "children" | "onChange" | "role"> & {
@@ -64,8 +66,9 @@ function Combobox({ options, value, onValueChange, placeholder, empty, max, onPi
   // A screen that is touched does not focus the field: its keyboard would hide the list. Read once, as the panel opens
   const [touched] = React.useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches)
   const remote = onQueryChange !== undefined
-  const shown = React.useMemo(() => [...new Map(options.map((option) => [option.value, option])).values()].filter((option) => remote || optionMatches(option.label ?? option.value, query)), [options, query, remote])
-  const tall = options.some((option) => option.cover !== undefined || option.description !== undefined)
+  const byValue = React.useMemo(() => new Map(options.map((option) => [option.value, option])), [options])
+  const shown = React.useMemo(() => [...byValue.values()].filter((option) => remote || optionMatches(option.label ?? option.value, query)), [byValue, query, remote])
+  const tall = options.some((option) => option.cover !== undefined || option.description !== undefined || option.unavailable !== undefined)
   // The picks are all taken: the options that are not picked are off (a single choice always takes another pick in place of the one it has)
   const full = max !== undefined && max > 1 && value.length >= max
   // The option the arrow keys are on: the list can get shorter under it as the text grows
@@ -77,6 +80,8 @@ function Combobox({ options, value, onValueChange, placeholder, empty, max, onPi
   }, [id, current])
 
   function toggle(name: string) {
+    // An option that cannot be picked stays as it is, but one that is picked can always be put back
+    if (byValue.get(name)?.unavailable !== undefined && !value.includes(name)) return
     if (max === 1) {
       onValueChange([name])
       onPick?.(name)
@@ -141,7 +146,7 @@ function Combobox({ options, value, onValueChange, placeholder, empty, max, onPi
         >
           {shown.map((option, index) => {
             const picked = value.includes(option.value)
-            const off = full && !picked
+            const off = (full && !picked) || (option.unavailable !== undefined && !picked)
             return (
               <li
                 key={option.value}
@@ -154,16 +159,20 @@ function Combobox({ options, value, onValueChange, placeholder, empty, max, onPi
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => toggle(option.value)}
                 onPointerMove={() => setActive(index)}
-                className={cn("flex shrink-0 cursor-default items-center gap-3 rounded-2xl px-3 text-sm select-none data-active:bg-input/50 aria-disabled:opacity-50", tall ? "h-12" : "h-9")}
+                className={cn("flex shrink-0 cursor-default items-center gap-3 rounded-xl px-3 text-sm select-none data-active:bg-input/50 aria-disabled:opacity-50", tall ? "h-12" : "h-9")}
               >
                 {option.icon && <HugeiconsIcon icon={option.icon} strokeWidth={2} aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />}
                 {option.cover !== undefined && <CoverTile className="size-8" {...option.cover} />}
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate">{option.label ?? option.value}</span>
-                  {option.description !== undefined && <span className="truncate text-xs text-muted-foreground">{option.description}</span>}
+                  {(option.unavailable ?? option.description) !== undefined && <span className="truncate text-xs text-muted-foreground">{option.unavailable ?? option.description}</span>}
                 </span>
                 <span className="flex size-4 shrink-0 items-center justify-center">
-                  {picked && <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} className="size-4" />}
+                  {option.unavailable !== undefined ? (
+                    <HugeiconsIcon icon={Alert02Icon} strokeWidth={2} aria-hidden="true" className="size-4 text-destructive" />
+                  ) : (
+                    picked && <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} className="size-4" />
+                  )}
                 </span>
               </li>
             )

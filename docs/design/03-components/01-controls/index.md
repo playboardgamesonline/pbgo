@@ -17,3 +17,5 @@ What a visitor presses, types in or picks.
 - [Radio group](13-radio-group.md)
 - [Search select](14-search-select.md)
 - [Multi select](15-multi-select.md)
+- [Mode switch](16-mode-switch.md)
+- [Game select](17-game-select.md)

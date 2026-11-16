@@ -2,7 +2,7 @@
 
 Module: `@pbgo/ui/platform/group-panel`
 
-A group is the members who play together: two to eight players, one of whom leads. `GroupPane` is the pane of the group tab of the [social panel](01-social-panel.md#the-tabs): the visitor's group, its members, and the way in and out. A group of one is no group, so a visitor with none sees an empty state.
+A group is the members who play together: two to nine players, one of whom leads. `GroupPane` is the pane of the group tab of the [social panel](01-social-panel.md#the-tabs): the visitor's group, its members, and the way in and out. A group of one is no group, so a visitor with none sees an empty state.
 
 ```specimen
 group-pane

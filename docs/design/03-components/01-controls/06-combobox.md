@@ -17,4 +17,6 @@ combobox-in-a-popover
 - An option can have a `label` apart from its `value` (a slug and its title) and a small `cover`; `max` limits the picks (1 makes a single choice). [Search select](14-search-select.md) and [multi select](15-multi-select.md) are made of it.
 - The field has the focus the moment the panel opens, except on a screen that is touched, where the keyboard would hide the list.
 - The arrow keys move along the list without leaving the field; Enter or a click picks or unpicks.
+- An option with `unavailable` cannot be picked now: it is off, with the reason in the line under its name and a warning at its end. One that is picked can still be put back. The [game select](17-game-select.md) lists the games that a group cannot play this way.
+- The panel that holds the list is a step less round than a surface, since it is as wide as it is tall, and its rows a step less round again: the corner of the panel less the room round a row.
 - The list has no scrollbar and scrolls all the same: a row cut by its bottom edge says there is more.

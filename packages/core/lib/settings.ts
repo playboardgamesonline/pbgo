@@ -1,5 +1,6 @@
 import { defaultOptions, normalizeOptions, type OptionContext, type OptionValues } from "@pbgo/engine-kit"
 import { FONT_CHOICES } from "@pbgo/studio-kit/constants"
+import { MAX_SEATS } from "@pbgo/ui/tables"
 import type { GameBinding } from "./binding"
 import { LOCALES, type Locale } from "./i18n"
 
@@ -108,8 +109,11 @@ function perGame<T>(compute: (binding: GameBinding) => T): (binding: GameBinding
 /** Theme of a game when Sanity has none: core colors, then `SETTINGS_DEFAULTS.theme` of the game. */
 export const defaultTheme = perGame((binding): ThemeColors => ({ ...CORE_THEME, ...binding.SETTINGS_DEFAULTS?.theme }))
 
-/** Player counts allowed by the engine (a game without engine yet has no real bounds). */
-export const playerBounds = (binding: GameBinding) => ({ min: binding.GAME?.minPlayers ?? 2, max: binding.GAME?.maxPlayers ?? 8 })
+/** Player counts allowed by the engine (a game without engine yet has no real bounds), and never more than the seats of a table (`MAX_SEATS`: the platform opens no lobby of more than nine). */
+export const playerBounds = (binding: GameBinding) => {
+  const max = Math.min(MAX_SEATS, binding.GAME?.maxPlayers ?? 8)
+  return { min: Math.min(max, binding.GAME?.minPlayers ?? 2), max }
+}
 
 /** Prefix and suffix added to the game name in the browser tab, search results and share cards. */
 export const TITLE_PREFIX = "Play"

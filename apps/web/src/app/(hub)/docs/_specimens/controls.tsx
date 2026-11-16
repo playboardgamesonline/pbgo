@@ -23,7 +23,7 @@ import { CodeSpecimen } from "./code-specimen"
 import { ComboboxSpecimen } from "./combobox-specimen"
 import { InlineEditSpecimen, InlineFieldsSpecimen } from "./inline-edit-specimen"
 import { MeterSpecimen } from "./meter-specimen"
-import { CountedTextareaSpecimen, CoverTileSpecimen, MultiSelectSpecimen, SearchSelectRemoteSpecimen, SearchSelectSpecimen } from "./picker-specimens"
+import { CountedTextareaSpecimen, CoverTileSpecimen, GameSelectSpecimen, ModeSwitchSpecimen, MultiSelectSpecimen, SearchSelectRemoteSpecimen, SearchSelectSpecimen } from "./picker-specimens"
 import { SingleSliderSpecimen } from "./slider-specimen"
 import { Frame } from "./text"
 
@@ -702,6 +702,41 @@ function CollapsibleOpenAndClosed() {
   )
 }
 
+function ModeSwitchFrame() {
+  return (
+    <Frame code={`<ModeSwitch
+  options={[{ value: "normal", label: "Normal", icon: DiceIcon }, { value: "ranked", label: "Ranked", icon: TrophyIcon }, …]}
+  value={mode}
+  onValueChange={setMode}
+  aria-label="What to play"
+/>`}>
+      <ModeSwitchSpecimen />
+    </Frame>
+  )
+}
+
+function GameSelectFrame() {
+  return (
+    <Frame className="flex flex-col gap-8" code={`<GameSelect
+  // a game that cannot be picked now says why, under its name
+  options={[{ value: "courtisans", label: "Courtisans", cover: { picture: url } }, { value: "the-crew", label: "The Crew", unavailable: "Your group has 4 players…" }]}
+  value={picked}
+  onValueChange={setPicked}
+  max={10}
+  searchPlaceholder="Search games..."
+  empty="No game matches."
+  fullNote="A search takes 10 games at the most. Take one out to add another."
+  aria-label="Games"
+>
+  {/* what opens the panel: the tile that adds a game, the last of the row of the tiles of the games that are in */}
+  <AddGameTile label="Add a game" />
+</GameSelect>`}>
+      <GameSelectSpecimen />
+      <GameSelectSpecimen single />
+    </Frame>
+  )
+}
+
 export const controlsSpecimens: Specimens = {
   "button-variants": ButtonVariants,
   "button-sizes": ButtonSizes,
@@ -723,6 +758,8 @@ export const controlsSpecimens: Specimens = {
   "search-select": SearchSelectInAField,
   "search-select-remote": SearchSelectFromAServer,
   "multi-select": MultiSelectLimited,
+  "mode-switch": ModeSwitchFrame,
+  "game-select": GameSelectFrame,
   "counted-textarea": CountedTextareaField,
   "cover-tile": CoverTileSizes,
   "inline-edit-row": InlineEditRow,

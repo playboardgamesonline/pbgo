@@ -68,7 +68,7 @@ function MultiSelect({ options, value, onValueChange, max, placeholder, searchPl
             {placeholder}
           </Button>
         </PopoverTrigger>
-        <PopoverContent aria-label={label} align="start" className="w-64 gap-0 p-0 pt-2">
+        <PopoverContent aria-label={label} align="start" className="w-64 gap-0 rounded-2xl p-0 pt-2">
           <Combobox
             options={options}
             value={value}
