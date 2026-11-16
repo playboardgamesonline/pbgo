@@ -1,4 +1,4 @@
--- The average place of the friends of a member, end to end (migration 0030): which friends are answered, the average of the places they came at, what is left out (a game where nobody was ranked, a player who is not a friend, the member themselves), the lookup from either side of a friendship, and who may call it.
+-- The average place of the friends of a member, end to end (migration 0029): which friends are answered, the average of the places they came at, what is left out (a game where nobody was ranked, a player who is not a friend, the member themselves), the lookup from either side of a friendship, and who may call it.
 --
 -- Run it on `pbgo-preview` once the migrations are applied (the Supabase MCP's `execute_sql`, or the SQL editor). It is one `DO` block that ends with `RAISE EXCEPTION 'RESULT …'`: everything it writes is rolled back with the block, and the message is the answer. Every check prints `ok` or `FAIL` with what it saw;
 -- read the whole line. Never on production. It makes five fixture rows in `auth.users` that the rollback takes back: it creates no account that stays.

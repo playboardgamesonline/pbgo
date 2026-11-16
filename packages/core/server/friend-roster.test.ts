@@ -87,7 +87,7 @@ describe("readFriendRoster", () => {
     ])
   })
 
-  it("draws the list without the average places where migration 0030 is not applied yet, or where the database cannot answer them", async () => {
+  it("draws the list without the average places where migration 0029 is not applied yet, or where the database cannot answer them", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {})
     for (const failure of [{ code: "PGRST202", message: "Could not find the function public.friend_places" }, { code: "42883", message: "function does not exist" }, { code: "57014", message: "canceling statement due to statement timeout" }]) {
       tables(friendsOf({ user_b: ANN }))

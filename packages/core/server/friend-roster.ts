@@ -6,7 +6,7 @@ import { readPlayerTotals } from "./standings"
 import { supabaseAdmin } from "./supabase"
 
 // The friends of a member as their own profile lists them (the Friends zone and the list it opens): who they are, how many games each finished, how many of them they won and the place they came at on average, never anything of a table or of where they are (the friends' panel has that,
-// `social_state`). The games and the wins are read from the tables with the server's key, like the totals of a member's games (`./standings`); the average place is the database's own (`friend_places`, migration 0030): it is an average over every seat of every friend, which is not for the server
+// `social_state`). The games and the wins are read from the tables with the server's key, like the totals of a member's games (`./standings`); the average place is the database's own (`friend_places`, migration 0029): it is an average over every seat of every friend, which is not for the server
 // to page through. The accounts' ids stay here.
 
 /**
@@ -64,7 +64,7 @@ async function closedAmong(ids: readonly string[]): Promise<Set<string>> {
 }
 
 /**
- * The place each friend of this member came at on average, by the friend's account id (`friend_places`, migration 0030): a friend with no ranked game is not in the map. Where the function is not there (the migration is not applied) or cannot answer, the map is empty and the cause is in the log:
+ * The place each friend of this member came at on average, by the friend's account id (`friend_places`, migration 0029): a friend with no ranked game is not in the map. Where the function is not there (the migration is not applied) or cannot answer, the map is empty and the cause is in the log:
  * the list is drawn with a dash for the place.
  */
 async function placesOf(userId: string): Promise<Map<string, number>> {

@@ -7,7 +7,7 @@ export const hasAbout = (details: ProfileDetails): boolean => details.bio !== nu
 
 /**
  * What a member says of themselves under the head of their profile, to every visitor: the bio, as text (never markup: React escapes it, and the line breaks are kept), and under it the languages they speak, as chips. Nothing for a field that is empty, and nothing at all for a profile with
- * neither. It stands at the left of the games they play the most, which `ProfileSections` puts at its right (nobody picks them: what they played says it).
+ * neither. It stands at the left of their favourite games, which `ProfileSections` puts at its right.
  */
 export function ProfileAbout({ details, className }: { details: ProfileDetails; className?: string }) {
   if (!hasAbout(details)) return null

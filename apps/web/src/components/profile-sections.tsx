@@ -13,11 +13,8 @@ import type { MemberGames } from "@/lib/member-games"
 import type { ProfileFriend } from "@/lib/profile-friends"
 import { playtimePodium, winRatePodium } from "@/lib/profile-podiums"
 
-/** How many of the games they play the most are shown, small, at the right of the bio. */
-const FAVORITES = 5
-
 type ProfileSectionsProps = {
-  /** What the member says of themselves: the bio and the languages stand at the left of the games they play the most. */
+  /** What the member says of themselves: the bio and the languages stand at the left of the favourite games they picked. */
   details: ProfileDetails
   /** Their games, records and ranks; null when the member keeps them private and the visitor is somebody else. */
   games: MemberGames | null
@@ -35,15 +32,33 @@ type ProfileSectionsProps = {
 }
 
 /**
- * What a profile says under its head, the same on their own page and on anybody's: the bio with the languages they speak, and at their right (under no title) the games they play the most, whose rank and record are one hover away; the figures in zones (the playtime with a podium of the games they spent
- * the most time at, the win rate with a podium of the games they win the most often and, on their own page, their friends); and the latest games with their opponents (each opponent with an account links to their profile). The games are the recorded ones (PLT-13). When the member hides their games,
- * another visitor sees the bio and a line that says so. The member sees everything, with a note that the others do not. A member who has played nothing has an empty state in place of the games.
+ * What a profile says under its head, the same on their own page and on anybody's: the bio with the languages they speak, and at their right (under no title) the favourite games they picked, whose rank and record are one hover away; the figures in zones (the playtime with a podium of the games
+ * they spent the most time at, the win rate with a podium of the games they win the most often and, on their own page, their friends); and the latest games with their opponents (each opponent with an account links to their profile). The games are the recorded ones (PLT-13). When the member
+ * hides their games, another visitor sees the bio, the favourites with no card on them and a line that says so. The member sees everything, with a note that the others do not. A member who has played nothing has an empty state in place of the games.
  */
 export async function ProfileSections({ details, games, own, hideHistory, friends, recent, allGamesHref, timeFormat }: ProfileSectionsProps) {
+  const { entries } = await getCatalog()
+  const catalog = new Map(entries.map((entry) => [entry.slug, entry]))
+  const recordOf = new Map((games?.perGame ?? []).map((row) => [row.slug, row]))
+  const rankIn = new Map((games?.ranks ?? []).map((entry) => [entry.slug, entry.rank]))
+  // The games the member picked, in the order they put them. A game that is not in the catalog any more has no picture to draw: it is left out of the row (and of the podiums), and its slug stays in the profile until the member changes the list
+  const favorites = details.favoriteGames.flatMap((slug): FavoriteGame[] => {
+    const entry = catalog.get(slug)
+    if (!entry) return []
+    const row = recordOf.get(slug)
+    // What they did at a game is their games': left out where the visitor may not see them
+    return [{ slug, name: entry.game.name, picture: gameThumb(entry.game), record: games === null ? null : { played: row?.played ?? 0, wins: row?.wins ?? 0, rank: rankIn.get(slug) ?? null } }]
+  })
+  const about = (hasAbout(details) || favorites.length > 0) && (
+    <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between md:gap-10">
+      <ProfileAbout details={details} className="md:flex-1" />
+      {favorites.length > 0 && <FavoriteGames games={favorites} className="md:shrink-0" />}
+    </div>
+  )
   if (games === null) {
     return (
       <div className="flex flex-col gap-10">
-        {hasAbout(details) && <ProfileAbout details={details} />}
+        {about}
         <Empty className="border">
           <EmptyHeader>
             <EmptyTitle>Games are private</EmptyTitle>
@@ -53,19 +68,8 @@ export async function ProfileSections({ details, games, own, hideHistory, friend
       </div>
     )
   }
-  const { perGame, ranks } = games
+  const { perGame } = games
   const figures = figuresOf(perGame)
-  const { entries } = await getCatalog()
-  const catalog = new Map(entries.map((entry) => [entry.slug, entry]))
-  const rankIn = new Map(ranks.map((entry) => [entry.slug, entry.rank]))
-  // A game that is not in the catalog any more has no picture to draw: it is left out of the row and of the podiums
-  const favorites = perGame
-    .filter((row) => row.played > 0)
-    .flatMap((row): FavoriteGame[] => {
-      const entry = catalog.get(row.slug)
-      return entry ? [{ slug: row.slug, name: entry.game.name, picture: gameThumb(entry.game), played: row.played, wins: row.wins, rank: rankIn.get(row.slug) ?? null }] : []
-    })
-    .slice(0, FAVORITES)
   const placesOf = (podium: ReturnType<typeof playtimePodium>): PodiumPlace[] =>
     podium.flatMap((place) => {
       const entry = catalog.get(place.slug)
@@ -86,12 +90,7 @@ export async function ProfileSections({ details, games, own, hideHistory, friend
         </Alert>
       )}
 
-      {(hasAbout(details) || favorites.length > 0) && (
-        <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between md:gap-10">
-          <ProfileAbout details={details} className="md:flex-1" />
-          {favorites.length > 0 && <FavoriteGames games={favorites} className="md:shrink-0" />}
-        </div>
-      )}
+      {about}
 
       <Zones figures={figures} playtime={placesOf(playtimePodium(perGame))} winRate={placesOf(winRatePodium(perGame))} friends={friends} />
 

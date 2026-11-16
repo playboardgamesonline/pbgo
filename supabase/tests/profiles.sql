@@ -1,10 +1,10 @@
--- The profiles of the members, end to end (migrations 0015, 0018, 0020, 0021 and 0028): the nickname as a profile keeps it, the nickname an account starts with, the profile the database makes for every new account and the way it follows the account's picture and
+-- The profiles of the members, end to end (migrations 0015, 0018, 0020 and 0021): the nickname as a profile keeps it, the nickname an account starts with, the profile the database makes for every new account and the way it follows the account's picture and
 -- choice to hide its games, the tags (random, free, unique whatever the case of the nickname), the change of nickname and tag and its refusals, the page's lookup by handle, the cascade, the seats that a deleted account leaves, the opponents
--- of a history, what a profile says of its member (pronouns, country, city, bio: what the table and the writer accept and refuse, one field at a time and all at once), the favourite games that a profile has not any more (0028), and who may call what.
+-- of a history, what a profile says of its member (pronouns, country, favourite games, bio: what the table and the writer accept and refuse, one field at a time and all at once), and who may call what.
 --
 -- Run it on `pbgo-preview` once the migrations are applied (the Supabase MCP's `execute_sql`, or the SQL editor). It is one `DO` block that ends with `RAISE EXCEPTION 'RESULT …'`: everything it writes is rolled back, and the
 -- message is the answer. Every check prints `ok` or `FAIL` with what it saw; read the whole line. Never on production. It makes fixture rows in `auth.users` that the rollback takes back: it creates no account anywhere.
--- (To try a migration itself without applying it: put the statements of the migration right after the `begin` below, in this same block, the backfill's `DO` block of 0015 written as its loop: a block cannot be nested. 0018 and 0028 have no `DO` block.)
+-- (To try a migration itself without applying it: put the statements of the migration right after the `begin` below, in this same block, the backfill's `DO` block of 0015 written as its loop: a block cannot be nested. 0018 has no `DO` block.)
 -- A function that writes and a query that reads what it wrote cannot share a statement (the query keeps the snapshot it started with): each answer is taken into a variable first.
 -- `pg_temp.sp` is `set_profile` for the pair alone: the tests of the nickname and the tag read as they did when that was all it took.
 
@@ -143,7 +143,7 @@ begin
   r := r || pg_temp.check_that('an account that never signed in has no page', (select count(*) from public.profile_by_handle('annie', 42)) = 0, null);
   update auth.users set last_sign_in_at = now() where id in (ua, ub);
   r := r || pg_temp.check_that('a profile is found by its handle, whatever the case', (select count(*) from public.profile_by_handle('annie', 42)) = 1 and (select user_id = ub from public.profile_by_handle('ANNIE', 42)), null);
-  r := r || pg_temp.check_that('the lookup says what the page draws', (select nickname = 'Annie' and tag = 42 and avatar_url is null and not hide_history and created_at is not null and pronouns is null and country is null and bio is null from public.profile_by_handle('Annie', 42)), null);
+  r := r || pg_temp.check_that('the lookup says what the page draws', (select nickname = 'Annie' and tag = 42 and avatar_url is null and not hide_history and created_at is not null and pronouns is null and country is null and favorite_games = '{}' and bio is null from public.profile_by_handle('Annie', 42)), null);
   update auth.users set last_sign_in_at = now() where id = ud;
   r := r || pg_temp.check_that('the lookup of a member who hides their games says so', (select hide_history from public.profile_by_handle('Dee', (select tag from public.profiles where user_id = ud))), null);
   r := r || pg_temp.check_that('the wrong tag, or a pair nobody has, finds nobody', (select count(*) from public.profile_by_handle('Annie', 41)) = 0 and (select count(*) from public.profile_by_handle('Nobody', 42)) = 0, null);
@@ -212,54 +212,57 @@ begin
   r := r || pg_temp.check_that('row level security is on', (select relrowsecurity from pg_class where oid = 'public.profiles'::regclass), null);
   r := r || pg_temp.check_that('no public role may call the functions', not has_function_privilege('anon', 'public.set_profile(uuid, jsonb)', 'execute')
     and not has_function_privilege('authenticated', 'public.set_profile(uuid, jsonb)', 'execute')
+    and not has_function_privilege('anon', 'public.valid_favorite_games(text[])', 'execute')
+    and not has_function_privilege('authenticated', 'public.valid_favorite_games(text[])', 'execute')
     and not has_function_privilege('anon', 'public.profile_by_handle(text, integer)', 'execute')
     and not has_function_privilege('authenticated', 'public.profile_by_handle(text, integer)', 'execute')
     and not has_function_privilege('anon', 'public.make_profile(uuid, text, text, boolean, timestamptz)', 'execute')
     and not has_function_privilege('anon', 'public.free_tag(text, integer)', 'execute')
     and not has_function_privilege('anon', 'public.clean_nickname(text)', 'execute')
     and not has_function_privilege('anon', 'public.player_history(uuid, text, integer)', 'execute'), null);
-  r := r || pg_temp.check_that('the service role may', has_function_privilege('service_role', 'public.set_profile(uuid, jsonb)', 'execute') and has_function_privilege('service_role', 'public.profile_by_handle(text, integer)', 'execute') and has_function_privilege('service_role', 'public.player_history(uuid, text, integer)', 'execute'), null);
+  r := r || pg_temp.check_that('the service role may', has_function_privilege('service_role', 'public.set_profile(uuid, jsonb)', 'execute') and has_function_privilege('service_role', 'public.valid_favorite_games(text[])', 'execute') and has_function_privilege('service_role', 'public.profile_by_handle(text, integer)', 'execute') and has_function_privilege('service_role', 'public.player_history(uuid, text, integer)', 'execute'), null);
   r := r || pg_temp.check_that('the writer of 0015 is gone: set_profile takes one object', to_regprocedure('public.set_profile(uuid, text, integer)') is null and to_regprocedure('public.set_profile(uuid, jsonb)') is not null, null);
 
-  -- 14. What a profile says of its member (migrations 0018 and 0028): pronouns, country, bio
+  -- 14. What a profile says of its member (migration 0018): pronouns, country, favourite games, bio
   -- ua was deleted above and ub holds the pair Zed#7 after the changes of section 12: the fixtures here are ud (Dee, with a page), ug and uh
   update auth.users set last_sign_in_at = now() where id in (ug, uh);
   select tag into tag_a from public.profiles where user_id = ud;
-  r := r || pg_temp.check_that('a profile says nothing of its member to begin with', (select pronouns is null and country is null and bio is null from public.profiles where user_id = ud), null);
-  r := r || pg_temp.check_that('the lookup says it, nothing in all three fields', (select pronouns is null and country is null and bio is null from public.profile_by_handle('Dee', tag_a)), null);
-  answer := pg_temp.change(ud, '{"pronouns":"they/them","country":"FR","bio":"I play late.\nCome and join!"}');
-  r := r || pg_temp.check_that('all three fields are set in one change', answer = 'ok' and (select pronouns = 'they/them' and country = 'FR' and bio = E'I play late.\nCome and join!' and nickname = 'Dee' and tag = tag_a from public.profiles where user_id = ud), answer);
-  r := r || pg_temp.check_that('the lookup says all three', (select pronouns = 'they/them' and country = 'FR' and bio = E'I play late.\nCome and join!' from public.profile_by_handle('Dee', tag_a)), null);
+  r := r || pg_temp.check_that('a profile says nothing of its member to begin with', (select pronouns is null and country is null and favorite_games = '{}' and bio is null from public.profiles where user_id = ud), null);
+  r := r || pg_temp.check_that('the lookup says it, nothing in all four fields', (select pronouns is null and country is null and favorite_games = '{}' and bio is null from public.profile_by_handle('Dee', tag_a)), null);
+  answer := pg_temp.change(ud, '{"pronouns":"they/them","country":"FR","favorite_games":["courtisans","flip-7","6-nimmt"],"bio":"I play late.\nCome and join!"}');
+  r := r || pg_temp.check_that('all four fields are set in one change', answer = 'ok' and (select pronouns = 'they/them' and country = 'FR' and favorite_games = array['courtisans', 'flip-7', '6-nimmt'] and bio = E'I play late.\nCome and join!' and nickname = 'Dee' and tag = tag_a from public.profiles where user_id = ud), answer);
+  r := r || pg_temp.check_that('the lookup says all four, the favourites in the order they were put', (select pronouns = 'they/them' and country = 'FR' and favorite_games = array['courtisans', 'flip-7', '6-nimmt'] and bio = E'I play late.\nCome and join!' from public.profile_by_handle('Dee', tag_a)), null);
   r := r || pg_temp.check_that('they are shown even when the games are hidden (Dee hides them)', (select hide_history and bio is not null from public.profile_by_handle('Dee', tag_a)), null);
   answer := pg_temp.change(ud, '{"bio":"Only the bio changes"}');
-  r := r || pg_temp.check_that('a field that is not in the change is left as it is', answer = 'ok' and (select pronouns = 'they/them' and country = 'FR' and bio = 'Only the bio changes' and nickname = 'Dee' and tag = tag_a from public.profiles where user_id = ud), answer);
+  r := r || pg_temp.check_that('a field that is not in the change is left as it is', answer = 'ok' and (select pronouns = 'they/them' and country = 'FR' and cardinality(favorite_games) = 3 and bio = 'Only the bio changes' and nickname = 'Dee' and tag = tag_a from public.profiles where user_id = ud), answer);
   answer := pg_temp.change(ud, '{"pronouns":"she/her","country":"fr"}');
   r := r || pg_temp.check_that('a country in lower case is not one', answer = 'invalid' and (select pronouns = 'they/them' and country = 'FR' from public.profiles where user_id = ud), answer);
-  answer := pg_temp.change(ud, '{"country":"BE","pronouns":"he/him"}');
-  r := r || pg_temp.check_that('two fields change together and the others stay', answer = 'ok' and (select country = 'BE' and pronouns = 'he/him' and bio = 'Only the bio changes' from public.profiles where user_id = ud), answer);
+  answer := pg_temp.change(ud, '{"country":"BE","favorite_games":["hanabi"]}');
+  r := r || pg_temp.check_that('two fields change together and the others stay', answer = 'ok' and (select country = 'BE' and favorite_games = array['hanabi'] and pronouns = 'they/them' and bio = 'Only the bio changes' from public.profiles where user_id = ud), answer);
   r := r || pg_temp.check_that('each pronoun of the list is accepted', (select bool_and(pg_temp.change(ud, jsonb_build_object('pronouns', p)::text) = 'ok') from unnest(array['he/him', 'she/her', 'they/them', 'he/they', 'she/they', 'any', 'ask']) as p), null);
   r := r || pg_temp.check_that('a pronoun that is not on the list is invalid, an empty one too: the server sends null to clear', pg_temp.change(ud, '{"pronouns":"he/she"}') = 'invalid' and pg_temp.change(ud, '{"pronouns":""}') = 'invalid' and pg_temp.change(ud, '{"pronouns":"HE/HIM"}') = 'invalid' and pg_temp.change(ud, '{"pronouns":3}') = 'invalid', null);
   r := r || pg_temp.check_that('a country is two capital letters', pg_temp.change(ud, '{"country":"FRA"}') = 'invalid' and pg_temp.change(ud, '{"country":"F"}') = 'invalid' and pg_temp.change(ud, '{"country":"F1"}') = 'invalid' and pg_temp.change(ud, '{"country":""}') = 'invalid' and pg_temp.change(ud, '{"country":12}') = 'invalid', null);
   answer := pg_temp.change(ud, '{"pronouns":null,"country":null}');
   r := r || pg_temp.check_that('null clears the pronouns and the country', answer = 'ok' and (select pronouns is null and country is null from public.profiles where user_id = ud), answer);
-  answer := pg_temp.change(ud, '{"bio":null}');
-  r := r || pg_temp.check_that('null clears the bio', answer = 'ok' and (select bio is null from public.profiles where user_id = ud), answer);
-  r := r || pg_temp.check_that('the table says the same whoever writes it', pg_temp.refused_with(format('update public.profiles set pronouns = %L where user_id = %L', 'it/its', ud), '23514')
+  answer := pg_temp.change(ud, '{"favorite_games":null,"bio":null}');
+  r := r || pg_temp.check_that('null clears the favourites to an empty list, and the bio', answer = 'ok' and (select favorite_games = '{}' and bio is null from public.profiles where user_id = ud), answer);
+  answer := pg_temp.change(ud, '{"favorite_games":["a","b"]}') || pg_temp.change(ud, '{"favorite_games":[]}');
+  r := r || pg_temp.check_that('an empty list of favourites is none', answer = 'okok' and (select favorite_games = '{}' from public.profiles where user_id = ud), answer);
+  -- The favourites
+  answer := pg_temp.change(ud, '{"favorite_games":["a","b","c","d","e"]}') || pg_temp.change(ud, '{"favorite_games":["a","b","c","d","e","f"]}');
+  r := r || pg_temp.check_that('five favourites are accepted, six are not', answer = 'okinvalid' and (select cardinality(favorite_games) = 5 from public.profiles where user_id = ud), answer);
+  r := r || pg_temp.check_that('a slug twice is invalid', pg_temp.change(ud, '{"favorite_games":["a","b","a"]}') = 'invalid', null);
+  r := r || pg_temp.check_that('a slug has lowercase letters, digits and single dashes', pg_temp.change(ud, '{"favorite_games":["Flip-7"]}') = 'invalid' and pg_temp.change(ud, '{"favorite_games":["flip 7"]}') = 'invalid' and pg_temp.change(ud, '{"favorite_games":["flip--7"]}') = 'invalid' and pg_temp.change(ud, '{"favorite_games":["-flip"]}') = 'invalid' and pg_temp.change(ud, '{"favorite_games":[""]}') = 'invalid' and pg_temp.change(ud, '{"favorite_games":["a/b"]}') = 'invalid', null);
+  r := r || pg_temp.check_that('a slug is 48 characters at most', pg_temp.change(ud, jsonb_build_object('favorite_games', jsonb_build_array(repeat('a', 48)))::text) = 'ok' and pg_temp.change(ud, jsonb_build_object('favorite_games', jsonb_build_array(repeat('a', 49)))::text) = 'invalid', null);
+  r := r || pg_temp.check_that('the favourites are a list of texts', pg_temp.change(ud, '{"favorite_games":"flip-7"}') = 'invalid' and pg_temp.change(ud, '{"favorite_games":[7]}') = 'invalid' and pg_temp.change(ud, '{"favorite_games":[null]}') = 'invalid' and pg_temp.change(ud, '{"favorite_games":[["a"]]}') = 'invalid' and pg_temp.change(ud, '{"favorite_games":{"a":1}}') = 'invalid', null);
+  r := r || pg_temp.check_that('a refused list changes nothing', (select cardinality(favorite_games) = 1 and favorite_games[1] = repeat('a', 48) from public.profiles where user_id = ud), (select favorite_games::text from public.profiles where user_id = ud));
+  r := r || pg_temp.check_that('the table says the same whoever writes it', pg_temp.refused_with(format('update public.profiles set favorite_games = %L where user_id = %L', '{a,b,a}', ud), '23514')
+    and pg_temp.refused_with(format('update public.profiles set favorite_games = %L where user_id = %L', '{a,b,c,d,e,f}', ud), '23514')
+    and pg_temp.refused_with(format('update public.profiles set favorite_games = %L where user_id = %L', '{{a,b},{c,d}}', ud), '23514')
+    and pg_temp.refused_with(format('update public.profiles set favorite_games = %L where user_id = %L', '{NULL}', ud), '23514')
+    and pg_temp.refused_with(format('update public.profiles set favorite_games = null where user_id = %L', ud), '23502')
+    and pg_temp.refused_with(format('update public.profiles set pronouns = %L where user_id = %L', 'it/its', ud), '23514')
     and pg_temp.refused_with(format('update public.profiles set country = %L where user_id = %L', 'fr', ud), '23514'), null);
-  -- The favourites, which a profile has not any more (0028): the column, its check and its function are gone, the lookup does not say them, and the key is left out of a change whatever it holds
-  r := r || pg_temp.check_that('the column, its check and the function behind it are gone', not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'favorite_games')
-    and not exists (select 1 from pg_constraint where conrelid = 'public.profiles'::regclass and conname = 'profiles_favorite_games_check')
-    and to_regprocedure('public.valid_favorite_games(text[])') is null
-    and pg_temp.refused_with(format('update public.profiles set favorite_games = %L where user_id = %L', '{a}', ud), '42703'), null);
-  r := r || pg_temp.check_that('the lookup does not say them', not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'profile_by_handle' and pg_get_function_result(p.oid) like '%favorite_games%')
-    and not (to_jsonb((select h from public.profile_by_handle('Dee', tag_a) h)) ? 'favorite_games'), null);
-  answer := pg_temp.change(ud, '{"bio":"The favourites are left out","favorite_games":["courtisans","flip-7"]}');
-  r := r || pg_temp.check_that('the key is left out of a change, and the rest of it is made', answer = 'ok' and (select bio = 'The favourites are left out' and nickname = 'Dee' and tag = tag_a from public.profiles where user_id = ud), answer);
-  answer := pg_temp.change(ud, '{"bio":"a","favorite_games":["a","a","a","a","a","a"]}') || pg_temp.change(ud, '{"bio":"b","favorite_games":"flip-7"}') || pg_temp.change(ud, '{"bio":"c","favorite_games":7}') || pg_temp.change(ud, '{"bio":"d","favorite_games":null}') || pg_temp.change(ud, '{"bio":"e","favorite_games":[7,null,["a"]]}');
-  r := r || pg_temp.check_that('it is left out whatever it holds: a list too long or with doubles, a text, a number, null, a list that is not made of texts', answer = 'okokokokok' and (select bio = 'e' from public.profiles where user_id = ud), answer);
-  r := r || pg_temp.check_that('a change with nothing else in it asks for nothing: it is invalid, as an empty one is', pg_temp.change(ud, '{"favorite_games":["courtisans"]}') = 'invalid' and pg_temp.change(ud, '{"favorite_games":[]}') = 'invalid' and pg_temp.change(ud, '{"favorite_games":null}') = 'invalid' and pg_temp.change(ud, '{}') = 'invalid', null);
-  r := r || pg_temp.check_that('what is left of a change is judged as it always was: a key it does not know, a value of the wrong kind', pg_temp.change(ud, '{"mood":"happy","favorite_games":["a"]}') = 'invalid' and pg_temp.change(ud, '{"pronouns":3,"favorite_games":["a"]}') = 'invalid' and pg_temp.change(ud, '{"bio":12,"favorite_games":["a"]}') = 'invalid', null);
-  r := r || pg_temp.check_that('an account with no profile is missing, with the key too', pg_temp.change(uc, '{"bio":"hi","favorite_games":["a"]}') = 'missing', null);
   -- The bio
   r := r || pg_temp.check_that('a bio of 200 characters is accepted, 201 is not', pg_temp.change(ud, jsonb_build_object('bio', repeat('b', 200))::text) = 'ok' and pg_temp.change(ud, jsonb_build_object('bio', repeat('b', 201))::text) = 'invalid', null);
   r := r || pg_temp.check_that('characters are counted as a person counts them: 200 emoji fit', pg_temp.change(ud, jsonb_build_object('bio', repeat('🎲', 200))::text) = 'ok' and pg_temp.change(ud, jsonb_build_object('bio', repeat('🎲', 201))::text) = 'invalid', null);
@@ -293,10 +296,10 @@ begin
   r := r || pg_temp.check_that('a closed account says nothing of its member to anybody', when_closed is not null and (select count(*) from public.profile_by_handle('Pairs', 7)) = 0, null);
   -- It goes with the account
   select count(*) into n from public.profiles where user_id = ug and bio is null;
-  update public.profiles set bio = 'Gone with the account', pronouns = 'any', country = 'US' where user_id = ug;
+  update public.profiles set bio = 'Gone with the account', pronouns = 'any', country = 'US', favorite_games = array['x'] where user_id = ug;
   r := r || pg_temp.check_that('a page says the fields of a member who has not hidden their games either', (select bio = 'Gone with the account' and not hide_history from public.profile_by_handle('Pair', 5)), null);
   delete from auth.users where id = ug;
-  r := r || pg_temp.check_that('the three fields go with the account', n = 1 and not exists (select 1 from public.profiles where user_id = ug) and (select count(*) from public.profile_by_handle('Pair', 5)) = 0, null);
+  r := r || pg_temp.check_that('the four fields go with the account', n = 1 and not exists (select 1 from public.profiles where user_id = ug) and (select count(*) from public.profile_by_handle('Pair', 5)) = 0, null);
 
   -- 15. The city (migrations 0020 and 0021): a name and a country, which has to be the profile's own, and goes with it
   answer := pg_temp.change(ud, '{"country":null,"city":null}');

@@ -1,4 +1,4 @@
--- The languages a member speaks, end to end (migration 0029): the column and what the table accepts and refuses of it whoever writes it, what `set_profile` takes (a list of texts, or null to clear it, one field or with others), the order the member put them in, the lookup of a page, and who may call what.
+-- The languages a member speaks, end to end (migration 0028): the column and what the table accepts and refuses of it whoever writes it, what `set_profile` takes (a list of texts, or null to clear it, one field or with others), the order the member put them in, the lookup of a page, and who may call what.
 --
 -- Run it on `pbgo-preview` once the migrations are applied (the Supabase MCP's `execute_sql`, or the SQL editor). It is one `DO` block that ends with `RAISE EXCEPTION 'RESULT …'`: everything it writes is rolled back with the block, and the message is the answer. Every check prints `ok` or `FAIL` with what it saw;
 -- read the whole line. Never on production. It makes two fixture rows in `auth.users` that the rollback takes back: it creates no account that stays.
@@ -74,7 +74,13 @@ begin
   answer := pg_temp.change(ua, '{"languages":["ja","fr"]}');
   r := r || pg_temp.check_that('the lookup says the languages in their order', (select languages = array['ja','fr'] from public.profile_by_handle('Lia', tag_a)), answer);
   r := r || pg_temp.check_that('the lookup says none for a member who picked none', (select languages = '{}' from public.profile_by_handle('Leo', (select tag from public.profiles where user_id = ub))), null);
-  r := r || pg_temp.check_that('the lookup no longer says the favourite games (0028)', not exists (select 1 from information_schema.routines r2 join information_schema.parameters p2 on p2.specific_name = r2.specific_name where r2.routine_schema = 'public' and r2.routine_name = 'profile_by_handle' and p2.parameter_name = 'favorite_games'), null);
+  r := r || pg_temp.check_that('the lookup still says the favourite games (0021), none for a member who picked none', (select favorite_games = '{}' from public.profile_by_handle('Lia', tag_a)), null);
+  answer := pg_temp.change(ua, '{"favorite_games":["hanabi","flip-7"],"languages":["en"]}');
+  r := r || pg_temp.check_that('the favourite games and the languages change together, each in the order it was put', answer = 'ok' and (select favorite_games = array['hanabi','flip-7'] and languages = array['en'] from public.profile_by_handle('Lia', tag_a)), answer);
+  answer := pg_temp.change(ua, '{"languages":["fr","ja"]}');
+  r := r || pg_temp.check_that('a change of the languages alone leaves the favourite games as they were', answer = 'ok' and (select favorite_games = array['hanabi','flip-7'] and languages = array['fr','ja'] from public.profile_by_handle('Lia', tag_a)), answer);
+  answer := pg_temp.change(ua, '{"favorite_games":["courtisans"]}');
+  r := r || pg_temp.check_that('a change of the favourite games alone leaves the languages as they were', answer = 'ok' and (select favorite_games = array['courtisans'] and languages = array['fr','ja'] from public.profile_by_handle('Lia', tag_a)), answer);
 
   -- 6. Another member's list is theirs alone
   r := r || pg_temp.check_that('a change of one member leaves the other as it was', (select languages = '{}' from public.profiles where user_id = ub), null);

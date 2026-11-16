@@ -29,24 +29,24 @@ describe("readProfileByHandle", () => {
       avatarUrl: "https://cdn.example/ann.png",
       hideHistory: false,
       createdAt: "2026-10-01T09:00:00+00:00",
-      details: { pronouns: null, country: null, city: null, bio: null, languages: [] },
+      details: { pronouns: null, country: null, city: null, favoriteGames: [], bio: null, languages: [] },
     })
     expect(mocks.rpc).toHaveBeenCalledWith("profile_by_handle", { p_nickname: "ann", p_tag: 42 })
   })
 
   it("says what the member says of themselves, as the lookup gives it", async () => {
-    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "she/her", country: "FR", city_name: "Lyon", city_country: "FR", bio: "I play late.\nCome and join!", languages: ["fr", "en", "xx", "fr"] })], error: null })
-    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: "she/her", country: "FR", city: { name: "Lyon", country: "FR" }, bio: "I play late.\nCome and join!", languages: ["fr", "en"] })
+    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "she/her", country: "FR", city_name: "Lyon", city_country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!", languages: ["fr", "en", "xx", "fr"] })], error: null })
+    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: "she/her", country: "FR", city: { name: "Lyon", country: "FR" }, favoriteGames: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!", languages: ["fr", "en"] })
   })
 
   it("draws nothing it does not hold: a pronoun off the list, a country that is no country, a bio that is too long", async () => {
-    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "xe/xem", country: "ZZ", city_name: "Lyon", city_country: "ZZ", bio: "b".repeat(201) })], error: null })
-    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: null, country: null, city: null, bio: null, languages: [] })
+    mocks.rpc.mockResolvedValue({ data: [row({ pronouns: "xe/xem", country: "ZZ", city_name: "Lyon", city_country: "ZZ", favorite_games: ["Not A Slug"], bio: "b".repeat(201) })], error: null })
+    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null, languages: [] })
   })
 
   it("answers with no details from a database that has the lookup of 0015 and not the fields of 0018 yet", async () => {
     mocks.rpc.mockResolvedValue({ data: [row()], error: null })
-    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: null, country: null, city: null, bio: null, languages: [] })
+    expect((await readProfileByHandle({ nickname: "Ann", tag: 42 }))?.details).toEqual({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null, languages: [] })
   })
 
   it("is null when nobody goes by it", async () => {
@@ -127,36 +127,36 @@ describe("readProfile", () => {
 
 describe("readProfileDetails", () => {
   it("reads the details of one account, and only those", async () => {
-    mocks.maybeSingle.mockResolvedValue({ data: { pronouns: "any", country: "BE", city_name: "Brussels", city_country: "BE", bio: "Hi", languages: ["fr", "de"] }, error: null })
-    expect(await readProfileDetails(ANN)).toEqual({ pronouns: "any", country: "BE", city: { name: "Brussels", country: "BE" }, bio: "Hi", languages: ["fr", "de"] })
+    mocks.maybeSingle.mockResolvedValue({ data: { pronouns: "any", country: "BE", city_name: "Brussels", city_country: "BE", favorite_games: ["hanabi"], bio: "Hi", languages: ["fr", "de"] }, error: null })
+    expect(await readProfileDetails(ANN)).toEqual({ pronouns: "any", country: "BE", city: { name: "Brussels", country: "BE" }, favoriteGames: ["hanabi"], bio: "Hi", languages: ["fr", "de"] })
     expect(mocks.from).toHaveBeenCalledWith("profiles")
     expect(mocks.select).toHaveBeenCalledTimes(1)
-    expect(mocks.select).toHaveBeenCalledWith("pronouns, country, bio, city_name, city_country, languages")
+    expect(mocks.select).toHaveBeenCalledWith("pronouns, country, favorite_games, bio, city_name, city_country, languages")
     expect(mocks.eq).toHaveBeenCalledWith("user_id", ANN)
   })
 
-  it("reads the rest without the languages where migration 0029 is not applied yet, so that a profile loses nothing else", async () => {
+  it("reads the rest without the languages where migration 0028 is not applied yet, so that a profile loses nothing else", async () => {
     mocks.maybeSingle
       .mockResolvedValueOnce({ data: null, error: { code: "42703", message: "column profiles.languages does not exist" } })
-      .mockResolvedValueOnce({ data: { pronouns: "any", country: "BE", city_name: null, city_country: null, bio: "Hi" }, error: null })
-    expect(await readProfileDetails(ANN)).toEqual({ pronouns: "any", country: "BE", city: null, bio: "Hi", languages: [] })
-    expect(mocks.select.mock.calls.map(([columns]) => columns)).toEqual(["pronouns, country, bio, city_name, city_country, languages", "pronouns, country, bio, city_name, city_country"])
+      .mockResolvedValueOnce({ data: { pronouns: "any", country: "BE", city_name: null, city_country: null, favorite_games: ["hanabi"], bio: "Hi" }, error: null })
+    expect(await readProfileDetails(ANN)).toEqual({ pronouns: "any", country: "BE", city: null, favoriteGames: ["hanabi"], bio: "Hi", languages: [] })
+    expect(mocks.select.mock.calls.map(([columns]) => columns)).toEqual(["pronouns, country, favorite_games, bio, city_name, city_country, languages", "pronouns, country, favorite_games, bio, city_name, city_country"])
   })
 
   it("says nothing of an account that has no profile", async () => {
     mocks.maybeSingle.mockResolvedValue({ data: null, error: null })
-    expect(await readProfileDetails(ANN)).toEqual({ pronouns: null, country: null, city: null, bio: null, languages: [] })
+    expect(await readProfileDetails(ANN)).toEqual({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null, languages: [] })
   })
 
   it("asks nothing for what is not an account (the demo account)", async () => {
-    expect(await readProfileDetails("demo")).toEqual({ pronouns: null, country: null, city: null, bio: null, languages: [] })
+    expect(await readProfileDetails("demo")).toEqual({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null, languages: [] })
     expect(mocks.from).not.toHaveBeenCalled()
   })
 
   it("says nothing where the migration is not applied yet, a missing column included, and throws the rest", async () => {
     for (const code of ["42703", "PGRST204", "42P01", "PGRST205"]) {
       mocks.maybeSingle.mockResolvedValue({ data: null, error: { code, message: "not there" } })
-      expect(await readProfileDetails(ANN), code).toEqual({ pronouns: null, country: null, city: null, bio: null, languages: [] })
+      expect(await readProfileDetails(ANN), code).toEqual({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null, languages: [] })
     }
     const error = { code: "57014", message: "canceling statement due to statement timeout" }
     mocks.maybeSingle.mockResolvedValue({ data: null, error })
@@ -217,10 +217,10 @@ describe("saveProfile", () => {
 
   it("sends every field of the edit under the name of its column, in one call", async () => {
     mocks.rpc.mockResolvedValue({ data: "ok", error: null })
-    await saveProfile(ANN, { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", city: { name: "Lyon", country: "FR" }, bio: "Hello", languages: ["fr", "en"] })
+    await saveProfile(ANN, { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", city: { name: "Lyon", country: "FR" }, favoriteGames: ["courtisans", "flip-7"], bio: "Hello", languages: ["fr", "en"] })
     expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("set_profile", {
       p_user: ANN,
-      p_changes: { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", city: { name: "Lyon", country: "FR" }, bio: "Hello", languages: ["fr", "en"] },
+      p_changes: { nickname: "Annie", tag: 7, pronouns: "they/them", country: "FR", city: { name: "Lyon", country: "FR" }, favorite_games: ["courtisans", "flip-7"], bio: "Hello", languages: ["fr", "en"] },
     })
   })
 
@@ -238,10 +238,10 @@ describe("saveProfile", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("set_profile", { p_user: ANN, p_changes: { bio: "Only the bio" } })
   })
 
-  it("sends null as it is: it takes the field away", async () => {
+  it("sends null and an empty list as they are: they take the field away", async () => {
     mocks.rpc.mockResolvedValue({ data: "ok", error: null })
-    await saveProfile(ANN, { pronouns: null, country: null, bio: null })
-    expect(mocks.rpc).toHaveBeenCalledWith("set_profile", { p_user: ANN, p_changes: { pronouns: null, country: null, bio: null } })
+    await saveProfile(ANN, { pronouns: null, country: null, favoriteGames: [], bio: null })
+    expect(mocks.rpc).toHaveBeenCalledWith("set_profile", { p_user: ANN, p_changes: { pronouns: null, country: null, favorite_games: [], bio: null } })
   })
 
   it("asks nothing for an edit with no field: it is invalid", async () => {

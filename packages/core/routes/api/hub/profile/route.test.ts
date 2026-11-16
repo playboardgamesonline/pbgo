@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   account: null as { id: string; nickname?: string } | null,
   saveProfile: vi.fn(async (_userId: string, _edit: Record<string, unknown>): Promise<"ok" | "taken" | "invalid" | "missing"> => "ok"),
   ensureProfile: vi.fn(async (_account: unknown): Promise<object | null> => ({})),
+  catalog: vi.fn(async (_slugs: readonly string[]): Promise<{ unknown: readonly string[]; complete: boolean }> => ({ unknown: [], complete: true })),
   verifyCity: vi.fn(async (city: { name: string; country: string }): Promise<{ name: string; country: string; region: string | null } | null> => ({ name: city.name === "lyon" ? "Lyon" : city.name, country: city.country, region: null })),
 }))
 
@@ -17,7 +18,9 @@ import { CORE_ERROR_MESSAGES } from "../../../../lib/api"
 import { CitySearchUnavailable } from "../../../../server/geoapify"
 import { setRateLimitStore } from "../../../../server/rate-limit"
 import { MemoryRateLimitStore } from "../../../../server/rate-limiter"
-import { GET, POST } from "./route"
+import { GET, postProfile } from "./route"
+
+const POST = postProfile(mocks.catalog)
 
 const ANN = "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11"
 
@@ -33,6 +36,8 @@ beforeEach(() => {
   mocks.saveProfile.mockResolvedValue("ok")
   mocks.ensureProfile.mockReset()
   mocks.ensureProfile.mockResolvedValue({})
+  mocks.catalog.mockReset()
+  mocks.catalog.mockResolvedValue({ unknown: [], complete: true })
   mocks.verifyCity.mockClear()
   setRateLimitStore(new MemoryRateLimitStore())
   vi.spyOn(console, "error").mockImplementation(() => {})
@@ -127,11 +132,11 @@ describe("POST /api/hub/profile", () => {
   })
 
   describe("what a profile says of its member", () => {
-    it("keeps the pronouns, the country and the bio, each as it is cleaned, and says what it kept", async () => {
+    it("keeps the pronouns, the country, the favourite games and the bio, each as it is cleaned, and says what it kept", async () => {
       mocks.account = { id: ANN }
-      const response = await send({ pronouns: "they/them", country: "fr", bio: "  I play late.\r\nCome and join!  " })
+      const response = await send({ pronouns: "they/them", country: "fr", favoriteGames: ["courtisans", "flip-7"], bio: "  I play late.\r\nCome and join!  " })
       expect(response.status).toBe(200)
-      const kept = { pronouns: "they/them", country: "FR", bio: "I play late.\nCome and join!" }
+      const kept = { pronouns: "they/them", country: "FR", favoriteGames: ["courtisans", "flip-7"], bio: "I play late.\nCome and join!" }
       expect(await response.json()).toEqual({ saved: true, ...kept })
       expect(mocks.saveProfile).toHaveBeenCalledExactlyOnceWith(ANN, kept)
     })
@@ -151,11 +156,11 @@ describe("POST /api/hub/profile", () => {
       expect(mocks.saveProfile).toHaveBeenLastCalledWith(ANN, { languages: [] })
     })
 
-    it("takes them away with null or with nothing: an empty text for the pronouns, the country and the bio", async () => {
+    it("takes them away with null or with nothing: an empty text for the pronouns, the country and the bio, an empty list for the games", async () => {
       mocks.account = { id: ANN }
-      expect(await (await send({ pronouns: null, country: null, bio: null })).json()).toEqual({ saved: true, pronouns: null, country: null, bio: null })
-      expect(await (await send({ pronouns: "", country: "", bio: "  \n " })).json()).toEqual({ saved: true, pronouns: null, country: null, bio: null })
-      expect(mocks.saveProfile).toHaveBeenLastCalledWith(ANN, { pronouns: null, country: null, bio: null })
+      expect(await (await send({ pronouns: null, country: null, favoriteGames: null, bio: null })).json()).toEqual({ saved: true, pronouns: null, country: null, favoriteGames: [], bio: null })
+      expect(await (await send({ pronouns: "", country: "", favoriteGames: [], bio: "  \n " })).json()).toEqual({ saved: true, pronouns: null, country: null, favoriteGames: [], bio: null })
+      expect(mocks.saveProfile).toHaveBeenLastCalledWith(ANN, { pronouns: null, country: null, favoriteGames: [], bio: null })
     })
 
     it.each([
@@ -165,6 +170,11 @@ describe("POST /api/hub/profile", () => {
       [{ country: "ZZ" }],
       [{ country: "FRA" }],
       [{ country: 12 }],
+      [{ favoriteGames: "flip-7" }],
+      [{ favoriteGames: ["a", "b", "c", "d", "e", "f"] }],
+      [{ favoriteGames: ["flip-7", "flip-7"] }],
+      [{ favoriteGames: ["Flip 7"] }],
+      [{ favoriteGames: [7] }],
       [{ bio: "b".repeat(201) }],
       [{ bio: "a\nb\nc\nd\ne" }],
       [{ bio: 12 }],
@@ -182,6 +192,7 @@ describe("POST /api/hub/profile", () => {
       expect(response.status).toBe(400)
       expect(await errorOf(response)).toBe("PROFILE_INVALID")
       expect(mocks.saveProfile).not.toHaveBeenCalled()
+      expect(mocks.catalog).not.toHaveBeenCalled()
     })
 
     it("never reads a bio as markup: text that looks like HTML is kept as text", async () => {
@@ -191,31 +202,70 @@ describe("POST /api/hub/profile", () => {
       expect(mocks.saveProfile).toHaveBeenCalledWith(ANN, { bio: "<img src=x onerror=alert(1)> & <b>hi</b>" })
     })
 
-    it("leaves out the favourite games, which a profile does not have any more: a client of an older version that still sends them has the rest kept", async () => {
+    it("asks the catalog whether the favourite games are games, all of them at once", async () => {
       mocks.account = { id: ANN }
-      const response = await send({ bio: "Hi", favoriteGames: ["courtisans", "flip-7"] })
-      expect(response.status).toBe(200)
-      expect(await response.json()).toEqual({ saved: true, bio: "Hi" })
-      expect(mocks.saveProfile).toHaveBeenCalledExactlyOnceWith(ANN, { bio: "Hi" })
+      await send({ favoriteGames: ["courtisans", "flip-7", "hanabi"] })
+      expect(mocks.catalog).toHaveBeenCalledExactlyOnceWith(["courtisans", "flip-7", "hanabi"])
     })
 
-    it("refuses a body that holds nothing but the favourite games: there is no field of a profile in it", async () => {
+    it("asks the catalog nothing when the request holds no favourite games, or none at all (they are taken away)", async () => {
       mocks.account = { id: ANN }
-      for (const favoriteGames of [["courtisans"], [], null, "flip-7"]) {
-        const response = await send({ favoriteGames })
-        expect(response.status, JSON.stringify(favoriteGames)).toBe(400)
-        expect(await errorOf(response)).toBe("PROFILE_INVALID")
-      }
+      await send({ bio: "Hi" })
+      await send({ favoriteGames: [] })
+      await send({ favoriteGames: null })
+      expect(mocks.catalog).not.toHaveBeenCalled()
+      expect(mocks.saveProfile).toHaveBeenCalledTimes(3)
+    })
+
+    it("refuses a favourite that is not a game of the catalog, and keeps nothing", async () => {
+      mocks.account = { id: ANN }
+      mocks.catalog.mockResolvedValue({ unknown: ["not-a-game"], complete: true })
+      const response = await send({ nickname: "Alex", tag: 42, favoriteGames: ["courtisans", "not-a-game"] })
+      expect(response.status).toBe(400)
+      expect(await errorOf(response)).toBe("PROFILE_GAME_UNKNOWN")
       expect(mocks.saveProfile).not.toHaveBeenCalled()
     })
 
-    it("keeps nothing for the demo account of development, checks the request all the same and says it is saved", async () => {
-      mocks.account = { id: "demo" }
-      const response = await send({ pronouns: "any", bio: " Hi " })
+    it("says it is not available while the catalog cannot be read in full and does not list a slug: it cannot tell a game from what is not", async () => {
+      mocks.account = { id: ANN }
+      mocks.catalog.mockResolvedValue({ unknown: ["flip-7"], complete: false })
+      const response = await send({ favoriteGames: ["courtisans", "flip-7"] })
+      expect(response.status).toBe(503)
+      expect(await errorOf(response)).toBe("PROFILE_UNAVAILABLE")
+      expect(mocks.saveProfile).not.toHaveBeenCalled()
+    })
+
+    it("keeps the favourites that the catalog lists even when it could not be read in full", async () => {
+      mocks.account = { id: ANN }
+      mocks.catalog.mockResolvedValue({ unknown: [], complete: false })
+      const response = await send({ favoriteGames: ["courtisans"] })
       expect(response.status).toBe(200)
-      expect(await response.json()).toEqual({ saved: true, pronouns: "any", bio: "Hi" })
+      expect(mocks.saveProfile).toHaveBeenCalledWith(ANN, { favoriteGames: ["courtisans"] })
+    })
+
+    it("changes the bio while the catalog is down, since it asks nothing of it", async () => {
+      mocks.account = { id: ANN }
+      mocks.catalog.mockRejectedValue(new Error("catalog down"))
+      expect((await send({ bio: "Still here" })).status).toBe(200)
+    })
+
+    it("answers with an error when the catalog itself fails, and keeps nothing: the member is not told it is saved", async () => {
+      mocks.account = { id: ANN }
+      mocks.catalog.mockRejectedValue(new Error("catalog down"))
+      const response = await send({ favoriteGames: ["courtisans"] })
+      expect(response.status).toBe(500)
+      expect(await errorOf(response)).toBe("SERVER_ERROR")
+      expect(mocks.saveProfile).not.toHaveBeenCalled()
+    })
+
+    it("keeps nothing for the demo account of development, checks the request all the same, asks nothing of the catalog and says it is saved", async () => {
+      mocks.account = { id: "demo" }
+      const response = await send({ pronouns: "any", favoriteGames: ["courtisans"], bio: " Hi " })
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ saved: true, pronouns: "any", favoriteGames: ["courtisans"], bio: "Hi" })
       expect((await send({ pronouns: "he/she" })).status).toBe(400)
       expect(mocks.saveProfile).not.toHaveBeenCalled()
+      expect(mocks.catalog).not.toHaveBeenCalled()
     })
   })
 
@@ -312,7 +362,7 @@ describe("POST /api/hub/profile", () => {
     it("asks Geoapify only when a city is asked for", async () => {
       mocks.account = { id: ANN }
       await send({ bio: "Hi" })
-      await send({ pronouns: "any" })
+      await send({ favoriteGames: ["courtisans"] })
       expect(mocks.verifyCity).not.toHaveBeenCalled()
     })
   })
@@ -407,7 +457,7 @@ describe("POST /api/hub/profile", () => {
   })
 
   it("has a message in the platform's wording for each of its refusals: a member never reads [missing: …]", () => {
-    for (const code of ["NOT_SIGNED_IN", "PROFILE_INVALID", "PROFILE_TAKEN", "PROFILE_CITY_UNKNOWN", "PROFILE_UNAVAILABLE", "CROSS_ORIGIN", "INVALID_REQUEST", "RATE_LIMITED", "SERVER_ERROR"]) expect(CORE_ERROR_MESSAGES[code], code).toBeTruthy()
+    for (const code of ["NOT_SIGNED_IN", "PROFILE_INVALID", "PROFILE_TAKEN", "PROFILE_GAME_UNKNOWN", "PROFILE_CITY_UNKNOWN", "PROFILE_UNAVAILABLE", "CROSS_ORIGIN", "INVALID_REQUEST", "RATE_LIMITED", "SERVER_ERROR"]) expect(CORE_ERROR_MESSAGES[code], code).toBeTruthy()
   })
 })
 
