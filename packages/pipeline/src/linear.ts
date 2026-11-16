@@ -116,6 +116,7 @@ export function validationComment(state: PipelineState, step: StepDefinition, ga
   const s = stepOf(state, step.id)
   const lines = [`Validated${s.validatedAt ? ` on ${s.validatedAt.slice(0, 10)}` : ""} at the gate of \`pnpm add-game "${state.name}"\` (${s.rounds} round${s.rounds === 1 ? "" : "s"}).`]
   if (step.id === "scout") lines.push(`Scout file: ${label(game.scoutFile)}`)
+  if (step.id === "rules-spec") lines.push(`Rules spec: docs/games/${game.slug}/rules.md (in the checkout, uncommitted: the game's first pull request takes it)`)
   if (s.links.length > 0) lines.push(...s.links.map((link) => `- ${link}`))
   return lines.join("\n")
 }

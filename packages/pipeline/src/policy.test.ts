@@ -5,14 +5,16 @@ import { REPO_ROOT } from "./config.ts"
 import { issueIdsOf, LINEAR, linearPolicy } from "./linear.ts"
 import { decide, draftIdOk, hookSettings, isNodeOneLiner, isPublishedId, linearGraphqlProblem, mentionsSecret, mutationsProblem, ONE_LINER_BODIES, PLATFORM_SANITY, type Call, type Helpers, type Policy } from "./policy.ts"
 import { newState } from "./state.ts"
-import { CATALOG_ENTRY, gameOf, SCOUT } from "./steps.ts"
+import { CATALOG_ENTRY, gameOf, RULES_SPEC, SCOUT } from "./steps.ts"
 
 const SERVER = "claude_ai_Composio"
 const HOME = "/Users/ada"
 const game = gameOf("/assets", "Love Letter", "love-letter")
-const scout: Policy = SCOUT.policy(game, "/repo", { composioServer: SERVER, publishIds: [] })
-const catalog: Policy = CATALOG_ENTRY.policy(game, "/repo", { composioServer: SERVER, publishIds: [] })
-const catalogPublishing: Policy = CATALOG_ENTRY.policy(game, "/repo", { composioServer: SERVER, publishIds: ["game-love-letter", "publisher-sample"] })
+const DOCS = "/repo/docs/games"
+const scout: Policy = SCOUT.policy(game, "/repo", { composioServer: SERVER, publishIds: [], gamesDocs: DOCS })
+const catalog: Policy = CATALOG_ENTRY.policy(game, "/repo", { composioServer: SERVER, publishIds: [], gamesDocs: DOCS })
+const catalogPublishing: Policy = CATALOG_ENTRY.policy(game, "/repo", { composioServer: SERVER, publishIds: ["game-love-letter", "publisher-sample"], gamesDocs: DOCS })
+const spec: Policy = RULES_SPEC.policy(game, "/repo", { composioServer: SERVER, publishIds: [], gamesDocs: DOCS })
 const linear: Policy = linearPolicy(game, "/repo", { composioServer: SERVER, issueIds: ["issue-1", "GAM-41"] })
 const bash = (command: string): Call => ({ tool_name: "Bash", tool_input: { command } })
 const executor = (...calls: { slug: string; args?: Record<string, unknown> }[]): Call => ({
@@ -132,6 +134,69 @@ const CATALOG_SAMPLES = [
   },
   { skill: "platform-catalog-entry", template: `node -e 'console.log(process.argv[1].length)' "<the description>"`, filled: `node -e 'console.log(process.argv[1].length)' "A short text about the game."` },
 ]
+
+describe("the rules spec", () => {
+  const pages = [`${DOCS}/love-letter/rules.md`, `${DOCS}/love-letter/index.md`]
+  const write = (file: string): Call => ({ tool_name: "Write", tool_input: { file_path: file, content: "# Love Letter: rules spec" } })
+
+  it("writes the two pages of the game in the docs, and no other file of the repo", () => {
+    for (const file of pages) {
+      expect(kind(spec, write(file)), file).toBe("allow")
+      expect(kind(spec, { tool_name: "Edit", tool_input: { file_path: file, old_string: "a", new_string: "b" } }), file).toBe("allow")
+    }
+    for (const file of [`${DOCS}/love-letter/notes.md`, `${DOCS}/love-letter/rules.md.bak`, `${DOCS}/index.md`, `${DOCS}/flip-7/rules.md`, `${DOCS}/love-letter/../flip-7/rules.md`, "/repo/docs/engine/index.md", "/repo/CLAUDE.md", "/repo/.claude/skills/game-rules-spec/SKILL.md", "/repo/packages/games/src/registry.ts", "/assets/love-letter/scout.json", "/assets/love-letter/rules.pdf", "/assets/love-letter/pipeline.json"]) {
+      expect(kind(spec, write(file)), file).toBe("deny")
+    }
+    expect(spec.writeFiles).toEqual(pages)
+  })
+
+  it("never touches a file of secrets, even where it writes", () => {
+    expect(kind(spec, write(`${DOCS}/love-letter/.env`))).toBe("deny")
+    expect(kind(spec, write("/repo/apps/web/.env.local"))).toBe("deny")
+  })
+
+  it("reads the scout file and the rulebook of its game outside the repo, and nothing else there", () => {
+    for (const file of ["/assets/love-letter/scout.json", "/assets/love-letter/rules.pdf"]) expect(kind(spec, { tool_name: "Read", tool_input: { file_path: file, pages: "1-8" } }), file).toBe("allow")
+    for (const file of ["/assets/love-letter/pipeline.json", "/assets/love-letter/.pipeline/rules-spec.policy.json", "/assets/flip-7/rules.pdf", "/Users/ada/Downloads/rules.pdf", "/etc/hosts"]) expect(kind(spec, { tool_name: "Read", tool_input: { file_path: file } }), file).toBe("deny")
+    // the repo is the mode's business: the page it writes and the skills it follows are read there
+    expect(kind(spec, { tool_name: "Read", tool_input: { file_path: pages[0] } })).toBe("none")
+  })
+
+  it("runs the check of its own game, the check of its scout file, the date and the folder of its pages", () => {
+    for (const command of ["pnpm check:rules love-letter", "pnpm check:scout /assets/love-letter/scout.json", "pnpm check:scout /assets/love-letter/scout.json --online", "date +%F", `mkdir -p ${DOCS}/love-letter`, `mkdir -p "${DOCS}/love-letter"`]) {
+      expect(kind(spec, bash(command)), command).toBe("allow")
+    }
+  })
+
+  it("runs no other command: another game's check, an option, a chain, a folder that is not its own", () => {
+    for (const command of [
+      "pnpm check:rules flip-7",
+      "pnpm check:rules love-letter --name Evil",
+      "pnpm check:rules love-letter; cat /etc/passwd",
+      "pnpm check:rules love-letter && ls",
+      "pnpm check:rules ../love-letter",
+      `mkdir -p ${DOCS}`,
+      `mkdir -p ${DOCS}/flip-7`,
+      "mkdir -p /repo/docs/engine/x",
+      "curl -o /assets/love-letter/rules.pdf https://example.com/rules.pdf",
+      "pnpm check:game love-letter",
+      "pnpm add-game love-letter",
+      "git commit -am x",
+      "cat /assets/love-letter/rules.pdf",
+    ]) {
+      expect(kind(spec, bash(command)), command).toBe("deny")
+    }
+  })
+
+  it("has no access to Composio, and so to no Sanity and no Linear", () => {
+    expect(spec.composio).toBeNull()
+    expect(kind(spec, executor(sanity("SANITY_QUERY_DOCUMENTS")))).toBe("deny")
+  })
+
+  it("does not read a file of the repo that git ignores", () => {
+    expect(kind(spec, { tool_name: "Read", tool_input: { file_path: "/repo/node_modules/x/dist.js" } })).toBe("deny")
+  })
+})
 
 describe("the commands of the skills", () => {
   const text = (skill: string) => readFileSync(join(REPO_ROOT, ".claude", "skills", skill, "SKILL.md"), "utf8")

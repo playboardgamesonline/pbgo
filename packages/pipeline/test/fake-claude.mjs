@@ -84,7 +84,7 @@ out({ type: "rate_limit_event", rate_limit_info: { status: "allowed", resetsAt: 
 
 const outPath = /--out (\S+)/.exec(prompt)?.[1] ?? ""
 for (const write of spec.writes ?? []) {
-  const path = write.path.replace("$OUT", outPath).replace("$ASSETS", process.env.PBGO_ASSETS_DIR ?? "")
+  const path = write.path.replace("$OUT", outPath).replace("$ASSETS", process.env.PBGO_ASSETS_DIR ?? "").replace("$DOCS", process.env.PBGO_GAMES_DOCS_DIR ?? "")
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, write.content)
 }

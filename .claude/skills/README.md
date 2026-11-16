@@ -24,7 +24,7 @@ A game goes through six stages, and `pnpm check:game <slug>` says which it has r
 | --- | --- | --- | --- |
 | Identify the game: edition, publisher, rules version | `/game-scout` (GAM-32) | the owner confirms the edition | written |
 | Catalog entry in the platform's Sanity (a draft) | `platform-catalog-entry` (PLT-98) | the owner publishes it | written |
-| Rules spec and the list of components | `game-rules-spec` (GAM-33) | the owner validates the spec | to write; `engine-rules` step 2 does the plan meanwhile |
+| Rules spec and the list of components | `game-rules-spec` (GAM-33) | the owner validates the spec | written |
 | Platform assets, game assets | `platform-assets` (PLT-99), `game-assets` (GAM-34) | the owner has handed the art over | to write |
 | The game's folder, its Sanity project and Studio | `game-new` | the Studio is open | written |
 | The Studio's forms, the seed | `game-sanity-create` | the drafts are seeded | written |
@@ -32,12 +32,13 @@ A game goes through six stages, and `pnpm check:game <slug>` says which it has r
 | The binding and the board | `engine-board` | `check:game --stage board` exits 0 | written |
 | Content and go-live | `game-go-live` | `check:game --stage content` exits 0, then the switches are turned | written |
 
-`pnpm add-game "<name>"` (PLT-97, `packages/pipeline`, `docs/scripts.md`) runs the first two rows in this order, one gate each; the other rows are the steps its next versions add (a skill, a `StepDefinition` in `packages/pipeline/src/steps.ts`, and the row above). A gap in the blocks of the kit or the table found while planning is not worked around in the game: it goes to the engine lane (`engine-rules` step 2), and the first game of a family tells the engine lane what was awkward ("Friction" in its plan).
+`pnpm add-game "<name>"` (PLT-97, `packages/pipeline`, `docs/scripts.md`) runs the first three rows in this order, one gate each; the other rows are the steps its next versions add (a skill, a `StepDefinition` in `packages/pipeline/src/steps.ts`, and the row above). A gap in the blocks of the kit or the table found while planning is not worked around in the game: it goes to the engine lane (`engine-rules` step 2), and the first game of a family tells the engine lane what was awkward ("Friction" in its plan).
 
 ## Skills
 
 ### GAME
 - `game-scout` — identify a game before it is added: the edition (publisher, year, rules version), its BoardGameGeek popularity and complexity, its figures, an English slug and a type (an expansion or a reimplementation is suggested, with a base game of the platform's catalog), as a short report and a `scout.json` that `platform-catalog-entry` and the pipeline read, checked by `pnpm check:scout`, then a gate (`packages/games/src/scout.test.ts` keeps the shape of the file and the skill's example)
+- `game-rules-spec` — write a game's rules spec before its engine: from the rulebook the scout found (and the publisher's FAQ and errata), the component list and the rules as the engine will follow them, one page of the docs, `docs/games/<slug>/rules.md`, with the cases the rulebook leaves open and a reading proposed for each, checked by `pnpm check:rules`, then a gate until the owner validates (`packages/games/src/rules-spec.test.ts` keeps the shape of the page and the skill's examples)
 - `game-new` — start a new game from nothing: the questions to ask the owner, `pnpm add-game` (code from the template, Sanity project, Studio, rules PDFs, environment) run after an explicit ok, then the hand-over to `game-sanity-create` for the fields
 - `game-sanity-create` — build or reshape a game's Sanity content model: the questions to ask the owner, the Studio-form rules and don'ts, the schemas, the guards, the seed and the Studio deploy
 - `game-go-live` — put a finished game live: the gate `check:game --stage content`, what only a person can say, the preview, the two switches of the registry, the checks of production

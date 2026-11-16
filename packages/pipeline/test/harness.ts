@@ -18,7 +18,7 @@ export type CallSpec = {
   match: string
   text?: string
   cost?: number
-  /** files the call leaves behind (`$OUT` is the `--out` of the prompt, `$ASSETS` the folder of the games' files) */
+  /** files the call leaves behind (`$OUT` is the `--out` of the prompt, `$ASSETS` the folder of the games' files, `$DOCS` the folder of the specs) */
   writes?: { path: string; content: string }[]
   tools?: { name: string; input?: Record<string, unknown> }[]
   denials?: { tool: string; input?: Record<string, unknown>; reason?: string; hook?: boolean }[]
@@ -49,6 +49,8 @@ export type Run = {
   calls: LoggedCall[]
   base: string
   assets: string
+  /** the folder of the specs of the games (`docs/games` of the temporary world) */
+  docs: string
   /** reads a file of the temporary world */
   read: (path: string) => string
 }
@@ -96,11 +98,15 @@ export const flagValues = (call: LoggedCall, name: string): string[] => {
 export async function runCli(options: RunOptions): Promise<Run> {
   const base = options.base ?? world()
   const assets = join(base, "assets")
+  const docs = join(base, "docs-games")
   const bin = join(base, "bin")
   mkdirSync(assets, { recursive: true })
+  mkdirSync(docs, { recursive: true })
   mkdirSync(bin, { recursive: true })
   executable(join(bin, "claude"), `#!/bin/sh\nexec "${process.execPath}" "${join(PACKAGE, "test", "fake-claude.mjs")}" "$@"\n`)
   executable(join(bin, "check-scout"), `#!/bin/sh\nexec "${process.execPath}" "${join(PACKAGE, "test", "fake-check-scout.mjs")}" "$@"\n`)
+  // the check of a spec is the real one (`pnpm check:rules` without pnpm), reading the specs of the temporary world
+  executable(join(bin, "check-rules"), `#!/bin/sh\nexec "${process.execPath}" --disable-warning=ExperimentalWarning "${join(REPO, "packages", "games", "scripts", "check-rules.ts")}" "$@"\n`)
   writeFileSync(join(base, "scenario.json"), JSON.stringify(options.scenario ?? {}))
   // a log and a list of the calls already answered for each run, so that a run that comes back to the same world reads only its own
   const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -113,6 +119,10 @@ export async function runCli(options: RunOptions): Promise<Run> {
     PBGO_ASSETS_DIR: assets,
     PBGO_CLAUDE_BIN: join(bin, "claude"),
     PBGO_CHECK_SCOUT_BIN: join(bin, "check-scout"),
+    PBGO_CHECK_RULES_BIN: join(bin, "check-rules"),
+    PBGO_GAMES_DOCS_DIR: docs,
+    // no test fetches a rulebook from the network: one that wants to see the fetch tried sets this to "" and an address that cannot be resolved (.invalid)
+    PBGO_ADD_GAME_NO_DOWNLOAD: "1",
     FAKE_CLAUDE_SCENARIO: join(base, "scenario.json"),
     FAKE_CLAUDE_LOG: logFile,
     FAKE_CLAUDE_USED: join(base, `used-${unique}.json`),
@@ -154,6 +164,7 @@ export async function runCli(options: RunOptions): Promise<Run> {
     calls: invocations.filter((call) => call.argv[0] === "-p"),
     base,
     assets,
+    docs,
     read: (path) => readFileSync(path, "utf8"),
   }
 }
@@ -191,7 +202,7 @@ export function scoutJson(name: string, slug: string, extra: Record<string, unkn
 
 /** What a bookkeeping call answers: the ids of the issues it made or moved. */
 export function linearAnswer(keys: string[], state: Record<string, string> = {}, extra: { commented?: string[] } = {}): unknown {
-  const number = (key: string) => 40 + ["parent", "scout", "catalog-entry"].indexOf(key)
+  const number = (key: string) => 40 + ["parent", "scout", "catalog-entry", "rules-spec"].indexOf(key)
   return {
     labelId: "label-1",
     issues: keys.map((key) => ({

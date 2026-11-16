@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./registry": "./src/registry.ts",
+    "./rules-spec": "./src/rules-spec.ts",
     "./runtime": "./src/runtime.tsx",
     "./scout": "./src/scout.ts",
     "./slug": "./src/slug.ts"

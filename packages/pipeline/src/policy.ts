@@ -127,6 +127,11 @@ export const BASH = {
   nodeOneLiner: { builtin: "node-one-liner" },
 } as const satisfies Record<string, BashRule>
 
+/** `pnpm check:rules <slug>` of this game and no other: it reads the spec of the game it names. */
+export function rulesCheckRule(slug: string): BashRule {
+  return { regex: `^pnpm check:rules ${escapeRegex(slug)}$` }
+}
+
 /** `mkdir -p <the folder of the game>`, with or without quotes around the path, and nothing else. */
 export function mkdirRule(dir: string): BashRule {
   return { regex: `^mkdir -p ["']?${escapeRegex(dir)}["']?$` }
