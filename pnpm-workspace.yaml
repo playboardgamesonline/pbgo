@@ -101,7 +101,7 @@ catalog:
   # Analytics (PostHog): pinned exactly, not on the newest release. They publish several times a day and the
   # options of `init` change, so an upgrade is a decision (`packages/analytics` checks the option names).
   posthog-js: 1.444.0
-  posthog-node: 5.61.1
+  posthog-node: 5.63.0
 
   # Docs (the markdown files of docs/ rendered as pages, `@pbgo/docs`)
   react-markdown: ^10.1.0
