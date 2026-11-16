@@ -5,8 +5,8 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import { cn } from "../utils"
 import { ToggleGroup, ToggleGroupItem } from "./toggle-group"
 
-// The switch at the top of the signed-in home's play zone: one case for each thing the zone does (Normal, Ranked, Tournaments, Custom), each with its icon and its name, and nothing else. It is a segmented toggle (`ToggleGroup`) a step bigger than the one of a form, and it fits
-// what it holds: it is as wide as its cases, centred in its column, never the width of the page. The thumb glides to the case that is picked. In a column too narrow for every name, the cases that are not picked are an icon alone, their names being for a screen reader and the pointer
+// The switch at the top of the signed-in home's play zone: one case for each thing the zone does (Normal, Ranked, Custom), each with its icon and its name, and nothing else. It is a segmented toggle (`ToggleGroup`) a step bigger than the one of a form, and it fits
+// what it holds: it is as wide as its cases, centred in its column unless the page says otherwise (`className`), never the width of the page. The thumb glides to the case that is picked. In a column too narrow for every name, the cases that are not picked are an icon alone, their names being for a screen reader and the pointer
 // (`title`). A switch that is `disabled` shows the case that is picked as strong as when it is set. It decides nothing: `onValueChange` is how the page keeps the mode.
 
 /** A case of the switch: the value the page keeps, its name and its icon. */

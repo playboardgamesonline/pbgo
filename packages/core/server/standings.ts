@@ -265,6 +265,17 @@ export async function readMemberGames(userId: string, limit: number, game?: stri
   })
 }
 
+/**
+ * The games a member finished, by slug and each once, the one they finished last first: the order of the career's row of games. It reads the member's latest `limit` seats whichever the game, in one light query, so that the order does not depend on the game the career is narrowed to
+ * (`readMemberGames` with a `game` lists that game's only). A game they last played before those seats comes after the ones that are in them.
+ */
+export async function readMemberGameOrder(userId: string, limit = 200): Promise<string[]> {
+  if (!USER_ID.test(userId)) return []
+  const { data, error } = await supabaseAdmin().from("game_participants").select("finished_at, game_results!inner(game)").eq("user_id", userId).order("finished_at", { ascending: false }).limit(limit)
+  if (error) throw error
+  return [...new Set(((data ?? []) as Row[]).map((row) => String(joined(row.game_results).game)))]
+}
+
 /** What a member has done in a game: their totals (`player_stats`) and, once they have rated a game, the rank their points read as. */
 export type MemberGameTotals = {
   game: string
@@ -306,4 +317,43 @@ export async function readMemberTotals(userId: string): Promise<MemberGameTotals
       rankProgress: points === null ? null : progressOfPoints(points),
     }
   })
+}
+
+/** How many rows a read of `player_stats` asks for at a time: the database answers 1,000 at most, and a player has a row for each game they played. */
+const STATS_PAGE = 1000
+/** How many players a read of `player_stats` names at a time, so that the address of the request stays short. */
+const STATS_PLAYERS = 100
+
+/** What a player did over every game they finished: how many, and how many they won (a game won together counts). */
+export type PlayerTotals = { played: number; wins: number }
+
+/**
+ * What each of these players did over every game they played, ranked or not (`player_stats`), by the player's account id; a player with no game is not in the map. The rows are read in pages and the players in groups, since a friend list holds a few hundred players and each has a row for
+ * every game: the totals are never cut short. Throws what the database says.
+ */
+export async function readPlayerTotals(userIds: readonly string[]): Promise<Map<string, PlayerTotals>> {
+  const ids = [...new Set(userIds.filter((id) => USER_ID.test(id)))]
+  const totals = new Map<string, PlayerTotals>()
+  const db = supabaseAdmin()
+  for (let first = 0; first < ids.length; first += STATS_PLAYERS) {
+    const group = ids.slice(first, first + STATS_PLAYERS)
+    for (let start = 0; ; start += STATS_PAGE) {
+      const { data, error } = await db
+        .from("player_stats")
+        .select("user_id, games_played, wins, coop_wins")
+        .in("user_id", group)
+        .order("user_id")
+        .order("game")
+        .range(start, start + STATS_PAGE - 1)
+      if (error) throw error
+      const rows = (data ?? []) as Row[]
+      for (const row of rows) {
+        const id = String(row.user_id)
+        const before = totals.get(id) ?? { played: 0, wins: 0 }
+        totals.set(id, { played: before.played + count(row.games_played), wins: before.wins + count(row.wins) + count(row.coop_wins) })
+      }
+      if (rows.length < STATS_PAGE) break
+    }
+  }
+  return totals
 }

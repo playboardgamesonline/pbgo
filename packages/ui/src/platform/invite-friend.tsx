@@ -9,11 +9,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "./avatar"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./dialog"
 import { PresenceDot } from "./friends-panel"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "./input-group"
+import { Separator } from "./separator"
 import { Spinner } from "./spinner"
 
-// The window that picks the friend a visitor invites, to their table (PLT-109: opened by "Invite a friend" in the menu of a free seat) or to their group (PLT-23: opened by the button of the group tab of the social panel). A search field, then the friends, the connected ones first as suggestions (the ones who are free, then the ones who
+// The window that picks the friend a visitor invites, to their table (PLT-109: opened by "Invite a friend" in the menu of a free seat). A search field, then the friends, the connected ones first as suggestions (the ones who are free, then the ones who
 // are playing, with what each is doing: the game they are in), then the others, who are away: they are listed too, and the invitation waits for them. A press on a row sends the invitation and nothing else: the row says "Sending…", then "Invited" with a tick,
-// and stays in the list, so that the visitor can invite more than one friend to a table with several seats or to a group; the window is left by its close button or Escape. The window says what it is for in its title and under it (`title`, `description`). It decides nothing: `onInvite` does the sending and answers `false` (or a promise of it) when the
+// and stays in the list, so that the visitor can invite more than one friend to a table with several seats; the window is left by its close button or Escape. The window says what it is for in its title and under it (`title`, `description`). It decides nothing: `onInvite` does the sending and answers `false` (or a promise of it) when the
 // invitation was refused, which puts the row back. A row that has been sent is not sent twice while it says "Invited".
 
 type InviteFriendListProps = {
@@ -108,7 +109,8 @@ function InviteFriendList({ friends, onInvite, invited, limit, labels = INVITE_L
 
   return (
     <div data-slot="invite-friend-list" className={cn("flex min-h-0 flex-col gap-4", className)}>
-      <InputGroup>
+      {/* The field takes the focus as the panel opens, and shows no ring round it then: the caret says where it is */}
+      <InputGroup className="has-[[data-slot=input-group-control]:focus-visible]:border-transparent has-[[data-slot=input-group-control]:focus-visible]:ring-0">
         <InputGroupAddon>
           <HugeiconsIcon icon={Search01Icon} strokeWidth={2} aria-hidden="true" />
         </InputGroupAddon>
@@ -181,14 +183,17 @@ function FriendPicker({ link, className, ...list }: FriendPickerProps) {
     <div data-slot="friend-picker" className={cn("flex min-h-0 flex-col gap-3", className)}>
       <InviteFriendList {...list} />
       {link && (
-        <button
-          type="button"
-          onClick={link.onCopy}
-          className="flex items-center gap-3 rounded-xl border-t px-2 py-2.5 text-left text-sm outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30"
-        >
-          <HugeiconsIcon icon={link.copied ? Tick02Icon : Link01Icon} strokeWidth={2} aria-hidden="true" className="size-4 text-muted-foreground" />
-          {link.copied ? "Link copied" : "Copy link"}
-        </button>
+        <>
+          <Separator />
+          <button
+            type="button"
+            onClick={link.onCopy}
+            className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-left text-sm outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30"
+          >
+            <HugeiconsIcon icon={link.copied ? Tick02Icon : Link01Icon} strokeWidth={2} aria-hidden="true" className="size-4 text-muted-foreground" />
+            {link.copied ? "Link copied" : "Copy link"}
+          </button>
+        </>
       )}
     </div>
   )

@@ -10,7 +10,6 @@ import { Button } from "@pbgo/ui/platform/button"
 import { AccountShell } from "@/components/account-shell"
 import { AddFriendButton } from "@/components/add-friend-button"
 import { EditProfileButton } from "@/components/edit-profile-button"
-import { ProfileAbout } from "@/components/profile-about"
 import { ProfileHeader } from "@/components/profile-header"
 import { ProfileSections } from "@/components/profile-sections"
 import { ProfileViewed } from "@/components/profile-viewed"
@@ -37,7 +36,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
 
   return (
     <AccountShell>
-      <ProfileHeader head={head} own={own}>
+      <ProfileHeader head={head}>
         {own && <EditProfileButton head={head} demo={viewer !== null && isDemoAccount(viewer)} address="player" />}
         {!own && head.tag !== null && viewer === null && (
           <Button asChild>
@@ -49,9 +48,8 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
         )}
         {!own && head.tag !== null && relation !== null && <AddFriendButton handle={{ nickname: head.nickname, tag: head.tag }} relation={relation} />}
       </ProfileHeader>
-      <ProfileAbout details={head.details} />
-      <div className="pt-8">
-        <ProfileSections games={games} own={own} hideHistory={head.hideHistory} recent={RECENT_GAMES} timeFormat={viewer?.preferences.timeFormat} />
+      <div className="pt-6">
+        <ProfileSections details={head.details} games={games} own={own} hideHistory={head.hideHistory} recent={RECENT_GAMES} timeFormat={viewer?.preferences.timeFormat} />
       </div>
       <ProfileViewed own={own} hidden={games === null} from={profileSourceOf(typeof from === "string" ? from : null)} />
     </AccountShell>

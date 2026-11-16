@@ -1,11 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { Cancel01Icon, Chatting01Icon, Link01Icon, PanelRightCloseIcon, PanelRightOpenIcon, Tick02Icon, UserAdd01Icon, UserGroupIcon, UserListIcon } from "@hugeicons/core-free-icons"
+import { Cancel01Icon, Chatting01Icon, Link01Icon, PanelRightCloseIcon, PanelRightOpenIcon, Tick02Icon, UserAdd01Icon, UserListIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { AnimatePresence, LayoutGroup, motion } from "motion/react"
 import { initials, type Friend } from "../friends"
-import type { Group, GroupMember } from "../groups"
 import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "../motion"
 import { lastMessage, sortedConversations, timeAgo, unreadOf, type Conversation, type FriendRequest, type Invitation } from "../social"
 import { cn } from "../utils"
@@ -14,12 +13,11 @@ import { AddFriendForm } from "./add-friend-form"
 import { Badge } from "./badge"
 import { Button } from "./button"
 import { FriendsRoster, PresenceDot, type FriendMenuHandlers } from "./friends-panel"
-import { GroupPane } from "./group-panel"
 import { InvitationsCard } from "./invitations-card"
 import { QueueCard, type QueueCardProps } from "./queue"
 import { Tabs, TabsList, TabsTrigger } from "./tabs"
 
-// The social panel of a signed-in visitor, the way the Riot Client has it: three or four tabs, each an icon (the friends, game by game, and what they are doing, `FriendsRoster`; the visitor's group, `GroupPane`, when the page has groups; the conversations
+// The social panel of a signed-in visitor, the way the Riot Client has it: three tabs, each an icon (the friends, game by game, and what they are doing, `FriendsRoster`; the conversations
 // with them; and the way to add a friend, `AddFriendForm` (the username and the tag side by side and one button under them), with the requests that wait for an answer under it, the ones that came in
 // and then the ones that went out, as the Riot Client lists them), the search of the friends, and the list. The tabs that have something for the visitor (messages
 // not read, requests to answer) carry a count. The tile behind the current tab is one element that glides to the tab that is pressed, and the pane of a tab comes in from the side the tab is
@@ -29,7 +27,7 @@ import { Tabs, TabsList, TabsTrigger } from "./tabs"
 // nothing: where the friends, the messages and the requests come from (PLT-23) and what a press does are the page's, and a button whose handler is missing is not drawn (the form that
 // adds a friend is off). The dot of a friend's presence wears its colour (`FriendsRoster`, `PresenceDot`). While the visitor looks for a game the panel has a card for it at the top, over the tabs, whatever tab is open (`QueueCard`), and what waits for their answer, the invitations to a table, the invitations to a group and the requests to join theirs, has one under it (`InvitationsCard`, PLT-109, PLT-23).
 
-export type SocialTab = "friends" | "group" | "messages" | "add"
+export type SocialTab = "friends" | "messages" | "add"
 
 /** The count on the corner of a tab: at the top right of its icon, which is in the middle. */
 const COUNT = "absolute top-0.5 left-1/2 ml-2 h-4 min-w-4 justify-center px-1"
@@ -38,7 +36,7 @@ const COUNT = "absolute top-0.5 left-1/2 ml-2 h-4 min-w-4 justify-center px-1"
 const TAB = "relative isolate rounded-xl px-0 data-active:bg-transparent"
 
 /** The tabs, in the order of the bar: the way a change of tab went is read from it. */
-const ORDER: readonly SocialTab[] = ["friends", "group", "messages", "add"]
+const ORDER: readonly SocialTab[] = ["friends", "messages", "add"]
 
 /**
  * What a pane does as the tab changes: the one that was shown leaves quickly, to the side that the tab went from, and the one of the tab that was pressed comes in from the side it went
@@ -93,16 +91,6 @@ type SocialPanelProps = Omit<React.ComponentProps<"aside">, "children"> & Friend
   invitations?: readonly Invitation[]
   /** What the buttons of an invitation do (accept: sit down at the table, join the group, let in the one who asks; decline). The card has no button without it. */
   onAnswerInvitation?: (invitation: Invitation, answer: "accept" | "decline") => void | boolean | Promise<boolean | void>
-  /** The visitor's group: a fourth tab, between the friends and the conversations, that shows it (`GroupPane`), or the way to start one when it is null. Left out, the page has no groups and the panel keeps its three tabs. */
-  group?: Group | null
-  /** What the button of the group tab that invites a friend does: open the picker of the friend to invite to the group. Not drawn without it. */
-  onInviteToGroup?: () => void
-  /** What the button that leaves the group does. Not drawn without it. */
-  onLeaveGroup?: () => void
-  /** What the entries of a member's menu do, for the leader (remove them, hand the lead over), and for any member (open their profile). An entry whose handler is missing is not drawn. */
-  onKickMember?: (member: GroupMember) => void
-  onMakeLeader?: (member: GroupMember) => void
-  onViewMember?: (member: GroupMember) => void
   /** The tab it opens on. */
   defaultTab?: SocialTab
   /** What a press on a friend, or on a conversation, does: open the chat with them. */
@@ -249,12 +237,6 @@ function SocialPanel({
   requests,
   invitations = [],
   onAnswerInvitation,
-  group,
-  onInviteToGroup,
-  onLeaveGroup,
-  onKickMember,
-  onMakeLeader,
-  onViewMember,
   tab: controlled,
   defaultTab = "friends",
   onTabChange,
@@ -275,9 +257,7 @@ function SocialPanel({
   ...props
 }: SocialPanelProps) {
   const [own, setOwn] = React.useState<SocialTab>(defaultTab)
-  // A panel with no groups has no group tab: a page that asks for it anyway gets the friends
-  const asked = controlled ?? own
-  const tab = asked === "group" && group === undefined ? "friends" : asked
+  const tab = controlled ?? own
   // Which way the last change of tab went, so that the pane comes in from that side
   const [way, setWay] = React.useState<1 | -1>(1)
   const unread = unreadOf(conversations)
@@ -310,7 +290,6 @@ function SocialPanel({
         onBlock={onBlock}
       />
     ),
-    group: <GroupPane group={group ?? null} onInvite={onInviteToGroup} onLeave={onLeaveGroup} onKick={onKickMember} onMakeLeader={onMakeLeader} onViewProfile={onViewMember} />,
     messages: (
       <div className={COLUMN}>
         {sorted.length === 0 ? (
@@ -373,12 +352,6 @@ function SocialPanel({
               <HugeiconsIcon icon={UserListIcon} strokeWidth={2} className={TAB_ICON} />
               {tab === "friends" && <TabFill />}
             </TabsTrigger>
-            {group !== undefined && (
-              <TabsTrigger value="group" id={`${scope}-group`} aria-controls={`${scope}-pane`} aria-label="Group" title="Group" className={TAB}>
-                <HugeiconsIcon icon={UserGroupIcon} strokeWidth={2} className={TAB_ICON} />
-                {tab === "group" && <TabFill />}
-              </TabsTrigger>
-            )}
             <TabsTrigger
               value="messages"
               id={`${scope}-messages`}

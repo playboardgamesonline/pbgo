@@ -25,6 +25,19 @@ const SAM: Friend = { id: "f8", nickname: "Sam", tag: "9042", avatarUrl: DEMO_AV
 
 export const DEMO_FRIENDS: readonly Friend[] = [MARLY, HERVE, ZOE, TOM, LINA, JADE, MAX, INES, SAM]
 
+/** What each made-up friend did, by nickname: the games they finished, the share they won and the place they came at on average, which the Friends zone of the demo account's profile lists beside them. A low share and a high one are there on purpose, to see both colours. */
+export const DEMO_FRIEND_FIGURES: Readonly<Record<string, { games: number; winRate: number | null; averagePlace: number | null }>> = {
+  Marly: { games: 128, winRate: 52, averagePlace: 2.8 },
+  "Hervé": { games: 96, winRate: 47, averagePlace: 3.4 },
+  "Zoé": { games: 74, winRate: 61, averagePlace: 2.1 },
+  Tom: { games: 51, winRate: 33, averagePlace: 4.2 },
+  Lina: { games: 33, winRate: 58, averagePlace: 2.9 },
+  Jade: { games: 20, winRate: 35, averagePlace: 4.5 },
+  Max: { games: 12, winRate: 75, averagePlace: 1.9 },
+  "Inès": { games: 7, winRate: 100, averagePlace: 1.0 },
+  Sam: { games: 3, winRate: 0, averagePlace: 3.7 },
+}
+
 /** The group of the demo account (PLT-23): the account leads it, with two of its friends. Made up like the rest: its buttons call the routes, which say they are done, and the group does not change. */
 export const DEMO_GROUP: Group = {
   max: MAX_GROUP_MEMBERS,

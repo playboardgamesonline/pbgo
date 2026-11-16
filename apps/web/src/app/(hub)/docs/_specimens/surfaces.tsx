@@ -12,6 +12,7 @@ import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader,
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { GameCard, GameCardVisual } from "@pbgo/ui/platform/game-card"
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@pbgo/ui/platform/item"
+import { Pager } from "@pbgo/ui/platform/pager"
 import { Progress } from "@pbgo/ui/platform/progress"
 import { Separator } from "@pbgo/ui/platform/separator"
 import { Skeleton } from "@pbgo/ui/platform/skeleton"
@@ -411,6 +412,47 @@ function TableScoreboard() {
   )
 }
 
+const PAGER_PAGES = [
+  ["Open", "Nov 19, 7:00 PM UTC", "Weekend Cup", "Nov 22, 2:00 PM UTC"],
+  ["League, round 1", "Nov 25, 6:00 PM UTC", "Rookie Night", "Nov 28, 8:00 PM UTC"],
+  ["Masters", "Dec 1, 5:00 PM UTC", "Friday Blitz", "Dec 4, 9:00 PM UTC"],
+] as const
+
+/** Three pages of two rows in a pager of a given height, with the dots under it. */
+function PagerPagesAndDots() {
+  return (
+    <Frame
+      code={`<Pager
+  className="h-60"
+  label="Open tournaments"
+  pages={pages.map((rows) => <ul className="flex flex-col gap-3">{rows}</ul>)}
+/>`}
+    >
+      <Pager
+        className="h-60 w-full max-w-sm"
+        label="Open tournaments"
+        pages={PAGER_PAGES.map(([first, firstWhen, second, secondWhen], page) => (
+          <ul key={page} className="flex flex-col gap-3">
+            {[
+              [first, firstWhen],
+              [second, secondWhen],
+            ].map(([title, when]) => (
+              <li key={title}>
+                <Item>
+                  <ItemContent>
+                    <ItemTitle>{title}</ItemTitle>
+                    <ItemDescription>{when}</ItemDescription>
+                  </ItemContent>
+                </Item>
+              </li>
+            ))}
+          </ul>
+        ))}
+      />
+    </Frame>
+  )
+}
+
 export const surfacesSpecimens: Specimens = {
   "card-default-and-small": CardDefaultAndSmall,
   "game-card-the-live-games-and-without-art": GameCardTheLiveGamesAndWithoutArt,
@@ -425,4 +467,5 @@ export const surfacesSpecimens: Specimens = {
   "empty-icon-message-and-action": EmptyIconMessageAndAction,
   "item-sizes": ItemSizes,
   "table-scoreboard": TableScoreboard,
+  "pager-pages-and-dots": PagerPagesAndDots,
 }

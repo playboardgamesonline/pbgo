@@ -6,14 +6,14 @@ import { cn } from "@pbgo/ui/utils"
 const FLAGS: Record<LanguageRegion, typeof US> = { BD, CN, DE, ES, FR, GB, IN, JP, KR, PT, RU, SA, US }
 
 /**
- * The flag of a language, in the pickers: a small rectangle with a rounded corner, 3 wide for 2 high, and a hairline so that a flag with white in it keeps its edge on the dark. It is only a picture beside the name of the language, which says it,
+ * The flag of a language, in the pickers: a small rectangle, 3 wide for 2 high, with the corner of a tile (a share of its side, so that it stays a rectangle at this size), and a hairline so that a flag with white in it keeps its edge on the dark. It is only a picture beside the name of the language, which says it,
  * so it is hidden from a screen reader. The pictures are those of the `country-flag-icons` package (MIT), drawn in the page as they are: nothing is asked of a server for them.
  */
 export function LanguageFlag({ language, className }: { language: PlatformLanguage; className?: string }) {
   const Flag = FLAGS[PLATFORM_LANGUAGE_REGIONS[language]]
   // The size is the wrapper's and the picture fills it: a select gives every svg inside it a square of its own unless its class says `size-`
   return (
-    <span aria-hidden="true" className={cn("inline-block h-4 w-6 shrink-0 overflow-hidden rounded-sm ring-1 ring-foreground/10", className)}>
+    <span aria-hidden="true" className={cn("inline-block h-4 w-6 shrink-0 overflow-hidden rounded-tile ring-1 ring-foreground/10", className)}>
       <Flag focusable="false" className="block size-full" />
     </span>
   )

@@ -66,7 +66,7 @@ export default function TermsOfUse() {
           An account can also be made with an e-mail address and a password: you confirm the address with a code that we e-mail you, and you are responsible for keeping the password safe.
         </LegalText>
         <LegalText>
-          Your nickname, or the name and picture of your account, are seen by the people at your table, and your profile, with the pronouns, the country, the favourite games and the bio you choose to fill in, by every visitor of the site. Do not use the name of someone else, or a name, a picture or a bio that is offensive, hateful or illegal. We may change a nickname, empty a bio or refuse a picture that breaks this rule.
+          Your nickname, or the name and picture of your account, are seen by the people at your table, and your profile, with the pronouns, the location, the favourite games, the bio and the languages you choose to fill in, by every visitor of the site. Do not use the name of someone else, or a name, a picture or a bio that is offensive, hateful or illegal. We may change a nickname, empty a bio or refuse a picture that breaks this rule.
         </LegalText>
       </LegalSection>
 

@@ -32,12 +32,13 @@ function Searching({ className }: { className?: string }) {
 
 /** What the two sizes of the button change while it counts: the box (the width is the idle button's least, so that nothing moves) and the cross inside it. */
 const SEARCH_SIZES = {
+  "2xl": { idle: "min-w-56", box: "h-16 w-56 text-xl", stop: "mr-2 size-12" },
   xl: { idle: "min-w-40", box: "h-12 w-40 text-base", stop: "mr-1.5 size-9" },
   lg: { idle: "min-w-36", box: "h-10 w-36 text-sm", stop: "mr-1 size-8" },
 }
 
 type QueueButtonProps = Omit<React.ComponentProps<typeof Button>, "variant" | "size" | "asChild" | "onClick"> & {
-  /** `xl` (the default) is the main button of a game's page and of the signed-in home; `lg` is a smaller one. */
+  /** `xl` (the default) is the main button of a game's page; `2xl` is the one of the signed-in home's play zone; `lg` is a smaller one. */
   size?: keyof typeof SEARCH_SIZES
   /** For a button that opens a menu of what to look for: the page puts the idle button in the trigger of its menu (`DropdownMenuTrigger asChild`), and the menu's items start the search. The counter that the button becomes is not put in it. */
   around?: (button: React.ReactElement) => React.ReactElement

@@ -30,11 +30,11 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Field, FieldError, FieldLabel } from "@pbgo/ui/platform/field"
 import { Input } from "@pbgo/ui/platform/input"
 import { MultiSelect } from "@pbgo/ui/platform/multi-select"
-import { SearchSelect } from "@pbgo/ui/platform/search-select"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { toast } from "@pbgo/ui/platform/sonner"
 import { Spinner } from "@pbgo/ui/platform/spinner"
-import { CityField } from "@/components/city-field"
+import { LanguagesField } from "@/components/languages-field"
+import { LocationField } from "@/components/location-field"
 import { changing } from "@/lib/settings-change"
 import { messageOf } from "@/lib/table-door"
 import { rememberOwnHandle } from "@/lib/use-own-handle"
@@ -45,14 +45,15 @@ const NO_PRONOUNS = "none"
 /** What the analytics are told of a refusal: the ways the profile route says no (a favourite that is not a game is one more way to be invalid). */
 const REFUSALS: Record<string, "taken" | "invalid" | "unavailable"> = { PROFILE_TAKEN: "taken", PROFILE_INVALID: "invalid", PROFILE_GAME_UNKNOWN: "invalid", PROFILE_CITY_UNKNOWN: "invalid", PROFILE_UNAVAILABLE: "unavailable" }
 
-const sameList = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((slug, index) => slug === b[index])
+/** The same entries in the same order: the favourites and the languages are lists that a member orders. */
+const sameList = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((entry, index) => entry === b[index])
 
 type Saved = { nickname: string; tag: number } & ProfileDetails
 
 const sameCity = (a: ProfileCity | null, b: ProfileCity | null): boolean => a?.name === b?.name && a?.country === b?.country
 
 /**
- * The Edit profile window of a member's own profile (`/me/profile` and their public page): their username and tag, their pronouns (a list), their country (searched in a list), their city (searched at Geoapify, never typed: `CityField`), up to five favourite games of the catalog (with their covers) and a short bio. One Save sends
+ * The Edit profile window of a member's own profile (`/me/profile` and their public page): their username and tag, their pronouns (a list), where they are (`LocationField`: a city, searched at Geoapify and never typed, or a country alone), up to five favourite games of the catalog (with their covers), a short bio and the languages they speak (`LanguagesField`: chips). One Save sends
  * what changed, and only that, to `POST /api/hub/profile`, which keeps it whole or not at all: the pair that somebody else has is told in place and nothing else is changed. The window closes on Save and the page behind it is drawn again (on the public page, the new
  * address when the pair changed). The account keeps a copy of the username for the navbar (`saveNickname`). The picture is the provider's and is not edited here. `address` says which page the member is on.
  */
@@ -72,7 +73,7 @@ export function EditProfileDialog({
   /** Every game of the catalog, as a favourite can be picked: its slug, its name and its small cover. */
   games: readonly ComboboxOption[]
   countries: readonly { code: string; name: string }[]
-  /** The search of a city is on (the server has the key of Geoapify): without it the window has no City field. */
+  /** The search of a city is on (the server has the key of Geoapify): without it the Location field searches countries only. */
   cities: boolean
   demo: boolean
   address: "me" | "player"
@@ -88,6 +89,7 @@ export function EditProfileDialog({
   const [city, setCity] = useState<ProfileCity | null>(details.city)
   const [favorites, setFavorites] = useState<string[]>(details.favoriteGames)
   const [bio, setBio] = useState(details.bio ?? "")
+  const [languages, setLanguages] = useState<string[]>(details.languages)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -107,6 +109,7 @@ export function EditProfileDialog({
   if (!sameCity(city, saved.city)) edit.city = city
   if (!sameList(favorites, saved.favoriteGames)) edit.favoriteGames = favorites
   if (checkedBio.ok && checkedBio.bio !== saved.bio) edit.bio = checkedBio.bio
+  if (!sameList(languages, saved.languages)) edit.languages = languages
   const canSave = checkedName.ok && checkedTag.ok && checkedBio.ok && Object.keys(edit).length > 0
 
   function toggle(next: boolean) {
@@ -119,6 +122,7 @@ export function EditProfileDialog({
       setCity(saved.city)
       setFavorites(saved.favoriteGames)
       setBio(saved.bio ?? "")
+      setLanguages(saved.languages)
       setError(null)
     }
   }
@@ -145,6 +149,7 @@ export function EditProfileDialog({
       city: edit.city === undefined ? saved.city : edit.city,
       favoriteGames: edit.favoriteGames ?? saved.favoriteGames,
       bio: edit.bio === undefined ? saved.bio : edit.bio,
+      languages: edit.languages ?? saved.languages,
     }
     // The account keeps a copy of the username for the navbar: the profile is changed already, so a copy that cannot be written is no reason to say the change failed
     if (edit.nickname !== undefined) await changing(demo, () => saveNickname(next.nickname))
@@ -160,6 +165,7 @@ export function EditProfileDialog({
       city: edit.city !== undefined,
       favorites: edit.favoriteGames !== undefined,
       bio: edit.bio !== undefined,
+      languages: edit.languages !== undefined,
     })
     setSaved(next)
     setPending(false)
@@ -265,44 +271,22 @@ export function EditProfileDialog({
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="profile-country">Country / region</FieldLabel>
-                <SearchSelect
-                  id="profile-country"
-                  className="ph-mask"
-                  options={countries.map((entry) => ({ value: entry.code, label: entry.name }))}
-                  value={country}
-                  onValueChange={(next) => {
-                    setCountry(next)
-                    // A city belongs to its country: another country, or none, takes it away
-                    if (city && city.country !== next) setCity(null)
+                <FieldLabel htmlFor="profile-location">Location</FieldLabel>
+                <LocationField
+                  id="profile-location"
+                  country={country}
+                  city={city}
+                  countries={countries}
+                  cities={cities}
+                  disabled={pending}
+                  onChange={(place) => {
+                    // A city comes with its country, and a country picked alone leaves no city
+                    setCountry(place.country)
+                    setCity(place.city)
                     setError(null)
                   }}
-                  placeholder="Not set"
-                  searchPlaceholder="Search countries..."
-                  empty="No country matches."
-                  clearLabel="Clear"
-                  disabled={pending}
-                  aria-label="Country / region"
                 />
               </Field>
-
-              {cities && (
-                <Field>
-                  <FieldLabel htmlFor="profile-city">City</FieldLabel>
-                  <CityField
-                    id="profile-city"
-                    city={city}
-                    country={country}
-                    disabled={pending}
-                    onCityChange={(next) => {
-                      setCity(next)
-                      // A city comes with its country
-                      if (next) setCountry(next.country)
-                      setError(null)
-                    }}
-                  />
-                </Field>
-              )}
 
               <Field>
                 <FieldLabel id="profile-favorites-label">Favorite board games</FieldLabel>
@@ -342,6 +326,18 @@ export function EditProfileDialog({
                   aria-describedby={bioProblem ? "profile-bio-error" : undefined}
                 />
                 <FieldError id="profile-bio-error">{bioProblem}</FieldError>
+              </Field>
+
+              <Field>
+                <FieldLabel id="profile-languages-label">Languages spoken</FieldLabel>
+                <LanguagesField
+                  value={languages}
+                  onChange={(next) => {
+                    setLanguages(next)
+                    setError(null)
+                  }}
+                  disabled={pending}
+                />
               </Field>
             </div>
             <DialogFooter>

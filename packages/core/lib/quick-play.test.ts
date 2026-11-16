@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { isOlder, lobbyKey, matchesWanted, olderLobby, openingSettings, parseCancelRequest, parsePlayRequest, rankLobbies, seated, SEARCH_MAX_GAMES, settleOwn, USUAL_WANTED, wantedPace, type Choice, type Lobby, type Wanted } from "./quick-play"
+import { isOlder, lobbyKey, matchesWanted, olderLobby, openingSettings, parseCancelRequest, parsePlayRequest, rankLobbies, seated, SEARCH_MAX_GAMES, settleOwn, USUAL_WANTED, wantedMaxSeats, wantedPace, type Choice, type Lobby, type Wanted } from "./quick-play"
 import { RANK_GAP_STEP_MS, type TableSettings } from "./table-settings"
 
 const NOW = Date.parse("2026-01-01T12:00:00.000Z")
@@ -68,6 +68,13 @@ describe("openingSettings", () => {
     expect(openingSettings("ranked", { min: 2, max: 6 }, "Silver")).toEqual({ visibility: "public", pace: "normal", seats: 4, ranked: true, anchor: "Silver" })
   })
 
+  it("keeps the seats under the most players the search accepts, and never under the game's least", () => {
+    expect(openingSettings("normal", { min: 2, max: 6 }, "Gold", "normal", 3).seats).toBe(3)
+    expect(openingSettings("normal", { min: 2, max: 6 }, "Gold", "normal", 8).seats).toBe(4)
+    expect(openingSettings("normal", { min: 2, max: 6 }, "Gold", "normal", 1).seats).toBe(2)
+    expect(openingSettings("ranked", { min: 2, max: 6 }, "Silver", "normal", 2)).toMatchObject({ seats: 2, ranked: true })
+  })
+
   it("opens a normal table at the speed the search asks, and a ranked one always at the usual speed", () => {
     expect(openingSettings("normal", { min: 2, max: 4 }, "Gold", "fast").pace).toBe("fast")
     expect(openingSettings("normal", { min: 2, max: 4 }, "Gold", "none").pace).toBe("none")
@@ -110,6 +117,12 @@ describe("what a search wants of the tables of a game", () => {
     expect(wantedPace("ranked", { pace: "fast" })).toBe("normal")
   })
 
+  it("asks for the most players a search accepts, or nothing", () => {
+    expect(wantedMaxSeats({ maxPlayers: 3 })).toBe(3)
+    expect(wantedMaxSeats({ pace: "fast" })).toBeUndefined()
+    expect(wantedMaxSeats(undefined)).toBeUndefined()
+  })
+
   const wanted = (over: Partial<Wanted> = {}): Wanted => ({ pace: "normal", offered: ["diplomats", "queens"], expansions: ["diplomats"], ...over })
   const table = (options: Record<string, unknown> | undefined, pace?: TableSettings["pace"]) => ({ settings: { visibility: "public", ...(pace ? { pace } : {}) } as TableSettings, options })
 
@@ -125,6 +138,25 @@ describe("what a search wants of the tables of a game", () => {
     expect(matchesWanted(table({}), wanted())).toBe(false)
     expect(matchesWanted(table({ diplomats: true }, "fast"), wanted())).toBe(false)
     expect(matchesWanted(table({ diplomats: true }, "fast"), wanted({ pace: "fast" }))).toBe(true)
+  })
+
+  it("is not met by a table set for more seats than the most it accepts, and a table that kept no seats has the game's most", () => {
+    const seats = (count: number | undefined) => ({ settings: { visibility: "public", ...(count !== undefined ? { seats: count } : {}) } as TableSettings, options: { diplomats: true } })
+    const limit = wanted({ maxSeats: 3 })
+    expect(matchesWanted(seats(2), limit, 6)).toBe(true)
+    expect(matchesWanted(seats(3), limit, 6)).toBe(true)
+    expect(matchesWanted(seats(4), limit, 6)).toBe(false)
+    expect(matchesWanted(seats(undefined), limit, 6)).toBe(false)
+    expect(matchesWanted(seats(undefined), limit, 3)).toBe(true)
+    // A search that accepts no limit is met whatever the seats
+    expect(matchesWanted(seats(6), wanted(), 6)).toBe(true)
+  })
+
+  it("leaves out of its lobbies those that are set for more seats than it accepts", () => {
+    const small = lobby("SMALLL", 1, { settings: { visibility: "public", seats: 3 } })
+    const big = lobby("BIGGER", 2, { settings: { visibility: "public", seats: 5 } })
+    expect(rankLobbies([small, big], choice({ maxOf: () => 5, wanted: () => ({ ...USUAL_WANTED, maxSeats: 3 }) })).map((one) => one.code)).toEqual(["SMALLL"])
+    expect(rankLobbies([small, big], choice({ maxOf: () => 5 })).map((one) => one.code)).toEqual(["BIGGER", "SMALLL"])
   })
 
   it("does not look at an option that is not one of the game's expansions, and a search that wants none is met by a table with none on", () => {

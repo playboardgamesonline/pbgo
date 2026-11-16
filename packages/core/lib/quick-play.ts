@@ -1,6 +1,6 @@
 import { parseCriteriaOf, QUEUE_MODES, type QueueCriteria, type QueueMode } from "@pbgo/ui/queue"
 import type { Tier } from "@pbgo/ui/ranks"
-import { defaultSeats, type Pace } from "@pbgo/ui/tables"
+import { defaultSeats, MAX_SEATS, type Pace } from "@pbgo/ui/tables"
 import { effectiveSettings, modeOf, unmetCriteria, type TableSettings, type Viewer } from "./table-settings"
 
 // The search of a visitor who presses Play (PLT-21, phase C): for each game they picked they sit at a public lobby that waits for players, or open one, and the table that fills first is the one they play. These are the rules of it, pure and
@@ -35,7 +35,7 @@ export type PlayTable = {
 /** What a search answers: the table the visitor sits at for each game they picked (one at most), or the one they are playing. */
 export type PlayState = { tables: PlayTable[] }
 
-/** What a search asks of the tables of one game besides how they count: how fast they are played and which expansions they have (`QueueCriteria`). */
+/** What a search asks of the tables of one game besides how they count: how fast they are played, which expansions they have and the most players they are set for (`QueueCriteria`). */
 export type PlayCriteria = QueueCriteria
 
 /**
@@ -83,19 +83,26 @@ export function parseCancelRequest(raw: unknown): CancelRequest | null {
   return { tables, mode: PLAY_MODES.find((mode) => mode === raw.mode), waited: seconds(raw.waited) }
 }
 
-/** What a search sets a table it opens to: public, the speed it asks (the usual one unless it asks another, and a ranked table is always played at the usual one) and the value between the game's least and most players; a ranked one is marked and keeps the tier of the member who opened it, which the others are measured against. */
-export function openingSettings(mode: PlayMode, range: { min: number; max: number }, tier: Tier, pace: Pace = "normal"): TableSettings {
-  return { visibility: "public", pace: mode === "ranked" ? "normal" : pace, seats: defaultSeats(range.min, range.max), ...(mode === "ranked" ? { ranked: true, anchor: tier } : {}) }
+/**
+ * What a search sets a table it opens to: public, the speed it asks (the usual one unless it asks another, and a ranked table is always played at the usual one) and the value between the game's least and most players, kept under the most players the search accepts (`maxSeats`) and never under the
+ * game's least; a ranked one is marked and keeps the tier of the member who opened it, which the others are measured against.
+ */
+export function openingSettings(mode: PlayMode, range: { min: number; max: number }, tier: Tier, pace: Pace = "normal", maxSeats: number = Number.POSITIVE_INFINITY): TableSettings {
+  const seats = Math.max(range.min, Math.min(defaultSeats(range.min, range.max), maxSeats))
+  return { visibility: "public", pace: mode === "ranked" ? "normal" : pace, seats, ...(mode === "ranked" ? { ranked: true, anchor: tier } : {}) }
 }
 
 /**
  * What a search wants of the tables of one game, as the server has worked it out: the speed, the expansions the game offers (`offered`: the ones that a table can switch on, that is those that the engine has an option for and the gamemaster did not hide) and the ones of them that
- * the tables must have on, the others being off. A table is sat at only if it is played this way, and the one a search opens is.
+ * the tables must have on, the others being off, and the most seats a table may be set for (`maxSeats`, none: any). A table is sat at only if it is played this way, and the one a search opens is.
  */
-export type Wanted = { pace: Pace; offered: readonly string[]; expansions: readonly string[] }
+export type Wanted = { pace: Pace; offered: readonly string[]; expansions: readonly string[]; maxSeats?: number }
 
 /** What a search that asks nothing of a game wants: the usual speed and no expansion. */
 export const USUAL_WANTED: Wanted = { pace: "normal", offered: [], expansions: [] }
+
+/** The most seats a search accepts at a table of a game: the number it asks (`maxPlayers`), or none. */
+export const wantedMaxSeats = (criteria: PlayCriteria | undefined): number | undefined => criteria?.maxPlayers
 
 /** The speed a search wants of a game's tables: the one it asks, and always the usual one for a ranked search, whose tables are fixed. */
 export const wantedPace = (mode: PlayMode, criteria: PlayCriteria | undefined): Pace => (mode === "ranked" ? "normal" : (criteria?.pace ?? "normal"))
@@ -110,9 +117,13 @@ export type Lobby = {
   createdAt: string
 }
 
-/** Whether a table is played the way a search wants: at the speed it asks, and with the expansions it asks on and the other expansions of the game off. An option that is not one of the game's expansions is not looked at. */
-export function matchesWanted(table: Pick<Lobby, "settings" | "options">, wanted: Wanted): boolean {
+/**
+ * Whether a table is played the way a search wants: at the speed it asks, not set for more seats than it accepts (`gameMax` is the game's most players, the seats of a table that kept none), and with the expansions it asks on and the other expansions of the game off. An option that is not one of the
+ * game's expansions is not looked at.
+ */
+export function matchesWanted(table: Pick<Lobby, "settings" | "options">, wanted: Wanted, gameMax: number = MAX_SEATS): boolean {
   if ((table.settings.pace ?? "normal") !== wanted.pace) return false
+  if (wanted.maxSeats !== undefined && effectiveSettings(table.settings, gameMax).seats > wanted.maxSeats) return false
   return wanted.offered.every((id) => (table.options?.[id] === true) === wanted.expansions.includes(id))
 }
 
@@ -145,7 +156,7 @@ export type Choice = {
 }
 
 /**
- * The lobbies a search may sit at, the one to take first at the head: those of this mode (a ranked search never joins a normal table, nor the other way round) that are played the way the search wants (`matchesWanted`: the speed and the expansions, the usual speed and none by default),
+ * The lobbies a search may sit at, the one to take first at the head: those of this mode (a ranked search never joins a normal table, nor the other way round) that are played the way the search wants (`matchesWanted`: the speed, the most seats and the expansions, the usual speed and none by default),
  * that the visitor does not sit at, that have a seat free and whose criteria they meet (`unmetCriteria`: the rank and the language the host asked, and, for a ranked table, the gap from the tier it opened at, which widens with the time it has waited). The fullest comes first,
  * so that tables fill and begin; of two as full, the older.
  */
@@ -153,7 +164,7 @@ export function rankLobbies<L extends Lobby>(lobbies: readonly L[], choice: Choi
   return lobbies
     .filter((lobby) => {
       if (modeOf(lobby.settings) !== choice.mode) return false
-      if (!matchesWanted(lobby, choice.wanted(lobby.game))) return false
+      if (!matchesWanted(lobby, choice.wanted(lobby.game), choice.maxOf(lobby.game))) return false
       if (choice.mine.has(lobbyKey(lobby))) return false
       if (seated(lobby) >= effectiveSettings(lobby.settings, choice.maxOf(lobby.game)).seats) return false
       return unmetCriteria(lobby.settings, choice.viewer(lobby.game), choice.now - openedAt(lobby)) === null

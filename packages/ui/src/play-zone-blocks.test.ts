@@ -11,7 +11,7 @@ import { PlayerSlots, type SlotPlayer } from "./platform/player-slots"
 import { PLAY_ZONE_LABELS, PLAY_ZONE_MODES } from "./play-zone"
 import type { Friend } from "./friends"
 
-// The blocks of the signed-in home's play zone, by their markup: the switch that fits its cases, the row of nine places with the visitor in the middle, the panel of friends of a free place, the games that cannot be picked, the tile that opens its settings and the
+// The blocks of the signed-in home's play zone, by their markup: the switch that fits its cases, the row of places with the visitor first, the panel of friends of a free place, the games that cannot be picked, the tile that opens its settings and the
 // players of a table that is about to be opened.
 
 const render = (element: React.ReactElement): string => renderToStaticMarkup(element)
@@ -26,17 +26,18 @@ describe("the switch of the play zone", () => {
   it("has a case for each mode, each with its icon and its name, and no words under it", () => {
     const markup = html()
     for (const mode of PLAY_ZONE_MODES) expect(markup).toContain(PLAY_ZONE_LABELS[mode])
-    expect(markup.match(/data-slot="toggle-group-item"/g)).toHaveLength(4)
-    expect(markup.match(/<svg/g)).toHaveLength(4)
+    expect(markup.match(/data-slot="toggle-group-item"/g)).toHaveLength(3)
+    expect(markup.match(/<svg/g)).toHaveLength(3)
     expect(markup).not.toContain("text-xs")
     expect(markup).not.toContain("text-muted-foreground")
   })
 
-  it("has its cases in the order of the modes, Custom on the right of Tournaments", () => {
+  it("has its cases in the order of the modes, Custom on the right of Ranked, and no case for the tournaments", () => {
     const markup = html()
-    const places = ["Normal", "Ranked", "Tournaments", "Custom"].map((label) => markup.indexOf(`>${label}<`))
+    const places = ["Normal", "Ranked", "Custom"].map((label) => markup.indexOf(`>${label}<`))
     expect(places.every((place) => place > -1)).toBe(true)
     expect([...places].sort((a, b) => a - b)).toEqual(places)
+    expect(markup).not.toContain("Tournaments")
   })
 
   it("fits what it holds: as wide as its cases and no wider than its column, never the width of the page", () => {
@@ -67,52 +68,58 @@ describe("the row of players", () => {
   const you: SlotPlayer = { id: "you", name: "Oré", you: true }
   const ann: SlotPlayer = { id: "ann", name: "Ann", tag: "0042", status: "online", leader: true }
   const bob: SlotPlayer = { id: "bob", name: "Bob", pending: true, status: "online" }
-  const row = (props: Partial<React.ComponentProps<typeof PlayerSlots>> = {}) => render(React.createElement(PlayerSlots, { players: [you], size: 9, ...props }))
+  const row = (props: Partial<React.ComponentProps<typeof PlayerSlots>> = {}) => render(React.createElement(PlayerSlots, { players: [you], size: 5, ...props }))
   const cellsOf = (html: string) => html.split('<li ').slice(1)
 
-  it("has nine columns on one line, whatever the places it holds", () => {
-    const html = row()
-    expect(html).toContain('data-columns="9"')
-    expect(cellsOf(html)).toHaveLength(9)
+  it("has as many places on one line as it is given, nine at the most, and none for the others", () => {
+    for (const size of [1, 3, 5, 6, 9]) {
+      const html = row({ size })
+      expect(html).toContain(`data-places="${size}"`)
+      expect(cellsOf(html)).toHaveLength(size)
+    }
+    expect(cellsOf(row({ size: 40 }))).toHaveLength(9)
   })
 
-  it("makes the middle column half as wide again as the others, so that the visitor's picture is the largest", () => {
-    const html = row()
-    expect(html).toContain("grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.5fr)_repeat(4,minmax(0,1fr))]")
-    expect(html).toContain("max-w-4xl")
+  it("gives every place the same fixed size, a person's and a free place's, so that none changes size as places are added: a large avatar in a column of its own width", () => {
+    const html = row({ players: [you, ann], size: 6 })
+    for (const place of cellsOf(html)) {
+      expect(place).toContain("w-16")
+      expect(place).toContain("shrink-0")
+      expect(place).not.toContain("flex-1")
+    }
+    expect(html.match(/data-size="xl"/g)).toHaveLength(6)
+    expect(html).not.toContain("cqw")
   })
 
-  it("lets the pictures be as large as their column, with no cap, and levels them all with the middle one", () => {
+  it("is aligned to the left and wraps to a second line in a column too narrow for the places, rather than shrink them", () => {
+    const list = /<ul[^>]*>/.exec(row({ players: [you, ann] }))?.[0] ?? ""
+    expect(list).toContain("flex-wrap")
+    expect(list).not.toContain("justify-center")
+    expect(list).not.toContain("flex-nowrap")
+  })
+
+  it("puts the visitor in the first place, the others after them, and their name 'You' under their picture", () => {
     const cells = cellsOf(row({ players: [you, ann], size: 5 }))
-    expect(row()).not.toContain("max-w-16")
-    // The middle place stands in a square box, the others in a box as tall as the middle one is wide, their picture centred in it
-    expect(cells[4]).toContain("aspect-square")
-    expect(cells[5]).toContain("aspect-2/3")
-    expect(cells[3]).toContain("aspect-2/3")
-    expect(cells[5]).toContain("items-center justify-center")
-  })
-
-  it("puts the visitor in the middle column and their name 'You' under their picture", () => {
-    const cells = cellsOf(row({ players: [you, ann], size: 5 }))
-    expect(cells[4]).toContain("You")
-    expect(cells[4]).not.toContain('data-free=""')
-    expect(cells[5]).toContain("Ann")
+    expect(cells[0]).toContain("You")
+    expect(cells[0]).not.toContain('data-free=""')
+    expect(cells[1]).toContain("Ann")
     // The visitor is never called by their own nickname in the row
     expect(row({ players: [you, ann], size: 5 })).not.toContain(">Oré<")
   })
 
   it("opens every place that nobody has, even with no game picked: a dashed circle with a plus, as many as the row has", () => {
-    const cells = cellsOf(row({ players: [you], size: 9 }))
-    expect(cells.filter((cell) => cell.includes('data-free=""'))).toHaveLength(8)
-    expect(cells.filter((cell) => cell.includes("border-dashed"))).toHaveLength(8)
+    const cells = cellsOf(row({ players: [you], size: 5 }))
+    expect(cells.filter((cell) => cell.includes('data-free=""'))).toHaveLength(4)
+    expect(cells.filter((cell) => cell.includes("border-dashed"))).toHaveLength(4)
+    expect(row()).toContain("bg-transparent")
   })
 
-  it("uses no column beyond the places of a table: the others are empty and hidden from a screen reader", () => {
+  it("has the free places after the people, so a row grows to the right as the row of games does", () => {
     const cells = cellsOf(row({ players: [you], size: 3 }))
-    expect(cells.filter((cell) => cell.includes('aria-hidden="true"') && !cell.includes("<span"))).toHaveLength(6)
-    expect(cells[3]).toContain('data-free=""')
-    expect(cells[5]).toContain('data-free=""')
-    expect(cells[2]).not.toContain('data-free=""')
+    expect(cells).toHaveLength(3)
+    expect(cells[0]).not.toContain('data-free=""')
+    expect(cells[1]).toContain('data-free=""')
+    expect(cells[2]).toContain('data-free=""')
   })
 
   it("crowns the one who leads and marks the dot of their presence, and has no label of its own", () => {
@@ -134,13 +141,13 @@ describe("the row of players", () => {
   it("makes a free place a button that opens the panel of the friends when the page gives one, and only draws it otherwise", () => {
     expect(row()).not.toContain('aria-label="Add a player"')
     const html = row({ picker: React.createElement("p", null, "friends") })
-    expect(html.match(/aria-label="Add a player"/g)).toHaveLength(8)
+    expect(html.match(/aria-label="Add a player"/g)).toHaveLength(4)
     expect(html).toContain('aria-haspopup="dialog"')
   })
 
   it("makes only the first free place a stop for the keyboard's Tab: they all open the same panel", () => {
     const html = row({ picker: React.createElement("p", null, "friends") })
-    expect(html.match(/tabindex="-1"/g)).toHaveLength(7)
+    expect(html.match(/tabindex="-1"/g)).toHaveLength(3)
   })
 
   it("makes a person a button that opens their menu when the page has one for them, and a plain picture when it has not", () => {
@@ -152,7 +159,7 @@ describe("the row of players", () => {
 
   it("is not pressed while a search is on or a table is being opened", () => {
     const html = row({ picker: React.createElement("p", null, "friends"), disabled: true })
-    expect(html.match(/disabled=""/g)).toHaveLength(8)
+    expect(html.match(/disabled=""/g)).toHaveLength(4)
   })
 })
 
@@ -340,6 +347,31 @@ describe("the settings of a game's tile", () => {
     expect(html).toContain("Players")
     expect(html.match(/data-slot="toggle-group-item"/g)).toHaveLength(4)
     expect(html).toMatch(/data-state="on"[^>]*>(?:(?!<\/button>).)*3/s)
+  })
+
+  it("have the most players a search accepts above the speed, the same chips under another name, a chip for each count of the game", () => {
+    const count = (props: Partial<React.ComponentProps<typeof LobbyPlayerCount>> = {}) =>
+      React.createElement(LobbyPlayerCount, { title: "Max players", label: "Most players at the table", range: { min: 2, max: 6 }, count: 6, onCountChange: () => {}, ...props })
+    const html = settings({ beforeSpeed: count(), expansions: [{ id: "x", name: "Expansion X" }] })
+    expect(html).toContain("Max players")
+    expect(html).toContain('aria-label="Most players at the table"')
+    expect(html.indexOf("Max players")).toBeLessThan(html.indexOf("Speed"))
+    expect(html.indexOf("Speed")).toBeLessThan(html.indexOf("Expansion X"))
+    // One chip for each count from the game's least to its most, the most on: the default asks nothing
+    const chips = render(count())
+    expect(chips.match(/data-slot="toggle-group-item"/g)).toHaveLength(5)
+    expect(chips).toMatch(/data-state="on"[^>]*>(?:(?!<\/button>).)*6/s)
+    // A ranked search has no speed and still has it
+    const ranked = settings({ speed: false, beforeSpeed: count() })
+    expect(ranked).toContain("Max players")
+    expect(ranked).not.toContain("Speed")
+  })
+
+  it("name the count of players Players and Number of players unless the page says more", () => {
+    const html = render(React.createElement(LobbyPlayerCount, { range: { min: 2, max: 4 }, count: 2, onCountChange: () => {} }))
+    expect(html).toContain("Players")
+    expect(html).toContain('aria-label="Number of players"')
+    expect(html).not.toContain("Max players")
   })
 
   it("put the players between the speed and the expansions", () => {

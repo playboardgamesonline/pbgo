@@ -133,7 +133,7 @@ describe("the favourite games", () => {
 
 describe("detailsOf", () => {
   it("reads what a row of the database says", () => {
-    expect(detailsOf({ pronouns: "they/them", country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "Hello\nthere" })).toEqual({ pronouns: "they/them", country: "FR", city: null, favoriteGames: ["courtisans", "flip-7"], bio: "Hello\nthere" })
+    expect(detailsOf({ pronouns: "they/them", country: "FR", favorite_games: ["courtisans", "flip-7"], bio: "Hello\nthere", languages: ["fr", "en"] })).toEqual({ pronouns: "they/them", country: "FR", city: null, favoriteGames: ["courtisans", "flip-7"], bio: "Hello\nthere", languages: ["fr", "en"] })
   })
 
   it("says nothing for a row that has none of it, or no row (the migration is not applied)", () => {

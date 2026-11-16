@@ -3,6 +3,7 @@
 // (`profiles_*_check`), and `set_profile` is the one writer.
 
 import { checkCountry, countryName, isCountryCode } from "./details"
+import { SPOKEN_LANGUAGES, type PlatformLanguage } from "./language"
 import { tagOfRequest } from "./profile"
 import { checkNickname } from "./settings"
 
@@ -96,6 +97,30 @@ export function cityOfRequest(value: unknown): ProfileCity | null {
 /** The words a page writes for a city, with its country: "Lyon, France". */
 export const cityText = (city: ProfileCity): string => `${city.name}, ${countryName(city.country)}`
 
+const SPOKEN: ReadonlySet<string> = new Set(SPOKEN_LANGUAGES.map((language) => language.id))
+
+/** Whether a value is the code of a language a member can say they speak (`SPOKEN_LANGUAGES`: the platform's languages, English once). */
+export const isSpokenLanguage = (value: unknown): value is PlatformLanguage => typeof value === "string" && SPOKEN.has(value)
+
+let languageNames: Intl.DisplayNames | undefined
+
+/** The name of a language people speak, in English, as a profile writes it ("French", "Japanese"): from the platform's own `Intl`, as the countries' are, so none is kept here. The code itself for one it does not know. */
+export function spokenLanguageName(code: string): string {
+  languageNames ??= new Intl.DisplayNames(["en"], { type: "language" })
+  return languageNames.of(code) ?? code
+}
+
+/** A list of spoken languages as a request says it: codes of the list, none twice, in the order the member put them. Null for anything else. */
+export function spokenLanguagesOf(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length > SPOKEN.size) return null
+  const codes: string[] = []
+  for (const code of value) {
+    if (!isSpokenLanguage(code) || codes.includes(code)) return null
+    codes.push(code)
+  }
+  return codes
+}
+
 /** What a profile says of its member beyond their name. Empty by default: a member who fills nothing in shows nothing. */
 export type ProfileDetails = {
   pronouns: Pronouns | null
@@ -107,13 +132,15 @@ export type ProfileDetails = {
   favoriteGames: string[]
   /** Plain text, `BIO_MAX` characters at most. */
   bio: string | null
+  /** The languages they speak, as codes of `SPOKEN_LANGUAGES`, in the order they put them. A code that is not one of the list any more is for the page to leave out. */
+  languages: string[]
 }
 
 /** A profile that says nothing. */
-export const noProfileDetails = (): ProfileDetails => ({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null })
+export const noProfileDetails = (): ProfileDetails => ({ pronouns: null, country: null, city: null, favoriteGames: [], bio: null, languages: [] })
 
 /** Whether a profile says anything of its member beyond their name. */
-export const hasProfileDetails = (details: ProfileDetails): boolean => details.pronouns !== null || details.country !== null || details.city !== null || details.favoriteGames.length > 0 || details.bio !== null
+export const hasProfileDetails = (details: ProfileDetails): boolean => details.pronouns !== null || details.country !== null || details.city !== null || details.favoriteGames.length > 0 || details.bio !== null || details.languages.length > 0
 
 // The city of a row: its two columns, and only when the city is in the country the profile says (a city of another country is never drawn)
 function cityOfRow(row: Record<string, unknown>, country: string | null): ProfileCity | null {
@@ -128,12 +155,14 @@ export function detailsOf(row: Record<string, unknown> | null | undefined): Prof
   const slugs = Array.isArray(row.favorite_games) ? [...new Set(row.favorite_games.filter(isGameSlug))].slice(0, FAVORITES_MAX) : []
   const bio = typeof row.bio === "string" ? checkBio(row.bio) : null
   const country = isCountryCode(row.country) ? row.country : null
+  const languages = Array.isArray(row.languages) ? [...new Set(row.languages.filter(isSpokenLanguage))] : []
   return {
     pronouns: isPronouns(row.pronouns) ? row.pronouns : null,
     country,
     city: cityOfRow(row, country),
     favoriteGames: slugs,
     bio: bio?.ok ? bio.bio : null,
+    languages,
   }
 }
 
@@ -150,6 +179,8 @@ export type ProfileEdit = {
   city?: ProfileCity | null
   favoriteGames?: string[]
   bio?: string | null
+  /** The languages they speak, codes of `SPOKEN_LANGUAGES` in the order they put them; an empty list takes them away. */
+  languages?: string[]
 }
 
 const isThere = (body: Record<string, unknown>, key: keyof ProfileEdit): boolean => Object.hasOwn(body, key) && body[key] !== undefined
@@ -198,6 +229,11 @@ export function parseProfileEdit(body: unknown): { ok: true; edit: ProfileEdit }
     const checked = input.bio === null ? { ok: true as const, bio: null } : typeof input.bio === "string" ? checkBio(input.bio) : null
     if (!checked?.ok) return { ok: false }
     edit.bio = checked.bio
+  }
+  if (isThere(input, "languages")) {
+    const codes = input.languages === null ? [] : spokenLanguagesOf(input.languages)
+    if (codes === null) return { ok: false }
+    edit.languages = codes
   }
   return Object.keys(edit).length === 0 ? { ok: false } : { ok: true, edit }
 }

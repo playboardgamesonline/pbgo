@@ -31,7 +31,7 @@ peerDependencyRules:
 catalogMode: strict
 catalog:
   # Framework
-  next: 16.4.3
+  next: 16.4.6
   react: 19.3.1
   react-dom: 19.3.1
   server-only: ^0.0.1
@@ -43,7 +43,7 @@ catalog:
   "@types/react": ^19.3.0
   "@types/react-dom": ^19.3.0
   eslint: ^10.14.0
-  eslint-config-next: 16.4.3
+  eslint-config-next: 16.4.6
   vitest: ^5.0.5
 
   # Styles and UI

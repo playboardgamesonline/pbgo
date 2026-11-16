@@ -2,11 +2,9 @@ import * as React from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 import type { Friend } from "./friends"
-import type { Group, GroupMember } from "./groups"
 import type { FriendRequest } from "./social"
 import { AddFriendForm } from "./platform/add-friend-form"
 import { FriendsPanel, FriendsRoster } from "./platform/friends-panel"
-import { GroupPane } from "./platform/group-panel"
 import { SocialPanel } from "./platform/social-panel"
 
 // The friends' list of a real account (PLT-23) by its markup: who it names, what is masked in a recording, which buttons it has. The menu of a friend is behind its button, so what is checked is the button.
@@ -200,147 +198,21 @@ describe("RequestRow", () => {
   })
 })
 
-// The group tab: a fourth tab for a page that has groups, between the friends and the conversations, and its pane
-const ANN: GroupMember = { id: "ann#1", nickname: "Ann", tag: "0001", avatarUrl: null, status: "online", leader: false, you: true }
-const MEMBER_BOB: GroupMember = { id: "bob#42", nickname: "Bob", tag: "0042", avatarUrl: null, status: "playing", game: { slug: "hanabi", name: "Hanabi" }, leader: true, you: false }
-const MEMBER_CAT: GroupMember = { id: "cat#7", nickname: "Cat", tag: "0007", avatarUrl: null, status: "online", activity: "In the lobby", game: { slug: "courtisans", name: "Courtisans" }, leader: false, you: false }
-const GROUP: Group = { members: [ANN, MEMBER_BOB, MEMBER_CAT], max: 8 }
-const YOU_LEAD: Group = { members: [{ ...ANN, leader: true }, { ...MEMBER_BOB, leader: false }, MEMBER_CAT], max: 8 }
-
-describe("GroupPane", () => {
-  const pane = (props: Partial<React.ComponentProps<typeof GroupPane>> = {}) => renderToStaticMarkup(React.createElement(GroupPane, { group: GROUP, ...props }))
-
-  it("says it is the visitor's group, with how many are in it out of how many it takes", () => {
-    const html = pane()
-    expect(html).toContain("Your group")
-    expect(html).toContain("3 of 8")
-  })
-
-  it("lists every member with their picture and presence, and what they are doing", () => {
-    const html = pane()
-    expect(html.match(/data-slot="group-member"/g)).toHaveLength(3)
-    expect(html).toContain('data-status="playing"')
-    expect(html).toContain("Hanabi")
-    expect(html).toContain("Courtisans · In the lobby")
-    expect(html).toContain("Online")
-  })
-
-  it("names each member with their tag, masked in a recording, and says which one is the visitor", () => {
-    const html = pane()
-    expect(html).toContain('<p class="ph-mask truncate">Bob<span class="text-muted-foreground">#0042</span></p>')
-    expect(html.match(/ph-mask/g)).toHaveLength(3)
-    expect(html.match(/\(you\)/g)).toHaveLength(1)
-    expect(/<li[^>]*>(?:(?!<\/li>)[\s\S])*Ann(?:(?!<\/li>)[\s\S])*\(you\)/.test(html)).toBe(true)
-  })
-
-  it("puts the leader first, with a crown that a screen reader names", () => {
-    const html = pane()
-    expect(html.indexOf("Bob")).toBeLessThan(html.indexOf("Ann"))
-    expect(html.indexOf("Bob")).toBeLessThan(html.indexOf("Cat"))
-    expect(html.match(/<span class="sr-only">Leader<\/span>/g)).toHaveLength(1)
-    expect(html.match(/data-leader/g)).toHaveLength(1)
-  })
-
-  it("has no menu without a handler for it: a pane that decides nothing offers nothing", () => {
-    expect(pane()).not.toContain("More about")
-    expect(pane({ group: YOU_LEAD })).not.toContain("More about")
-  })
-
-  it("has the leader's menu on every member but the visitor, as soon as the page gives its handlers", () => {
-    const html = pane({ group: YOU_LEAD, onKick: nothing, onMakeLeader: nothing })
-    expect(html).toContain('aria-label="More about Bob"')
-    expect(html).toContain('aria-label="More about Cat"')
-    expect(html).not.toContain('aria-label="More about Ann"')
-    expect(html.match(/aria-label="More about /g)).toHaveLength(2)
-  })
-
-  it("has no menu to hand the lead over or to remove for a member who does not lead, but still the profile of the others", () => {
-    expect(pane({ onKick: nothing, onMakeLeader: nothing })).not.toContain("More about")
-    const html = pane({ onKick: nothing, onMakeLeader: nothing, onViewProfile: nothing })
-    expect(html).toContain('aria-label="More about Bob"')
-    expect(html).toContain('aria-label="More about Cat"')
-    expect(html).not.toContain('aria-label="More about Ann"')
-  })
-
-  it("has the menu on a member's row, in a button of its own, only under the pointer and the focus (always on a touch screen)", () => {
-    const row = /<button[^>]*aria-label="More about Bob"[^>]*>/.exec(pane({ group: YOU_LEAD, onKick: nothing }))?.[0] ?? ""
-    expect(row).toContain("group-hover/member:opacity-100")
-    expect(row).toContain("[@media(hover:none)]:opacity-100")
-  })
-
-  it("has the buttons that invite a friend and that leave, each only where the page does it", () => {
-    const html = pane({ onInvite: nothing, onLeave: nothing })
-    expect(html).toContain("Invite a friend")
-    expect(html).toContain("Leave group")
-    expect(pane()).not.toContain("<button")
-    expect(pane({ onInvite: nothing })).not.toContain("Leave group")
-    expect(pane({ onLeave: nothing })).not.toContain("Invite a friend")
-  })
-
-  it("says the group is full in place of the button that invites, once it has all the members it takes", () => {
-    const html = pane({ group: { members: GROUP.members, max: 3 }, onInvite: nothing, onLeave: nothing })
-    expect(html).toContain("The group is full")
-    expect(html).not.toContain("Invite a friend")
-    expect(html).toContain("Leave group")
-    expect(pane({ group: { members: GROUP.members, max: 3 } })).not.toContain("The group is full")
-  })
-
-  it("is an empty state with no group, that says what a group is and offers the one thing that makes one", () => {
-    const html = pane({ group: null, onInvite: nothing, onLeave: nothing })
-    expect(html).toContain("No group")
-    expect(html).toContain("Invite a friend to play together. A group needs two players.")
-    expect(html).toContain("Invite a friend")
-    expect(html).not.toContain("Leave group")
-    expect(html).not.toContain("Your group")
-    expect(pane({ group: null })).not.toContain("<button")
-  })
-})
-
-describe("SocialPanel, the group tab", () => {
+describe("SocialPanel, its tabs", () => {
   const panel = (props: Partial<React.ComponentProps<typeof SocialPanel>> = {}) =>
     renderToStaticMarkup(React.createElement(SocialPanel, { friends: [BOB, CAT], conversations: [], requests: [], ...props }))
 
-  it("has three tabs for a page that has no groups", () => {
+  it("has three tabs, the friends, the conversations and the way to add a friend, in that order, and none for a group", () => {
     const html = panel()
-    expect(html).not.toContain('aria-label="Group"')
     expect(html.match(/role="tab"/g)).toHaveLength(3)
-  })
-
-  it("has a fourth tab, between the friends and the conversations, as soon as the page has groups, with or without one", () => {
-    for (const group of [null, GROUP]) {
-      const html = panel({ group })
-      expect(html.match(/role="tab"/g)).toHaveLength(4)
-      const at = (label: string) => html.indexOf(`aria-label="${label}"`)
-      expect(at("Friends")).toBeLessThan(at("Group"))
-      expect(at("Group")).toBeLessThan(at("Messages"))
-      expect(at("Messages")).toBeLessThan(at("Add a friend"))
-    }
-  })
-
-  it("shows the pane of the group on that tab, with what the page gives it", () => {
-    const html = panel({ group: YOU_LEAD, defaultTab: "group", onInviteToGroup: nothing, onLeaveGroup: nothing, onKickMember: nothing, onMakeLeader: nothing, onViewMember: nothing })
-    expect(html).toContain('data-slot="group-pane"')
-    expect(html).toContain("Your group")
-    expect(html).toContain("Invite a friend")
-    expect(html).toContain("Leave group")
-    expect(html).toContain('aria-label="More about Bob"')
-    expect(html).not.toContain('data-slot="friends-roster"')
-  })
-
-  it("shows the empty state of the group tab for a visitor who is in none", () => {
-    const html = panel({ group: null, defaultTab: "group", onInviteToGroup: nothing })
-    expect(html).toContain("No group")
-    expect(html).toContain("Invite a friend")
-  })
-
-  it("falls back on the friends when a page with no groups asks for the group tab", () => {
-    const html = panel({ defaultTab: "group" })
-    expect(html).toContain('data-slot="friends-roster"')
-    expect(html).not.toContain('data-slot="group-pane"')
+    expect(html).not.toContain('aria-label="Group"')
+    const at = (label: string) => html.indexOf(`aria-label="${label}"`)
+    expect(at("Friends")).toBeLessThan(at("Messages"))
+    expect(at("Messages")).toBeLessThan(at("Add a friend"))
   })
 
   it("gives the roster of its first tab the buttons that invite and that ask to join", () => {
-    const html = panel({ friends: [BOB, { ...CAT, status: "online", group: "other" }], group: null, onInvite: nothing, onJoin: nothing })
+    const html = panel({ friends: [BOB, { ...CAT, status: "online", group: "other" }], onInvite: nothing, onJoin: nothing })
     expect(html).toContain("Invite Bob to your group")
     expect(html).toContain("Ask to join the group of Cat")
   })

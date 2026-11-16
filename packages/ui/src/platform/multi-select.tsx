@@ -48,6 +48,7 @@ function MultiSelect({ options, value, onValueChange, max, placeholder, searchPl
           return (
             <li key={slug} className="flex h-8 max-w-full items-center gap-2 rounded-lg bg-secondary pr-1 pl-1 text-sm">
               {option?.cover !== undefined && option.cover !== null && <CoverTile className="size-6" {...option.cover} />}
+              {option?.leading !== undefined && <span className="ml-1.5 flex shrink-0 items-center">{option.leading}</span>}
               <span className="min-w-0 truncate">{name}</span>
               <button
                 type="button"

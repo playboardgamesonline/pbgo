@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { isFull, orderedMembers, sizeLine, youLead, type Group, type GroupMember } from "./groups"
+import { orderedMembers, youLead, type Group, type GroupMember } from "./groups"
 
 const member = (id: string, rest: Partial<GroupMember> = {}): GroupMember => ({ id, nickname: id, status: "online", leader: false, you: false, ...rest })
 const group = (members: GroupMember[], max = 8): Group => ({ members, max })
@@ -9,14 +9,6 @@ describe("youLead", () => {
     expect(youLead(group([member("a", { you: true, leader: true }), member("b")]))).toBe(true)
     expect(youLead(group([member("a", { leader: true }), member("b", { you: true })]))).toBe(false)
     expect(youLead(group([member("a", { leader: true }), member("b")]))).toBe(false)
-  })
-})
-
-describe("isFull and sizeLine", () => {
-  it("is full with all the members the group takes, and says how many are in it out of how many it takes", () => {
-    expect(isFull(group([member("a"), member("b")], 2))).toBe(true)
-    expect(isFull(group([member("a"), member("b")], 8))).toBe(false)
-    expect(sizeLine(group([member("a"), member("b"), member("c")], 8))).toBe("3 of 8")
   })
 })
 

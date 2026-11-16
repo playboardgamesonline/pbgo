@@ -21,11 +21,13 @@ const buttonVariants = cva(
         sm: "h-8 rounded-lg gap-1 px-3 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         lg: "h-10 rounded-xl gap-1.5 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
         xl: "h-12 rounded-xl gap-2 px-6 text-base has-data-[icon=inline-end]:pr-5 has-data-[icon=inline-start]:pl-5",
+        "2xl": "h-16 rounded-xl gap-3 px-10 text-xl has-data-[icon=inline-end]:pr-8 has-data-[icon=inline-start]:pl-8 [&_svg:not([class*='size-'])]:size-5",
         icon: "size-9 rounded-xl",
         "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-8 rounded-lg",
         "icon-lg": "size-10 rounded-xl",
         "icon-xl": "size-12 rounded-xl",
+        "icon-2xl": "size-16 rounded-xl [&_svg:not([class*='size-'])]:size-5",
       },
     },
     defaultVariants: {

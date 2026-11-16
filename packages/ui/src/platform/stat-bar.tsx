@@ -1,7 +1,7 @@
 import * as React from "react"
 import { cn } from "../utils"
 
-// A row of figures for the top of a page's content, each in a card of its own: a block for each figure (`StatBarItem`), on the surface that the platform's cards have (`bg-card`, the surfaces' radius, a ring and their shadow), a little apart from the next (1rem; the
+// A row of figures for the top of a page's content, each in a card of its own: a block for each figure (`StatBarItem`), on the surface that the platform's cards have (`bg-card`, the surfaces' radius and their shadow, with no outline), a little apart from the next (1rem; the
 // columns are the page's to give, `grid-cols-*` in `className`). A block keeps 1.5rem from the edge of its card on every side, so that nothing meets the curve, and is a label in small capitals at its top, with a control at its right end when it has one (a button that leads to more, level with the label), and, at its foot, whatever it has to say. There is at least 1rem between the
 // label and what the block says: in a row the labels stand on one line and what each says ends on one line, whatever its height, so that a block with less to say has more air under its label. It draws what it is given and writes no figure itself: the figure is a
 // `StatBarValue`, what goes under it a `StatBarNote`.
@@ -21,7 +21,7 @@ function StatBarItem({ label, action, className, children, ...props }: StatBarIt
   return (
     <div
       data-slot="stat-bar-item"
-      className={cn("flex min-w-0 flex-col justify-between gap-4 rounded-4xl bg-card p-6 text-card-foreground shadow-surface ring-1 ring-foreground/10", className)}
+      className={cn("flex min-w-0 flex-col justify-between gap-4 rounded-4xl bg-card p-6 text-card-foreground shadow-surface", className)}
       {...props}
     >
       <div className="flex items-center justify-between gap-3">

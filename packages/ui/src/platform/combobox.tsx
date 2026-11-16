@@ -29,6 +29,8 @@ type ComboboxOption = {
   icon?: React.ComponentProps<typeof HugeiconsIcon>["icon"]
   /** A small picture that stands before the name (`CoverTile`). `null` is an option with no picture in a list that has some: its place is kept. */
   cover?: CoverTileProps | null
+  /** Anything else that stands before the name, drawn as it is (a flag): the page makes it, the list only gives it its place. */
+  leading?: React.ReactNode
   /** A quiet line under the name: where a city is. */
   description?: string
   /** Why the option cannot be picked now: it is shown off, with the reason in the line under its name and a warning at its end, and a press on it does nothing (one that is picked can still be put back). */
@@ -163,6 +165,7 @@ function Combobox({ options, value, onValueChange, placeholder, empty, max, onPi
               >
                 {option.icon && <HugeiconsIcon icon={option.icon} strokeWidth={2} aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />}
                 {option.cover !== undefined && <CoverTile className="size-8" {...option.cover} />}
+                {option.leading !== undefined && <span className="flex shrink-0 items-center">{option.leading}</span>}
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate">{option.label ?? option.value}</span>
                   {(option.unavailable ?? option.description) !== undefined && <span className="truncate text-xs text-muted-foreground">{option.unavailable ?? option.description}</span>}

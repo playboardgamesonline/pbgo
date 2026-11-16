@@ -73,6 +73,8 @@ type LobbySettingsProps = Omit<React.ComponentProps<"div">, "onChange"> & {
   editable?: boolean
   /** Whether the speed is set here (it is, unless the page says it is not): the settings of a ranked search leave the slider out, since a ranked table is played at the usual speed. */
   speed?: boolean
+  /** What the page puts above the speed, as a block of the settings: the play zone of the signed-in home has the most players a search accepts there (`LobbyPlayerCount`), since the tables a search sits the visitor at are of any size unless it says. */
+  beforeSpeed?: React.ReactNode
   /** What the page puts between the speed and the expansions, as a block of the settings: the play zone of the signed-in home has the number of players there (`LobbyPlayerCount`) for the table it opens, since it sets them before the lobby has seats. */
   afterSpeed?: React.ReactNode
   onChange?: (value: LobbySettingsValue) => void
@@ -276,7 +278,7 @@ function SwitchRow({ option, on, onChange }: { option: SettingOption; on: boolea
  * The settings of a lobby: the speed, then the expansions of the game as cards (a visitor who sets the lobby ticks one to choose it; one who reads a table sees only the ones it is played with), then, for a visitor who sets the lobby, the helpers that the game
  * offers, a small row and a switch each. Each group has its small title. The container decides the width of the picture of an expansion and whether the names of the speeds fit (`@container`).
  */
-function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chosenHelpers, editable = false, speed = true, afterSpeed, onChange, onLockedPick, className, ...props }: LobbySettingsProps) {
+function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chosenHelpers, editable = false, speed = true, beforeSpeed, afterSpeed, onChange, onLockedPick, className, ...props }: LobbySettingsProps) {
   const [set, setSet] = React.useState<LobbySettingsValue>({ expansions: [...chosen], pace, helpers: chosenHelpers ? [...chosenHelpers] : helpers.map((helper) => helper.id), expansionSettings: {} })
   // What is read comes from the table that is given, so that the panel follows the row that is picked; what is set is the visitor's own
   const value = editable ? set : { expansions: [...chosen], pace, helpers: [], expansionSettings: {} }
@@ -287,6 +289,7 @@ function LobbySettings({ expansions = [], chosen = [], pace, helpers = [], chose
   const shown = editable ? expansions : expansions.filter((expansion) => value.expansions.includes(expansion.id))
   return (
     <div data-slot="lobby-settings" data-editable={editable ? "" : undefined} className={cn("@container flex flex-col gap-5", className)} {...props}>
+      {beforeSpeed}
       {speed && (
         <Group title="Speed">
           {editable || SPEEDS.includes(value.pace) ? (
@@ -369,23 +372,28 @@ type LobbyPlayerCountProps = {
   count: number
   onCountChange: (count: number) => void
   disabled?: boolean
+  /** What the block is called: "Players" unless the page says more ("Max players" for the most that a search accepts at a table). */
+  title?: string
+  /** What the slider is called for a screen reader. */
+  label?: string
 }
 
 /**
- * How many players a table that is about to be opened is set for, as a block of the settings under the speed ("Players"): a segmented toggle with a chip for each count from the game's least to its most, the same slider as the speed. It is for the play zone's Custom table, whose
- * row of places (`PlayerSlots`) shows as many places as the count says; a lobby that exists has its number above its seats (`LobbyPlayers`).
+ * How many players a table is set for, as a block of the settings ("Players"): a segmented toggle with a chip for each count from the game's least to its most, the same slider as the speed. It is for the play zone's Custom table that is about to be opened, whose row of places
+ * (`PlayerSlots`) shows as many places as the count says, under the speed; a lobby that exists has its number above its seats (`LobbyPlayers`). It is also "Max players", above the speed, for a search of the play zone: the most seats of the tables it sits the visitor at, the game's most
+ * being the one that asks nothing.
  */
-function LobbyPlayerCount({ range, count, onCountChange, disabled = false }: LobbyPlayerCountProps) {
+function LobbyPlayerCount({ range, count, onCountChange, disabled = false, title = "Players", label = "Number of players" }: LobbyPlayerCountProps) {
   const numbers = Array.from({ length: Math.max(0, range.max - range.min + 1) }, (_, index) => range.min + index)
   return (
-    <Group title="Players">
+    <Group title={title}>
       <ToggleGroup
         type="single"
         variant="segmented"
         value={String(count)}
         disabled={disabled}
         onValueChange={(next) => next && onCountChange(Number(next))}
-        aria-label="Number of players"
+        aria-label={label}
         className="-mx-3 w-auto"
       >
         {numbers.map((number) => (

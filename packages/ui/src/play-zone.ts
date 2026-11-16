@@ -1,40 +1,41 @@
-// The play zone of the signed-in home, the one central interface: what its switch offers (four modes, each an icon and a name), and the row of places that holds the visitor and the people they play with. No React in this file, so that it is tested as it is. The blocks that draw it are
+// The play zone of the signed-in home, the one central interface: what its switch offers (three modes, each an icon and a name), and the row of places that holds the visitor and the people they play with, the visitor first and the free places after them. No React in this file, so that it is tested as it is. The blocks that draw it are
 // `@pbgo/ui/platform/mode-switch` and `@pbgo/ui/platform/player-slots`; which games are listed and what a press does are the page's.
 
 import { QUEUE_MODE_LABELS, type QueueMode } from "./queue"
 import { MAX_SEATS } from "./tables"
 
-/** What the switch of the play zone offers: look for a table among players one does not know (`normal`, `ranked`), go to the tournaments, or open a table for friends (`custom`). */
-export type PlayZoneMode = "normal" | "ranked" | "tournaments" | "custom"
+/** What the switch of the play zone offers: look for a table among players one does not know (`normal`, `ranked`), or open a table for friends (`custom`). */
+export type PlayZoneMode = "normal" | "ranked" | "custom"
 
 /** Every mode, in the order the switch has them. */
-export const PLAY_ZONE_MODES: readonly PlayZoneMode[] = ["normal", "ranked", "tournaments", "custom"]
+export const PLAY_ZONE_MODES: readonly PlayZoneMode[] = ["normal", "ranked", "custom"]
 
 /** What each mode is called on the switch. */
-export const PLAY_ZONE_LABELS: Record<PlayZoneMode, string> = { ...QUEUE_MODE_LABELS, tournaments: "Tournaments", custom: "Custom" }
+export const PLAY_ZONE_LABELS: Record<PlayZoneMode, string> = { ...QUEUE_MODE_LABELS, custom: "Custom" }
 
-/** The kind of search a mode is, or null for a mode that is not a search (the tournaments, a table opened by hand). */
+/** The kind of search a mode is, or null for a mode that is not a search (a table opened by hand). */
 export const searchModeOf = (mode: PlayZoneMode): QueueMode | null => (mode === "normal" || mode === "ranked" ? mode : null)
 
-/** The columns of the row of places: one for each seat of the largest table, so that a whole group sits on one line. */
+/** The most places the row has: one for each seat of the largest table, so that a whole group sits on one line. */
 export const SLOT_COLUMNS = MAX_SEATS
 
-/** The column of the middle of the row, where the visitor stands: the widest, so that their picture is the largest. */
-export const SLOT_MIDDLE = Math.floor(SLOT_COLUMNS / 2)
-
-/** The order the places of the row fill in, by column: the visitor in the middle, then one place to its right, one to its left, and so on outwards. For nine columns: 4, 5, 3, 6, 2, 7, 1, 8, 0. */
-export const SLOT_ORDER: readonly number[] = Array.from({ length: SLOT_COLUMNS }, (_, index) => (index === 0 ? SLOT_MIDDLE : SLOT_MIDDLE + (index % 2 === 1 ? (index + 1) / 2 : -index / 2)))
-
-/** A column of the row: `null` when the row does not use it (a table of fewer seats), else a place that holds a person or, with `person` null, is free. */
-export type SlotCell<T> = { person: T | null } | null
+/** How many places the row has to begin with, however few people are in it: the visitor's and the ones that wait for a friend. */
+export const SLOT_BASE = 5
 
 /**
- * The columns of a row of `size` places: the `people` in the order the places fill in (the first, the visitor, in the middle), the free places after them, and no place in a column that the row does not use. A row is never smaller than the people in it
- * and never larger than a table (`MAX_SEATS`), and it holds at least the visitor's place; a person beyond the nine is left out.
+ * How many places the row of a group has: the base, and one more, free, as soon as every place is taken, the way the row of games ends with the tile that adds one, up to the most a table holds. A group of four has the five places it began
+ * with, one of them free; a fifth person fills the last and the row gets a sixth, and so on to nine, where it is full.
+ */
+export const placesFor = (people: number): number => Math.min(SLOT_COLUMNS, Math.max(SLOT_BASE, (Number.isFinite(people) ? Math.floor(people) : 0) + 1))
+
+/** A place of the row: it holds a person or, with `person` null, is free. */
+export type SlotCell<T> = { person: T | null }
+
+/**
+ * The places of a row of `size` places, from the left: the `people` in the order they are given (the first, the visitor, has the first place) and then the free places. A row is never smaller than the people in it and never larger than a table (`MAX_SEATS`),
+ * and it holds at least the visitor's place; a person beyond the nine is left out.
  */
 export function layoutRow<T>(people: readonly T[], size: number): SlotCell<T>[] {
   const places = Math.min(SLOT_COLUMNS, Math.max(1, Math.floor(size) || 1, people.length))
-  const cells: SlotCell<T>[] = Array.from({ length: SLOT_COLUMNS }, () => null)
-  for (let index = 0; index < places; index++) cells[SLOT_ORDER[index]!] = { person: people[index] ?? null }
-  return cells
+  return Array.from({ length: places }, (_, index) => ({ person: people[index] ?? null }))
 }

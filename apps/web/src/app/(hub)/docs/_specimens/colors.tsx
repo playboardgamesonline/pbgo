@@ -59,7 +59,7 @@ const SEMANTIC: readonly Semantic[] = [
 
 const SECONDARY_TOKENS = [
   { token: "muted-foreground", role: "Secondary text: descriptions, captions, placeholders. `text-muted-foreground`." },
-  { token: "border", role: "Hairline between regions. White at 10%: `border`, `divide-*`; `ring-foreground/10` outlines a card." },
+  { token: "border", role: "Hairline between regions. White at 10%: `border`, `divide-*`; `ring-foreground/10` outlines what floats over the page." },
   { token: "input", role: "Outline of a field. White at 15%: `border-input`." },
   { token: "ring", role: "Focus: `focus-visible:ring-3 focus-visible:ring-ring/30` with a `focus-visible:border-ring` edge. Also the default outline colour, at 50%." },
 ] as const

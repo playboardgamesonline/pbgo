@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { figuresOf, ordinal, perGame, playedGameOf, statsFrom, statsOf, type FinishedGame, type PlayedGame } from "./games"
+import { figuresOf, mostRecent, ordinal, perGame, playedGameOf, recentOf, statsFrom, statsOf, type FinishedGame, type PlayedGame } from "./games"
 
 const game = (id: string, slug: string, name: string, state: PlayedGame["state"], result?: PlayedGame["result"]): PlayedGame => ({
   id,
@@ -73,6 +73,32 @@ describe("statsFrom", () => {
   it("says the same as statsOf of the games it was made from", () => {
     const games = [game("1", "courtisans", "Courtisans", "finished", "won"), game("2", "courtisans", "Courtisans", "finished", "lost"), game("3", "hanabi", "Hanabi", "finished", "won")]
     expect(statsFrom(perGame(games))).toEqual(statsOf(games))
+  })
+})
+
+describe("recentOf and mostRecent", () => {
+  const played = (id: string, slug: string, playedAt: string, state: PlayedGame["state"] = "finished"): PlayedGame => ({ ...game(id, slug, slug, state, "won"), playedAt })
+  const games = [
+    played("1", "hanabi", "2026-10-20T10:00:00+00:00"),
+    played("2", "courtisans", "2026-10-28T21:12:00+00:00"),
+    played("3", "skyjo", "2026-10-30T09:00:00+00:00", "in-progress"),
+    played("4", "hanabi", "2026-10-25T18:00:00+00:00"),
+    played("5", "love-letter", "2026-10-22T08:00:00+00:00"),
+  ]
+
+  it("lists each game that is over once, the one played last first, and none that is in progress", () => {
+    expect(recentOf(games)).toEqual(["courtisans", "hanabi", "love-letter"])
+  })
+
+  it("puts the rows in that order, and the games it does not list after the others in the order they had", () => {
+    const rows = [{ slug: "skyjo" }, { slug: "love-letter" }, { slug: "hanabi" }, { slug: "courtisans" }, { slug: "azul" }]
+    expect(mostRecent(rows, ["courtisans", "hanabi", "love-letter"]).map((row) => row.slug)).toEqual(["courtisans", "hanabi", "love-letter", "skyjo", "azul"])
+  })
+
+  it("keeps the order of the rows when it is told of no game, and does not change the rows it is given", () => {
+    const rows = [{ slug: "skyjo" }, { slug: "hanabi" }]
+    expect(mostRecent(rows, [])).toEqual(rows)
+    expect(rows.map((row) => row.slug)).toEqual(["skyjo", "hanabi"])
   })
 })
 

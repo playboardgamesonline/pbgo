@@ -147,6 +147,15 @@ describe("POST /api/hub/profile", () => {
       expect(mocks.saveProfile).toHaveBeenCalledExactlyOnceWith(ANN, { nickname: "Alex", tag: 42, pronouns: "he/him", bio: "Hi" })
     })
 
+    it("keeps the languages in the order the member put them, and takes them away with an empty list or null", async () => {
+      mocks.account = { id: ANN }
+      expect(await (await send({ languages: ["ja", "fr"] })).json()).toEqual({ saved: true, languages: ["ja", "fr"] })
+      expect(mocks.saveProfile).toHaveBeenLastCalledWith(ANN, { languages: ["ja", "fr"] })
+      expect(await (await send({ languages: [] })).json()).toEqual({ saved: true, languages: [] })
+      expect(await (await send({ languages: null })).json()).toEqual({ saved: true, languages: [] })
+      expect(mocks.saveProfile).toHaveBeenLastCalledWith(ANN, { languages: [] })
+    })
+
     it("takes them away with null or with nothing: an empty text for the pronouns, the country and the bio, an empty list for the games", async () => {
       mocks.account = { id: ANN }
       expect(await (await send({ pronouns: null, country: null, favoriteGames: null, bio: null })).json()).toEqual({ saved: true, pronouns: null, country: null, favoriteGames: [], bio: null })
@@ -170,6 +179,11 @@ describe("POST /api/hub/profile", () => {
       [{ bio: "a\nb\nc\nd\ne" }],
       [{ bio: 12 }],
       [{ bio: ["a"] }],
+      [{ languages: ["xx"] }],
+      [{ languages: ["fr", "fr"] }],
+      [{ languages: ["en-GB"] }],
+      [{ languages: "fr" }],
+      [{ bio: "Hi", languages: [1] }],
       [{ nickname: "Alex", tag: 42, bio: "b".repeat(201) }],
       [{ nickname: "Alex", tag: 42, pronouns: "he/she" }],
     ])("refuses %j, which no profile can hold: nothing is kept, not even the rest", async (body) => {
