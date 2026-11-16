@@ -26,7 +26,7 @@ A box takes the step of its role, whatever its size.
 | Small control | `rounded-lg` | Small button, toggle, a tab in a tab bar, the buttons and tabs inside a navbar island |
 | Chip | `rounded-md` | Extra small button, key cap |
 | Tag | `rounded-sm` | Badge, checkbox |
-| Tile | `rounded-tile` | The square picture of a game in a row, a cover, a favourite: one shape at any size |
+| Tile | `rounded-tile` | The picture of a game in a row, a cover, a favourite: one shape at any size |
 | Inside | `rounded-nested` | A box in a padded container: the container's corner less its padding |
 | Circle | `rounded-full` | The picture of a person (`Avatar`) and its dot; the track and the thumb of a switch, a slider and a progress bar; the cross that takes a game out of a search |
 
