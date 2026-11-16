@@ -8,14 +8,16 @@ import { ProfileName } from "@/components/profile-name"
 import type { ProfileHead } from "@/lib/profile-data"
 
 /**
- * The top of a profile, the member's own or anybody's: picture, nickname with the level in a badge (the number alone) at its right, the pronouns under the name (muted), the experience as a gauge under them for the member alone (`own`), since when and where (their city with its country, else their country). The tag is not drawn: it is what copying the name gives (`ProfileName`).
- * `children` are the actions (the edit button on the member's own page, "Add friend", PLT-23). `note` goes before the rest of the line.
+ * The top of a profile, the member's own or anybody's: picture, nickname with the level in a badge (the number alone) at its right, the pronouns under the name (muted) with where they are at their right, after a dot (their city with its country, else their country), the experience as a gauge under them for the member alone (`own`), and since when, small and quiet. The tag is not drawn: it is what copying the name gives (`ProfileName`).
+ * `children` are the actions (the edit button on the member's own page, "Add friend", PLT-23). `note` goes before the since-when line's text.
  */
 export function ProfileHeader({ head, note, own = false, children }: { head: ProfileHead; note?: string; own?: boolean; children?: ReactNode }) {
   const { pronouns, country, city } = head.details
   // Where they are: their city with its country, else their country alone
   const place = city ? cityText(city) : country ? countryName(country) : null
-  const line = [note, head.memberSince ? `Member since ${monthOf(head.memberSince)}` : null, place].filter(Boolean).join(" · ")
+  // The pronouns and where they are share a line, after the same dot; since when is a line of its own, smaller and quieter
+  const identity = [pronouns ? pronounsLabel(pronouns) : null, place].filter(Boolean).join(" · ")
+  const since = [note, head.memberSince ? `Member since ${monthOf(head.memberSince)}` : null].filter(Boolean).join(" · ")
   return (
     <header className="flex flex-wrap items-center gap-x-6 gap-y-4">
       <Avatar className="size-20 sm:size-24">
@@ -29,7 +31,7 @@ export function ProfileHeader({ head, note, own = false, children }: { head: Pro
             {head.level.level}
           </Badge>
         </div>
-        {pronouns && <p className="ph-mask text-muted-foreground sm:text-lg">{pronounsLabel(pronouns)}</p>}
+        {identity && <p className="ph-mask text-muted-foreground sm:text-lg">{identity}</p>}
         {own && (
           <Progress
             value={Math.min(100, Math.max(0, levelProgress(head.level) * 100))}
@@ -37,7 +39,7 @@ export function ProfileHeader({ head, note, own = false, children }: { head: Pro
             className="mt-2 h-1.5 max-w-64"
           />
         )}
-        {line && <p className="ph-mask mt-1 text-muted-foreground">{line}</p>}
+        {since && <p className="ph-mask mt-1 text-sm text-muted-foreground/60">{since}</p>}
       </div>
       {children && <div className="flex shrink-0 flex-wrap items-center gap-2">{children}</div>}
     </header>
