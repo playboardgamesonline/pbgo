@@ -31,11 +31,11 @@ export function PlayerCount({ count, className }: { count: number; className?: s
 /** The words for the speed of a table (`PACES`), whatever it was: the value itself for one the list does not know. */
 export const paceLabel = (value: string): string => PACES.find((pace) => pace.value === value)?.label ?? value
 
-/** The speed a game was played at, a lightning bolt and its word, whatever the speed was. */
+/** The speed a game was played at, a lightning bolt and its word, whatever the speed was: the bolt is centred on the line and the word stands on the baseline of the text around it, as in `Duration` (a `flex` whose items are all centred takes the bottom of its first item, the bolt, for its baseline, which set the word higher than its neighbours). */
 export function PaceFact({ value, label = paceLabel(value), className }: { value: string; label?: string; className?: string }) {
   return (
-    <span data-pace={value} className={cn("flex shrink-0 items-center gap-1", className)}>
-      <HugeiconsIcon icon={ZapIcon} strokeWidth={2} className="size-3.5 shrink-0" aria-hidden="true" />
+    <span data-pace={value} className={cn("flex shrink-0 items-baseline gap-1", className)}>
+      <HugeiconsIcon icon={ZapIcon} strokeWidth={2} className="size-3.5 shrink-0 self-center" aria-hidden="true" />
       <span>{label}</span>
     </span>
   )
