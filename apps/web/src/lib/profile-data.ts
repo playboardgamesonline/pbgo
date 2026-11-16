@@ -6,6 +6,7 @@ import type { FriendRelation } from "@pbgo/core/lib/friends"
 import { readRelation } from "@pbgo/core/server/friends"
 import { ensureProfile, readProfileByHandle, readProfileDetails, readProfileXp, type ProfileWithDetails } from "@pbgo/core/server/profiles"
 import { memberGames, type MemberGames } from "./member-games"
+import { ownFriends, type ProfileFriend } from "./profile-friends"
 
 // What the pages of a profile say (PLT-39, PLT-111): the member's own (`/me/profile`) and anybody's (`/player/<nickname>-<tag>`). A head (who and since when) and, unless the member hides them, their games.
 // The profile is the database's (`@pbgo/core/server/profiles`), the games are the recorded ones (`member-games.ts`). The demo account is in no database: its profile is made up here.
@@ -60,6 +61,8 @@ export type ProfilePage = {
   games: MemberGames | null
   /** What is between the visitor and the member (PLT-23), for the "Add friend" button: null for a visitor who is not signed in and for the member's own profile. A member who blocked the visitor is `none`, as far as the visitor can tell. */
   relation: FriendRelation | null
+  /** The member's friends, on their own profile alone (`/me/profile`, and their `/player/<handle>` when they open it): another visitor is never given a list of friends, and the database is not asked for one. Null where they could not be read, the zone is then left out; absent on anybody else's profile. */
+  friends?: readonly ProfileFriend[] | null
 }
 
 /** What is between a signed-in visitor and the member that owns a profile. The demo account is in no database, so it has no friends: `none`. Where the database cannot say, `none` too (the cause is in the log): the button then offers to add, and the server decides. */
@@ -77,16 +80,25 @@ async function relationTo(viewer: Account | null, ownerId: string): Promise<Frie
 const sameHandle = (a: Handle, b: Handle): boolean => a.nickname.toLowerCase() === b.nickname.toLowerCase() && a.tag === b.tag
 
 /**
- * The profile that goes by this handle, as `viewer` sees it, or null (the hub's 404). A member who hides their games shows none to another visitor: `games` is null and the database is not asked for them. The member sees everything. At most `limit` games are listed. Throws what the database says.
+ * The profile that goes by this handle, as `viewer` sees it, or null (the hub's 404). A member who hides their games shows none to another visitor: `games` is null and the database is not asked for them. The member sees everything, and their friends: no other visitor is given a list of friends, and the roster is read for the visitor's own account, only when the visitor is the member. At most `limit` games are listed. Throws what the database says.
  */
 export async function profilePage(handle: Handle, viewer: Account | null, limit: number): Promise<ProfilePage | null> {
   if (viewer && isDemoAccount(viewer)) {
     const head = await ownProfileHead(viewer)
-    if (head.tag !== null && sameHandle(handle, { nickname: head.nickname, tag: head.tag })) return { head, own: true, games: await memberGames(viewer, limit), relation: null }
+    if (head.tag !== null && sameHandle(handle, { nickname: head.nickname, tag: head.tag })) {
+      const [games, friends] = await Promise.all([memberGames(viewer, limit), ownFriends(viewer)])
+      return { head, own: true, games, relation: null, friends }
+    }
   }
   const record = await readProfileByHandle(handle)
   if (!record) return null
   const { own, showGames } = profileViewOf(record, viewer)
-  const [games, relation, xp] = await Promise.all([showGames ? memberGames({ id: record.userId }, limit) : null, own ? null : relationTo(viewer, record.userId), readProfileXp(record.userId)])
-  return { head: headOf(record, xp), own, games, relation }
+  const [games, relation, xp, friends] = await Promise.all([
+    showGames ? memberGames({ id: record.userId }, limit) : null,
+    own ? null : relationTo(viewer, record.userId),
+    readProfileXp(record.userId),
+    // `own` says the visitor is the member, so the roster that is read is the visitor's own and nobody else's
+    own && viewer ? ownFriends(viewer) : undefined,
+  ])
+  return { head: headOf(record, xp), own, games, relation, ...(friends === undefined ? {} : { friends }) }
 }

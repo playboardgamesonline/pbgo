@@ -22,7 +22,7 @@ export const metadata: Metadata = { title: "Player profile", robots: { index: fa
 const RECENT_GAMES = 10
 
 /**
- * A member's public profile (PLT-39, PLT-111). Anybody can open it. It uses the same parts as `/me/profile` (`ProfileHeader`, `ProfileSections`). Another visitor sees no games when the member hides them. An address that no member goes by is the hub's 404. `?from=` is for analytics.
+ * A member's public profile (PLT-39, PLT-111). Anybody can open it. It uses the same parts as `/me/profile` (`ProfileHeader`, `ProfileSections`). Another visitor sees no games when the member hides them, and never a list of friends: only the member, on their own profile, has the Friends zone (`profilePage`). An address that no member goes by is the hub's 404. `?from=` is for analytics.
  * The head has the button that makes friends (PLT-23): for a visitor who is not signed in, Add friend leads to the sign-in and back here; for a member, `AddFriendButton`, which says whether they are friends, a request waits, or the other member had asked first. The member's own profile has Edit profile, which opens the window that edits it.
  */
 export default async function PlayerPage({ params, searchParams }: { params: Promise<{ handle: string }>; searchParams: Promise<{ from?: string | string[] }> }) {
@@ -32,7 +32,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
   const viewer = await getAccount()
   const profile = await profilePage(handle, viewer, RECENT_GAMES)
   if (!profile) notFound()
-  const { head, own, games, relation } = profile
+  const { head, own, games, relation, friends } = profile
 
   return (
     <AccountShell>
@@ -49,7 +49,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
         {!own && head.tag !== null && relation !== null && <AddFriendButton handle={{ nickname: head.nickname, tag: head.tag }} relation={relation} />}
       </ProfileHeader>
       <div className="pt-6">
-        <ProfileSections details={head.details} games={games} own={own} hideHistory={head.hideHistory} recent={RECENT_GAMES} timeFormat={viewer?.preferences.timeFormat} />
+        <ProfileSections details={head.details} games={games} own={own} hideHistory={head.hideHistory} friends={friends} recent={RECENT_GAMES} timeFormat={viewer?.preferences.timeFormat} />
       </div>
       <ProfileViewed own={own} hidden={games === null} from={profileSourceOf(typeof from === "string" ? from : null)} />
     </AccountShell>
