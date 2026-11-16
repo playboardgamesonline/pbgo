@@ -11,7 +11,7 @@ import { ProfileHeader } from "@/components/profile-header"
 import { handleOfHead, ownProfileHead } from "@/lib/profile-data"
 
 /**
- * The frame of the member's own profile (`/me/profile`): the same head as a public profile (`ProfileHeader`, then `ProfileAbout`: the bio and the favourite games), buttons to edit it (the window of `EditProfileDialog`) and to open the public page, and the page under it. There are no tabs.
+ * The frame of the member's own profile (`/me/profile`): the same head as a public profile (`ProfileHeader`, then `ProfileAbout`: the bio), buttons to edit it (the window of `EditProfileDialog`) and to open the public page, and the page under it. There are no tabs.
  */
 export default async function ProfileLayout({ children }: Readonly<{ children: ReactNode }>) {
   const account = await requireAccount("/me/profile")

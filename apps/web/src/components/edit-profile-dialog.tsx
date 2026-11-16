@@ -5,7 +5,6 @@ import { useState, type FormEvent } from "react"
 import {
   BIO_MAX,
   DISPLAY_NAME_MAX,
-  FAVORITES_MAX,
   PRONOUNS,
   bioCharactersLeft,
   checkBio,
@@ -24,12 +23,10 @@ import { trackClient } from "@pbgo/analytics/client"
 import { ApiClientError, gameRequest } from "@pbgo/core/lib/api"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
-import type { ComboboxOption } from "@pbgo/ui/platform/combobox"
 import { CountedTextarea } from "@pbgo/ui/platform/counted-textarea"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@pbgo/ui/platform/dialog"
 import { Field, FieldError, FieldLabel } from "@pbgo/ui/platform/field"
 import { Input } from "@pbgo/ui/platform/input"
-import { MultiSelect } from "@pbgo/ui/platform/multi-select"
 import { SearchSelect } from "@pbgo/ui/platform/search-select"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@pbgo/ui/platform/select"
 import { toast } from "@pbgo/ui/platform/sonner"
@@ -42,17 +39,15 @@ import { rememberOwnHandle } from "@/lib/use-own-handle"
 /** What a select cannot say with an empty value: no pronouns. */
 const NO_PRONOUNS = "none"
 
-/** What the analytics are told of a refusal: the ways the profile route says no (a favourite that is not a game is one more way to be invalid). */
-const REFUSALS: Record<string, "taken" | "invalid" | "unavailable"> = { PROFILE_TAKEN: "taken", PROFILE_INVALID: "invalid", PROFILE_GAME_UNKNOWN: "invalid", PROFILE_CITY_UNKNOWN: "invalid", PROFILE_UNAVAILABLE: "unavailable" }
-
-const sameList = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((slug, index) => slug === b[index])
+/** What the analytics are told of a refusal: the ways the profile route says no. */
+const REFUSALS: Record<string, "taken" | "invalid" | "unavailable"> = { PROFILE_TAKEN: "taken", PROFILE_INVALID: "invalid", PROFILE_CITY_UNKNOWN: "invalid", PROFILE_UNAVAILABLE: "unavailable" }
 
 type Saved = { nickname: string; tag: number } & ProfileDetails
 
 const sameCity = (a: ProfileCity | null, b: ProfileCity | null): boolean => a?.name === b?.name && a?.country === b?.country
 
 /**
- * The Edit profile window of a member's own profile (`/me/profile` and their public page): their username and tag, their pronouns (a list), their country (searched in a list), their city (searched at Geoapify, never typed: `CityField`), up to five favourite games of the catalog (with their covers) and a short bio. One Save sends
+ * The Edit profile window of a member's own profile (`/me/profile` and their public page): their username and tag, their pronouns (a list), their country (searched in a list), their city (searched at Geoapify, never typed: `CityField`) and a short bio. The games they play the most are not picked here: what they played says it (`ProfileSections`). One Save sends
  * what changed, and only that, to `POST /api/hub/profile`, which keeps it whole or not at all: the pair that somebody else has is told in place and nothing else is changed. The window closes on Save and the page behind it is drawn again (on the public page, the new
  * address when the pair changed). The account keeps a copy of the username for the navbar (`saveNickname`). The picture is the provider's and is not edited here. `address` says which page the member is on.
  */
@@ -60,7 +55,6 @@ export function EditProfileDialog({
   nickname,
   tag,
   details,
-  games,
   countries,
   cities,
   demo,
@@ -69,8 +63,6 @@ export function EditProfileDialog({
   nickname: string
   tag: number
   details: ProfileDetails
-  /** Every game of the catalog, as a favourite can be picked: its slug, its name and its small cover. */
-  games: readonly ComboboxOption[]
   countries: readonly { code: string; name: string }[]
   /** The search of a city is on (the server has the key of Geoapify): without it the window has no City field. */
   cities: boolean
@@ -86,7 +78,6 @@ export function EditProfileDialog({
   const [pronouns, setPronouns] = useState<Pronouns | null>(details.pronouns)
   const [country, setCountry] = useState<string | null>(details.country)
   const [city, setCity] = useState<ProfileCity | null>(details.city)
-  const [favorites, setFavorites] = useState<string[]>(details.favoriteGames)
   const [bio, setBio] = useState(details.bio ?? "")
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -105,7 +96,6 @@ export function EditProfileDialog({
   if (pronouns !== saved.pronouns) edit.pronouns = pronouns
   if (country !== saved.country) edit.country = country
   if (!sameCity(city, saved.city)) edit.city = city
-  if (!sameList(favorites, saved.favoriteGames)) edit.favoriteGames = favorites
   if (checkedBio.ok && checkedBio.bio !== saved.bio) edit.bio = checkedBio.bio
   const canSave = checkedName.ok && checkedTag.ok && checkedBio.ok && Object.keys(edit).length > 0
 
@@ -117,7 +107,6 @@ export function EditProfileDialog({
       setPronouns(saved.pronouns)
       setCountry(saved.country)
       setCity(saved.city)
-      setFavorites(saved.favoriteGames)
       setBio(saved.bio ?? "")
       setError(null)
     }
@@ -143,7 +132,7 @@ export function EditProfileDialog({
       pronouns: edit.pronouns === undefined ? saved.pronouns : edit.pronouns,
       country: edit.country === undefined ? saved.country : edit.country,
       city: edit.city === undefined ? saved.city : edit.city,
-      favoriteGames: edit.favoriteGames ?? saved.favoriteGames,
+      favoriteGames: saved.favoriteGames,
       bio: edit.bio === undefined ? saved.bio : edit.bio,
     }
     // The account keeps a copy of the username for the navbar: the profile is changed already, so a copy that cannot be written is no reason to say the change failed
@@ -158,7 +147,6 @@ export function EditProfileDialog({
       pronouns: edit.pronouns !== undefined,
       country: edit.country !== undefined,
       city: edit.city !== undefined,
-      favorites: edit.favoriteGames !== undefined,
       bio: edit.bio !== undefined,
     })
     setSaved(next)
@@ -303,24 +291,6 @@ export function EditProfileDialog({
                   />
                 </Field>
               )}
-
-              <Field>
-                <FieldLabel id="profile-favorites-label">Favorite board games</FieldLabel>
-                <MultiSelect
-                  options={games}
-                  value={favorites}
-                  onValueChange={(next) => {
-                    setFavorites(next)
-                    setError(null)
-                  }}
-                  max={FAVORITES_MAX}
-                  placeholder="Add a board game"
-                  searchPlaceholder="Search games..."
-                  empty="No game matches."
-                  disabled={pending}
-                  aria-label="Favorite board games"
-                />
-              </Field>
 
               <Field data-invalid={bioProblem ? true : undefined}>
                 <FieldLabel htmlFor="profile-bio">Bio</FieldLabel>
