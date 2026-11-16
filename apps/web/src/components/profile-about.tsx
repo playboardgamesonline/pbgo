@@ -14,7 +14,7 @@ export function ProfileAbout({ details, className }: { details: ProfileDetails; 
   const { bio, languages } = details
   return (
     <section aria-label="About" className={cn("flex min-w-0 flex-col gap-4", className)}>
-      {bio !== null && <p className="ph-mask max-w-prose text-pretty break-words whitespace-pre-line">{bio}</p>}
+      {bio !== null && <p className="ph-mask max-w-prose text-base text-pretty break-words whitespace-pre-line">{bio}</p>}
       <LanguageChips languages={languages} />
     </section>
   )
