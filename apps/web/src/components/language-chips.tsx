@@ -12,7 +12,7 @@ export function LanguageChips({ languages, className }: { languages: readonly st
     <ul aria-label="Languages spoken" className={className ?? "flex flex-wrap gap-2"}>
       {codes.map((code) => (
         <li key={code}>
-          <Badge variant="secondary" className="ph-mask h-7 gap-2 bg-card px-2.5 text-sm">
+          <Badge variant="secondary" className="ph-mask h-auto gap-2 bg-card p-2 text-sm leading-4">
             <LanguageFlag language={code} />
             {spokenLanguageName(code)}
           </Badge>
