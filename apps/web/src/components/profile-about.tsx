@@ -32,7 +32,7 @@ export async function ProfileAbout({ details }: { details: ProfileDetails }) {
               <li key={entry.slug}>
                 <Link href={`/game/${entry.slug}`} className="group/favorite flex w-24 flex-col gap-2 outline-none sm:w-28">
                   <CoverTile
-                    className="size-24 ring-1 ring-foreground/10 transition-shadow duration-fast group-hover/favorite:ring-foreground/30 group-focus-visible/favorite:ring-3 group-focus-visible/favorite:ring-ring/30 sm:size-28"
+                    className="size-auto w-24 aspect-4/3 ring-1 ring-foreground/10 transition-shadow duration-fast group-hover/favorite:ring-foreground/30 group-focus-visible/favorite:ring-3 group-focus-visible/favorite:ring-ring/30 sm:w-28"
                     {...gameThumb(entry.game)}
                   />
                   <span className="line-clamp-2 text-sm leading-snug group-hover/favorite:underline">{entry.game.name}</span>
