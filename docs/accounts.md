@@ -100,7 +100,7 @@ A profile is what other players see of a member: a nickname with a tag (`Alex#00
 - **Demo account**: it is in no database. Its profile is made up (`DEMO_TAG`) and its changes write nothing. Other members' profiles open from the real database.
 - **Without the migration**: no tag, no links, `/player/…` is a 404.
 - **Analytics**: `profile_viewed`, `profile_updated` (the fields that changed, never their values), `profile_update_refused`, `profile_history_hidden`. The address is scrubbed to `/player/:handle` (`docs/analytics.md`).
-- **After the merge**: run `pnpm setup-env`. It gives every existing account a profile.
+- **After the merge**: run `pnpm setup-env`. It gives every existing account a profile, and applies migration 0028 (the favorite games are dropped) and migration 0029 (the languages a member speaks, tested by `supabase/tests/profile_languages.sql`): until it runs, the languages are neither saved nor drawn and the rest of a profile is read as ever.
 - **Tests**: `profile.test.ts`, `profiles.test.ts`, `standings.test.ts`, the route test, `scrub.test.ts` and `supabase/tests/profiles.sql`.
 
 ## Friends (PLT-23)
