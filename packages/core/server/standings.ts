@@ -265,6 +265,17 @@ export async function readMemberGames(userId: string, limit: number, game?: stri
   })
 }
 
+/**
+ * The games a member finished, by slug and each once, the one they finished last first: the order of the career's row of games. It reads the member's latest `limit` seats whichever the game, in one light query, so that the order does not depend on the game the career is narrowed to
+ * (`readMemberGames` with a `game` lists that game's only). A game they last played before those seats comes after the ones that are in them.
+ */
+export async function readMemberGameOrder(userId: string, limit = 200): Promise<string[]> {
+  if (!USER_ID.test(userId)) return []
+  const { data, error } = await supabaseAdmin().from("game_participants").select("finished_at, game_results!inner(game)").eq("user_id", userId).order("finished_at", { ascending: false }).limit(limit)
+  if (error) throw error
+  return [...new Set(((data ?? []) as Row[]).map((row) => String(joined(row.game_results).game)))]
+}
+
 /** What a member has done in a game: their totals (`player_stats`) and, once they have rated a game, the rank their points read as. */
 export type MemberGameTotals = {
   game: string
