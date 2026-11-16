@@ -29,6 +29,11 @@ export function checkRulesBin(env: Env = process.env): string | null {
   return env.PBGO_CHECK_RULES_BIN ? env.PBGO_CHECK_RULES_BIN : null
 }
 
+/** What the command that reads the pictures of a published game is: `pnpm catalog:pictures` unless a test says another (it is run with the slug). */
+export function checkPicturesBin(env: Env = process.env): string | null {
+  return env.PBGO_CHECK_PICTURES_BIN ? env.PBGO_CHECK_PICTURES_BIN : null
+}
+
 /** The folder of the specs of the games, `docs/games` of the checkout: the one place of the repo a step writes (its `<slug>/rules.md` and `index.md`). A test's temporary world moves it. */
 export function gamesDocsRoot(env: Env = process.env): string {
   return env.PBGO_GAMES_DOCS_DIR ? env.PBGO_GAMES_DOCS_DIR : join(REPO_ROOT, "docs", "games")

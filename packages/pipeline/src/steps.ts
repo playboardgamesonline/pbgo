@@ -1,14 +1,15 @@
-// The steps of the pipeline, in order. A step is a skill of the repo (`.claude/skills/<skill>/SKILL.md`) that a headless call runs as a slash command, the gates
-// the owner answers after it, and the policy of what it may do. The scout, the catalog entry and the rules spec are here; the later ones of "A game from A to Z"
-// (`.claude/skills/README.md`) are added one by one, each with its skill.
+// The steps of the pipeline, in order. A step is a skill of the repo (`.claude/skills/<skill>/SKILL.md`) that Claude Code runs as a slash command and the gate the owner answers after it. There are two
+// kinds. A HEADLESS step is one call (`claude -p`) that works alone, bounded by a policy of what it may do (the scout, the catalog entry, the rules spec). A SESSION step is a session of Claude Code
+// that the command opens in the owner's terminal, for a skill that asks questions or acts outside the repo (it downloads, uploads, publishes): the owner is in it and approves each action, the command
+// waits for them to leave, then checks the result and asks for the gate. The later steps of "A game from A to Z" (`.claude/skills/README.md`) are added one by one, each with its skill.
 import { join } from "node:path"
 import { specPathsOf } from "@pbgo/games/rules-spec"
 import type { GateKind } from "./gate.ts"
 import { BASH, mkdirRule, PLATFORM_SANITY, rulesCheckRule, type Policy } from "./policy.ts"
-import { RULES_PDF, SCOUT_FILE } from "./state.ts"
+import { PICTURES_DIR, RULES_PDF, SCOUT_FILE } from "./state.ts"
 
-/** The game as the pipeline knows it: the name, the slug, its folder of working files, its scout file and the rulebook next to it. */
-export type Game = { name: string; slug: string; dir: string; scoutFile: string; rulesPdf: string }
+/** The game as the pipeline knows it: the name, the slug, its folder of working files, its scout file, the rulebook next to it and the folder of its pictures for the platform. */
+export type Game = { name: string; slug: string; dir: string; scoutFile: string; rulesPdf: string; picturesDir: string }
 
 export function gameOf(assets: string, name: string, slug: string): Game {
   return gameAt(join(assets, slug), name, slug)
@@ -16,7 +17,7 @@ export function gameOf(assets: string, name: string, slug: string): Game {
 
 /** A game whose folder is where it was found (the folder of its state), whatever it is called. */
 export function gameAt(dir: string, name: string, slug: string): Game {
-  return { name, slug, dir, scoutFile: join(dir, SCOUT_FILE), rulesPdf: join(dir, RULES_PDF) }
+  return { name, slug, dir, scoutFile: join(dir, SCOUT_FILE), rulesPdf: join(dir, RULES_PDF), picturesDir: join(dir, PICTURES_DIR) }
 }
 
 /**
@@ -25,7 +26,7 @@ export function gameAt(dir: string, name: string, slug: string): Game {
  */
 export type PolicyExtras = { composioServer: string; publishIds: readonly string[]; gamesDocs: string }
 
-export type StepDefinition = {
+type StepBase = {
   id: string
   /** how the step is named in the terminal and in Linear ("scout", "catalog entry") */
   title: string
@@ -38,13 +39,28 @@ export type StepDefinition = {
   gates: GateKind[]
   /** the first message of the step: the skill, as a slash command */
   prompt: (game: Game) => string
+}
+
+/** One call that works alone (`claude -p`), bounded by what its policy allows. */
+export type HeadlessStep = StepBase & {
+  mode: "headless"
   /** whether the step uses Composio (its two lookup tools are allowed by name, the executor only through the hook) */
   composio: boolean
   policy: (game: Game, repoRoot: string, extras: PolicyExtras) => Policy
 }
 
-export const SCOUT: StepDefinition = {
+/** A session of Claude Code in the owner's terminal: the owner approves each action, and what they find at the gate is the machine's check of the result. */
+export type SessionStep = StepBase & {
+  mode: "session"
+  /** where the files of the session are, for the owner to look at: `o` at the gate opens it */
+  folder: (game: Game) => string
+}
+
+export type StepDefinition = HeadlessStep | SessionStep
+
+export const SCOUT: HeadlessStep = {
   id: "scout",
+  mode: "headless",
   title: "scout",
   skill: "game-scout",
   lane: "Game lane",
@@ -64,8 +80,9 @@ export const SCOUT: StepDefinition = {
   }),
 }
 
-export const CATALOG_ENTRY: StepDefinition = {
+export const CATALOG_ENTRY: HeadlessStep = {
   id: "catalog-entry",
+  mode: "headless",
   title: "catalog entry",
   skill: "platform-catalog-entry",
   lane: "Platform lane",
@@ -90,8 +107,9 @@ export const CATALOG_ENTRY: StepDefinition = {
   }),
 }
 
-export const RULES_SPEC: StepDefinition = {
+export const RULES_SPEC: HeadlessStep = {
   id: "rules-spec",
+  mode: "headless",
   title: "rules spec",
   skill: "game-rules-spec",
   lane: "Game lane",
@@ -115,10 +133,23 @@ export const RULES_SPEC: StepDefinition = {
   },
 }
 
-export const STEPS: readonly StepDefinition[] = [SCOUT, CATALOG_ENTRY, RULES_SPEC]
+export const PLATFORM_ASSETS: SessionStep = {
+  id: "platform-assets",
+  mode: "session",
+  title: "platform assets",
+  skill: "platform-assets",
+  lane: "Platform lane",
+  skillFile: ".claude/skills/platform-assets/SKILL.md",
+  gates: ["validate"],
+  // the skill finds the official pictures, the owner approves each download, and the pictures are placed in the entry and published in the session, after the owner's yes
+  prompt: (game) => `/platform-assets ${game.scoutFile}`,
+  folder: (game) => game.picturesDir,
+}
+
+export const STEPS: readonly StepDefinition[] = [SCOUT, CATALOG_ENTRY, RULES_SPEC, PLATFORM_ASSETS]
 
 /** The tools a call is allowed by name: the read-only ones. Everything that writes or runs something is allowed by the hook alone, so that a hook that does not load refuses it. */
-export function allowedTools(step: StepDefinition, composioPrefix: string): string[] {
+export function allowedTools(step: HeadlessStep, composioPrefix: string): string[] {
   const tools = ["ToolSearch", "WebSearch", "WebFetch"]
   if (step.composio) tools.push(`${composioPrefix}COMPOSIO_SEARCH_TOOLS`, `${composioPrefix}COMPOSIO_GET_TOOL_SCHEMAS`)
   return tools

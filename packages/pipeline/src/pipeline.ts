@@ -8,7 +8,7 @@ import { join, resolve } from "node:path"
 import { readRulesSpec, specPathsOf, stampValidated } from "@pbgo/games/rules-spec"
 import { readScout, type Scout } from "@pbgo/games/scout"
 import { cleanName, nameProblem, slugFromName, slugProblem } from "@pbgo/games/slug"
-import { callArgs, childEnv, type RunOptions, type RunOutcome } from "./claude.ts"
+import { callArgs, childEnv, sessionArgs, type RunOptions, type RunOutcome, type SessionOutcome, type SessionRunOptions } from "./claude.ts"
 import { downloadsOff, gamesDocsRoot, linearTuning, stepTuning, type Env } from "./config.ts"
 import { parseAnswer } from "./gate.ts"
 import { applyResult, buildOrder, issueIdsOf, LINEAR_SCHEMA, linearPolicy, linearPrompt } from "./linear.ts"
@@ -30,7 +30,7 @@ import {
   type PipelineState,
 } from "./state.ts"
 import { RunTracker, type RunResult } from "./stream.ts"
-import { allowedTools, gameAt, gameOf, STEPS, type Game, type StepDefinition } from "./steps.ts"
+import { allowedTools, gameAt, gameOf, STEPS, type Game, type HeadlessStep, type SessionStep, type StepDefinition } from "./steps.ts"
 
 export const EXIT = { ok: 0, failed: 1, usage: 2, noInput: 3, interrupted: 130 } as const
 
@@ -64,6 +64,10 @@ export type Deps = {
   checkRules: (slug: string, name: string) => Promise<CheckResult>
   /** the rulebook the scout found, fetched to a file (the command does it, the agent of a step downloads nothing) */
   fetchRulebook: (url: string, dest: string) => Promise<RulebookFetch>
+  /** which pictures the published entry of a game has in the platform's Sanity (`pnpm catalog:pictures <slug>`) */
+  checkPictures: (slug: string) => Promise<CheckResult>
+  /** a session of Claude Code on the owner's terminal, until they leave it */
+  session: (options: SessionRunOptions) => Promise<SessionOutcome>
   /** the stage `pnpm check:game` gives a game that has a folder */
   stageOf: (slug: string) => Promise<string | null>
   /** the documents, among these ids, that the platform's Sanity does not show as published (`null`: it could not be read) */
@@ -155,7 +159,7 @@ function printPlan(args: { io: Io; pal: Palette; deps: Deps; game: Game; state: 
   if (state) {
     for (const step of STEPS) io.out(`  ${stepLine(state, step, pal)}`)
   } else {
-    STEPS.forEach((step, index) => io.out(`  ${index === 0 ? "Steps     " : "          "} ${index + 1}. ${step.title}: /${step.skill} · ${step.gates.length > 1 ? `gates ${step.gates.join(", ")}` : `gate ${step.gates[0]}`}`))
+    STEPS.forEach((step, index) => io.out(`  ${index === 0 ? "Steps     " : "          "} ${index + 1}. ${step.title}: /${step.skill} · ${step.gates.length > 1 ? `gates ${step.gates.join(", ")}` : `gate ${step.gates[0]}`}${step.mode === "session" ? " · a session of your own" : ""}`))
   }
   const login = check.claudeVersion ? `claude ${check.claudeVersion} · claude.ai${check.subscription ? ` (${check.subscription})` : ""}` : "claude not found"
   io.out(`  Headless   ${login} · model ${tuning.model} · ${formatUsd(tuning.budgetUsd)} a call at most · one session for the game`)
@@ -167,7 +171,8 @@ function printPlan(args: { io: Io; pal: Palette; deps: Deps; game: Game; state: 
 // ---------- the call of a step ----------
 
 type RoundKind = "first" | "change" | "resume" | "publish"
-type RoundOutcome = { kind: "ok"; result: RunResult } | { kind: "failed"; failure: string } | { kind: "interrupted" }
+/** What a round was: `result` is what a headless call said, and nothing for a session of the owner's (what it made is for the gate to check). */
+type RoundOutcome = { kind: "ok"; result: RunResult | null } | { kind: "failed"; failure: string } | { kind: "interrupted" }
 
 /** The files of one call: its policy, the settings that register the hook, where the hook logs. */
 function writeWorkFiles(ctx: Ctx, name: string, policy: object): { settingsPath: string; policyPath: string; guardLog: string; dir: string } {
@@ -212,7 +217,7 @@ async function prepareStep(ctx: Ctx, step: StepDefinition): Promise<void> {
 }
 
 /** One call of a step, shown as it runs. The state says `running` while it does, and `gate` or `failed` when it ends. */
-async function callRound(ctx: Ctx, step: StepDefinition, kind: RoundKind, extra: { message?: string; publishIds?: string[]; retried?: boolean } = {}): Promise<RoundOutcome> {
+async function callRound(ctx: Ctx, step: HeadlessStep, kind: RoundKind, extra: { message?: string; publishIds?: string[]; retried?: boolean } = {}): Promise<RoundOutcome> {
   const { deps, io, state, pal } = ctx
   const s = stepOf(state, step.id)
   s.status = "running"
@@ -303,6 +308,59 @@ async function callRound(ctx: Ctx, step: StepDefinition, kind: RoundKind, extra:
   return { kind: "ok", result }
 }
 
+// ---------- a session of the owner's ----------
+
+const SESSION_RESUME_MESSAGE = "We were interrupted. Check what already exists (the files, the drafts, what is published), carry on from there, and stop at the end of the skill with its report."
+
+/**
+ * One session of a step that is the owner's own: Claude Code opened in their terminal on the skill, in the session of the game, until they leave it. They approve each action in it, so there is no
+ * policy and no hook; what the command does is wait, and then check the result (`afterCall`). The state says `running` while the session is open and `gate` when it ends, as for a headless call.
+ */
+async function sessionRound(ctx: Ctx, step: SessionStep, kind: "first" | "change" | "resume", message = ""): Promise<RoundOutcome> {
+  const { deps, io, state, pal } = ctx
+  const s = stepOf(state, step.id)
+  s.status = "running"
+  s.failure = null
+  s.startedAt ??= deps.now().toISOString()
+  s.gate = 0
+  if (ctx.freshSession) {
+    state.session = { id: deps.uuid(), started: false }
+    ctx.freshSession = false
+  }
+  const prompt = kind === "first" ? step.prompt(ctx.game) : kind === "resume" ? SESSION_RESUME_MESSAGE : message
+  const resume = state.session.started
+  const args = sessionArgs({ prompt, session: { id: state.session.id, resume }, name: `add-game: ${state.name}`, model: stepTuning(deps.env).model })
+  state.session.started = true
+  save(ctx)
+
+  io.out("")
+  io.out(rule(`${titleCase(step.title)} · ${state.name} · a session of your own`, pal))
+  io.out(`Claude Code opens here on /${step.skill}, in the session of the game. You approve each action in it. Leave it with /exit when you are done: the command then checks what it made and asks for your validation.`)
+  io.out(pal.dim(`  folder  ${tilde(step.folder(ctx.game))}`))
+  const outcome = await deps.session({ bin: deps.claudeBin, args, cwd: deps.repoRoot, env: childEnv(deps.env) })
+  io.out("")
+  if (outcome.spawnError) {
+    const clean = printable(outcome.spawnError)
+    s.status = "failed"
+    s.failure = clean
+    save(ctx)
+    return { kind: "failed", failure: clean }
+  }
+  s.rounds += 1
+  s.status = "gate"
+  s.report = null
+  s.links = []
+  ctx.last = null
+  save(ctx)
+  return { kind: "ok", result: null }
+}
+
+/** One round of a step, whatever its kind: a headless call, or a session of the owner's. */
+function round(ctx: Ctx, step: StepDefinition, kind: RoundKind, extra: { message?: string; publishIds?: string[] } = {}): Promise<RoundOutcome> {
+  if (step.mode === "session") return sessionRound(ctx, step, kind === "publish" ? "change" : kind, extra.message)
+  return callRound(ctx, step, kind, extra)
+}
+
 // ---------- the scout ----------
 
 function readScoutFile(file: string): Scout | null {
@@ -360,6 +418,15 @@ function stampSpec(ctx: Ctx): string | null {
   } catch (error) {
     return `the spec cannot be stamped (${error instanceof Error ? shorten(error.message, 120) : "unreadable"})`
   }
+}
+
+// ---------- the pictures ----------
+
+/** What the platform's public API says of the entry of the game once the session is over: published, and which of the five pictures it has (`pnpm catalog:pictures <slug>`). */
+async function checkPicturesStep(ctx: Ctx): Promise<void> {
+  const s = stepOf(ctx.state, "platform-assets")
+  const verdict = await ctx.deps.checkPictures(ctx.state.slug)
+  s.check = { ok: verdict.ok, lines: verdict.lines }
 }
 
 /** The scout settled the name and the slug: the game's records follow (its folder moves to the slug). `null` when all went well, else what stopped it. */
@@ -466,7 +533,7 @@ function showGate(ctx: Ctx, step: StepDefinition, mode: "full" | "publish" = "fu
   io.out("")
   io.out(rule(header.join(" · "), pal))
   if (mode === "full") {
-    io.out(s.report ?? "(the call left no report)")
+    io.out(s.report ?? (step.mode === "session" ? "The session is over; what it made is below, as the platform shows it." : "(the call left no report)"))
     io.out("")
   }
   if (mode === "full" && s.check) for (const line of s.check.lines) io.out(`${s.check.ok && line === s.check.lines[0] ? pal.green("✓") : s.check.ok ? " " : pal.red("✗")} ${tildeAll(line)}`)
@@ -490,7 +557,7 @@ export function openableTarget(links: readonly string[], file: string | null): s
 }
 
 function openTarget(ctx: Ctx, step: StepDefinition): string | null {
-  const file = step.id === "scout" ? ctx.game.scoutFile : step.id === "rules-spec" ? specPathsOf(gamesDocsRoot(ctx.deps.env), ctx.state.slug).rules : null
+  const file = step.id === "scout" ? ctx.game.scoutFile : step.id === "rules-spec" ? specPathsOf(gamesDocsRoot(ctx.deps.env), ctx.state.slug).rules : step.mode === "session" ? step.folder(ctx.game) : null
   return openableTarget(stepOf(ctx.state, step.id).links, file !== null && existsSync(file) ? file : null)
 }
 
@@ -507,6 +574,7 @@ async function finishStep(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> 
 async function afterCall(ctx: Ctx, step: StepDefinition): Promise<void> {
   if (step.id === "scout") await checkScoutStep(ctx)
   if (step.id === "rules-spec") await checkRulesStep(ctx)
+  if (step.id === "platform-assets") await checkPicturesStep(ctx)
 }
 
 async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
@@ -516,7 +584,7 @@ async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
   for (;;) {
     const gate = step.gates[s.gate] ?? "validate"
     if (gate === "publish") io.out(`${pal.bold("publish")} · b to change something · q stops (the drafts stay)`)
-    else io.out(`${pal.bold("validate")}${step.gates.length > 1 ? " (the drafts are right)" : ""} · or type what to change · ${step.id === "catalog-entry" ? "o opens the draft · " : step.id === "rules-spec" ? "o opens the spec · " : ""}q stops (everything is saved)`)
+    else io.out(`${pal.bold("validate")}${step.gates.length > 1 ? " (the drafts are right)" : ""} · or type what to change · ${step.id === "catalog-entry" ? "o opens the draft · " : step.id === "rules-spec" ? "o opens the spec · " : step.id === "platform-assets" ? "o opens the pictures · " : ""}q stops (everything is saved)`)
     const line = await io.ask("> ")
     if (line === null) {
       io.out("")
@@ -557,6 +625,15 @@ async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
             break
           }
         }
+        if (step.id === "platform-assets") {
+          // what is published is what the public API says now, not what the session said: asked again, and the step is validated only for a game that is published
+          await checkPicturesStep(ctx)
+          if (!s.check?.ok) {
+            for (const line of s.check?.lines ?? []) io.out(`${pal.red("✗")} ${tildeAll(line)}`)
+            io.out(pal.red("✗ The platform's Sanity does not show the entry of the game as published: type what to change (a session opens again with your message)."))
+            break
+          }
+        }
         if (step.id === "rules-spec") {
           // the page may have been edited by hand since the call: it is judged again, and stamped as validated only when it passes
           await checkRulesStep(ctx)
@@ -580,6 +657,8 @@ async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
         return finishStep(ctx, step)
       }
       case "publish": {
+        // a session of the owner's has no second gate: the word is a headless step's
+        if (step.mode !== "headless") break
         const ids = publishedIds(s.report ?? "")
         if (ids.length === 0) {
           io.out(pal.red("✗ The report does not say which documents publish would make public: type b, then ask for the sentence \"Validate publishes N documents (ids)\"."))
@@ -589,7 +668,7 @@ async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
         const done = settleRound(ctx, outcome)
         if (done) return done
         io.out("")
-        io.out(outcome.kind === "ok" ? printable(outcome.result.text) : "")
+        io.out(outcome.kind === "ok" && outcome.result ? printable(outcome.result.text) : "")
         // the skill says it published: the public API of the platform's Sanity is asked, nothing is recorded on its word alone
         const missing = await ctx.deps.verifyPublished(ids)
         if (missing !== null && missing.length > 0) {
@@ -604,7 +683,7 @@ async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
         return finishStep(ctx, step)
       }
       case "change": {
-        const outcome = await callRound(ctx, step, "change", { message: answer.text })
+        const outcome = await round(ctx, step, "change", { message: answer.text })
         const done = settleRound(ctx, outcome)
         if (done) return done
         await afterCall(ctx, step)
@@ -648,7 +727,7 @@ async function runStep(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
     if (line === null) return ctx.io.interrupted() ? "interrupted" : "eof"
     kind = /^n/i.test(line.trim()) ? "first" : "resume"
   }
-  const outcome = await callRound(ctx, step, kind)
+  const outcome = await round(ctx, step, kind)
   const done = settleRound(ctx, outcome)
   if (done) return done
   await afterCall(ctx, step)

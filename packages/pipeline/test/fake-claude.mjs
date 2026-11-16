@@ -52,6 +52,31 @@ if (argv[0] === "mcp" && argv[1] === "list") {
   process.exit(0)
 }
 
+// a session of the owner's (no `-p`): the last word is the first message. It has no stream: it writes what the scenario says and leaves with the code the scenario says, as the owner's `/exit` does
+if (!argv.includes("-p")) {
+  const sessionPrompt = argv.at(-1) ?? ""
+  const sessions = scenario.calls ?? []
+  const usedSessions = process.env.FAKE_CLAUDE_USED
+  const taken = new Set(usedSessions && existsSync(usedSessions) ? JSON.parse(readFileSync(usedSessions, "utf8")) : [])
+  const found = sessions.findIndex((call, at) => !taken.has(at) && new RegExp(call.match ?? ".").test(sessionPrompt))
+  record({ prompt: sessionPrompt, matched: found, session: true })
+  if (found < 0) {
+    console.error(`the fake has no session for this prompt: ${sessionPrompt.slice(0, 80)}`)
+    process.exit(1)
+  }
+  taken.add(found)
+  if (usedSessions) writeFileSync(usedSessions, JSON.stringify([...taken]))
+  const chosen = sessions[found]
+  for (const write of chosen.writes ?? []) {
+    const path = write.path.replace("$ASSETS", process.env.PBGO_ASSETS_DIR ?? "").replace("$DOCS", process.env.PBGO_GAMES_DOCS_DIR ?? "")
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, write.content)
+  }
+  // what the stand-in for the check of the pictures says next is the scenario's too: the file it reads is written here
+  if (chosen.pictures && process.env.FAKE_PICTURES_FILE) writeFileSync(process.env.FAKE_PICTURES_FILE, JSON.stringify(chosen.pictures))
+  process.exit(chosen.exitCode ?? 0)
+}
+
 const prompt = flag("-p") ?? ""
 const sessionId = flag("--session-id") ?? flag("--resume") ?? "00000000-0000-4000-8000-000000000000"
 const calls = scenario.calls ?? []

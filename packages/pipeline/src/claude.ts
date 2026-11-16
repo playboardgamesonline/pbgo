@@ -83,6 +83,61 @@ export function callArgs(options: CallOptions): string[] {
   return args
 }
 
+export type SessionOptions = {
+  /** the first message of the session: the skill, as a slash command, or what the owner typed at the gate */
+  prompt: string
+  /** the session of the game: made by its first call, resumed by every other (the headless steps share it) */
+  session: { id: string; resume: boolean }
+  /** the name the session has in `claude --resume` */
+  name: string
+  model: string
+}
+
+/**
+ * The arguments of a session of the owner's own: no `-p`, no policy, no hook and no permission mode of ours (the owner is in it and approves each action, with the settings they use every day: their
+ * own rules and hooks are theirs to apply), the same model and the same session as the headless calls. The first message is the last word: the CLI takes what follows the options as the prompt.
+ */
+export function sessionArgs(options: SessionOptions): string[] {
+  const args = ["--model", options.model]
+  if (options.session.resume) args.push("--resume", options.session.id)
+  else args.push("--session-id", options.session.id, "--name", options.name)
+  args.push(options.prompt)
+  return args
+}
+
+export type SessionOutcome = {
+  code: number | null
+  signal: string | null
+  /** `claude` could not be started */
+  spawnError: string | null
+}
+
+export type SessionRunOptions = { bin: string; args: readonly string[]; cwd: string; env: Env }
+
+/**
+ * Runs a session of Claude Code on the owner's terminal and waits for them to leave it. The session has the terminal (stdin, stdout and stderr are the command's own) and stays in its process group,
+ * since a process of another group is stopped when it reads the terminal; Ctrl-C reaches both, and it is the session's: the command ignores it until the session ends, and goes on to the gate.
+ */
+export function runSession(options: SessionRunOptions): Promise<SessionOutcome> {
+  return new Promise((resolve) => {
+    const ignore = () => undefined
+    process.on("SIGINT", ignore)
+    const done = (outcome: SessionOutcome) => {
+      process.off("SIGINT", ignore)
+      resolve(outcome)
+    }
+    let child
+    try {
+      child = spawn(options.bin, [...options.args], { cwd: options.cwd, env: options.env as NodeJS.ProcessEnv, stdio: "inherit" })
+    } catch (error) {
+      done({ code: null, signal: null, spawnError: error instanceof Error ? error.message : String(error) })
+      return
+    }
+    child.on("error", (error) => done({ code: null, signal: null, spawnError: error.message }))
+    child.on("close", (code, signal) => done({ code, signal, spawnError: null }))
+  })
+}
+
 export type RunOutcome = {
   code: number | null
   signal: string | null

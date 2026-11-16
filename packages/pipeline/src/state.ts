@@ -11,6 +11,8 @@ export const LOCK_FILE = "pipeline.lock"
 export const SCOUT_FILE = "scout.json"
 /** The rulebook of the game, next to its scout file: the one the scout found (the command fetches it) or one the owner put there. The rules spec is read from it. */
 export const RULES_PDF = "rules.pdf"
+/** The folder of the pictures of the game for the platform's catalog entry, next to the scout file: the files are named `game-<slug>-<picture>` (the seed's art step reads them there). */
+export const PICTURES_DIR = "platform"
 /** Inside a game's folder: the policy and the settings of each call, and the raw stream of each round. */
 export const WORK_DIR = ".pipeline"
 

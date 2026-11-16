@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto"
 import { join } from "node:path"
 import { parseCli, USAGE } from "../src/cli.ts"
 import { runCheck } from "../src/commands.ts"
-import { runClaude } from "../src/claude.ts"
-import { assetsRoot, checkRulesBin, checkScoutBin, claudeBin, REPO_ROOT } from "../src/config.ts"
+import { runClaude, runSession } from "../src/claude.ts"
+import { assetsRoot, checkPicturesBin, checkRulesBin, checkScoutBin, claudeBin, REPO_ROOT } from "../src/config.ts"
 import { DownloadError, downloadPdf } from "../src/download.ts"
 import { makeIo } from "../src/io.ts"
 import { EXIT, listPipeline, runPipeline, type CheckResult, type Deps, type RulebookFetch } from "../src/pipeline.ts"
@@ -30,6 +30,17 @@ async function checkScout(file: string): Promise<CheckResult> {
 async function checkRules(slug: string, name: string): Promise<CheckResult> {
   const bin = checkRulesBin(env)
   const result = bin ? await exec(bin, [slug, "--name", name], { cwd: REPO_ROOT, timeoutMs: 60_000 }) : await exec("pnpm", ["check:rules", slug, "--name", name], { cwd: REPO_ROOT, timeoutMs: 60_000 })
+  const lines = `${result.stdout}\n${result.stderr}`
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim() !== "" && !line.startsWith("$ ") && !line.startsWith("> "))
+  return { ok: result.code === 0, lines: lines.length > 0 ? lines : [result.code === 0 ? "ok" : "failed"] }
+}
+
+/** What the platform's public API says of the pictures of a game's published entry: `pnpm catalog:pictures <slug>`, without pnpm's echo of the command. */
+async function checkPictures(slug: string): Promise<CheckResult> {
+  const bin = checkPicturesBin(env)
+  const result = bin ? await exec(bin, [slug], { cwd: REPO_ROOT, timeoutMs: 60_000 }) : await exec("pnpm", ["catalog:pictures", slug], { cwd: REPO_ROOT, timeoutMs: 60_000 })
   const lines = `${result.stdout}\n${result.stderr}`
     .split("\n")
     .map((line) => line.trimEnd())
@@ -67,6 +78,8 @@ const deps: Deps = {
   checkScout,
   checkRules,
   fetchRulebook,
+  checkPictures,
+  session: runSession,
   stageOf,
   verifyPublished: (ids) => missingPublished(ids, { base: env.PBGO_SANITY_API_BASE }),
   now: () => new Date(),

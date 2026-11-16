@@ -25,14 +25,15 @@ A game goes through six stages, and `pnpm check:game <slug>` says which it has r
 | Identify the game: edition, publisher, rules version | `/game-scout` (GAM-32) | the owner confirms the edition | written |
 | Catalog entry in the platform's Sanity (a draft) | `platform-catalog-entry` (PLT-98) | the owner publishes it | written |
 | Rules spec and the list of components | `game-rules-spec` (GAM-33) | the owner validates the spec | written |
-| Platform assets, game assets | `platform-assets` (PLT-99), `game-assets` (GAM-34) | the owner has handed the art over | to write |
+| Platform assets: the pictures of the catalog entry | `platform-assets` (PLT-99) | the owner approved the pictures and they are published | written |
+| Game assets: the art of the game's own Sanity | `game-assets` (GAM-34) | the owner has handed the art over | to write |
 | The game's folder, its Sanity project and Studio | `game-new` | the Studio is open | written |
 | The Studio's forms, the seed | `game-sanity-create` | the drafts are seeded | written |
 | The engine | `engine-rules` | `check:game --stage engine` exits 0 | written |
 | The binding and the board | `engine-board` | `check:game --stage board` exits 0 | written |
 | Content and go-live | `game-go-live` | `check:game --stage content` exits 0, then the switches are turned | written |
 
-`pnpm add-game "<name>"` (PLT-97, `packages/pipeline`, `docs/scripts.md`) runs the first three rows in this order, one gate each; the other rows are the steps its next versions add (a skill, a `StepDefinition` in `packages/pipeline/src/steps.ts`, and the row above). A gap in the blocks of the kit or the table found while planning is not worked around in the game: it goes to the engine lane (`engine-rules` step 2), and the first game of a family tells the engine lane what was awkward ("Friction" in its plan).
+`pnpm add-game "<name>"` (PLT-97, `packages/pipeline`, `docs/scripts.md`) runs the first four rows in this order, one gate each (the first three work alone, each a headless call; the pictures are a session of the owner's own, where they approve each download, upload and publication); the other rows are the steps its next versions add (a skill, a `StepDefinition` in `packages/pipeline/src/steps.ts`, and the row above). A gap in the blocks of the kit or the table found while planning is not worked around in the game: it goes to the engine lane (`engine-rules` step 2), and the first game of a family tells the engine lane what was awkward ("Friction" in its plan).
 
 ## Skills
 
@@ -48,6 +49,7 @@ A game goes through six stages, and `pnpm check:game <slug>` says which it has r
 - `engine-board` — (written by the engine lane, carried out by whoever mounts a board, usually the GAME agent) hand an engine to the app and draw its board on `@pbgo/table`: the binding and its three tests, the board from the blocks of the table, tuning, the checks in a browser (`pnpm check:board <slug>`: the windows, the controls pressed with the mouse, the cases of `GAME.debug` as frames, a reload, the start, a player who is away; two seats and a phone for the rest), the gate `check:game --stage board`
 
 ### PLATFORM
+- `platform-assets` — place a game's pictures in its catalog entry: the cover (4:3), logo, icon, background and box front, from official sources only (extraction only: never edited, cropped, upscaled or made), brought into a folder with the owner's approval of each command, their sources written down, placed as a draft with `pnpm --filter @pbgo/platform content:attach-art` and published only on the owner's yes; runs in a session of the owner's own (`platform/content/platform-assets-skill.test.ts` keeps it to what exists)
 - `platform-catalog-entry` — create or complete a game's entry in the platform's Sanity project as a draft, from the `/game-scout` file and official sources (English, official facts only, no pictures): what the catalog has already, what each field of each type gets, the link to the draft in the Studio, the gate, and the publication only on the owner's yes (`platform/apps/studio/catalog-entry-skill.test.ts` keeps its tables and skeletons the Studio's fields)
 
 ## Writing a skill

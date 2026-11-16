@@ -17,6 +17,7 @@
     "check:game": "node scripts/check-game.mjs",
     "check:board": "node scripts/check-board.mjs",
     "catalog:list": "node --disable-warning=ExperimentalWarning packages/catalog/scripts/list.ts",
+    "catalog:pictures": "node --disable-warning=ExperimentalWarning packages/catalog/scripts/pictures.ts",
     "check:scout": "node --disable-warning=ExperimentalWarning packages/catalog/scripts/check-scout.ts",
     "check:rules": "node --disable-warning=ExperimentalWarning packages/games/scripts/check-rules.ts",
     "new-game": "bash scripts/new-game.sh",

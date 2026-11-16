@@ -111,6 +111,7 @@ export async function preflight(args: { exec: Exec; env: Env; repoRoot: string; 
     const manifest = JSON.parse(readFileSync(join(args.repoRoot, "package.json"), "utf8")) as { scripts?: Record<string, string> }
     if (!manifest.scripts?.["check:scout"]) problems.push("`pnpm check:scout` is not in this checkout: update the branch from main")
     if (!manifest.scripts?.["check:rules"]) problems.push("`pnpm check:rules` is not in this checkout: update the branch from main")
+    if (!manifest.scripts?.["catalog:pictures"]) problems.push("`pnpm catalog:pictures` is not in this checkout: update the branch from main")
   } catch {
     problems.push("package.json of the checkout cannot be read")
   }

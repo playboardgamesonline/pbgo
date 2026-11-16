@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { callArgs, childEnv, runClaude, strippedCredentials, strippedNames } from "./claude.ts"
+import { callArgs, childEnv, runClaude, runSession, sessionArgs, strippedCredentials, strippedNames } from "./claude.ts"
 
 describe("the environment of a call", () => {
   const parent = {
@@ -125,5 +125,50 @@ describe("running a call", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe("the arguments of a session of the owner's", () => {
+  const options = { prompt: "/platform-assets /assets/x/scout.json", session: { id: "11111111-1111-4111-8111-111111111111", resume: false }, name: "add-game: X", model: "sonnet" }
+
+  it("is not headless and bounds nothing: no -p, no mode, no hook, no list of tools, no budget, and the owner's own settings stay (they approve each action)", () => {
+    const args = sessionArgs(options)
+    for (const word of ["-p", "--permission-mode", "--settings", "--setting-sources", "--allowedTools", "--max-budget-usd", "--output-format", "--verbose", "--no-session-persistence"]) expect(args, word).not.toContain(word)
+  })
+
+  it("makes the session of the game when it is the first and resumes it otherwise, and ends with the first message", () => {
+    expect(sessionArgs(options)).toEqual(["--model", "sonnet", "--session-id", "11111111-1111-4111-8111-111111111111", "--name", "add-game: X", "/platform-assets /assets/x/scout.json"])
+    expect(sessionArgs({ ...options, session: { ...options.session, resume: true } })).toEqual(["--model", "sonnet", "--resume", "11111111-1111-4111-8111-111111111111", "/platform-assets /assets/x/scout.json"])
+  })
+})
+
+describe("running a session of the owner's", () => {
+  const run = (code: string, env: Record<string, string> = {}) => runSession({ bin: process.execPath, args: ["-e", code], cwd: tmpdir(), env: { PATH: process.env.PATH, ...env } })
+
+  it("waits for the session to end, and says how it ended", async () => {
+    expect(await run("process.exit(0)")).toEqual({ code: 0, signal: null, spawnError: null })
+    expect(await run("process.exit(3)")).toEqual({ code: 3, signal: null, spawnError: null })
+  })
+
+  it("gives the session the environment it is handed, and the folder it runs in", async () => {
+    const outcome = await runSession({ bin: process.execPath, args: ["-e", "process.exit(process.env.PBGO_X === '1' && process.cwd() === require('fs').realpathSync(process.env.PBGO_CWD) ? 0 : 9)"], cwd: tmpdir(), env: { PATH: process.env.PATH, PBGO_X: "1", PBGO_CWD: tmpdir() } })
+    expect(outcome.code).toBe(0)
+  })
+
+  it("says when claude cannot be started", async () => {
+    const outcome = await runSession({ bin: join(tmpdir(), "no-such-claude"), args: [], cwd: tmpdir(), env: {} })
+    expect(outcome.code).toBeNull()
+    expect(outcome.spawnError).toMatch(/ENOENT/)
+  })
+
+  it("leaves Ctrl-C to the session while it runs, and takes the handler off when it ends", async () => {
+    const before = process.listenerCount("SIGINT")
+    const pending = run("setTimeout(() => {}, 150)")
+    expect(process.listenerCount("SIGINT")).toBe(before + 1)
+    await pending
+    expect(process.listenerCount("SIGINT")).toBe(before)
+    const failed = runSession({ bin: join(tmpdir(), "no-such-claude"), args: [], cwd: tmpdir(), env: {} })
+    await failed
+    expect(process.listenerCount("SIGINT")).toBe(before)
   })
 })
