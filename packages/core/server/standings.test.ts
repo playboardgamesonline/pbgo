@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn() }))
 vi.mock("server-only", () => ({}))
 vi.mock("./supabase", () => ({ supabaseAdmin: () => ({ rpc: mocks.rpc, from: mocks.from }) }))
 
-import { MEMBER_GAMES_MAX, readBoard, readGamesPlayed, readHistory, readMemberGames, readMemberTotals, readPlayerStanding } from "./standings"
+import { MEMBER_GAMES_MAX, readBoard, readHistory, readMemberGames, readMemberTotals, readPlayerStanding, readPlayerTotals } from "./standings"
 
 const USER = "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11"
 
@@ -509,55 +509,56 @@ describe("the accounts that sat in a seat, named by their profile", () => {
   })
 })
 
-describe("readGamesPlayed", () => {
+describe("readPlayerTotals", () => {
   const BOB = "5c3e1d8a-1f2b-4c47-8a9e-6d0b7e2f4a90"
 
-  it("adds up the games each player finished over every game they played, ranked or not", async () => {
+  it("adds up the games and the wins of each player over every game they played, ranked or not, a game won together counting as a win", async () => {
     const log = tables({
       player_stats: [
         {
           data: [
-            { user_id: USER, games_played: 3 },
-            { user_id: USER, games_played: 4 },
-            { user_id: BOB, games_played: 5 },
+            { user_id: USER, games_played: 3, wins: 1, coop_wins: 0 },
+            { user_id: USER, games_played: 4, wins: 2, coop_wins: 1 },
+            { user_id: BOB, games_played: 5, wins: 0, coop_wins: 0 },
           ],
           error: null,
         },
       ],
     })
-    const totals = await readGamesPlayed([USER, BOB, USER])
+    const totals = await readPlayerTotals([USER, BOB, USER])
     expect([...totals]).toEqual([
-      [USER, 7],
-      [BOB, 5],
+      [USER, { played: 7, wins: 4 }],
+      [BOB, { played: 5, wins: 0 }],
     ])
     // The players are named once, and the read is in a stable order so that its pages do not overlap
     const calls = log[0]?.calls ?? []
+    expect(calls.find(([name]) => name === "select")?.[1]).toEqual(["user_id, games_played, wins, coop_wins"])
     expect(calls.find(([name]) => name === "in")?.[1]).toEqual(["user_id", [USER, BOB]])
     expect(calls.filter(([name]) => name === "order").map(([, args]) => args[0])).toEqual(["user_id", "game"])
   })
 
   it("reads the next page while a page is full, so that a long list of games is never cut short", async () => {
-    const page = Array.from({ length: 1000 }, (_, index) => ({ user_id: USER, games_played: index < 999 ? 1 : 2 }))
-    const log = tables({ player_stats: [{ data: page, error: null }, { data: [{ user_id: USER, games_played: 5 }], error: null }] })
-    expect((await readGamesPlayed([USER])).get(USER)).toBe(999 + 2 + 5)
+    const page = Array.from({ length: 1000 }, (_, index) => ({ user_id: USER, games_played: index < 999 ? 1 : 2, wins: 1, coop_wins: 0 }))
+    const log = tables({ player_stats: [{ data: page, error: null }, { data: [{ user_id: USER, games_played: 5, wins: 2, coop_wins: 0 }], error: null }] })
+    expect((await readPlayerTotals([USER])).get(USER)).toEqual({ played: 999 + 2 + 5, wins: 1000 + 2 })
     expect(log.map((entry) => entry.calls.find(([name]) => name === "range")?.[1])).toEqual([[0, 999], [1000, 1999]])
   })
 
   it("names the players a hundred at a time", async () => {
     const ids = Array.from({ length: 150 }, (_, index) => `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`)
     const log = tables({ player_stats: [{ data: [], error: null }, { data: [], error: null }] })
-    await readGamesPlayed(ids)
+    await readPlayerTotals(ids)
     expect(log.map((entry) => (entry.calls.find(([name]) => name === "in")?.[1][1] as string[]).length)).toEqual([100, 50])
   })
 
   it("asks nothing for nobody, and nothing for an id that is no account (the demo account)", async () => {
-    expect((await readGamesPlayed([])).size).toBe(0)
-    expect((await readGamesPlayed(["demo"])).size).toBe(0)
+    expect((await readPlayerTotals([])).size).toBe(0)
+    expect((await readPlayerTotals(["demo"])).size).toBe(0)
     expect(mocks.from).not.toHaveBeenCalled()
   })
 
   it("throws what the database says", async () => {
     tables({ player_stats: [{ data: null, error: { message: "permission denied" } }] })
-    await expect(readGamesPlayed([USER])).rejects.toEqual({ message: "permission denied" })
+    await expect(readPlayerTotals([USER])).rejects.toEqual({ message: "permission denied" })
   })
 })

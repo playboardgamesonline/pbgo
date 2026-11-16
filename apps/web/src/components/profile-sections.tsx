@@ -1,46 +1,46 @@
 import Link from "next/link"
 import { FavouriteIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { figuresOf, type GameTotals, type TimeFormat } from "@pbgo/accounts"
+import { figuresOf, type GameFigures, type GameTotals, type TimeFormat } from "@pbgo/accounts"
 import { getCatalog } from "@pbgo/catalog/server"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
-import { Card, CardContent, CardDescription, CardTitle } from "@pbgo/ui/platform/card"
 import { CoverTile } from "@pbgo/ui/platform/cover-tile"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { RankBadge } from "@pbgo/ui/platform/rank-badge"
+import { StatBar, StatBarItem, StatBarNote, StatBarValue } from "@pbgo/ui/platform/stat-bar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
 import { lengthOf } from "@pbgo/ui/results"
 import { GameRecord } from "@/components/game-record"
-import { ProfileFriends } from "@/components/profile-friends"
+import { FriendsZone } from "@/components/profile-friends"
 import { gameThumb } from "@/lib/game-thumb"
 import type { MemberGames } from "@/lib/member-games"
 import type { ProfileFriend } from "@/lib/profile-friends"
 
-/** One figure of a profile, with what it counts. */
-type Figure = { label: string; value: string }
-
-/** Two figures that belong together, as one block: each with what it counts above it, side by side with a line between them. */
-function FigurePair({ figures }: { figures: readonly [Figure, Figure] }) {
+/** The row of figures under the games they play the most, in zones of their own (`StatBar`, as the stats of a game's page are): the time they played with the number of games under it, the share they won with the number of wins under it and, on the member's own page, their friends. The first two
+ * share the row, side by side from the narrowest screen; the friends take a line of their own under them until `lg`, where the three stand in a row and the friends have the most room. Without the friends (another visitor's view) the two have the row. */
+function Zones({ figures, friends }: { figures: GameFigures; friends?: readonly ProfileFriend[] | null }) {
+  const number = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
   return (
-    <Card size="sm">
-      <CardContent className="grid grid-cols-2 gap-x-6">
-        {figures.map(({ label, value }, index) => (
-          <div key={label} className={index === 0 ? "flex min-w-0 flex-col gap-1.5" : "flex min-w-0 flex-col gap-1.5 border-l pl-6"}>
-            <CardDescription>{label}</CardDescription>
-            <CardTitle className="truncate font-heading text-3xl tabular-nums">{value}</CardTitle>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+    <StatBar aria-label="Figures" className={friends ? "grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]" : "grid-cols-2"}>
+      <StatBarItem label="Playtime">
+        <StatBarValue className="truncate text-2xl leading-8 sm:text-3xl sm:leading-9">{figures.seconds > 0 ? lengthOf(figures.seconds) : "—"}</StatBarValue>
+        <StatBarNote>{number(figures.played, "game", "games")}</StatBarNote>
+      </StatBarItem>
+      <StatBarItem label="Win rate">
+        <StatBarValue className="truncate text-2xl leading-8 sm:text-3xl sm:leading-9">{figures.winRate === null ? "—" : `${figures.winRate}%`}</StatBarValue>
+        <StatBarNote>{number(figures.wins, "win", "wins")}</StatBarNote>
+      </StatBarItem>
+      {friends && <FriendsZone friends={friends} className="col-span-2 lg:col-span-1" />}
+    </StatBar>
   )
 }
 
 /** How many of the games they played the most are shown as tiles. */
-const FAVORITES = 5
+const FAVORITES = 6
 
 /**
- * The games they play the most, as tiles with their names under them, each leading to its page: five at the most, the most played first. The member picks none of them: what they played says it, so the title is a filled heart and not the word. A game that is not in the catalog any
+ * The games they play the most, as tiles with their names under them, each leading to its page: six at the most, the most played first. The member picks none of them: what they played says it, so the title is a filled heart and not the word. A game that is not in the catalog any
  * more is left out. Nothing for a member who has played nothing.
  */
 async function Favorites({ perGame }: { perGame: readonly GameTotals[] }) {
@@ -91,7 +91,7 @@ type ProfileSectionsProps = {
 }
 
 /**
- * What a profile says of a member's games, the same on their own page and on anybody's: the games they play the most, their figures in two blocks (the time they played with the games, their win rate with their wins), their friends (their own page only), a table of the games with rank and record (with no title on the page), and the latest games with their opponents (each opponent with an account links to their profile). The games are the recorded ones (PLT-13). When the member hides their games, another visitor sees only a line that says so. The member sees everything, with a note that the others do not.
+ * What a profile says of a member's games, the same on their own page and on anybody's: the games they play the most, their figures in zones (the time they played with the games, their win rate with their wins and, on their own page, their friends), a table of the games with rank and record (with no title on the page), and the latest games with their opponents (each opponent with an account links to their profile). The games are the recorded ones (PLT-13). When the member hides their games, another visitor sees only a line that says so. The member sees everything, with a note that the others do not.
  */
 export function ProfileSections({ games, own, hideHistory, friends, recent, allGamesHref, timeFormat }: ProfileSectionsProps) {
   if (games === null) {
@@ -124,22 +124,7 @@ export function ProfileSections({ games, own, hideHistory, friends, recent, allG
 
       <Favorites perGame={perGame} />
 
-      <section aria-label="Figures" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FigurePair
-          figures={[
-            { label: "Time played", value: figures.seconds > 0 ? lengthOf(figures.seconds) : "—" },
-            { label: "Games played", value: String(figures.played) },
-          ]}
-        />
-        <FigurePair
-          figures={[
-            { label: "Win rate", value: figures.winRate === null ? "—" : `${figures.winRate}%` },
-            { label: "Wins", value: String(figures.wins) },
-          ]}
-        />
-      </section>
-
-      {friends && <ProfileFriends friends={friends} />}
+      <Zones figures={figures} friends={friends} />
 
       <section aria-labelledby="per-game">
         {/* No title on the page: its columns say what the table is, and the heading of the games played the most is the only one that shows. This one is for screen readers */}

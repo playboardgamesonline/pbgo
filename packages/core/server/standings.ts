@@ -313,27 +313,34 @@ const STATS_PAGE = 1000
 /** How many players a read of `player_stats` names at a time, so that the address of the request stays short. */
 const STATS_PLAYERS = 100
 
+/** What a player did over every game they finished: how many, and how many they won (a game won together counts). */
+export type PlayerTotals = { played: number; wins: number }
+
 /**
- * The games each of these players finished, over every game they played, ranked or not (`player_stats`), by the player's account id; a player with none is not in the map. The rows are read in pages and the players in groups, since a friend list holds a few hundred
- * players and each has a row for every game: the totals are never cut short. Throws what the database says.
+ * What each of these players did over every game they played, ranked or not (`player_stats`), by the player's account id; a player with no game is not in the map. The rows are read in pages and the players in groups, since a friend list holds a few hundred players and each has a row for
+ * every game: the totals are never cut short. Throws what the database says.
  */
-export async function readGamesPlayed(userIds: readonly string[]): Promise<Map<string, number>> {
+export async function readPlayerTotals(userIds: readonly string[]): Promise<Map<string, PlayerTotals>> {
   const ids = [...new Set(userIds.filter((id) => USER_ID.test(id)))]
-  const totals = new Map<string, number>()
+  const totals = new Map<string, PlayerTotals>()
   const db = supabaseAdmin()
   for (let first = 0; first < ids.length; first += STATS_PLAYERS) {
     const group = ids.slice(first, first + STATS_PLAYERS)
     for (let start = 0; ; start += STATS_PAGE) {
       const { data, error } = await db
         .from("player_stats")
-        .select("user_id, games_played")
+        .select("user_id, games_played, wins, coop_wins")
         .in("user_id", group)
         .order("user_id")
         .order("game")
         .range(start, start + STATS_PAGE - 1)
       if (error) throw error
       const rows = (data ?? []) as Row[]
-      for (const row of rows) totals.set(String(row.user_id), (totals.get(String(row.user_id)) ?? 0) + count(row.games_played))
+      for (const row of rows) {
+        const id = String(row.user_id)
+        const before = totals.get(id) ?? { played: 0, wins: 0 }
+        totals.set(id, { played: before.played + count(row.games_played), wins: before.wins + count(row.wins) + count(row.coop_wins) })
+      }
       if (rows.length < STATS_PAGE) break
     }
   }
