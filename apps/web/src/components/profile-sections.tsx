@@ -3,7 +3,6 @@ import { figuresOf, type ProfileDetails, type TimeFormat } from "@pbgo/accounts"
 import { getCatalog } from "@pbgo/catalog/server"
 import { Alert, AlertDescription } from "@pbgo/ui/platform/alert"
 import { Button } from "@pbgo/ui/platform/button"
-import { Card, CardContent } from "@pbgo/ui/platform/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@pbgo/ui/platform/empty"
 import { GameRecord } from "@/components/game-record"
 import { FavoriteGames, type FavoriteGame } from "@/components/profile-favorites"
@@ -33,7 +32,7 @@ type ProfileSectionsProps = {
 }
 
 /**
- * What a profile says under its head, the same on their own page and on anybody's: in one card, the bio with the languages they speak, and at their right (under no title) the favourite games they picked, whose rank and record are one hover away; the figures in zones (the playtime with a podium of the games
+ * What a profile says under its head, the same on their own page and on anybody's: in a card of its own the bio with the languages they speak under it, and in another, just at its right, the favourite games they picked, whose rank and record are one hover away; the figures in zones (the playtime with a podium of the games
  * they spent the most time at, the win rate with a podium of the games they win the most often and, on their own page, their friends); and the latest games with their opponents (each opponent with an account links to their profile). The games are the recorded ones (PLT-13). When the member
  * hides their games, another visitor sees the bio, the favourites with no card on them and a line that says so. The member sees everything, with a note that the others do not. A member who has played nothing has an empty state in place of the games.
  */
@@ -50,14 +49,13 @@ export async function ProfileSections({ details, games, own, hideHistory, friend
     // What they did at a game is their games': left out where the visitor may not see them
     return [{ slug, name: entry.game.name, picture: gameThumb(entry.game), record: games === null ? null : { played: row?.played ?? 0, wins: row?.wins ?? 0, rank: rankIn.get(slug) ?? null } }]
   })
-  // What the member says of themselves is one section, a card: the bio with the languages they speak at its left and, at its right, the favourite games they picked
+  // What the member says of themselves is two cards, each with its own fill: the bio with the languages they speak under it and, just at its right (under it below `lg`, where five tiles do not leave the bio its room), the favourite games they picked. The bio card keeps a reading width, so that
+  // the favourites stay next to it and not at the far end of the row
   const about = (hasAbout(details) || favorites.length > 0) && (
-    <Card>
-      <CardContent className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between md:gap-10">
-        <ProfileAbout details={details} className="md:flex-1" />
-        {favorites.length > 0 && <FavoriteGames games={favorites} className="md:shrink-0" />}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-4 lg:flex-row">
+      <ProfileAbout details={details} className="lg:max-w-reading lg:flex-1" />
+      {favorites.length > 0 && <FavoriteGames games={favorites} className="lg:shrink-0" />}
+    </div>
   )
   if (games === null) {
     return (
