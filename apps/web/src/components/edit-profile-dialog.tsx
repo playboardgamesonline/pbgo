@@ -137,7 +137,6 @@ export function EditProfileDialog({
       pronouns: edit.pronouns === undefined ? saved.pronouns : edit.pronouns,
       country: edit.country === undefined ? saved.country : edit.country,
       city: edit.city === undefined ? saved.city : edit.city,
-      favoriteGames: saved.favoriteGames,
       bio: edit.bio === undefined ? saved.bio : edit.bio,
       languages: edit.languages ?? saved.languages,
     }

@@ -28,8 +28,8 @@ export type ProfileHead = {
 
 const headOf = (record: ProfileWithDetails, xp: number): ProfileHead => ({ nickname: record.nickname, tag: record.tag, avatarUrl: record.avatarUrl, memberSince: record.createdAt, hideHistory: record.hideHistory, details: record.details, level: levelOf(xp) })
 
-/** What the demo account of development says of itself: made up, like its profile, so that a page with everything filled in can be looked at. Games the hub's catalog lists, so that their covers come from it. */
-const DEMO_DETAILS: ProfileDetails = { pronouns: "they/them", country: "FR", city: { name: "Lyon", country: "FR" }, favoriteGames: [], bio: "A made-up member, for the development browser.\nNothing here is kept.", languages: ["fr", "en"] }
+/** What the demo account of development says of itself: made up, like its profile, so that a page with everything filled in can be looked at. */
+const DEMO_DETAILS: ProfileDetails = { pronouns: "they/them", country: "FR", city: { name: "Lyon", country: "FR" }, bio: "A made-up member, for the development browser.\nNothing here is kept.", languages: ["fr", "en"] }
 
 /**
  * The head of a signed-in member's own profile: the profile they have (made on the spot if missing), else their account's name and picture with no tag (migration not applied, or unreadable: the cause is in the log). Read once per request.
