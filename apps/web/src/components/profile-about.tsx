@@ -1,15 +1,19 @@
-import type { ProfileDetails } from "@pbgo/accounts"
+import { isSpokenLanguage, type ProfileDetails } from "@pbgo/accounts"
+import { cn } from "@pbgo/ui/utils"
 import { LanguageChips } from "@/components/language-chips"
+
+/** Whether a profile has anything to say under its head about its member: a bio, or a language they speak. */
+export const hasAbout = (details: ProfileDetails): boolean => details.bio !== null || details.languages.some(isSpokenLanguage)
 
 /**
  * What a member says of themselves under the head of their profile, to every visitor: the bio, as text (never markup: React escapes it, and the line breaks are kept), and under it the languages they speak, as chips. Nothing for a field that is empty, and nothing at all for a profile with
- * neither. The games they play the most are not here: nobody picks them, and they are drawn with the rest of what the games say (`ProfileSections`).
+ * neither. It stands at the left of the games they play the most, which `ProfileSections` puts at its right (nobody picks them: what they played says it).
  */
-export function ProfileAbout({ details }: { details: ProfileDetails }) {
+export function ProfileAbout({ details, className }: { details: ProfileDetails; className?: string }) {
+  if (!hasAbout(details)) return null
   const { bio, languages } = details
-  if (bio === null && languages.length === 0) return null
   return (
-    <section aria-label="About" className="flex flex-col gap-4 pt-6">
+    <section aria-label="About" className={cn("flex min-w-0 flex-col gap-4", className)}>
       {bio !== null && <p className="ph-mask max-w-prose text-pretty break-words whitespace-pre-line">{bio}</p>}
       <LanguageChips languages={languages} />
     </section>

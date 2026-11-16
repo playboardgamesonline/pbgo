@@ -3,7 +3,7 @@
 // (`profiles_*_check`), and `set_profile` is the one writer.
 
 import { checkCountry, countryName, isCountryCode } from "./details"
-import { SPOKEN_LANGUAGES } from "./language"
+import { SPOKEN_LANGUAGES, type PlatformLanguage } from "./language"
 import { tagOfRequest } from "./profile"
 import { checkNickname } from "./settings"
 
@@ -83,7 +83,7 @@ export const cityText = (city: ProfileCity): string => `${city.name}, ${countryN
 const SPOKEN: ReadonlySet<string> = new Set(SPOKEN_LANGUAGES.map((language) => language.id))
 
 /** Whether a value is the code of a language a member can say they speak (`SPOKEN_LANGUAGES`: the platform's languages, English once). */
-export const isSpokenLanguage = (value: unknown): value is string => typeof value === "string" && SPOKEN.has(value)
+export const isSpokenLanguage = (value: unknown): value is PlatformLanguage => typeof value === "string" && SPOKEN.has(value)
 
 let languageNames: Intl.DisplayNames | undefined
 

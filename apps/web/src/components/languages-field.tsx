@@ -3,11 +3,12 @@
 import { SPOKEN_LANGUAGES } from "@pbgo/accounts/language"
 import { spokenLanguageName } from "@pbgo/accounts"
 import { MultiSelect } from "@pbgo/ui/platform/multi-select"
+import { LanguageFlag } from "@/components/language-flag"
 
-/** The languages a member can say they speak: the platform's, English once, each by its name in English, with the name it has in itself under it where that is another. */
+/** The languages a member can say they speak: the platform's, English once, each with its flag and its name in English, and the name it has in itself under it where that is another. */
 const OPTIONS = SPOKEN_LANGUAGES.map(({ id, name }) => {
   const english = spokenLanguageName(id)
-  return { value: id, label: english, ...(name === english ? {} : { description: name }) }
+  return { value: id, label: english, leading: <LanguageFlag language={id} />, ...(name === english ? {} : { description: name }) }
 })
 
 /**

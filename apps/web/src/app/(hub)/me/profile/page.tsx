@@ -16,7 +16,7 @@ export default async function ProfilePage() {
   const [head, games, friends] = await Promise.all([ownProfileHead(account), memberGames(account, RECENT_GAMES), ownFriends(account)])
   return (
     <>
-      <ProfileSections games={games} own hideHistory={head.hideHistory} friends={friends} recent={RECENT_GAMES} allGamesHref="/me/career" timeFormat={account.preferences.timeFormat} />
+      <ProfileSections details={head.details} games={games} own hideHistory={head.hideHistory} friends={friends} recent={RECENT_GAMES} allGamesHref="/me/career" timeFormat={account.preferences.timeFormat} />
       <ProfileViewed own hidden={head.hideHistory} from="account" />
     </>
   )

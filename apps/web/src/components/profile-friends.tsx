@@ -9,12 +9,12 @@ import { StatBarItem, StatBarValue } from "@pbgo/ui/platform/stat-bar"
 import { cn } from "@pbgo/ui/utils"
 import type { ProfileFriend } from "@/lib/profile-friends"
 
-// The Friends zone of the member's own profile, the third of the row of figures: the friends as pictures with their names under them, centred, five at the most (the ones who played the most first), and a "See all" at the top of the zone that opens a window with every friend: their picture and name,
+// The Friends zone of the member's own profile, the third of the row of figures: the friends as pictures with their names under them, centred, eight at the most (two rows of four in the narrowest card; the ones who played the most first), and a "See all" at the top of the zone that opens a window with every friend: their picture and name,
 // the games they finished at the right of the name and under it the place they came at on average and the share they won, the way a list of players with their figures is drawn. A friend leads to their profile. A friend who keeps their games private has dashes. A member with no friend has "None yet",
 // as a game's card of achievements does. A server component: only the window is the client's, and it brings the list with it.
 
-/** How many friends the zone shows before the window that lists them all: what a row of pictures of that size holds in the zone at its narrowest. */
-const SHOWN = 5
+/** How many friends the zone shows before the window that lists them all: two rows of the four that the zone holds at its narrowest. */
+const SHOWN = 8
 
 /** How many games a friend finished, as the list says it ("12 games"); a dash for a friend who keeps them private. */
 const gamesText = (played: number | null): string => (played === null ? "—" : `${played} ${played === 1 ? "game" : "games"}`)
@@ -65,7 +65,7 @@ export function FriendsZone({ friends, className }: { friends: readonly ProfileF
           </DialogTrigger>
         }
       >
-        <ul aria-label="Friends who played the most" className="flex gap-x-1.5">
+        <ul aria-label="Friends who played the most" className="flex flex-wrap gap-x-1 gap-y-3">
           {friends.slice(0, SHOWN).map((friend) => (
             <li key={`${friend.nickname}#${friend.tag}`} className="w-14 shrink-0">
               <Link href={profilePath(handleOf(friend))} className="group/friend flex flex-col items-center gap-1.5 outline-none">
