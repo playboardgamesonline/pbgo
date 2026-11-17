@@ -83,26 +83,36 @@ describe("the row of players", () => {
   it("makes every place a cell of one grid, a person's and a free place's: the same width, as large as the row allows for the places there are, never fixed by a width of its own", () => {
     const html = row({ players: [you, ann], size: 6 })
     const list = /<ul[^>]*>/.exec(html)?.[0] ?? ""
-    expect(list).toContain("grid-cols-[repeat(auto-fit,minmax(3rem,1fr))]")
+    expect(list).toContain("grid-cols-5 @xl:grid-cols-6")
     for (const place of cellsOf(html)) {
       expect(place).not.toMatch(/[\s"]w-\d/)
       expect(place).not.toContain("flex-1")
     }
     expect(html.match(/data-size="xl"/g)).toHaveLength(6)
-    expect(list).not.toContain("cqw")
   })
 
-  it("knows how many places it has, which the width of the row is made of: no wider than that many places of the most a place has", () => {
-    for (const size of [1, 5, 9]) {
-      const list = /<ul[^>]*>/.exec(row({ size }))?.[0] ?? ""
-      expect(list).toContain(`[--n:${size}]`)
-      expect(list).toContain("max-w-[calc(var(--n)*")
+  it("is plain Tailwind classes, with no arbitrary value and no custom property: as many columns as places, five to a row at the most in a narrow section, and a width that is that many places", () => {
+    const listOf = (size: number) => /<ul[^>]*>/.exec(row({ size }))?.[0] ?? ""
+    expect(listOf(5)).toContain("grid-cols-5")
+    expect(listOf(5)).not.toContain("@xl:grid-cols")
+    expect(listOf(3)).toContain("grid-cols-3")
+    expect(listOf(9)).toContain("grid-cols-5 @xl:grid-cols-9")
+    for (const size of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+      expect(listOf(size)).not.toMatch(/class="[^"]*\[/)
+      expect(listOf(size)).not.toContain("--n")
+      expect(listOf(size)).toContain("max-w-")
     }
   })
 
-  it("is aligned to the left and wraps to a second line in a column too narrow for the places, rather than shrink them below a least width", () => {
-    const list = /<ul[^>]*>/.exec(row({ players: [you, ann] }))?.[0] ?? ""
-    expect(list).toContain("minmax(3rem,1fr)")
+  it("makes the row as wide as that many places of the most a place has plus the room between two, a step at a time as the section grows", () => {
+    // Five places: 4.5rem each and 0.75rem between, then 6rem and 1.25rem from `@3xl`, 7rem, 8rem and 10rem
+    const list = /<ul[^>]*>/.exec(row({ size: 5 }))?.[0] ?? ""
+    for (const part of ["max-w-102", "@3xl:max-w-140", "@4xl:max-w-160", "@5xl:max-w-180", "@7xl:max-w-220", "gap-x-3", "@3xl:gap-x-5"]) expect(list).toContain(part)
+  })
+
+  it("is aligned to the left and wraps to a second line of the others in a column too narrow for the places, rather than shrink them below a least width", () => {
+    const list = /<ul[^>]*>/.exec(row({ players: [you, ann], size: 9 }))?.[0] ?? ""
+    expect(list).toContain("grid-cols-5 @xl:grid-cols-9")
     expect(list).not.toContain("justify-center")
     expect(list).not.toContain("justify-items-center")
   })
@@ -123,23 +133,18 @@ describe("the row of players", () => {
     expect(row()).not.toContain("border-dashed")
   })
 
-  it("has more room between places from a section wide enough for it, the most a place has being counted with the room between", () => {
-    const list = /<ul[^>]*>/.exec(row({ size: 9 }))?.[0] ?? ""
-    expect(list).toContain("gap-x-3")
-    expect(list).toContain("@3xl:gap-x-5")
-    expect(list).toContain("@3xl:max-w-[calc(var(--n)*7.25rem)]")
-  })
-
-  it("scales the dot of presence with the picture, a share of its width and not a fixed size, the picture being the container of the units", () => {
+  it("scales the dot of presence with the picture, in fractions of it and not a fixed size: a badge 3/10 of the picture, the dot 3/4 of the badge", () => {
     const html = row({ players: [you, ann], size: 5 })
-    expect(html).toContain("@container")
-    expect(html).toContain("group-data-[size=xl]/avatar:size-(--presence-share)")
-    expect(html).toContain("group-data-[size=xl]/avatar:ring-(length:--presence-ring)")
-    // The fixed size of an extra large picture's dot is the one that the share takes the place of
+    expect(html).toContain("group-data-[size=xl]/avatar:size-3/10")
+    expect(html).toContain("size-3/4")
+    expect(html).toContain("ring-0")
+    // The fixed size and ring of an extra large picture's dot are the ones that the fractions take the place of, and nothing is a custom value
     expect(html).not.toContain("group-data-[size=xl]/avatar:size-4")
-    // The ring of the dot of a friend who is away is in proportion too, not the 4px of an extra large picture
+    expect(html).not.toContain("group-data-[size=xl]/avatar:ring-4")
+    expect(html).not.toMatch(/cqw|--presence-/)
+    // The ring of a friend who is away is a hole of half the dot's width, in proportion too
     const away = row({ players: [you, { id: "cy", name: "Cy", status: "offline" }], size: 5 })
-    expect(away).toContain("group-data-[size=xl]/avatar:border-(length:--presence-ring)")
+    expect(away).toContain("size-1/2")
     expect(away).not.toContain("group-data-[size=xl]/avatar:border-4")
   })
 
@@ -340,6 +345,12 @@ describe("the tile that adds a game", () => {
     expect(html.indexOf("</button>")).toBeLessThan(html.indexOf('class="min-h-10.5"'))
     // A game's tile keeps the same room for its name and its rank
     expect(render(React.createElement(PickedGame, { name: "Courtisans" }))).toContain("min-h-10.5")
+  })
+
+  it("leaves that room only in the row that holds the games: a row of free slots needs none, so the players are as high as they can be", () => {
+    expect(tile({ named: false })).not.toContain("min-h-10.5")
+    expect(tile({ named: false })).toContain("aspect-4/3")
+    expect(tile({ named: true })).toContain("min-h-10.5")
   })
 })
 

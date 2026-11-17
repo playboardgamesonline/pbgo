@@ -19,12 +19,12 @@ export const searchModeOf = (mode: PlayZoneMode): QueueMode | null => (mode === 
 /** The most places the row has: one for each seat of the largest table, so that a whole group sits on one line. */
 export const SLOT_COLUMNS = MAX_SEATS
 
-/** How many places the row has to begin with, however few people are in it: all of them, the most a table holds, the visitor's, the ones that wait for a friend and the places that nobody has. */
-export const SLOT_BASE = SLOT_COLUMNS
+/** How many places the row has to begin with, however few people are in it: the visitor's and the ones that wait for a friend. */
+export const SLOT_BASE = 5
 
 /**
- * How many places the row of a group has: the base, and one more, free, as soon as every place is taken, up to the most a table holds. The base being the most a table holds, a group of one has the nine places of a group of nine, the member's and eight free,
- * and the row never grows: it is that of a group at its largest from the start.
+ * How many places the row of a group has: the base, and one more, free, as soon as every place is taken, to the right of the last, up to the most a table holds. A group of four has the five places it began
+ * with, one of them free; a fifth person fills the last and the row gets a sixth, and so on to nine, where it is full.
  */
 export const placesFor = (people: number): number => Math.min(SLOT_COLUMNS, Math.max(SLOT_BASE, (Number.isFinite(people) ? Math.floor(people) : 0) + 1))
 

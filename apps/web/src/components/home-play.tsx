@@ -65,6 +65,9 @@ const FRIENDS_LISTED = 8
  */
 const SLOTS = "grid grid-cols-3 gap-x-3 gap-y-6 @xl:grid-cols-6 max-w-5xl"
 
+/** The slots of the first row, which holds the games: the free ones keep the room of a name under them, so that the row is as tall with no game as with some. The slots of the second row are the frames alone, so that the players are as high as they can be. */
+const FIRST_ROW = 6
+
 /**
  * The play zone of the signed-in home: one central interface in a card that takes the height of what is left of the screen, with the same margin at its two sides and a little more under it, in the left column of the home (the right one is `HomeAside`'s: PLT-21, PLT-119, PLT-135). Its four parts are spread over the
  * height of the card: a switch that fits its cases (Normal, Ranked, Custom) at the top, then at a fixed distance (the "2xl" step) the "Board games" (twelve slots from the start, two rows of six: the games that are picked as tiles and, after them, the slots that are free, each
@@ -322,11 +325,11 @@ export function HomePlay({ games, languages, account, className }: { games: read
                       open={adding && !searching}
                       onOpenChange={setAdding}
                     >
-                      <AddGameTile label={addLabel} disabled={searching} />
+                      <AddGameTile label={addLabel} named={shown.length < FIRST_ROW} disabled={searching} />
                     </GameSelect>
                   ) : (
                     // The other free slots open the same panel, so only the first of them is a stop for the keyboard's Tab
-                    <AddGameTile key={`free-${index}`} label={addLabel} disabled={searching} tabIndex={-1} onClick={() => setAdding(true)} />
+                    <AddGameTile key={`free-${index}`} label={addLabel} named={shown.length + index < FIRST_ROW} disabled={searching} tabIndex={-1} onClick={() => setAdding(true)} />
                   ),
                 )}
               </div>

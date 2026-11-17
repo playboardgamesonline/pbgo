@@ -61,10 +61,16 @@ describe("the row of places", () => {
 })
 
 describe("how many places the row of a group has", () => {
-  it("has all nine from the start, the most a table holds, however few people are in it", () => {
-    expect(SLOT_BASE).toBe(SLOT_COLUMNS)
-    expect(SLOT_BASE).toBe(9)
-    for (const people of [0, 1, 2, 3, 4, 5, 8]) expect(placesFor(people)).toBe(9)
+  it("begins with five, however few people are in it", () => {
+    expect(SLOT_BASE).toBe(5)
+    for (const people of [0, 1, 2, 3, 4]) expect(placesFor(people)).toBe(5)
+  })
+
+  it("gets one more, free, as soon as every place is taken, at the right of the last", () => {
+    expect(placesFor(5)).toBe(6)
+    expect(placesFor(6)).toBe(7)
+    expect(placesFor(7)).toBe(8)
+    expect(placesFor(8)).toBe(9)
   })
 
   it("never has more places than a table holds, so a full group has no free place", () => {
@@ -72,7 +78,7 @@ describe("how many places the row of a group has", () => {
     expect(placesFor(40)).toBe(9)
   })
 
-  it("keeps a free place while there is room, and the visitor in the first place", () => {
+  it("keeps a free place while there is room, and the visitor in the first place as it grows", () => {
     for (let count = 1; count < SLOT_COLUMNS; count++) {
       const cells = layoutRow(Array.from({ length: count }, (_, index) => `p${index}`), placesFor(count))
       expect(cells.filter((cell) => cell.person === null).length).toBeGreaterThan(0)
@@ -81,8 +87,8 @@ describe("how many places the row of a group has", () => {
   })
 
   it("is not thrown by a count that is not a whole number", () => {
-    expect(placesFor(Number.NaN)).toBe(9)
-    expect(placesFor(5.9)).toBe(9)
+    expect(placesFor(Number.NaN)).toBe(5)
+    expect(placesFor(5.9)).toBe(6)
   })
 })
 
