@@ -24,11 +24,15 @@ function DropdownMenuTrigger({
   )
 }
 
-/** The content is portaled outside the page's `.platform` wrapper, so it carries the `platform` class itself. */
+/**
+ * The content is portaled outside the page's `.platform` wrapper, so it carries the `platform` class itself. The menu clips and an element inside it scrolls: the browser draws a scrollbar along the straight
+ * edge of the element that scrolls and does not follow its corners, so a rounded box that scrolled itself would have the end of its thumb standing out of them (`docs/design/02-foundations/09-scrollbars.md`).
+ */
 function DropdownMenuContent({
   className,
   align = "start",
   sideOffset = 4,
+  children,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
   return (
@@ -38,11 +42,15 @@ function DropdownMenuContent({
         sideOffset={sideOffset}
         align={align}
         className={cn(
-          "platform relative z-50 max-h-(--radix-dropdown-menu-content-available-height) w-(--radix-dropdown-menu-trigger-width) min-w-48 origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-4xl glass p-1.5 text-popover-foreground shadow-float ring-1 ring-foreground/10 duration-fast data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-[state=closed]:overflow-hidden data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "platform relative z-50 w-(--radix-dropdown-menu-trigger-width) min-w-48 origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-4xl glass text-popover-foreground shadow-float ring-1 ring-foreground/10 duration-fast data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
-      />
+      >
+        <div data-slot="dropdown-menu-scroll" className="max-h-(--radix-dropdown-menu-content-available-height) overflow-x-hidden overflow-y-auto p-1.5">
+          {children}
+        </div>
+      </DropdownMenuPrimitive.Content>
     </DropdownMenuPrimitive.Portal>
   )
 }
