@@ -47,10 +47,16 @@ type PlayerSlotsProps = Omit<React.ComponentProps<"ul">, "children"> & {
   disabled?: boolean
 }
 
+/** The width of a place, which its avatar fills: one size for the card, a step larger each time the room of the row (`@container`, the page's) has the width of nine of the next size and the gaps between them, so that a whole group still sits on one line. */
+const PLACE = "w-16 @3xl:w-18 @4xl:w-22 @5xl:w-24 @6xl:w-28 @7xl:w-32"
+
+/** What makes an avatar of the row as wide as its place, and as tall. */
+const FILL = "data-[size=xl]:size-full aspect-square"
+
 /** A free place: a dashed circle with a plus in it, as faint as the seats of a table that nobody has taken, a little more there under the pointer of what holds it (`group/slot`). */
 function FreePlace() {
   return (
-    <Avatar size="xl" className="after:hidden">
+    <Avatar size="xl" className={cn(FILL, "after:hidden")}>
       <AvatarFallback className="border border-dashed border-border bg-transparent text-muted-foreground transition-colors duration-fast group-hover/slot:border-foreground/50 group-hover/slot:text-foreground">
         <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} aria-hidden="true" className="size-6" />
       </AvatarFallback>
@@ -61,7 +67,7 @@ function FreePlace() {
 /** The picture of a person, with the dot of their presence, faint and outlined when they were invited and have not answered. */
 function Picture({ player }: { player: SlotPlayer }) {
   return (
-    <Avatar size="xl" className={cn(player.pending && "opacity-60 outline-2 outline-offset-2 outline-border outline-dashed")}>
+    <Avatar size="xl" className={cn(FILL, player.pending && "opacity-60 outline-2 outline-offset-2 outline-border outline-dashed")}>
       {player.avatarUrl && <AvatarImage src={player.avatarUrl} alt="" referrerPolicy="no-referrer" />}
       <AvatarFallback>{initials(player.name)}</AvatarFallback>
       {player.status && !player.you && !player.pending && <PresenceDot status={player.status} />}
@@ -106,7 +112,7 @@ function Person({ player, menu, disabled }: { player: SlotPlayer; menu?: (player
           </span>
         )}
       </span>
-      <span aria-hidden="true" className="ph-mask w-full truncate text-center text-xs">
+      <span aria-hidden="true" className="ph-mask w-full truncate text-center text-xs @4xl:text-sm">
         {player.you ? "You" : player.name}
       </span>
     </>
@@ -144,7 +150,7 @@ function PlayerSlots({ players, size, picker, menu, disabled = false, className,
   return (
     <ul data-slot="player-slots" aria-label="Players" data-places={cells.length} className={cn("flex flex-wrap items-start gap-x-3 gap-y-4", className)} {...props}>
       {cells.map((cell, index) => (
-        <li key={index} data-slot="player-slot" data-free={cell.person === null ? "" : undefined} className="flex w-16 shrink-0 flex-col items-center gap-2">
+        <li key={index} data-slot="player-slot" data-free={cell.person === null ? "" : undefined} className={cn("flex shrink-0 flex-col items-center gap-2", PLACE)}>
           {cell.person ? <Person player={cell.person} menu={menu} disabled={disabled} /> : <Free picker={picker} disabled={disabled} tabbable={index === firstFree} />}
         </li>
       ))}

@@ -60,10 +60,11 @@ const MODES: readonly ModeOption<PlayZoneMode>[] = PLAY_ZONE_MODES.map((value) =
 const FRIENDS_LISTED = 8
 
 /**
- * A game's tile is as wide and as tall as this whatever the number of games and whatever it says under its picture (a rank in Ranked, nothing in Normal), so that the zone under the games never moves: ten fit in two rows of five in the narrowest card of the home, and a card too narrow
- * for them wraps them to another row rather than shrink them.
+ * A game's tile is as wide and as tall as this whatever the number of games and whatever it says under its picture (a rank in Ranked, nothing in Normal), so that the zone under the games never moves: ten fit in two rows of five in the card, at each of its widths, and a card too narrow for them wraps them to another
+ * row rather than shrink them. The tile grows with the card, a step each time the room of the games (`@container` of their section) has the width of six of the next size and the gaps between them, so that eleven (ten games and the tile that adds one) still make two rows; its height is its picture (4:3), the
+ * name, and the rank under it that Ranked draws.
  */
-const TILE = "h-38 w-32"
+const TILE = "h-38 w-32 @4xl:h-40 @4xl:w-34 @5xl:h-44 @5xl:w-40 @min-[70rem]:h-47 @min-[70rem]:w-44 @6xl:h-50 @6xl:w-48 @7xl:h-56 @7xl:w-56"
 
 /**
  * The play zone of the signed-in home: one central interface in a card that takes the height of what is left of the screen, with the same margin at its two sides and under it, in the left column of the home (the right one is `HomeAside`'s: PLT-21, PLT-119, PLT-135). Its four parts are spread over the
@@ -71,7 +72,7 @@ const TILE = "h-38 w-32"
  * press on a tile opens its settings: its speed, its expansions and, for a search, the most players at a table), then the "Group" (the row of players, every place of one size too, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little
  * room at their sides, and at the foot of the card the button, with what says why it is off at its right. Normal and Ranked look for a table among players the member does not know, in as many games as they pick, the places being their group; Custom opens a table of one game for friends, private to
  * begin with, the places being its seats, whose number the game's settings set; a friend picked in a place is invited when the table opens. A game that the group cannot play stays in the list and as a tile, off, with the reason; the same reason is at the right of the button. The button says
- * "Find a game" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left and for a member of a group who is not its leader (`@pbgo/core/lib/play-eligibility`). The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it, the zone shows
+ * "Play" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left and for a member of a group who is not its leader (`@pbgo/core/lib/play-eligibility`). The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it, the zone shows
  * its games and its kind and cannot be changed until it is stopped.
  */
 export function HomePlay({ games, languages, account, className }: { games: readonly PlayGame[]; languages: readonly LanguageOption[]; account: { id: string; nickname: string; avatarUrl?: string | null }; className?: string }) {
@@ -278,7 +279,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
           Play
         </h2>
         <ModeSwitch options={MODES} value={shownMode} onValueChange={setMode} disabled={searching} aria-label="What to play" className="justify-start" />
-        <section aria-labelledby="home-games" className="flex flex-col gap-4 px-2">
+        <section aria-labelledby="home-games" className="@container flex flex-col gap-4 px-2">
           <h3 id="home-games" className="font-heading text-lg">
             {searchMode ? "Board games" : "Board game"}
           </h3>
@@ -324,7 +325,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
             </>
           )}
         </section>
-        <section aria-labelledby="home-group" className="flex flex-col gap-4 px-2">
+        <section aria-labelledby="home-group" className="@container flex flex-col gap-4 px-2">
           <h3 id="home-group" className="font-heading text-lg">
             Group
           </h3>
@@ -335,7 +336,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
           {searchMode ? (
             <QueueButton size="2xl" searching={searching} seconds={seconds} disabled={asked.length === 0 || searchBlocked !== null} onSearch={search} onCancel={leaveQueue}>
               <HugeiconsIcon icon={PlayIcon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />
-              Find a game
+              Play
             </QueueButton>
           ) : (
             <div className="flex items-center gap-3">
