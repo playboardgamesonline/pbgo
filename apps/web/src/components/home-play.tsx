@@ -60,18 +60,23 @@ const MODES: readonly ModeOption<PlayZoneMode>[] = PLAY_ZONE_MODES.map((value) =
 const FRIENDS_LISTED = 8
 
 /**
- * A game's tile is as wide and as tall as this whatever the number of games and whatever it says under its picture (a rank in Ranked, nothing in Normal), so that the zone under the games never moves: ten fit in two rows of five in the narrowest card of the home, and a card too narrow
- * for them wraps them to another row rather than shrink them.
+ * The tiles of the games are the cells of one grid, aligned to the left, and they fill the row: as many columns as there are tiles (the games picked and the tile that adds one) while the room has the width of that many at the least (`minmax(<least>, 1fr)`), and the row is no wider than that many tiles
+ * of the most a tile has (`max-w`, from the count `--n` that `TILE_COUNT` gives it), so that a few games are a few large tiles and ten are two rows of small ones, all the same size at a given number. The least and the most grow with the room of the games (`@container` of their section), a step
+ * at a time. A tile is as tall as its picture (4:3), its name and the rank under it that Ranked draws, which it keeps the room of in Normal too, so that the zone under the games never moves from one kind to the other.
  */
-const TILE = "h-38 w-32"
+const TILES =
+  "grid grid-cols-[repeat(auto-fit,minmax(8rem,1fr))] max-w-[calc(var(--n)*10.75rem)] gap-x-3 gap-y-6 @3xl:max-w-[calc(var(--n)*16.75rem)] @4xl:grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] @4xl:max-w-[calc(var(--n)*18.75rem)] @5xl:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] @5xl:max-w-[calc(var(--n)*20.75rem)] @7xl:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] @7xl:max-w-[calc(var(--n)*24.75rem)]"
+
+/** `--n` of the grid of tiles: how many tiles there are, 11 at the most (ten games and the tile that adds one). Written out, so that each class is in the stylesheet. */
+const TILE_COUNT = ["[--n:1]", "[--n:1]", "[--n:2]", "[--n:3]", "[--n:4]", "[--n:5]", "[--n:6]", "[--n:7]", "[--n:8]", "[--n:9]", "[--n:10]", "[--n:11]"] as const
 
 /**
  * The play zone of the signed-in home: one central interface in a card that takes the height of what is left of the screen, with the same margin at its two sides and under it, in the left column of the home (the right one is `HomeAside`'s: PLT-21, PLT-119, PLT-135). Its four parts are spread over the
- * height of the card at equal distances (`justify-between`, never closer than a fixed distance): a switch that fits its cases (Normal, Ranked, Custom) at the top, then the "Board games" (the games that are picked as tiles of one size, whatever their number, ten at the most, wrapping to a second row; a
- * press on a tile opens its settings: its speed, its expansions and, for a search, the most players at a table), then the "Group" (the row of players, every place of one size too, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little
+ * height of the card at equal distances (`justify-between`, never closer than a fixed distance): a switch that fits its cases (Normal, Ranked, Custom) at the top, then the "Board games" (the games that are picked as tiles that fill the row, ten at the most, wrapping to a second row; a
+ * press on a tile opens its settings: its speed, its expansions and, for a search, the most players at a table), then the "Group" (the row of players, every place of one size too, as large as the row allows, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little
  * room at their sides, and at the foot of the card the button, with what says why it is off at its right. Normal and Ranked look for a table among players the member does not know, in as many games as they pick, the places being their group; Custom opens a table of one game for friends, private to
  * begin with, the places being its seats, whose number the game's settings set; a friend picked in a place is invited when the table opens. A game that the group cannot play stays in the list and as a tile, off, with the reason; the same reason is at the right of the button. The button says
- * "Find a game" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left and for a member of a group who is not its leader (`@pbgo/core/lib/play-eligibility`). The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it, the zone shows
+ * "Play" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left and for a member of a group who is not its leader (`@pbgo/core/lib/play-eligibility`). The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it, the zone shows
  * its games and its kind and cannot be changed until it is stopped.
  */
 export function HomePlay({ games, languages, account, className }: { games: readonly PlayGame[]; languages: readonly LanguageOption[]; account: { id: string; nickname: string; avatarUrl?: string | null }; className?: string }) {
@@ -272,13 +277,14 @@ export function HomePlay({ games, languages, account, className }: { games: read
       aria-labelledby="home-play"
       className={cn("min-h-[calc(100svh-var(--consent-h,0px)-var(--spacing-navbar)-1rem-var(--spacing-gutter))] min-w-0 gap-0 overflow-visible py-0 [--cutout:var(--card)]", className)}
     >
-      {/* The four parts of the card are spread over its height at equal distances: the switch at the top, the games, the group and, at the foot, the button. The games and the group have a little room at their sides */}
-      <div className="flex flex-1 flex-col justify-between gap-6 p-6">
+      {/* The four parts of the card are spread over its height: the switch at the top, the games, the group and, at the foot, the button, with spacers between them that share what is left of the height 10 : 7 : 13 (never under 1.5rem), so that the group is a little higher than at equal distances. The games and the group have a little room at their sides */}
+      <div className="flex flex-1 flex-col p-6">
         <h2 id="home-play" className="sr-only">
           Play
         </h2>
         <ModeSwitch options={MODES} value={shownMode} onValueChange={setMode} disabled={searching} aria-label="What to play" className="justify-start" />
-        <section aria-labelledby="home-games" className="flex flex-col gap-4 px-2">
+        <div aria-hidden="true" className="min-h-6 grow-10" />
+        <section aria-labelledby="home-games" className="@container flex flex-col gap-4 px-2">
           <h3 id="home-games" className="font-heading text-lg">
             {searchMode ? "Board games" : "Board game"}
           </h3>
@@ -286,11 +292,10 @@ export function HomePlay({ games, languages, account, className }: { games: read
             <p className="text-sm text-muted-foreground">The games you can play are listed here.</p>
           ) : (
             <>
-              <div role="group" aria-label="Games to play" className="flex flex-wrap gap-x-3 gap-y-6">
+              <div role="group" aria-label="Games to play" className={cn(TILES, TILE_COUNT[Math.min(shown.length + (canAdd ? 1 : 0), TILE_COUNT.length - 1)])}>
                 {shown.map((game, index) => (
                   <PickedGame
                     key={game.slug}
-                    className={TILE}
                     name={game.name}
                     picture={game.picture}
                     logo={game.logo}
@@ -314,7 +319,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
                     fullNote={`A search takes ${SEARCH_MAX_GAMES} games at the most. Take one out to add another.`}
                     aria-label="Games"
                   >
-                    <AddGameTile label={searchMode ? "Add a game" : "Choose a game"} className={TILE} />
+                    <AddGameTile label={searchMode ? "Add a game" : "Choose a game"} />
                   </GameSelect>
                 )}
               </div>
@@ -324,18 +329,20 @@ export function HomePlay({ games, languages, account, className }: { games: read
             </>
           )}
         </section>
-        <section aria-labelledby="home-group" className="flex flex-col gap-4 px-2">
+        <div aria-hidden="true" className="min-h-6 grow-7" />
+        <section aria-labelledby="home-group" className="@container flex flex-col gap-4 px-2">
           <h3 id="home-group" className="font-heading text-lg">
             Group
           </h3>
           <PlayerSlots players={players} size={size} picker={picker} menu={menuOf} disabled={searching || opening} />
         </section>
+        <div aria-hidden="true" className="min-h-6 grow-13" />
         {/* The button is at the foot of the card, which is the foot of the screen, with what says why it is off at its right. Under `xl` a card taller than the screen keeps it in view above the consent banner, over what scrolls under it (the fade is the card's own grey); from `xl` the card is made to fit the screen and it stays at its foot */}
         <div className="sticky bottom-[var(--consent-h,0px)] z-10 -mx-6 -mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-b-4xl bg-gradient-to-t from-card from-70% to-transparent px-6 pt-4 pb-6 xl:static xl:m-0 xl:bg-none xl:p-0">
           {searchMode ? (
             <QueueButton size="2xl" searching={searching} seconds={seconds} disabled={asked.length === 0 || searchBlocked !== null} onSearch={search} onCancel={leaveQueue}>
               <HugeiconsIcon icon={PlayIcon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />
-              Find a game
+              Play
             </QueueButton>
           ) : (
             <div className="flex items-center gap-3">

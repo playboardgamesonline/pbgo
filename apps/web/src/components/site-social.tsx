@@ -68,7 +68,7 @@ export function SiteSocial({ account, game }: { account: Account; /** The rows o
   const groups = useGroupActions()
   useGroupNews(preview ? null : account.id)
   const nothing = () => {}
-  // The search for a game that the visitor has begun, wherever they began it (the button of a game's page, the home's Find a game): the bar shows it while the panel is closed, and the panel has a card for it
+  // The search for a game that the visitor has begun, wherever they began it (the button of a game's page, the home's Play): the bar shows it while the panel is closed, and the panel has a card for it
   const queue = useQueue()
   const seconds = useQueueSeconds(queue)
   const searching = queue ? { game: queueGamesLabel(queue.games), mode: QUEUE_MODE_LABELS[queue.mode], progress: queueProgress(queue), seconds, onCancel: leaveQueue } : undefined

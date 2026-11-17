@@ -35,6 +35,7 @@ describe("the migration command", () => {
     expect(stdout).toContain("It is never printed.")
   })
 
+  // Seven runs of the command, each a start of Node: about 4.5 s on the CI's runner, which is next to the 5 s that a test has by default (it took 5.3 s once and failed the pull request that did not touch it), so it has a minute, as the run itself does
   it("refuses an option it does not know, a dry run that is also a write, a file that is written, and a file that is not named, before it touches anything", () => {
     for (const [args, message] of [
       [["--nope"], "Unknown option --nope"],
@@ -51,7 +52,7 @@ describe("the migration command", () => {
       expect(stderr).toContain(`Error: ${message}`)
       expect(stderr).toContain("Run with --help for the options.")
     }
-  })
+  }, 60_000)
 
   it("makes a dry run against a file with no token, and says it read the file", () => {
     const file = join(dir, "documents.json")

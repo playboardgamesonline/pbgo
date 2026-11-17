@@ -20,7 +20,7 @@ export function AccountShell({ wide = false, title, children }: { wide?: boolean
           <ListPageHeader title={title} className="pt-8 md:pb-20 lg:pt-0 lg:pb-11" titleClassName="text-[length:min(var(--text-page-title),var(--text-7xl))]" />
         </div>
       )}
-      <div className={cn("mx-auto w-full px-gutter pb-section", wide ? "max-w-7xl" : "max-w-272", title ? "lg:pb-14" : "pt-section")}>{children}</div>
+      <div className={cn("mx-auto w-full px-gutter pb-section", wide ? "max-w-7xl" : "max-w-5xl", title ? "lg:pb-14" : "pt-section")}>{children}</div>
     </main>
   )
 }
