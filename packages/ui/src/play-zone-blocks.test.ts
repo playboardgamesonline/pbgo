@@ -302,6 +302,15 @@ describe("the tile that adds a game", () => {
     expect(tile({ disabled: true })).toContain('disabled=""')
   })
 
+  it("has the dashed outline of a free place of the row of players, and no solid ring", () => {
+    const place = render(React.createElement(PlayerSlots, { players: [{ id: "you", name: "Oré", you: true }], size: 3 }))
+    expect(place).toContain("border border-dashed border-border")
+    const html = tile()
+    expect(html).toContain("border border-dashed border-border")
+    expect(html).toContain("group-hover/add:border-foreground/50")
+    expect(html).not.toContain("ring-foreground/10")
+  })
+
   it("is as tall as the tile of a game: the room of a name is left empty under its frame, outside the button, so that only the frame is pressed", () => {
     const html = tile()
     expect(html).toContain('<span aria-hidden="true" class="min-h-10.5"></span>')
@@ -320,11 +329,12 @@ describe("the tile of a game in a search", () => {
     expect(tile()).not.toContain("Settings of")
   })
 
-  it("opens its settings under a pointer that rests on its picture, and draws no icon where a pointer can hover: the small button at its corner is for a screen that cannot", () => {
+  it("opens its settings in a window from its picture, with a gear at its corner that shows under the pointer and always on a screen that cannot hover", () => {
     const html = tile({ config: React.createElement("p", null, "settings") })
-    expect(html).toContain("[@media(hover:hover)]:hidden")
-    expect(html).not.toContain("group-hover/config")
-    expect(html).not.toContain("group/config")
+    expect(html).toContain('aria-haspopup="dialog"')
+    expect(html).toContain("[@media(hover:hover)]:opacity-0")
+    expect(html).toContain("group-hover/config:opacity-100")
+    expect(html).not.toContain("[@media(hover:hover)]:hidden")
   })
 
   it("says that its settings are not the usual ones with a dot", () => {

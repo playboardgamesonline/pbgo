@@ -19,7 +19,7 @@ const DAY = new Intl.DateTimeFormat("en", { dateStyle: "long", timeZone: "UTC" }
 /** The article: its day, its title, its summary cut after a few lines, and a button that opens it. A cover, when it has one, is the top of the card. */
 function ArticleCard({ article }: { article: HomeArticle }) {
   return (
-    <Card size="sm">
+    <Card>
       {article.picture && (
         // eslint-disable-next-line @next/next/no-img-element -- the cover is a URL of the platform's image CDN, drawn as the game cards draw theirs
         <img src={article.picture} alt="" loading="lazy" decoding="async" className="aspect-video w-full object-cover" />
