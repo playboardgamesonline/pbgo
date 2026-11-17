@@ -139,7 +139,7 @@ export const GAMES = [
     name: "Skyjo",
     tagline: "The family card game, online.",
     players: { min: 2, max: 8 },
-    sanityProjectId: "p5sgvh5w",
+    sanityProjectId: "0kx7tx6t",
     live: false,
     indexable: false,
   },
