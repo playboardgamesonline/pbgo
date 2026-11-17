@@ -733,7 +733,7 @@ function GameSelectFrame() {
   fullNote="A search takes 10 games at the most. Take one out to add another."
   aria-label="Games"
 >
-  {/* what opens the panel: the tile that adds a game, the last of the row of the tiles of the games that are in */}
+  {/* what opens the panel: a free slot of the row of games, the tile that adds a game (it draws no label: the label is what a screen reader hears) */}
   <AddGameTile label="Add a game" />
 </GameSelect>`}>
       <GameSelectSpecimen />

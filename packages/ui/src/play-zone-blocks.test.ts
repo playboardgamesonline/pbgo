@@ -279,13 +279,15 @@ describe("the panel that picks the games", () => {
 describe("the tile that adds a game", () => {
   const tile = (props: Partial<React.ComponentProps<typeof AddGameTile>> = {}) => render(React.createElement(AddGameTile, { label: "Add a game", ...props }))
 
-  it("is a button with a plus in a dark, translucent frame, named for a screen reader, with its label under it", () => {
+  it("is a button with a plus in a dark, translucent frame, named for a screen reader, with no label drawn", () => {
     const html = tile()
     expect(html).toContain('type="button"')
     expect(html).toContain('aria-label="Add a game"')
     expect(html).toContain("bg-background/40")
     expect(html).toContain("<svg")
-    expect(html).toContain(">Add a game<")
+    // The label is what a screen reader hears: no text is drawn, as the free places of the row of players have none
+    expect(html).not.toContain(">Add a game<")
+    expect(html.replace(/<svg.*?<\/svg>/gs, "").replace(/<[^>]*>/g, "")).toBe("")
   })
 
   it("has the frame of a picture, as big as the tiles of the games, with their corners", () => {
@@ -300,9 +302,12 @@ describe("the tile that adds a game", () => {
     expect(tile({ disabled: true })).toContain('disabled=""')
   })
 
-  it("centres its label under the frame", () => {
-    expect(/<button[^>]*class="[^"]*\btext-center\b/.test(tile())).toBe(true)
-    expect(tile()).not.toMatch(/<button[^>]*class="[^"]*\btext-left\b/)
+  it("is as tall as the tile of a game: the room of a name is left empty under its frame, outside the button, so that only the frame is pressed", () => {
+    const html = tile()
+    expect(html).toContain('<span aria-hidden="true" class="min-h-10.5"></span>')
+    expect(html.indexOf("</button>")).toBeLessThan(html.indexOf('class="min-h-10.5"'))
+    // A game's tile keeps the same room for its name and its rank
+    expect(render(React.createElement(PickedGame, { name: "Courtisans" }))).toContain("min-h-10.5")
   })
 })
 
@@ -313,6 +318,13 @@ describe("the tile of a game in a search", () => {
     const html = tile({ config: React.createElement("p", null, "settings") })
     expect(html).toContain('aria-label="Settings of Courtisans"')
     expect(tile()).not.toContain("Settings of")
+  })
+
+  it("opens its settings under a pointer that rests on its picture, and draws no icon where a pointer can hover: the small button at its corner is for a screen that cannot", () => {
+    const html = tile({ config: React.createElement("p", null, "settings") })
+    expect(html).toContain("[@media(hover:hover)]:hidden")
+    expect(html).not.toContain("group-hover/config")
+    expect(html).not.toContain("group/config")
   })
 
   it("says that its settings are not the usual ones with a dot", () => {
