@@ -840,3 +840,45 @@ describe("the rulebook, before it is fetched", () => {
     expect(w.fetched).toEqual([])
   })
 })
+
+describe("a family of games", () => {
+  it("puts the games of one line in one folder: assets/the-crew/ holds the base game and its reimplementations", async () => {
+    const base = await w.run("start", "The Crew: The Quest for Planet Nine", "--family", "the-crew")
+    expect(base.code).toBe(0)
+    expect(existsSync(join(w.assets, "the-crew", "the-crew-the-quest-for-planet-nine", "pipeline.json"))).toBe(true)
+    expect(base.out).toContain("the-crew/the-crew-the-quest-for-planet-nine/pipeline.json")
+    expect((await w.run("start", "The Crew: Mission Deep Sea", "--family", "the-crew")).code).toBe(0)
+    expect(existsSync(join(w.assets, "the-crew", "the-crew-mission-deep-sea", "pipeline.json"))).toBe(true)
+    // each is found by its name or its slug, and listed
+    expect((await w.run("status", "the-crew-mission-deep-sea")).out).toContain("The Crew: Mission Deep Sea (the-crew-mission-deep-sea)")
+    expect((await w.run("status", "The Crew: The Quest for Planet Nine")).code).toBe(0)
+    const listed = await w.run("status")
+    expect(listed.out).toContain("the-crew-mission-deep-sea")
+    expect(listed.out).toContain("the-crew-the-quest-for-planet-nine")
+    // and is not started again
+    expect((await w.run("start", "The Crew: Mission Deep Sea", "--family", "the-crew")).out).toContain("is in the flow already")
+  })
+
+  it("settles the scout's slug inside the folder of the family, and keeps the slug the game had as a name it answers to", async () => {
+    await w.run("start", "Sample", "--family", "sample-line")
+    await w.run("begin", "sample", "scout", "--scratch", w.scratch)
+    writeScout("sample-line/sample")
+    await w.run("gate", "sample", "scout", "--report", report("r.md", "STATUS: done"))
+    const result = await w.run("validate", "sample", "scout")
+    expect(result.code).toBe(0)
+    expect(existsSync(join(w.assets, "sample-line", "sample"))).toBe(false)
+    expect(existsSync(join(w.assets, "sample-line", "sample-game", "pipeline.json"))).toBe(true)
+    expect(result.out).toContain("sample-line/sample-game")
+    expect((await w.run("status", "sample")).out).toContain("Sample Game (sample-game)")
+  })
+
+  it("refuses a family that is not a folder name, and a folder that is a game's own", async () => {
+    expect((await w.run("start", "The Crew", "--family", "The Crew!")).code).toBe(2)
+    expect((await w.run("start", "The Crew", "--family")).code).toBe(2)
+    await w.run("start", "Skyjo")
+    const refused = await w.run("start", "Skyjo Action", "--family", "skyjo")
+    expect(refused.code).toBe(1)
+    expect(refused.err).toContain("is the folder of a game, not of a family")
+    expect(existsSync(join(w.assets, "skyjo", "skyjo-action"))).toBe(false)
+  })
+})

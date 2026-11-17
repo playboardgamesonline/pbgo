@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync 
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { emptyStep, findGame, listGames, moveGameDir, newState, parseState, readState, STATE_FILE, stepOf, writeState } from "./state.ts"
+import { emptyStep, findGame, gameDirs, listGames, moveGameDir, newState, parseState, readState, STATE_FILE, stepOf, writeState } from "./state.ts"
 
 const NOW = new Date("2026-11-16T10:00:00Z")
 let root = ""
@@ -114,9 +114,41 @@ describe("the state of a game", () => {
   it("moves a game's folder to the slug the scout settled, and never over a folder that is there", () => {
     writeState(join(root, "take-5"), make("Take 5", "take-5"), NOW)
     mkdirSync(join(root, "taken"))
-    expect(() => moveGameDir(root, join(root, "take-5"), "taken")).toThrow(/already exists/)
-    expect(moveGameDir(root, join(root, "take-5"), "6-nimmt")).toBe(join(root, "6-nimmt"))
+    expect(() => moveGameDir(join(root, "take-5"), "taken")).toThrow(/already exists/)
+    expect(moveGameDir(join(root, "take-5"), "6-nimmt")).toBe(join(root, "6-nimmt"))
     expect(existsSync(join(root, "take-5"))).toBe(false)
     expect(existsSync(join(root, "6-nimmt", STATE_FILE))).toBe(true)
+  })
+})
+
+describe("a family of games", () => {
+  // `the-crew/` holds the folders of the games of the line: the base game and its reimplementations
+  const family = (...slugs: string[]) => {
+    for (const slug of slugs) writeState(join(root, "the-crew", slug), make(`Game ${slug}`, slug), NOW)
+  }
+
+  it("has its games found two levels down, by name, by slug and by the slug a game had", () => {
+    family("the-crew-the-quest-for-planet-nine", "the-crew-mission-deep-sea")
+    expect(gameDirs(root).map((dir) => dir.slice(root.length + 1)).sort()).toEqual(["the-crew/the-crew-mission-deep-sea", "the-crew/the-crew-the-quest-for-planet-nine"])
+    expect(findGame(root, "the-crew-mission-deep-sea")?.dir).toBe(join(root, "the-crew", "the-crew-mission-deep-sea"))
+    expect(findGame(root, "Game the-crew-the-quest-for-planet-nine")?.state.slug).toBe("the-crew-the-quest-for-planet-nine")
+    expect(findGame(root, "the-crew")).toBeNull()
+    expect(listGames(root).map((game) => game.state.slug).sort()).toEqual(["the-crew-mission-deep-sea", "the-crew-the-quest-for-planet-nine"])
+  })
+
+  it("is not a game: the folder of a family holds no state of its own, and a game's folder is never read as a family", () => {
+    family("the-crew-mission-deep-sea")
+    writeState(join(root, "skyjo"), make("Skyjo", "skyjo"), NOW)
+    // a folder inside a game's folder (its pictures) is no game, even with a state-looking file in it
+    mkdirSync(join(root, "skyjo", "platform"))
+    writeFileSync(join(root, "skyjo", "platform", STATE_FILE), "{}")
+    expect(gameDirs(root).map((dir) => dir.slice(root.length + 1)).sort()).toEqual(["skyjo", "the-crew/the-crew-mission-deep-sea"])
+  })
+
+  it("moves a game to the slug the scout settled inside the family's folder, never out of it", () => {
+    family("the-crew")
+    expect(moveGameDir(join(root, "the-crew", "the-crew"), "the-crew-the-quest-for-planet-nine")).toBe(join(root, "the-crew", "the-crew-the-quest-for-planet-nine"))
+    expect(existsSync(join(root, "the-crew", "the-crew", STATE_FILE))).toBe(false)
+    expect(existsSync(join(root, "the-crew", "the-crew-the-quest-for-planet-nine", STATE_FILE))).toBe(true)
   })
 })

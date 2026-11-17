@@ -107,7 +107,7 @@ export function validationComment(state: PipelineState, step: StepDefinition, ga
 }
 
 /** The shape of the answer the sub-agent writes. */
-export const LINEAR_ANSWER_SHAPE = '{"labelId": "<id of the game label>", "issues": [{"key": "<key of the work order>", "id": "<uuid>", "identifier": "GAM-41", "url": "<url>", "state": "Todo | In Progress | Done", "commented": true | false}], "notes": ["<anything that did not go as asked>"]}'
+export const LINEAR_ANSWER_SHAPE = '{"labelId": "<id of the game label>", "issues": [{"key": "<key of the work order>", "id": "<uuid>", "identifier": "GAM-41", "url": "<url>", "title": "<the title the issue has now>", "state": "Todo | In Progress | Done", "commented": true | false}], "notes": ["<anything that did not go as asked>"]}'
 
 /** The brief of the bookkeeping sub-agent: the protocol, the fixed values, the work order, the rules, where to write the answer. Nothing is left to guess. */
 export function linearPrompt(order: WorkOrder, answerPath: string): string {
@@ -132,12 +132,12 @@ ${JSON.stringify(order, null, 2)}
 Rules:
 - The game label: when label.id is null, look for the label named label.name under the group "Game" (LINEAR_RUN_QUERY_OR_MUTATION with the query { team(id: "${LINEAR.teamId}") { labels(first: 250) { nodes { id name parent { id } } } } }), and when there is none, make it with LINEAR_RUN_QUERY_OR_MUTATION and the mutation { issueLabelCreate(input: { name: "<label.name>", teamId: "${LINEAR.teamId}", parentId: "${LINEAR.gameLabelGroupId}" }) { success issueLabel { id name } } }. Answer with its id as labelId.
 - An issue whose id is null: first look for one that exists, with LINEAR_RUN_QUERY_OR_MUTATION and the query { issues(filter: { title: { eq: "<its wantTitle>" }, team: { id: { eq: "${LINEAR.teamId}" } } }, first: 5) { nodes { id identifier url title state { name } } } }, and reuse the one it finds; otherwise make it with LINEAR_CREATE_LINEAR_ISSUE: team_id, title (wantTitle), description, project_id, assignee_id, state_id (the id of wantState), label_ids (the game label, Feature, and its lane label when its lane is not null), and parent_id (the id of the parent issue) for every issue but the parent. Make the parent before the others, and each issue in the state of its wantState.
-- An issue whose id is filled and whose state differs from wantState: LINEAR_UPDATE_ISSUE with issueId and stateId (the id of wantState). When its title differs from wantTitle, send title too.
+- An issue whose id is filled and whose state differs from wantState, or whose title differs from wantTitle (each is a change of its own: a title that differs is renamed even when the state is right): LINEAR_UPDATE_ISSUE with issueId and, for what differs, stateId (the id of wantState) and title (wantTitle).
 - An issue whose comment is not null: LINEAR_CREATE_LINEAR_COMMENT with issueId and body (the comment), once, and answer commented true for it. For every other issue answer commented false.
 - Never delete, archive or move anything, and never touch an issue that is not in the work order.
 
 The answer is this JSON, and nothing else is written to the file: ${LINEAR_ANSWER_SHAPE}
-Give each issue of the work order its key, id, identifier (like ${LINEAR.teamKey}-41, taken from its url or from LINEAR_GET_LINEAR_ISSUE), url and its state as written (Todo, In Progress or Done), and the game label id as labelId.`
+Give each issue of the work order its key, id, identifier (like ${LINEAR.teamKey}-41, taken from its url or from LINEAR_GET_LINEAR_ISSUE), url, title and its state as written (Todo, In Progress or Done), and the game label id as labelId. The title is the one the issue has after your calls: its wantTitle for an issue you made or renamed, its title of the work order for one you left as it was.`
 }
 
 /** What the sub-agent answered, written into the state; the problems are what the answer lacks. */
@@ -154,11 +154,13 @@ export function applyResult(state: PipelineState, structured: unknown, order: Wo
       continue
     }
     const before = wanted.key === "parent" ? state.linear.parent : stepOf(state, wanted.key).issue
+    // the title Linear has now, as the sub-agent says it: a rename that did not happen stays to do. An answer with no title keeps the one the state had, and an issue just made was made under its wantTitle
+    const title = typeof item.title === "string" && item.title.trim() !== "" ? item.title.trim() : (wanted.title ?? wanted.wantTitle)
     const next: LinearIssueRef = {
       id: item.id,
       identifier: item.identifier,
       url: item.url,
-      title: wanted.wantTitle,
+      title,
       applied: typeof item.state === "string" && item.state in LINEAR.states ? item.state : wanted.wantState,
       commented: before?.commented === true || item.commented === true,
     }

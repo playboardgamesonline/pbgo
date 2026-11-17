@@ -84,7 +84,7 @@ Whenever the skill says to ask the owner, and always before something that leave
 
 ## Your answer
 
-Write it to \`${reportPath}\` with the Write tool, then reply with the same text:
+Return it as your final message, in this shape (\`STATUS\` first). Do not write a file: the app refuses a sub-agent's report file, and the orchestrator writes your message to \`${reportPath}\` itself:
 
 \`\`\`
 STATUS: done | questions | blocked
