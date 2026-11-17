@@ -26,12 +26,32 @@ export const ROW_GAP = 12
 export const PAGER_DOTS_ROOM = 28
 
 /**
- * How many rows a page of the open tournaments holds: as many as fit in `available` pixels of height, rows of `rowHeight` with `gap` between them, between one and `TOURNAMENTS_PER_PAGE_MAX`. Where nothing is known yet (a column that is not laid out, a row that
- * is not drawn) it is the most.
+ * How far, in pixels, a measure of the column may be off from the one the same column gives when the article is drawn with other lines (the layout counts in sixty-fourths of a pixel and the line of the summary is a hair off what it says: a few hundredths): an answer is only
+ * changed when the room is clearly more or less than the one it was made for (`settle`), because the answer moves what it measures (the article grows, the room under it shrinks) and, at a height where the two measures fall on either side of a threshold, an answer that is not kept
+ * goes back and forth for ever, the column jumping a line at every frame. A measure rounded to a whole pixel, which is off by up to one, is not good enough: the column reads exact sizes.
  */
-export function perPageFor(available: number, rowHeight: number, gap: number = ROW_GAP): number {
+export const FIT_MARGIN = 0.25
+
+/**
+ * The whole number that a `room` (a count of rows or of lines, with a rest) comes to, kept at `previous` as long as the room is not clearly more or less than it: more by a `margin` over the next whole number, or less by a `margin` under it. With no `previous` it is the
+ * whole part. A growth is not undone by another measure of the same room that is lower by at most twice the margin (nor a shrinking by one that is higher), which is what keeps an answer that moves its own measure from going back and forth.
+ */
+export function settle(previous: number | undefined, room: number, margin: number): number {
+  const whole = Math.floor(room)
+  if (previous === undefined) return whole
+  if (room >= previous + 1 + margin) return Math.floor(room - margin)
+  if (room < previous - margin) return whole
+  return previous
+}
+
+/**
+ * How many rows a page of the open tournaments holds: as many as fit in `available` pixels of height, rows of `rowHeight` with `gap` between them, between one and `TOURNAMENTS_PER_PAGE_MAX`, kept at `previous` (the answer of the last measure) while the room does not clearly
+ * say otherwise. Where nothing is known yet (a column that is not laid out, a row that is not drawn) it is the most.
+ */
+export function perPageFor(available: number, rowHeight: number, gap: number = ROW_GAP, previous?: number): number {
   if (!(available > 0) || !(rowHeight > 0)) return TOURNAMENTS_PER_PAGE_MAX
-  return Math.max(1, Math.min(TOURNAMENTS_PER_PAGE_MAX, Math.floor((available + gap) / (rowHeight + gap))))
+  const step = rowHeight + gap
+  return Math.max(1, Math.min(TOURNAMENTS_PER_PAGE_MAX, settle(previous, (available + gap) / step, FIT_MARGIN / step)))
 }
 
 /** The items cut into pages of `perPage`, in order; the last page holds what is left. None for no item. */
@@ -52,10 +72,13 @@ export type AsideFit = { perPage: number; lines: number }
 /** The column before it is measured, and wherever it has no height of its own: the most rows and the default lines. */
 export const ASIDE_FIT: AsideFit = { perPage: TOURNAMENTS_PER_PAGE_MAX, lines: ARTICLE_LINES_DEFAULT }
 
-/** How many lines of the summary the article shows when `free` pixels are left over its fewest lines, lines of `lineHeight` pixels: the fewest, and a line more for each one of room. */
-export function summaryLinesFor(free: number, lineHeight: number): number {
+/**
+ * How many lines of the summary the article shows when `free` pixels are left over its fewest lines, lines of `lineHeight` pixels: the fewest, and a line more for each one of room, kept at `previous` (the answer of the last measure) while the room does not clearly say
+ * otherwise.
+ */
+export function summaryLinesFor(free: number, lineHeight: number, previous?: number): number {
   if (!(free > 0) || !(lineHeight > 0)) return ARTICLE_LINES_MIN
-  return ARTICLE_LINES_MIN + Math.floor(free / lineHeight)
+  return Math.max(ARTICLE_LINES_MIN, settle(previous, ARTICLE_LINES_MIN + free / lineHeight, FIT_MARGIN / lineHeight))
 }
 
 /**
@@ -67,17 +90,18 @@ export type AsideMeasure = { area: number; lineHeight: number; shown: number; ro
 /**
  * How the right column, beside the zone and as tall as it, shares its height: the tournaments come first, as many rows to a page as fit up to `TOURNAMENTS_PER_PAGE_MAX` while the article keeps its fewest lines, and the article takes everything that is left, its summary
  * showing as many lines as fit. What the article draws above its fewest lines is given back to the tournaments before they are counted, so that the answer is the same whatever the article is drawn with, and does not move when it grows into the room it was given. Where nothing is
- * known yet (a column that is not laid out, rows that are not drawn) it is `ASIDE_FIT`.
+ * known yet (a column that is not laid out, rows that are not drawn) it is `ASIDE_FIT`. `previous` is the answer of the last measure, which an answer keeps unless the room clearly says otherwise (`FIT_MARGIN`): that is what makes the share settle, instead of
+ * going back and forth at the heights where the article, at one line more, leaves the tournaments a fraction of a pixel short.
  */
-export function fitAside({ area, lineHeight, shown, rowHeight, count, empty }: AsideMeasure): AsideFit {
+export function fitAside({ area, lineHeight, shown, rowHeight, count, empty }: AsideMeasure, previous: AsideFit = ASIDE_FIT): AsideFit {
   if (!(area > 0) || (count > 0 && !(rowHeight > 0))) return ASIDE_FIT
   const article = shown > 0 && lineHeight > 0
   const budget = area + (article ? Math.max(0, shown - ARTICLE_LINES_MIN) * lineHeight : 0)
-  const perPage = perPageFor(budget - PAGER_DOTS_ROOM, rowHeight)
+  const perPage = perPageFor(budget - PAGER_DOTS_ROOM, rowHeight, ROW_GAP, previous.perPage)
   if (!article) return { perPage, lines: ARTICLE_LINES_DEFAULT }
   const rows = Math.min(count, perPage)
   const used = count === 0 ? empty : rows * rowHeight + (rows - 1) * ROW_GAP + (count > perPage ? PAGER_DOTS_ROOM : 0)
-  return { perPage, lines: summaryLinesFor(budget - used, lineHeight) }
+  return { perPage, lines: summaryLinesFor(budget - used, lineHeight, previous.lines) }
 }
 
 /** The tournaments that are open for sign-ups, among the tournaments of each game, the ones that start first, each with its game. */

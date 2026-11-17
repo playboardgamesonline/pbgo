@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { ARTICLE_LINES_DEFAULT, ARTICLE_LINES_MIN, ASIDE_FIT, DEMO_ARTICLE, demoTournaments, fitAside, HOME_TOURNAMENTS, openTournaments, pagesOf, perPageFor, ROW_GAP, summaryLinesFor, TOURNAMENTS_PER_PAGE_MAX, type AsideGame } from "./home-aside"
+import { ARTICLE_LINES_DEFAULT, ARTICLE_LINES_MIN, ASIDE_FIT, DEMO_ARTICLE, demoTournaments, fitAside, FIT_MARGIN, HOME_TOURNAMENTS, openTournaments, pagesOf, perPageFor, ROW_GAP, settle, summaryLinesFor, TOURNAMENTS_PER_PAGE_MAX, type AsideFit, type AsideGame } from "./home-aside"
 
 const game = (slug: string): AsideGame => ({ slug, name: slug.toUpperCase() })
 const tournament = (id: string, startsAt: string, status: "upcoming" | "live" | "finished" = "upcoming") => ({ id, name: id, status, startsAt, places: 16, registered: 4 })
@@ -147,7 +147,8 @@ describe("how the right column shares its height", () => {
   })
 
   it("gives the article the room that the empty state leaves when no tournament is open", () => {
-    expect(fitAside({ ...column, count: 0, rowHeight: 0, empty: 120, area: 500, shown: 3 })).toEqual({ perPage: TOURNAMENTS_PER_PAGE_MAX, lines: 22 })
+    // 501px with 120 taken by the empty state: 381 left, nineteen lines and a little more over the three, which a line needs a margin of over a whole one to be given
+    expect(fitAside({ ...column, count: 0, rowHeight: 0, empty: 120, area: 501, shown: 3 })).toEqual({ perPage: TOURNAMENTS_PER_PAGE_MAX, lines: 22 })
   })
 
   it("counts the tournaments alone where there is no article", () => {
@@ -158,5 +159,82 @@ describe("how the right column shares its height", () => {
     expect(fitAside({ ...column, area: 0, shown: 3 })).toEqual(ASIDE_FIT)
     expect(fitAside({ ...column, area: Number.NaN, shown: 3 })).toEqual(ASIDE_FIT)
     expect(fitAside({ ...column, area: 400, shown: 3, rowHeight: 0 })).toEqual(ASIDE_FIT)
+  })
+})
+
+describe("settle", () => {
+  it("is the whole part where there is no answer to keep", () => {
+    expect(settle(undefined, 4.9, 0.25)).toBe(4)
+    expect(settle(undefined, 0.2, 0.25)).toBe(0)
+  })
+
+  it("keeps the answer while the room is within the margin of it, over or under", () => {
+    expect(settle(4, 4, 0.25)).toBe(4)
+    expect(settle(4, 4.99, 0.25)).toBe(4)
+    expect(settle(4, 5.2, 0.25)).toBe(4) // five fit, but not by a margin
+    expect(settle(4, 3.8, 0.25)).toBe(4) // four do not quite fit, but by less than the margin
+  })
+
+  it("changes when the room is clearly more or less", () => {
+    expect(settle(4, 5.25, 0.25)).toBe(5)
+    expect(settle(4, 7.6, 0.25)).toBe(7)
+    expect(settle(4, 3.7, 0.25)).toBe(3)
+    expect(settle(4, 1.2, 0.25)).toBe(1)
+  })
+
+  it("does not undo a growth because the next measure of the room is a little lower, as it is when the article has grown", () => {
+    for (let room = 5.25; room < 12; room += 0.01) {
+      const grown = settle(4, room, 0.25)
+      expect(grown).toBeGreaterThan(4)
+      // the same room measured again a margin and a half lower, which is what a measure does that is off by up to twice the margin
+      expect(settle(grown, room - 0.5, 0.25)).toBeGreaterThanOrEqual(grown)
+    }
+  })
+})
+
+describe("the share of the right column's height settles", () => {
+  // The column of the demo account as the browser lays it out, measured in the page: the card is `height` tall, the article is 261.125px with its three lines and a line more (19.59375px: what the layout makes of the 19.6px that the summary says) for each, the summary has nine
+  // lines, and what is neither the article nor the block of the tournaments is 125.1875px. The block of the tournaments is what is left, measured with `noise` pixels more for each line the article has, as a layout that rounds would give.
+  const LINE = 19.59375
+  const answer = (height: number, drawn: AsideFit, noise: number): AsideFit => {
+    const shown = Math.min(drawn.lines, 9)
+    const area = height - 125.1875 - (261.125 + (shown - 3) * LINE) + noise * shown
+    return fitAside({ area, lineHeight: 19.6, shown, rowHeight: 98.4375, count: 6, empty: 0 }, drawn)
+  }
+  /** Whether the share, drawn as `from` and measured again after each answer, comes to an answer that it keeps, in a few steps: not one that goes back and forth. */
+  const settles = (height: number, from: AsideFit, noise: number): boolean => {
+    let drawn = from
+    for (let step = 0; step < 5; step++) {
+      const next = answer(height, drawn, noise)
+      if (next.lines === drawn.lines && next.perPage === drawn.perPage) return true
+      drawn = next
+    }
+    return false
+  }
+  const STARTS: AsideFit[] = [ASIDE_FIT, { perPage: 4, lines: 3 }, { perPage: 4, lines: 6 }, { perPage: 4, lines: 9 }, { perPage: 3, lines: 5 }, { perPage: 2, lines: 7 }, { perPage: 1, lines: 4 }]
+
+  it("at every height of the card, a twentieth of a pixel apart, from the default and from any lines drawn", () => {
+    expect(FIT_MARGIN).toBeGreaterThan(0)
+    const failures: string[] = []
+    for (let height = 560; height <= 1100; height = Math.round((height + 0.05) * 100) / 100) {
+      for (const start of STARTS) if (!settles(height, start, 0)) failures.push(`${height} from ${JSON.stringify(start)}`)
+    }
+    expect(failures).toEqual([])
+  })
+
+  it("with a measure that is a few hundredths of a pixel off for each line the article has", () => {
+    const failures: string[] = []
+    for (const noise of [-0.04, 0.04]) {
+      for (let height = 560; height <= 1100; height = Math.round((height + 0.05) * 100) / 100) {
+        for (const start of STARTS) if (!settles(height, start, noise)) failures.push(`${height} noise ${noise} from ${JSON.stringify(start)}`)
+      }
+    }
+    expect(failures).toEqual([])
+  })
+
+  it("at the heights of a window that is a half pixel over a whole one, where it went back and forth between four lines and five", () => {
+    for (const height of [885.41, 885.5, 885.6, 885.7, 885.8, 885.91]) {
+      for (const start of [{ perPage: 4, lines: 4 }, { perPage: 4, lines: 5 }]) expect(settles(height, start, 0)).toBe(true)
+    }
   })
 })

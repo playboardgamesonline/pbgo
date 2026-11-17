@@ -8,7 +8,7 @@ import type { TimeFormat } from "@pbgo/accounts"
 import { Button } from "@pbgo/ui/platform/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@pbgo/ui/platform/card"
 import { cn } from "@pbgo/ui/utils"
-import { ASIDE_FIT, fitAside, type AsideFit, type HomeArticle, type HomeTournament } from "@/lib/home-aside"
+import { ASIDE_FIT, fitAside, type AsideFit, type AsideMeasure, type HomeArticle, type HomeTournament } from "@/lib/home-aside"
 import { EmptyBlock } from "./empty-block"
 import { HomeTournaments } from "./home-tournaments"
 
@@ -25,17 +25,19 @@ const BESIDE = "(min-width: 80rem)"
 /** The two parts whose size the share of the height depends on: the block of the tournaments (what is left under the article) and the summary of the article. */
 const MEASURED = '[data-slot="tournaments-area"], [data-slot="article-summary"]'
 
-/** What the column measures of itself, from what it draws: the tournaments' block, the lines of the article's summary and the tallest row, and what that makes of the share of the height. */
-function measureAside(aside: HTMLElement, count: number): AsideFit {
+/**
+ * What the column measures of itself, from what it draws: the tournaments' block, the lines of the article's summary, the tallest row (so that a page of rows that are not all as tall as the first is never cut) and the empty state. The sizes are exact, not `clientHeight` and
+ * the like, which are rounded to a whole pixel: that rounding is not the same with the article at one line more, and the share went back and forth at the heights where it made the difference. None where the block of the tournaments is not drawn.
+ */
+function measureAside(aside: HTMLElement, count: number): AsideMeasure | null {
   const area = aside.querySelector<HTMLElement>('[data-slot="tournaments-area"]')
-  if (!area) return ASIDE_FIT
+  if (!area) return null
   const summary = aside.querySelector<HTMLElement>('[data-slot="article-summary"]')
   const lineHeight = summary ? parseFloat(getComputedStyle(summary).lineHeight) : 0
   const shown = summary && lineHeight > 0 ? Math.round(summary.getBoundingClientRect().height / lineHeight) : 0
-  // The tallest row there is, so that a page of rows that are not all as tall as the first is never cut
-  const rowHeight = Math.max(0, ...Array.from(area.querySelectorAll<HTMLElement>('[data-slot="item"]'), (row) => Math.ceil(row.getBoundingClientRect().height)))
-  const empty = count === 0 ? Math.ceil(area.firstElementChild?.getBoundingClientRect().height ?? 0) : 0
-  return fitAside({ area: area.clientHeight, lineHeight, shown, rowHeight, count, empty })
+  const rowHeight = Math.max(0, ...Array.from(area.querySelectorAll<HTMLElement>('[data-slot="item"]'), (row) => row.getBoundingClientRect().height))
+  const empty = count === 0 ? (area.firstElementChild?.getBoundingClientRect().height ?? 0) : 0
+  return { area: area.getBoundingClientRect().height, lineHeight, shown, rowHeight, count, empty }
 }
 
 /**
@@ -81,14 +83,17 @@ export function HomeAside({ article, tournaments, timeFormat = "auto", className
   const [fit, setFit] = useState<AsideFit>(ASIDE_FIT)
 
   // How the height is shared, measured from what is drawn: again when the column or one of the two parts changes size (the window, the fonts, the lines the article was given), which settles at once, since what the article takes above its fewest lines is given back to the
-  // tournaments before they are counted
+  // tournaments before they are counted and the last answer is kept while the room does not clearly say otherwise (`fitAside`)
   useEffect(() => {
     const element = aside.current
     if (!element) return
     const beside = window.matchMedia(BESIDE)
     const measure = () => {
-      const next = beside.matches ? measureAside(element, tournaments.length) : ASIDE_FIT
-      setFit((now) => (now.perPage === next.perPage && now.lines === next.lines ? now : next))
+      const measured = beside.matches ? measureAside(element, tournaments.length) : null
+      setFit((now) => {
+        const next = measured ? fitAside(measured, now) : ASIDE_FIT
+        return next.perPage === now.perPage && next.lines === now.lines ? now : next
+      })
     }
     measure()
     const observer = new ResizeObserver(measure)
