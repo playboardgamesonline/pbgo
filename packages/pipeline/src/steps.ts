@@ -1,13 +1,14 @@
 // The steps of the pipeline, in order. A step is a skill of the repo (`.claude/skills/<skill>/SKILL.md`) that a headless call runs as a slash command, the gates
-// the owner answers after it, and the policy of what it may do. The first version has two steps; the later ones of "A game from A to Z"
-// (`.claude/skills/README.md`) are added here, each with its skill.
+// the owner answers after it, and the policy of what it may do. The scout, the catalog entry and the rules spec are here; the later ones of "A game from A to Z"
+// (`.claude/skills/README.md`) are added one by one, each with its skill.
 import { join } from "node:path"
+import { specPathsOf } from "@pbgo/games/rules-spec"
 import type { GateKind } from "./gate.ts"
-import { BASH, mkdirRule, PLATFORM_SANITY, type Policy } from "./policy.ts"
-import { SCOUT_FILE } from "./state.ts"
+import { BASH, mkdirRule, PLATFORM_SANITY, rulesCheckRule, type Policy } from "./policy.ts"
+import { RULES_PDF, SCOUT_FILE } from "./state.ts"
 
-/** The game as the pipeline knows it: the name, the slug, its folder of working files and its scout file. */
-export type Game = { name: string; slug: string; dir: string; scoutFile: string }
+/** The game as the pipeline knows it: the name, the slug, its folder of working files, its scout file and the rulebook next to it. */
+export type Game = { name: string; slug: string; dir: string; scoutFile: string; rulesPdf: string }
 
 export function gameOf(assets: string, name: string, slug: string): Game {
   return gameAt(join(assets, slug), name, slug)
@@ -15,11 +16,14 @@ export function gameOf(assets: string, name: string, slug: string): Game {
 
 /** A game whose folder is where it was found (the folder of its state), whatever it is called. */
 export function gameAt(dir: string, name: string, slug: string): Game {
-  return { name, slug, dir, scoutFile: join(dir, SCOUT_FILE) }
+  return { name, slug, dir, scoutFile: join(dir, SCOUT_FILE), rulesPdf: join(dir, RULES_PDF) }
 }
 
-/** What a call knows that the step does not: the name of Composio's server in a tool name, and the documents the gate showed (for the call that publishes them). */
-export type PolicyExtras = { composioServer: string; publishIds: readonly string[] }
+/**
+ * What a call knows that the step does not: the name of Composio's server in a tool name, the documents the gate showed (for the call that publishes them) and the folder of
+ * the specs of the games (`docs/games` of the checkout).
+ */
+export type PolicyExtras = { composioServer: string; publishIds: readonly string[]; gamesDocs: string }
 
 export type StepDefinition = {
   id: string
@@ -86,7 +90,32 @@ export const CATALOG_ENTRY: StepDefinition = {
   }),
 }
 
-export const STEPS: readonly StepDefinition[] = [SCOUT, CATALOG_ENTRY]
+export const RULES_SPEC: StepDefinition = {
+  id: "rules-spec",
+  title: "rules spec",
+  skill: "game-rules-spec",
+  lane: "Game lane",
+  skillFile: ".claude/skills/game-rules-spec/SKILL.md",
+  gates: ["validate"],
+  // the scout file says which rulebook and which game; the rulebook itself is `rules.pdf` next to it, which the command fetched before the call
+  prompt: (game) => `/game-rules-spec ${game.scoutFile}`,
+  composio: false,
+  // the one step that writes in the repo, and only two files of it: the page of the spec and its landing page in the docs (they are left uncommitted: the game's first pull request
+  // takes them). It reads the scout file and the rulebook, never another file outside the repo, and runs the check of this game's spec and nothing else of the project.
+  policy: (game, repoRoot, extras) => {
+    const files = specPathsOf(extras.gamesDocs, game.slug)
+    return {
+      repoRoot,
+      workDir: game.dir,
+      writeFiles: [files.rules, files.index],
+      readFiles: [game.scoutFile, game.rulesPdf],
+      bash: [rulesCheckRule(game.slug), BASH.checkScout, BASH.date, mkdirRule(files.dir)],
+      composio: null,
+    }
+  },
+}
+
+export const STEPS: readonly StepDefinition[] = [SCOUT, CATALOG_ENTRY, RULES_SPEC]
 
 /** The tools a call is allowed by name: the read-only ones. Everything that writes or runs something is allowed by the hook alone, so that a hook that does not load refuses it. */
 export function allowedTools(step: StepDefinition, composioPrefix: string): string[] {

@@ -4,9 +4,10 @@ import { join } from "node:path"
 import { parseCli, USAGE } from "../src/cli.ts"
 import { runCheck } from "../src/commands.ts"
 import { runClaude } from "../src/claude.ts"
-import { assetsRoot, checkScoutBin, claudeBin, REPO_ROOT } from "../src/config.ts"
+import { assetsRoot, checkRulesBin, checkScoutBin, claudeBin, REPO_ROOT } from "../src/config.ts"
+import { DownloadError, downloadPdf } from "../src/download.ts"
 import { makeIo } from "../src/io.ts"
-import { EXIT, listPipeline, runPipeline, type CheckResult, type Deps } from "../src/pipeline.ts"
+import { EXIT, listPipeline, runPipeline, type CheckResult, type Deps, type RulebookFetch } from "../src/pipeline.ts"
 import { nodeExec } from "../src/preflight.ts"
 import { missingPublished } from "../src/sanity.ts"
 import { listGames } from "../src/state.ts"
@@ -23,6 +24,26 @@ async function checkScout(file: string): Promise<CheckResult> {
     .map((line) => line.trimEnd())
     .filter((line) => line.trim() !== "" && !line.startsWith("$ ") && !line.startsWith("> "))
   return { ok: result.code === 0, lines: lines.length > 0 ? lines : [result.code === 0 ? "ok" : "failed"] }
+}
+
+/** What the machine says of the spec of a game: `pnpm check:rules <slug> --name <name>`, without pnpm's echo of the command. */
+async function checkRules(slug: string, name: string): Promise<CheckResult> {
+  const bin = checkRulesBin(env)
+  const result = bin ? await exec(bin, [slug, "--name", name], { cwd: REPO_ROOT, timeoutMs: 60_000 }) : await exec("pnpm", ["check:rules", slug, "--name", name], { cwd: REPO_ROOT, timeoutMs: 60_000 })
+  const lines = `${result.stdout}\n${result.stderr}`
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim() !== "" && !line.startsWith("$ ") && !line.startsWith("> "))
+  return { ok: result.code === 0, lines: lines.length > 0 ? lines : [result.code === 0 ? "ok" : "failed"] }
+}
+
+/** The rulebook the scout found, fetched to a file by the command itself (`download.ts` says how it is bounded). */
+async function fetchRulebook(url: string, dest: string): Promise<RulebookFetch> {
+  try {
+    return { ok: true, bytes: await downloadPdf(url, dest) }
+  } catch (error) {
+    return { ok: false, reason: error instanceof DownloadError ? error.message : error instanceof Error ? error.message.slice(0, 160) : "the fetch failed" }
+  }
 }
 
 /** The stage `pnpm check:game` gives a game that has a folder. */
@@ -44,6 +65,8 @@ const deps: Deps = {
   exec,
   run: runClaude,
   checkScout,
+  checkRules,
+  fetchRulebook,
   stageOf,
   verifyPublished: (ids) => missingPublished(ids, { base: env.PBGO_SANITY_API_BASE }),
   now: () => new Date(),

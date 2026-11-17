@@ -1,8 +1,8 @@
 // The whole command, as a process: `pnpm add-game "<name>"` with a stand-in `claude` (test/fake-claude.mjs, which writes the same events as the real CLI), a stand-in
-// for `pnpm check:scout`, a HOME and a folder of the games' files in a temporary place, and the owner's answers on stdin. Nothing here reaches the network, the owner's
+// for `pnpm check:scout` (the check of a spec is the real one), a HOME, a folder of the games' files and a folder of the specs in a temporary place, and the owner's answers on stdin. Nothing here reaches the network, the owner's
 // login, Linear or Sanity (the platform's public API is a stand-in too, and a closed port when a test starts none): the point is what the command asks of `claude`
 // (the arguments, the environment, the order), what it keeps, and what it shows at each gate.
-import { existsSync, mkdirSync, readdirSync, renameSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { fakeSanity, flagValue, flagValues, linearAnswer, REPO, runCli, scoutJson, world, type CallSpec, type LoggedCall, type Run, type Scenario } from "../test/harness.ts"
@@ -20,11 +20,24 @@ Draft       https://pbgo.sanity.studio/intent/edit/id=game-test-game;type=game
 Written     2-6 players · 30 min · 8+
 Validate, or tell me what to change. Validate publishes 2 documents (game-test-game, publisher-sample-publisher): the page is public within about eleven minutes and, with a description, may be indexed.`
 const PUBLISHED = "Published game-test-game and publisher-sample-publisher.\nhttps://playboardgamesonline.app/game/test-game"
+const SPEC_REPORT = `Test Game (test-game): rules spec
+Spec        docs/games/test-game/rules.md · check:rules ok
+Holds       2–4 players · 5 components of 4 kinds · 2 open points
+Validate also accepts the 2 readings of the open points. Validate, or tell me what to change: components, rules, open points.`
+
+// The pages the stand-in skill leaves are the real ones: the example of the skill, for this game
+const SKILL = readFileSync(join(REPO, ".claude", "skills", "game-rules-spec", "SKILL.md"), "utf8")
+const example = (info: string, name: string) => `${(new RegExp(`\`\`\`markdown ${info}\\n([\\s\\S]*?)\\n\`\`\``).exec(SKILL)?.[1] ?? "").replace(/Orchard Run/g, name)}\n`
+const specWrites = (name = NAME, slug = SLUG): { path: string; content: string }[] => [
+  { path: `$DOCS/${slug}/rules.md`, content: example("rules", name) },
+  { path: `$DOCS/${slug}/index.md`, content: example("index", name) },
+]
 
 const SCOUT_PATH = `$ASSETS/${SLUG}/scout.json`
 const scoutCall = (over: Partial<CallSpec> = {}): CallSpec => ({ match: "^/game-scout", text: SCOUT_REPORT, cost: 0.5, writes: [{ path: SCOUT_PATH, content: scoutJson(NAME, SLUG) }], ...over })
-const linearCall = (states: Record<string, string>, commented: string[] = []): CallSpec => ({ match: "bookkeeping step", text: "{}", cost: 0.02, structured: linearAnswer(["parent", "scout", "catalog-entry"], states, { commented }) })
+const linearCall = (states: Record<string, string>, commented: string[] = []): CallSpec => ({ match: "bookkeeping step", text: "{}", cost: 0.02, structured: linearAnswer(["parent", "scout", "catalog-entry", "rules-spec"], states, { commented }) })
 const catalogCall = (over: Partial<CallSpec> = {}): CallSpec => ({ match: "^/platform-catalog-entry", text: DRAFTS_REPORT, cost: 0.8, ...over })
+const specCall = (over: Partial<CallSpec> = {}): CallSpec => ({ match: "^/game-rules-spec", text: SPEC_REPORT, cost: 0.9, writes: specWrites(), ...over })
 
 const stateOf = (run: Run, slug = SLUG): PipelineState => {
   const parsed = parseState(run.read(join(run.assets, slug, "pipeline.json")))
@@ -45,7 +58,7 @@ async function withSanity<T>(options: Parameters<typeof fakeSanity>[0], body: (s
   }
 }
 
-describe("a game from its name to the catalog", () => {
+describe("a game from its name to its rules spec", () => {
   const happy: Scenario = {
     calls: [
       linearCall({ parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }),
@@ -54,19 +67,21 @@ describe("a game from its name to the catalog", () => {
       linearCall({ parent: "In Progress", scout: "Done", "catalog-entry": "In Progress" }, ["scout"]),
       catalogCall(),
       { match: "^validate$", text: PUBLISHED, cost: 0.3 },
-      linearCall({ parent: "In Progress", scout: "Done", "catalog-entry": "Done" }, ["catalog-entry"]),
+      linearCall({ parent: "In Progress", scout: "Done", "catalog-entry": "Done", "rules-spec": "In Progress" }, ["catalog-entry"]),
+      specCall(),
+      linearCall({ parent: "In Progress", scout: "Done", "catalog-entry": "Done", "rules-spec": "Done" }, ["rules-spec"]),
     ],
   }
 
-  it("runs the scout, a change round, the catalog entry and the publication, one gate after each", async () => {
+  it("runs the scout, a change round, the catalog entry, the publication and the rules spec, one gate after each", async () => {
     const sanity = await fakeSanity({ published: BOTH })
-    const run = await runCli({ args: [NAME], answers: ["y", "change the edition to 2019", "validate", "validate", "publish"], scenario: happy, env: { PBGO_SANITY_API_BASE: sanity.base } }).finally(() => sanity.close())
+    const run = await runCli({ args: [NAME], answers: ["y", "change the edition to 2019", "validate", "validate", "publish", "validate"], scenario: happy, env: { PBGO_SANITY_API_BASE: sanity.base } }).finally(() => sanity.close())
     expect(run.stderr).toBe("")
     expect(run.code).toBe(0)
-    expect(run.calls).toHaveLength(7)
+    expect(run.calls).toHaveLength(9)
 
-    // the calls, in order: the issues, the scout (twice: its first call and the change), the issues, the catalog entry, the word publish, the issues
-    const [linear1, scout1, scout2, linear2, catalog, publish, linear3] = run.calls
+    // the calls, in order: the issues, the scout (twice: its first call and the change), the issues, the catalog entry, the word publish, the issues, the rules spec, the issues
+    const [linear1, scout1, scout2, linear2, catalog, publish, linear3, spec, linear4] = run.calls
     expect(promptOf(linear1)).toContain("bookkeeping step")
     expect(promptOf(scout1)).toBe(`/game-scout ${NAME} --out ${run.assets}/${SLUG}/scout.json`)
     expect(promptOf(scout2)).toBe("change the edition to 2019")
@@ -74,6 +89,9 @@ describe("a game from its name to the catalog", () => {
     expect(promptOf(catalog)).toBe(`/platform-catalog-entry ${run.assets}/${SLUG}/scout.json`)
     expect(promptOf(publish)).toBe("validate")
     expect(promptOf(linear3)).toContain("bookkeeping step")
+    expect(promptOf(spec)).toBe(`/game-rules-spec ${run.assets}/${SLUG}/scout.json`)
+    expect(promptOf(linear4)).toContain("bookkeeping step")
+    expect(promptOf(linear4)).toContain("Rules spec: docs/games/test-game/rules.md")
 
     // none of them could use a key or think it was nested in a Claude Code session; the login's way in is kept
     for (const call of run.calls) {
@@ -86,51 +104,55 @@ describe("a game from its name to the catalog", () => {
     }
 
     // the word that lets a Sanity write through is given to the call that publishes, and refused to every other (set to 0, whatever the shell had)
-    expect(run.calls.map((call) => call.env.PBGO_PUBLISH_OK)).toEqual(["0", "0", "0", "0", "0", "1", "0"])
+    expect(run.calls.map((call) => call.env.PBGO_PUBLISH_OK)).toEqual(["0", "0", "0", "0", "0", "1", "0", "0", "0"])
 
     // one session for the game: made by its first call, resumed by every call of a step; the bookkeeping calls leave none
     const session = flagValue(scout1 as LoggedCall, "--session-id")
     expect(session).toMatch(/^[0-9a-f-]{36}$/)
     expect(flagValue(scout1 as LoggedCall, "--name")).toBe("add-game: Test Game")
-    for (const call of [scout2, catalog, publish]) {
+    for (const call of [scout2, catalog, publish, spec]) {
       expect(flagValue(call as LoggedCall, "--resume")).toBe(session)
       expect(call?.argv).not.toContain("--session-id")
     }
-    for (const call of [linear1, linear2, linear3]) {
+    for (const call of [linear1, linear2, linear3, linear4]) {
       expect(call?.argv).toContain("--no-session-persistence")
       expect(call?.argv).toContain("--json-schema")
       expect(flagValue(call as LoggedCall, "--model")).toBe("haiku")
       expect(call?.argv).not.toContain("--resume")
     }
-    for (const call of [scout1, scout2, catalog, publish]) expect(flagValue(call as LoggedCall, "--model")).toBe("sonnet")
+    for (const call of [scout1, scout2, catalog, publish, spec]) expect(flagValue(call as LoggedCall, "--model")).toBe("sonnet")
     expect(flagValue(scout1 as LoggedCall, "--max-budget-usd")).toBe("3")
 
     // what each call may use by name: the read-only tools, and Composio's lookup tools for the catalog entry only (never its executor: the hook allows that)
     expect(names(scout1)).toEqual(["ToolSearch", "WebSearch", "WebFetch"])
     expect(names(catalog)).toEqual(["ToolSearch", "WebSearch", "WebFetch", "mcp__claude_ai_Composio__COMPOSIO_SEARCH_TOOLS", "mcp__claude_ai_Composio__COMPOSIO_GET_TOOL_SCHEMAS"])
+    expect(names(spec)).toEqual(["ToolSearch", "WebSearch", "WebFetch"])
     expect(run.calls.flatMap((call) => flagValues(call, "--allowedTools")).join(" ")).not.toContain("MULTI_EXECUTE")
 
     // each call has its policy and the settings that register the hook; the first lines of the stream are kept
     const work = join(run.assets, SLUG, ".pipeline")
     expect(scout1?.env.PBGO_GUARD_POLICY).toBe(join(work, "scout.policy.json"))
     expect(catalog?.env.PBGO_GUARD_POLICY).toBe(join(work, "catalog-entry.policy.json"))
+    expect(spec?.env.PBGO_GUARD_POLICY).toBe(join(work, "rules-spec.policy.json"))
     expect(linear1?.env.PBGO_GUARD_POLICY).toBe(join(work, "linear.policy.json"))
     // a step writes the one file it is meant to, and reads that one and the repo: never the state, the lock, its own policy or the log that sit in the same folder
     const scoutFile = join(run.assets, SLUG, "scout.json")
     expect(scout1?.policy).toMatchObject({ repoRoot: REPO, workDir: join(run.assets, SLUG), writeFiles: [scoutFile], readFiles: [scoutFile], composio: null })
     expect(catalog?.policy).toMatchObject({ writeFiles: [], readFiles: [scoutFile] })
+    // the rules spec writes the two pages of the game in the specs' folder (the checkout's docs/games, here the world's), reads its scout file and its rulebook, and has no Composio
+    expect(spec?.policy).toMatchObject({ repoRoot: REPO, workDir: join(run.assets, SLUG), writeFiles: [join(run.docs, SLUG, "rules.md"), join(run.docs, SLUG, "index.md")], readFiles: [scoutFile, join(run.assets, SLUG, "rules.pdf")], composio: null })
     expect(catalog?.policy?.composio).toMatchObject({ server: "claude_ai_Composio", slugs: ["SANITY_QUERY_DOCUMENTS", "SANITY_MUTATE_DOCUMENTS"] })
     // the documents that a call may publish are the ones the gate showed: none for the call that makes the drafts, those two for the call that publishes
     expect(catalog?.policy?.composio?.sanity).toMatchObject({ projectId: "mhgqs6fe", dataset: "production", gameSlug: SLUG, publishIds: [] })
     expect(publish?.policy?.composio?.sanity).toMatchObject({ gameSlug: SLUG, publishIds: BOTH })
     // Linear: the issues of the game are the ones it made, known from its state (none before the first call)
     expect(linear1?.policy?.composio?.linear?.issueIds).toEqual([])
-    expect(linear2?.policy?.composio?.linear?.issueIds).toEqual(["issue-parent", "GAM-40", "issue-scout", "GAM-41", "issue-catalog-entry", "GAM-42"])
+    expect(linear2?.policy?.composio?.linear?.issueIds).toEqual(["issue-parent", "GAM-40", "issue-scout", "GAM-41", "issue-catalog-entry", "GAM-42", "issue-rules-spec", "GAM-43"])
     expect(run.read(join(work, "scout.settings.json"))).toContain("hook/guard.ts")
     // one log for each round, named by the time of its end, so that a round never overwrites an earlier one
     const logs = readdirSync(join(work, "logs"))
     expect(logs.every((name) => /^[a-z-]+-\d{8}T\d{9}Z-(first|change|publish)\.jsonl$/.test(name)), logs.join(" ")).toBe(true)
-    expect(logs.map((name) => name.replace(/-\d{8}T\d{9}Z-/, "-")).sort()).toEqual(["catalog-entry-first.jsonl", "catalog-entry-publish.jsonl", "scout-change.jsonl", "scout-first.jsonl"])
+    expect(logs.map((name) => name.replace(/-\d{8}T\d{9}Z-/, "-")).sort()).toEqual(["catalog-entry-first.jsonl", "catalog-entry-publish.jsonl", "rules-spec-first.jsonl", "scout-change.jsonl", "scout-first.jsonl"])
 
     // what the owner saw
     expect(run.stdout).toContain("Start? [Y/n]")
@@ -148,8 +170,11 @@ describe("a game from its name to the catalog", () => {
     expect(run.stdout).toContain(PUBLISHED.split("\n")[0] ?? "")
     expect(run.stdout).toContain("publish · b to change something · q stops (the drafts stay)")
     expect(run.stdout).toContain("✓ Catalog entry validated")
-    expect(run.stdout).toContain("Test Game is in the platform's catalog")
-    expect(run.stdout).toContain("pnpm add-game test-game --name 'Test Game' --rules en=<the rulebook PDF>")
+    expect(run.stdout).toContain("✓ Rules spec validated")
+    expect(run.stdout).toContain("o opens the spec · q stops")
+    expect(run.stdout).toContain("Test Game is in the platform's catalog, its rules are written down")
+    expect(run.stdout).toContain("Its rules spec is in your checkout, uncommitted: docs/games/test-game/ (rules.md and index.md).")
+    expect(run.stdout).toContain("pnpm add-game test-game --name 'Test Game' --rules 'en=<the rulebook PDF>'")
     expect(run.stdout).toContain("rulebook found by the scout: https://example.com/rules.pdf (en, v2.1)")
     expect(run.stdout).toContain("claude --resume " + session)
 
@@ -166,6 +191,14 @@ describe("a game from its name to the catalog", () => {
     expect(sanity.requests).toHaveLength(1)
     expect(JSON.parse(sanity.requests[0]?.searchParams.get("$ids") ?? "[]")).toEqual(BOTH)
     expect(sanity.requests[0]?.searchParams.get("perspective")).toBe("published")
+    expect(state.steps["rules-spec"]).toMatchObject({ status: "validated", rounds: 1 })
+    expect(state.steps["rules-spec"]?.check?.ok).toBe(true)
+    expect(state.steps["rules-spec"]?.issue).toMatchObject({ identifier: "GAM-43", applied: "Done", commented: true })
+    // the page the owner validated is stamped as validated, with the day, and so is every reading that waited for their word
+    const written = run.read(join(run.docs, SLUG, "rules.md"))
+    expect(written).toMatch(/^- Status: validated \d{4}-\d{2}-\d{2}$/m)
+    expect(written).not.toContain("to validate")
+    expect(written.match(/^\*\*Status\.\*\* validated \d{4}-\d{2}-\d{2}$/gm)).toHaveLength(2)
     expect(state.linear.parent).toMatchObject({ identifier: "GAM-40", applied: "In Progress" })
     expect(state.steps.scout?.issue).toMatchObject({ identifier: "GAM-41", applied: "Done", commented: true })
     expect(state.steps["catalog-entry"]?.issue).toMatchObject({ identifier: "GAM-42", applied: "Done", commented: true })
@@ -230,8 +263,8 @@ describe("the word publish", () => {
     await withSanity({ down: true }, async (sanity) => {
       const run = await runCli({
         args: [NAME, "--yes", "--no-linear"],
-        answers: ["validate", "validate", "publish"],
-        scenario: { calls: [scoutCall(), catalogCall(), finished] },
+        answers: ["validate", "validate", "publish", "q"],
+        scenario: { calls: [scoutCall(), catalogCall(), finished, specCall()] },
         env: { PBGO_SANITY_API_BASE: sanity.base },
       })
       expect(run.code).toBe(0)
@@ -245,15 +278,20 @@ describe("the word publish", () => {
       const first = await runCli({ args: [NAME, "--yes", "--no-linear"], answers: ["validate", "validate"], scenario: { calls: [scoutCall(), catalogCall()] } })
       expect(first.code).toBe(3)
       expect(stateOf(first).steps["catalog-entry"]).toMatchObject({ status: "gate", gate: 1 })
-      const second = await runCli({ args: [NAME, "--new-session", "--no-linear"], base: first.base, answers: ["publish"], scenario: { calls: [finished] }, env: { PBGO_SANITY_API_BASE: sanity.base } })
+      const second = await runCli({ args: [NAME, "--new-session", "--no-linear"], base: first.base, answers: ["publish", "q"], scenario: { calls: [finished, specCall()] }, env: { PBGO_SANITY_API_BASE: sanity.base } })
       expect(second.code).toBe(0)
-      expect(second.calls).toHaveLength(1)
+      expect(second.calls).toHaveLength(2)
       const session = flagValue(first.calls[0] as LoggedCall, "--session-id")
       expect(flagValue(second.calls[0] as LoggedCall, "--resume")).toBe(session)
       expect(second.calls[0]?.argv).not.toContain("--session-id")
       expect(second.calls[0]?.env.PBGO_PUBLISH_OK).toBe("1")
       // the documents it may publish came from the report kept in the state
       expect(second.calls[0]?.policy?.composio?.sanity?.publishIds).toEqual(BOTH)
+      // the call after it is the one that starts the fresh session the owner asked for
+      const fresh = flagValue(second.calls[1] as LoggedCall, "--session-id")
+      expect(fresh).toMatch(/^[0-9a-f-]{36}$/)
+      expect(fresh).not.toBe(session)
+      expect(second.calls[1]?.argv).not.toContain("--resume")
     })
   })
 
@@ -278,6 +316,122 @@ describe("the word publish", () => {
     const run = await runCli({ args: [NAME, "--yes", "--no-linear"], answers: ["validate", "validate", "b", "q"], scenario: { calls: [scoutCall(), catalogCall()] } })
     expect(run.stdout).toContain("validate (the drafts are right)")
     expect(stateOf(run).steps["catalog-entry"]).toMatchObject({ status: "gate", gate: 0 })
+  })
+})
+
+describe("the rules spec", () => {
+  // the scout, the catalog entry and its publication: the game is then at the rules spec (the platform's API is a closed port, which the command says and goes on from)
+  const before = (): CallSpec[] => [scoutCall(), catalogCall(), { match: "^validate$", text: PUBLISHED, cost: 0.3 }]
+  const toTheSpec = ["validate", "validate", "publish"]
+  const args = [NAME, "--yes", "--no-linear"]
+
+  it("is run after the catalog entry, in the session of the game, and stops at its gate with the machine's verdict", async () => {
+    const run = await runCli({ args, answers: [...toTheSpec, "q"], scenario: { calls: [...before(), specCall()] } })
+    expect(run.code).toBe(0)
+    expect(run.calls).toHaveLength(4)
+    expect(promptOf(run.calls[3])).toBe(`/game-rules-spec ${run.assets}/${SLUG}/scout.json`)
+    expect(flagValue(run.calls[3] as LoggedCall, "--resume")).toBe(flagValue(run.calls[0] as LoggedCall, "--session-id"))
+    expect(run.stdout).toContain("━━━ Rules spec · Test Game · round 1")
+    expect(run.stdout).toContain("Validate also accepts the 2 readings of the open points.")
+    expect(run.stdout).toContain("✓ ok    docs/games/test-game/rules.md: Test Game: 2–4 players, 5 components of 4 kinds, 2 open points (2 to validate), draft")
+    expect(run.stdout).toContain("validate · or type what to change · o opens the spec · q stops (everything is saved)")
+    // the pages are in the specs' folder, not stamped before the owner's word
+    expect(run.read(join(run.docs, SLUG, "rules.md"))).toContain("- Status: draft")
+    expect(stateOf(run).steps["rules-spec"]).toMatchObject({ status: "gate", gate: 0, check: { ok: true } })
+  })
+
+  it("is not validated while the page does not pass the check, and is once a change has put it right", async () => {
+    const broken = specCall({ writes: [{ path: `$DOCS/${SLUG}/rules.md`, content: example("rules", NAME).replace("## Setup", "## Set up") }, specWrites()[1] as { path: string; content: string }] })
+    const fixed = specCall({ match: "^fix the setup", text: `${SPEC_REPORT}\n(fixed)`, cost: 0.3 })
+    const run = await runCli({ args, answers: [...toTheSpec, "validate", "fix the setup", "validate"], scenario: { calls: [...before(), broken, fixed] } })
+    expect(run.code).toBe(0)
+    expect(run.stdout).toContain('✗   - The section "Setup" is missing')
+    expect(run.stdout).toContain("✗ The spec does not pass the check: type what to change.")
+    expect(run.stdout).toContain("(fixed)")
+    expect(run.stdout).toContain("✓ Rules spec validated")
+    expect(run.calls.map((call) => promptOf(call).slice(0, 14))).toEqual(["/game-scout Te", "/platform-cata", "validate", "/game-rules-sp", "fix the setup"])
+    expect(stateOf(run).steps["rules-spec"]).toMatchObject({ status: "validated", rounds: 2 })
+    expect(run.read(join(run.docs, SLUG, "rules.md"))).toMatch(/^- Status: validated \d{4}-\d{2}-\d{2}$/m)
+  })
+
+  it("is not validated when the skill wrote no page (it could not read the rulebook), and says so", async () => {
+    const blocked = specCall({ text: "Test Game (test-game): rules spec\nBlocked     the rulebook cannot be read\nPut it at   ~/Companies/PBGO/assets/test-game/rules.pdf, then type retry", writes: [] })
+    const run = await runCli({ args, answers: [...toTheSpec, "validate", "q"], scenario: { calls: [...before(), blocked] } })
+    expect(run.code).toBe(0)
+    expect(run.stdout).toContain("Put it at   ~/Companies/PBGO/assets/test-game/rules.pdf, then type retry")
+    expect(run.stdout).toContain("no spec was written (docs/games/test-game/rules.md)")
+    expect(run.stdout).toContain("✗ The spec does not pass the check: type what to change.")
+    expect(run.stdout).not.toContain("✓ Rules spec validated")
+    expect(existsSync(join(run.docs, SLUG))).toBe(false)
+    expect(stateOf(run).steps["rules-spec"]).toMatchObject({ status: "gate", check: { ok: false } })
+  })
+
+  it("is not validated when its title names another game than the one that is added", async () => {
+    const other = specCall({ writes: specWrites("Other Game") })
+    const run = await runCli({ args, answers: [...toTheSpec, "validate", "q"], scenario: { calls: [...before(), other] } })
+    expect(run.stdout).toContain('the title says "Other Game", the game is "Test Game"')
+    expect(run.stdout).toContain("✗ The spec does not pass the check: type what to change.")
+    expect(stateOf(run).steps["rules-spec"]?.status).toBe("gate")
+  })
+
+  // the one test that asks the network for something: the name of a host that is not there (a subdomain of example.org: the scout contract takes no .invalid or .test), which cannot be fetched
+  // whether the machine is offline or not
+  it("tells the rulebook it did not fetch, and goes on: the owner puts the PDF where it says and types retry", { timeout: 30_000 }, async () => {
+    const unreachable = scoutCall({
+      writes: [
+        {
+          path: SCOUT_PATH,
+          content: scoutJson(NAME, SLUG, { edition: { publisher: "Sample Publisher", year: 2024, label: null, bggVersionId: null, rules: { language: "en", url: "https://rulebooks.example.org/rules.pdf", version: null, date: null }, confidence: "high" } }),
+        },
+      ],
+    })
+    const run = await runCli({ args, answers: [...toTheSpec, "q"], scenario: { calls: [unreachable, catalogCall(), { match: "^validate$", text: PUBLISHED, cost: 0.3 }, specCall()] }, env: { PBGO_ADD_GAME_NO_DOWNLOAD: "" } })
+    expect(run.code).toBe(0)
+    expect(run.stdout).toContain("· Rulebook: fetching https://rulebooks.example.org/rules.pdf…")
+    expect(run.stdout).toContain("! The rulebook was not fetched (")
+    expect(run.stdout).toContain("A PDF has to be at")
+    expect(run.stdout).toContain("and type retry at the gate")
+    // the step went on: the skill says what it lacks
+    expect(run.calls).toHaveLength(4)
+    expect(existsSync(join(run.assets, SLUG, "rules.pdf"))).toBe(false)
+  })
+
+  it("does not fetch the rulebook when downloads are off, and says where to put it", async () => {
+    const run = await runCli({ args, answers: [...toTheSpec, "q"], scenario: { calls: [...before(), specCall()] } })
+    expect(run.stdout).toMatch(/· Rulebook: not fetched \(downloads are off\); put the PDF at .*rules\.pdf if the rules are not a web page/)
+    expect(run.stdout).not.toContain("Rulebook: fetching")
+  })
+
+  it("leaves a rulebook that is there as it is, never fetches over it, and hands it to the script that makes the game's folder", async () => {
+    const mine = scoutCall({ writes: [{ path: SCOUT_PATH, content: scoutJson(NAME, SLUG) }, { path: `$ASSETS/${SLUG}/rules.pdf`, content: "%PDF-1.4 the owner's own\n%%EOF\n" }] })
+    const run = await runCli({ args, answers: [...toTheSpec, "validate"], scenario: { calls: [mine, catalogCall(), { match: "^validate$", text: PUBLISHED, cost: 0.3 }, specCall()] }, env: { PBGO_ADD_GAME_NO_DOWNLOAD: "" } })
+    expect(run.code).toBe(0)
+    expect(run.stdout).not.toContain("Rulebook: fetching")
+    expect(run.stdout).not.toContain("Rulebook: not fetched")
+    expect(run.read(join(run.assets, SLUG, "rules.pdf"))).toContain("the owner's own")
+    expect(run.stdout).toContain(`--rules en=${join(run.assets, SLUG, "rules.pdf")}`)
+  })
+
+  it("shows up pending in a game that began before it was a step, and is run from where the game stopped", async () => {
+    const first = await runCli({ args, answers: [...toTheSpec, "q"], scenario: { calls: [...before(), specCall()] } })
+    // what an older version of the command would have left: no record of this step
+    const file = join(first.assets, SLUG, "pipeline.json")
+    const old = JSON.parse(first.read(file)) as { steps: Record<string, unknown> }
+    delete old.steps["rules-spec"]
+    writeFileSync(file, JSON.stringify(old))
+    rmSync(join(first.docs, SLUG), { recursive: true })
+    const list = await runCli({ args: ["--list"], base: first.base })
+    expect(list.stdout).toContain("catalog entry validated · rules spec not started")
+    const second = await runCli({ args: [NAME, "--no-linear"], base: first.base, answers: ["validate"], scenario: { calls: [specCall()] } })
+    expect(second.code).toBe(0)
+    expect(promptOf(second.calls[0])).toBe(`/game-rules-spec ${second.assets}/${SLUG}/scout.json`)
+    expect(second.stdout).toContain("✓ Rules spec validated")
+  })
+
+  it("is left alone by a game that has a folder in the repo: nothing is scouted, nothing is written", async () => {
+    const run = await runCli({ args: ["Hanabi", "--yes"] })
+    expect(run.invocations).toHaveLength(0)
+    expect(existsSync(join(run.docs, "hanabi"))).toBe(false)
   })
 })
 
@@ -373,9 +527,10 @@ describe("before anything starts", () => {
     expect(run.stdout).toContain("Test Game (test-game)")
     expect(run.stdout).toContain("1. scout: /game-scout · gate validate")
     expect(run.stdout).toContain("2. catalog entry: /platform-catalog-entry · gates validate, publish")
+    expect(run.stdout).toContain("3. rules spec: /game-rules-spec · gate validate")
     expect(run.stdout).toContain("claude 9.9.9 · claude.ai (max) · model sonnet")
     expect(run.stdout).toContain('"Test Game: add the game" and a sub-issue per step')
-    expect(run.stdout).toContain("The repo is not touched. Nothing is published before the word publish.")
+    expect(run.stdout).toContain("The repo is touched by one step, the rules spec, which writes docs/games/test-game/ and leaves it uncommitted. Nothing is published before the word publish.")
     expect(run.stdout).toContain("Nothing was created (--dry-run)")
     expect(run.calls).toHaveLength(0)
     expect(readdirSync(run.assets)).toEqual([])
@@ -555,6 +710,7 @@ describe("coming back to a game", () => {
     const state = stateOf(second)
     expect(state.steps.scout?.status).toBe("gate")
     expect(state.steps["catalog-entry"]?.status).toBe("pending")
+    expect(state.steps["rules-spec"]?.status).toBe("pending")
     expect(flagValue(second.calls[0] as LoggedCall, "--resume")).toBe(flagValue(first.calls[0] as LoggedCall, "--session-id"))
   })
 
@@ -580,7 +736,7 @@ describe("coming back to a game", () => {
     const list = await runCli({ args: ["--list"], base: first.base })
     expect(list.code).toBe(0)
     expect(list.stdout).toContain("Games in the pipeline")
-    expect(list.stdout).toContain("test-game  Test Game: scout validated · catalog entry at its gate (validate)")
+    expect(list.stdout).toContain("test-game  Test Game: scout validated · catalog entry at its gate (validate) · rules spec not started")
     const none = await runCli({ args: ["--list"] })
     expect(none.stdout).toContain("No game is in the pipeline")
   })
@@ -647,7 +803,7 @@ describe("--help", () => {
     const run = await runCli({ args: [NAME, "--help"] })
     expect(run.code).toBe(0)
     expect(run.stdout).toContain('Usage: pnpm add-game "<Game Name>"')
-    expect(run.stdout).toContain("scout (/game-scout), then catalog entry (/platform-catalog-entry)")
+    expect(run.stdout).toContain("scout (/game-scout), then catalog entry (/platform-catalog-entry), then rules spec (/game-rules-spec)")
     for (const option of ["--dry-run", "--yes", "--no-linear", "--new-session", "--redo", "--list", "--check"]) expect(run.stdout).toContain(option)
   })
 })

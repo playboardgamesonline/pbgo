@@ -28,7 +28,7 @@ The first engines were written before the kit settled: `check:game` passes `engi
 
 ## 2. Plan first, no code
 
-Read the rulebook (the PDF in the game's settings, or the rules spec the owner gives; `pages` for a long one) and the game's `CLAUDE.md`. Then ask **one batch** of questions, each with a recommended default so that "ok" is enough, in the language the owner writes in.
+Read the game's rules spec, `docs/games/<slug>/rules.md`, when `game-rules-spec` wrote one: the rules as coded are its rules, its component list is the box, and its open points are item 7 below with the readings already proposed (the owner validated them with the spec, so ask again only the ones still marked "to validate"). Then read the rulebook (the PDF in the game's settings; `pages` for a long one) for what the spec does not settle, and the game's `CLAUDE.md`. A game with no spec starts from the rulebook alone, as before. Then ask **one batch** of questions, each with a recommended default so that "ok" is enough, in the language the owner writes in.
 
 1. **Which rules.** The edition and the version of the booklet (Flip 7 is ruleset 3.1). Default: the base game as it is played in real life; each expansion and each variant is its own later work, and no room is kept for it in the code.
 2. **The table.** The fewest and the most players the engine seats. Default: the booklet's, within the platform's bounds.

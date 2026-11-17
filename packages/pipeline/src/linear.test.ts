@@ -26,6 +26,7 @@ describe("what Linear should say", () => {
       ["parent", "Love Letter: add the game", "In Progress", null, null],
       ["scout", "Love Letter: scout", "In Progress", null, "Game lane"],
       ["catalog-entry", "Love Letter: catalog entry", "Todo", null, "Platform lane"],
+      ["rules-spec", "Love Letter: rules spec", "Todo", null, "Game lane"],
     ])
     expect(made.issues.every((issue) => issue.comment === null)).toBe(true)
   })
@@ -33,7 +34,7 @@ describe("what Linear should say", () => {
   it("is written into the state from the answer, and then says nothing more", () => {
     const state = fresh()
     const made = order(state)
-    expect(applyResult(state, answer(["parent", "scout", "catalog-entry"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), made)).toEqual([])
+    expect(applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), made)).toEqual([])
     expect(state.linear.parent).toMatchObject({ id: "id-parent", identifier: "GAM-41", title: "Love Letter: add the game", applied: "In Progress", commented: false })
     expect(state.linear.labelId).toBe("label-1")
     expect(stepOf(state, "scout").issue).toMatchObject({ identifier: "GAM-42", applied: "In Progress" })
@@ -42,7 +43,7 @@ describe("what Linear should say", () => {
 
   it("moves the next step to In Progress and comments the one that was validated, once", () => {
     const state = fresh()
-    applyResult(state, answer(["parent", "scout", "catalog-entry"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
+    applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
     const scout = stepOf(state, "scout")
     scout.status = "validated"
     scout.validatedAt = "2026-11-16T10:05:00.000Z"
@@ -63,10 +64,10 @@ describe("what Linear should say", () => {
 
   it("renames the issues when the scout settled another name", () => {
     const state = fresh()
-    applyResult(state, answer(["parent", "scout", "catalog-entry"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
+    applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
     state.name = "6 nimmt!"
     const made = order(state)
-    expect(made.issues.map((issue) => issue.wantTitle)).toEqual(["6 nimmt!: add the game", "6 nimmt!: scout", "6 nimmt!: catalog entry"])
+    expect(made.issues.map((issue) => issue.wantTitle)).toEqual(["6 nimmt!: add the game", "6 nimmt!: scout", "6 nimmt!: catalog entry", "6 nimmt!: rules spec"])
     expect(made.issues.every((issue) => issue.id !== null)).toBe(true)
   })
 
@@ -74,13 +75,26 @@ describe("what Linear should say", () => {
     const state = fresh()
     for (const step of STEPS) stepOf(state, step.id).status = "validated"
     const made = order(state)
-    expect(made.issues.map((issue) => issue.wantState)).toEqual(["In Progress", "Done", "Done"])
+    expect(made.issues.map((issue) => issue.wantState)).toEqual(["In Progress", "Done", "Done", "Done"])
   })
 
   it("tells what the answer lacks", () => {
     const state = fresh()
-    expect(applyResult(state, answer(["parent", "scout"]), order(state))).toEqual(["no issue came back for catalog-entry"])
+    expect(applyResult(state, answer(["parent", "scout"]), order(state))).toEqual(["no issue came back for catalog-entry", "no issue came back for rules-spec"])
     expect(applyResult(state, "nope", order(state))).toEqual(["the answer is not an object"])
+  })
+
+  it("says where the rules spec is in the comment of its validation: in the checkout, uncommitted", () => {
+    const state = fresh()
+    const step = STEPS[2]
+    if (!step) throw new Error("no step")
+    const s = stepOf(state, "rules-spec")
+    s.validatedAt = "2026-11-17T08:00:00.000Z"
+    s.rounds = 2
+    expect(step.id).toBe("rules-spec")
+    expect(validationComment(state, step, game, label)).toBe(
+      'Validated on 2026-11-17 at the gate of `pnpm add-game "Love Letter"` (2 rounds).\nRules spec: docs/games/love-letter/rules.md (in the checkout, uncommitted: the game\'s first pull request takes it)',
+    )
   })
 
   it("says what a comment holds: when, how many rounds, the links", () => {

@@ -1,13 +1,15 @@
 // `pnpm add-game "<name>"`: a game from its name to the platform's catalog, one headless Claude Code step at a time, a gate in the terminal after each.
 // This file is the order of things; the parts it calls are the state (state.ts), the call and its stream (claude.ts, stream.ts), the gates (gate.ts), the policy
-// that bounds a step (policy.ts) and the Linear bookkeeping (linear.ts). The repo is never touched: what the command writes is the game's folder of working
-// files outside it, the drafts (then, on the word publish, the documents) of the platform's Sanity, and the issues of Linear.
+// that bounds a step (policy.ts) and the Linear bookkeeping (linear.ts). The repo is touched by one step only, the rules spec, which writes the two pages of the
+// game in `docs/games/<slug>/` and leaves them uncommitted; the rest is the game's folder of working files outside it, the drafts (then, on the word publish,
+// the documents) of the platform's Sanity, and the issues of Linear.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join, resolve } from "node:path"
+import { readRulesSpec, specPathsOf, stampValidated } from "@pbgo/games/rules-spec"
 import { readScout, type Scout } from "@pbgo/games/scout"
 import { cleanName, nameProblem, slugFromName, slugProblem } from "@pbgo/games/slug"
 import { callArgs, childEnv, type RunOptions, type RunOutcome } from "./claude.ts"
-import { linearTuning, stepTuning, type Env } from "./config.ts"
+import { downloadsOff, gamesDocsRoot, linearTuning, stepTuning, type Env } from "./config.ts"
 import { parseAnswer } from "./gate.ts"
 import { applyResult, buildOrder, issueIdsOf, LINEAR_SCHEMA, linearPolicy, linearPrompt } from "./linear.ts"
 import { hookSettings, isPublishedId } from "./policy.ts"
@@ -44,6 +46,9 @@ export type Io = {
 
 export type CheckResult = { ok: boolean; lines: string[] }
 
+/** The rulebook of a game, fetched to a file: the number of bytes kept, or why nothing was. */
+export type RulebookFetch = { ok: true; bytes: number } | { ok: false; reason: string }
+
 /** What the command reaches out of itself, so that a test can stand in for each. */
 export type Deps = {
   env: Env
@@ -55,6 +60,10 @@ export type Deps = {
   run: (options: RunOptions) => Promise<RunOutcome>
   /** the machine's verdict on a scout file (`pnpm check:scout <file> --online`) */
   checkScout: (file: string) => Promise<CheckResult>
+  /** the machine's verdict on the spec of a game (`pnpm check:rules <slug> --name <name>`) */
+  checkRules: (slug: string, name: string) => Promise<CheckResult>
+  /** the rulebook the scout found, fetched to a file (the command does it, the agent of a step downloads nothing) */
+  fetchRulebook: (url: string, dest: string) => Promise<RulebookFetch>
   /** the stage `pnpm check:game` gives a game that has a folder */
   stageOf: (slug: string) => Promise<string | null>
   /** the documents, among these ids, that the platform's Sanity does not show as published (`null`: it could not be read) */
@@ -151,7 +160,7 @@ function printPlan(args: { io: Io; pal: Palette; deps: Deps; game: Game; state: 
   const login = check.claudeVersion ? `claude ${check.claudeVersion} · claude.ai${check.subscription ? ` (${check.subscription})` : ""}` : "claude not found"
   io.out(`  Headless   ${login} · model ${tuning.model} · ${formatUsd(tuning.budgetUsd)} a call at most · one session for the game`)
   io.out(`  Linear     ${args.linear ? `GAM, project Game factory: "${game.name}: add the game" and a sub-issue per step` : "not used (--no-linear)"}`)
-  io.out(`  The repo is not touched. Nothing is published before the word publish.`)
+  io.out(`  The repo is touched by one step, the rules spec, which writes docs/games/${game.slug}/ and leaves it uncommitted. Nothing is published before the word publish.`)
   for (const note of check.notes) io.out(pal.dim(`  ${note}`))
 }
 
@@ -176,6 +185,32 @@ const stamp = (ms: number): string => {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`
 }
 
+const formatBytes = (bytes: number): string => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`)
+
+/**
+ * What a step needs before its call. The rules spec reads the rulebook of the game: the command fetches the one the scout found (the address the owner validated at its gate) to `rules.pdf`
+ * next to the scout file, because the agent downloads nothing and a PDF it fetches with a web tool is not readable. A file that is there is the owner's own or an earlier fetch and is never
+ * replaced. It never stops the step: the skill says what it lacks, and the owner puts the file there and says retry.
+ */
+async function prepareStep(ctx: Ctx, step: StepDefinition): Promise<void> {
+  if (step.id !== "rules-spec") return
+  const { game, io, pal, deps } = ctx
+  if (existsSync(game.rulesPdf)) return
+  const rules = readScoutFile(game.scoutFile)?.edition.rules ?? null
+  if (!rules) {
+    io.out(pal.dim("· Rulebook: the scout found no address for it; the skill reads what it can find, or says where to put the PDF"))
+    return
+  }
+  if (downloadsOff(deps.env)) {
+    io.out(pal.dim(`· Rulebook: not fetched (downloads are off); put the PDF at ${tilde(game.rulesPdf)} if the rules are not a web page`))
+    return
+  }
+  io.out(pal.dim(`· Rulebook: fetching ${shorten(printable(rules.url), 160)}…`))
+  const fetched = await deps.fetchRulebook(rules.url, game.rulesPdf)
+  if (fetched.ok) io.out(pal.dim(`  ${tilde(game.rulesPdf)}: ${formatBytes(fetched.bytes)}`))
+  else io.out(pal.yellow(`! The rulebook was not fetched (${shorten(printable(fetched.reason), 160)}). A PDF has to be at ${tilde(game.rulesPdf)}: put it there and type retry at the gate; a web page is read as it is.`))
+}
+
 /** One call of a step, shown as it runs. The state says `running` while it does, and `gate` or `failed` when it ends. */
 async function callRound(ctx: Ctx, step: StepDefinition, kind: RoundKind, extra: { message?: string; publishIds?: string[]; retried?: boolean } = {}): Promise<RoundOutcome> {
   const { deps, io, state, pal } = ctx
@@ -190,8 +225,9 @@ async function callRound(ctx: Ctx, step: StepDefinition, kind: RoundKind, extra:
     state.session = { id: deps.uuid(), started: false }
     ctx.freshSession = false
   }
+  if (kind !== "publish") await prepareStep(ctx, step)
   const prompt = kind === "first" ? step.prompt(ctx.game) : kind === "resume" ? RESUME_MESSAGE : kind === "publish" ? "validate" : (extra.message ?? "")
-  const files = writeWorkFiles(ctx, step.id, step.policy(ctx.game, deps.repoRoot, { composioServer: serverOfPrefix(ctx.prefix), publishIds: extra.publishIds ?? [] }))
+  const files = writeWorkFiles(ctx, step.id, step.policy(ctx.game, deps.repoRoot, { composioServer: serverOfPrefix(ctx.prefix), publishIds: extra.publishIds ?? [], gamesDocs: gamesDocsRoot(deps.env) }))
   const tuning = stepTuning(deps.env)
   const resume = state.session.started
   const args = callArgs({
@@ -289,6 +325,41 @@ async function checkScoutStep(ctx: Ctx): Promise<void> {
   }
   const verdict = await ctx.deps.checkScout(file)
   s.check = { ok: verdict.ok, lines: verdict.lines }
+}
+
+// ---------- the rules spec ----------
+
+/** What the machine says of the spec once the call is over: the page exists, it has the shape, its title is the game's (`pnpm check:rules <slug> --name <name>`). */
+async function checkRulesStep(ctx: Ctx): Promise<void> {
+  const s = stepOf(ctx.state, "rules-spec")
+  const files = specPathsOf(gamesDocsRoot(ctx.deps.env), ctx.state.slug)
+  if (!existsSync(files.rules)) {
+    s.check = { ok: false, lines: [`no spec was written (docs/games/${ctx.state.slug}/rules.md): the skill stopped before it, say what it asks`] }
+    return
+  }
+  const verdict = await ctx.deps.checkRules(ctx.state.slug, ctx.state.name)
+  s.check = { ok: verdict.ok, lines: verdict.lines }
+}
+
+/** The day, as the owner's clock says it (`YYYY-MM-DD`). */
+const dayOf = (date: Date): string => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+
+/**
+ * The owner validated the spec: its status and every reading that waited for their word become "validated" with the day (the gate said that validating accepts the readings). `null` when
+ * the page is stamped, else what stopped it. A page that is validated already is left as it is.
+ */
+function stampSpec(ctx: Ctx): string | null {
+  const file = specPathsOf(gamesDocsRoot(ctx.deps.env), ctx.state.slug).rules
+  try {
+    const text = readFileSync(file, "utf8")
+    const stamped = stampValidated(text, dayOf(ctx.deps.now()))
+    if (stamped === text) return null
+    if (readRulesSpec(stamped).spec === null) return "stamping the validation would leave a page that does not pass the check: nothing was changed"
+    writeFileSync(file, stamped)
+    return null
+  } catch (error) {
+    return `the spec cannot be stamped (${error instanceof Error ? shorten(error.message, 120) : "unreadable"})`
+  }
 }
 
 /** The scout settled the name and the slug: the game's records follow (its folder moves to the slug). `null` when all went well, else what stopped it. */
@@ -419,7 +490,8 @@ export function openableTarget(links: readonly string[], file: string | null): s
 }
 
 function openTarget(ctx: Ctx, step: StepDefinition): string | null {
-  return openableTarget(stepOf(ctx.state, step.id).links, step.id === "scout" && existsSync(ctx.game.scoutFile) ? ctx.game.scoutFile : null)
+  const file = step.id === "scout" ? ctx.game.scoutFile : step.id === "rules-spec" ? specPathsOf(gamesDocsRoot(ctx.deps.env), ctx.state.slug).rules : null
+  return openableTarget(stepOf(ctx.state, step.id).links, file !== null && existsSync(file) ? file : null)
 }
 
 async function finishStep(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
@@ -434,6 +506,7 @@ async function finishStep(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> 
 /** After a call: the machine's check of what the step wrote. */
 async function afterCall(ctx: Ctx, step: StepDefinition): Promise<void> {
   if (step.id === "scout") await checkScoutStep(ctx)
+  if (step.id === "rules-spec") await checkRulesStep(ctx)
 }
 
 async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
@@ -443,7 +516,7 @@ async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
   for (;;) {
     const gate = step.gates[s.gate] ?? "validate"
     if (gate === "publish") io.out(`${pal.bold("publish")} · b to change something · q stops (the drafts stay)`)
-    else io.out(`${pal.bold("validate")}${step.gates.length > 1 ? " (the drafts are right)" : ""} · or type what to change · ${step.id === "catalog-entry" ? "o opens the draft · " : ""}q stops (everything is saved)`)
+    else io.out(`${pal.bold("validate")}${step.gates.length > 1 ? " (the drafts are right)" : ""} · or type what to change · ${step.id === "catalog-entry" ? "o opens the draft · " : step.id === "rules-spec" ? "o opens the spec · " : ""}q stops (everything is saved)`)
     const line = await io.ask("> ")
     if (line === null) {
       io.out("")
@@ -479,6 +552,20 @@ async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
             break
           }
           const problem = settleScout(ctx)
+          if (problem) {
+            io.out(pal.red(`✗ ${problem}`))
+            break
+          }
+        }
+        if (step.id === "rules-spec") {
+          // the page may have been edited by hand since the call: it is judged again, and stamped as validated only when it passes
+          await checkRulesStep(ctx)
+          if (!s.check?.ok) {
+            for (const line of s.check?.lines ?? []) io.out(`${pal.red("✗")} ${tildeAll(line)}`)
+            io.out(pal.red("✗ The spec does not pass the check: type what to change."))
+            break
+          }
+          const problem = stampSpec(ctx)
           if (problem) {
             io.out(pal.red(`✗ ${problem}`))
             break
@@ -571,15 +658,21 @@ async function runStep(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
 
 // ---------- the whole run ----------
 
+const RULEBOOK_LANGUAGES: readonly string[] = ["en", "fr", "es", "de"]
+
 function printNext(ctx: Ctx): void {
   const { io, pal, state } = ctx
   const scout = readScoutFile(ctx.game.scoutFile)
+  const language = scout?.edition.rules?.language ?? null
   io.out("")
-  io.out(rule(`${state.name} is in the platform's catalog`, pal))
+  io.out(rule(`${state.name} is in the platform's catalog, its rules are written down`, pal))
+  io.out(`Its rules spec is in your checkout, uncommitted: docs/games/${state.slug}/ (rules.md and index.md). The game's first pull request takes it.`)
   io.out("Next, which this command does not do yet: the game's folder, its Sanity project and its Studio.")
-  io.out(`  pnpm add-game ${state.slug} --name ${shellQuote(state.name)} --rules en=<the rulebook PDF>`)
+  // the rulebook the command fetched (or the owner put) is the PDF to hand to the script, when its language is one of the four of the games
+  const rulebook = existsSync(ctx.game.rulesPdf) && language !== null && RULEBOOK_LANGUAGES.includes(language) ? `${language}=${ctx.game.rulesPdf}` : "en=<the rulebook PDF>"
+  io.out(`  pnpm add-game ${state.slug} --name ${shellQuote(state.name)} --rules ${shellQuote(rulebook)}`)
   if (scout?.edition.rules) io.out(pal.dim(`  rulebook found by the scout: ${scout.edition.rules.url} (${scout.edition.rules.language}${scout.edition.rules.version ? `, ${scout.edition.rules.version}` : ""})`))
-  io.out("Then /game-new proposes the fields of its Studio.")
+  io.out("Then /game-new proposes the fields of its Studio, and the engine is written from the spec (/engine-rules).")
 }
 
 /** The game has a folder in the repo: its stages are `pnpm check:game`'s, this command has nothing to add. */

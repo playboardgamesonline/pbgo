@@ -24,6 +24,21 @@ export function checkScoutBin(env: Env = process.env): string | null {
   return env.PBGO_CHECK_SCOUT_BIN ? env.PBGO_CHECK_SCOUT_BIN : null
 }
 
+/** What the command that checks the spec of a game is: `pnpm check:rules` unless a test says another (it is run with the slug and `--name`). */
+export function checkRulesBin(env: Env = process.env): string | null {
+  return env.PBGO_CHECK_RULES_BIN ? env.PBGO_CHECK_RULES_BIN : null
+}
+
+/** The folder of the specs of the games, `docs/games` of the checkout: the one place of the repo a step writes (its `<slug>/rules.md` and `index.md`). A test's temporary world moves it. */
+export function gamesDocsRoot(env: Env = process.env): string {
+  return env.PBGO_GAMES_DOCS_DIR ? env.PBGO_GAMES_DOCS_DIR : join(REPO_ROOT, "docs", "games")
+}
+
+/** `PBGO_ADD_GAME_NO_DOWNLOAD=1`: the command fetches no file (the rulebook of a game). The owner who is offline, or a test, sets it. */
+export function downloadsOff(env: Env = process.env): boolean {
+  return env.PBGO_ADD_GAME_NO_DOWNLOAD === "1"
+}
+
 export type Tuning = { model: string; budgetUsd: number }
 
 function number(value: string | undefined, fallback: number): number {

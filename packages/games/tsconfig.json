@@ -4,5 +4,5 @@
     "types": ["node", "next"],
     "allowImportingTsExtensions": true
   },
-  "include": ["src"]
+  "include": ["src", "scripts"]
 }

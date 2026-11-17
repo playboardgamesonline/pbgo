@@ -9,6 +9,8 @@ export const STATE_VERSION = 1
 export const STATE_FILE = "pipeline.json"
 export const LOCK_FILE = "pipeline.lock"
 export const SCOUT_FILE = "scout.json"
+/** The rulebook of the game, next to its scout file: the one the scout found (the command fetches it) or one the owner put there. The rules spec is read from it. */
+export const RULES_PDF = "rules.pdf"
 /** Inside a game's folder: the policy and the settings of each call, and the raw stream of each round. */
 export const WORK_DIR = ".pipeline"
 

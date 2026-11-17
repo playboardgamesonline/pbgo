@@ -66,6 +66,14 @@ const CHECKS = [
   ],
   [
     "engine",
+    "rules spec",
+    (g) =>
+      exists(ROOT, `docs/games/${g.slug}/rules.md`)
+        ? ["ok", `the rules spec is there (docs/games/${g.slug}/rules.md): \`pnpm check:rules ${g.slug}\` says whether its shape is right`]
+        : ["warn", `no rules spec (docs/games/${g.slug}/rules.md): \`game-rules-spec\` writes it, and the engine is written from it`],
+  ],
+  [
+    "engine",
     "own engine",
     (g) => {
       const index = read(g.dir, "packages/engine/src/index.ts")
