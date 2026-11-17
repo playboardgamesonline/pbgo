@@ -1,4 +1,4 @@
-# Helpers shared by new-game.sh, go-live.sh, add-game.sh, game-rules.sh and setup-env.sh (sourced, needs ROOT): output,
+# Helpers shared by new-game.sh, go-live.sh, game-rules.sh and setup-env.sh (sourced, needs ROOT): output,
 # JSON, .env files, the games registry and the rules of a slug and a name, Sanity, the rulebook tool. Secret values are
 # never printed: they go from an API response or a file straight into a file.
 

@@ -1,15 +1,11 @@
-// The steps of the pipeline, in order. A step is a skill of the repo (`.claude/skills/<skill>/SKILL.md`) that Claude Code runs as a slash command and the gate the owner answers after it. There are two
-// kinds. A HEADLESS step is one call (`claude -p`) that works alone, bounded by a policy of what it may do (the scout, the catalog entry, the rules spec). A SESSION step is a session of Claude Code
-// that the command opens in the owner's terminal, for a skill that asks questions or acts outside the repo (it downloads, uploads, publishes): the owner is in it and approves each action, the command
-// waits for them to leave, then checks the result and asks for the gate. The later steps of "A game from A to Z" (`.claude/skills/README.md`) are added one by one, each with its skill.
+// The steps of adding a game, in order. A step is a skill of the repo (`.claude/skills/<skill>/SKILL.md`) that a sub-agent of `/add-game` carries out, the machine's check of what it left, and the gate the owner
+// answers in the chat. This file is data: the skill reads it through `pnpm game-flow` (the brief of a step, its check, its place in Linear), and `add-game-skill.test.ts` keeps the table of the skill to it.
+// A new step is a skill, an entry here and a row in the table of `.claude/skills/README.md`.
 import { join } from "node:path"
-import { specPathsOf } from "@pbgo/games/rules-spec"
-import type { GateKind } from "./gate.ts"
-import { BASH, mkdirRule, PLATFORM_SANITY, rulesCheckRule, type Policy } from "./policy.ts"
 import type { StageGate } from "./stage.ts"
 import { PICTURES_DIR, RULES_PDF, SCOUT_FILE } from "./state.ts"
 
-/** The game as the pipeline knows it: the name, the slug, its folder of working files, its scout file, the rulebook next to it and the folder of its pictures for the platform. */
+/** The game as the flow knows it: the name, the slug, its folder of working files, its scout file, the rulebook next to it and the folder of its pictures for the platform. */
 export type Game = { name: string; slug: string; dir: string; scoutFile: string; rulesPdf: string; picturesDir: string }
 
 export function gameOf(assets: string, name: string, slug: string): Game {
@@ -21,227 +17,207 @@ export function gameAt(dir: string, name: string, slug: string): Game {
   return { name, slug, dir, scoutFile: join(dir, SCOUT_FILE), rulesPdf: join(dir, RULES_PDF), picturesDir: join(dir, PICTURES_DIR) }
 }
 
-/**
- * What a call knows that the step does not: the name of Composio's server in a tool name, the documents the gate showed (for the call that publishes them) and the folder of
- * the specs of the games (`docs/games` of the checkout).
- */
-export type PolicyExtras = { composioServer: string; publishIds: readonly string[]; gamesDocs: string }
+/** The words the owner answers a gate with: `validate` says the work is right, `publish` is the one that makes drafts public. */
+export type GateKind = "validate" | "publish"
 
-type StepBase = {
+/** What the machine says of a step once the sub-agent is done, and again when the owner validates. */
+export type Check =
+  /** the scout file exists, has the shape, and passes `pnpm check:scout <file> --online` */
+  | { kind: "scout" }
+  /** the documents the report says it publishes (`Validate publishes N documents (ids)`) are published, from the platform's public API */
+  | { kind: "published" }
+  /** the spec exists and passes `pnpm check:rules <slug> --name <name>` */
+  | { kind: "rules" }
+  /** the platform's public API shows the entry as published, with the pictures it has (`pnpm catalog:pictures <slug>`) */
+  | { kind: "pictures" }
+  /** the game's own seed can run on the art folder (`pnpm -C games/<slug> content:seed --dry-run --art-dir <folder>`) */
+  | { kind: "art" }
+  /** `pnpm check:game <slug> --stage <stage>` (every check up to a stage), or `--only <stage>` (that stage alone) */
+  | { kind: "stage"; gate: StageGate }
+
+/** What the owner's ok at the last gate does besides recording it. */
+export type OnValidate = "settle-scout" | "stamp-rules"
+
+export type StepDefinition = {
   id: string
-  /** how the step is named in the terminal and in Linear ("scout", "catalog entry") */
+  /** how the step is named in the chat and in Linear ("scout", "catalog entry") */
   title: string
   skill: string
   /** the lane label of its Linear issue */
   lane: "Game lane" | "Platform lane" | "Engine lane"
-  /** the skill's file, relative to the repo: the command refuses to start without it */
+  /** the skill's file, relative to the repo */
   skillFile: string
   /** the gates after the step, in order: the first says the work is right, the next ones are the words that act (`publish`) */
   gates: GateKind[]
-  /** the first message of the step: the skill, as a slash command */
-  prompt: (game: Game) => string
-  /** the step works in the game's folder of the repo (`games/<slug>`, which `game-new` makes): the command stops before it while the game has none */
+  /** the argument of the skill, as it is typed after its name */
+  args: (game: Game) => string
+  /** what the brief of the sub-agent adds for this step */
+  notes: (game: Game) => string[]
+  /** the step works in the game's folder of the repo (`games/<slug>`, which `game-new` makes): it waits while the game has none in this checkout */
   needsFolder?: boolean
-}
-
-/** One call that works alone (`claude -p`), bounded by what its policy allows. */
-export type HeadlessStep = StepBase & {
-  mode: "headless"
-  /** whether the step uses Composio (its two lookup tools are allowed by name, the executor only through the hook) */
-  composio: boolean
-  policy: (game: Game, repoRoot: string, extras: PolicyExtras) => Policy
-}
-
-/** A session of Claude Code in the owner's terminal: the owner approves each action, and what they find at the gate is the machine's check of the result. */
-export type SessionStep = StepBase & {
-  mode: "session"
-  /** where the files of the session are, for the owner to look at: `o` at the gate opens it */
-  folder?: (game: Game) => string
-  /** the check after the session is `pnpm check:game <slug> --stage <stage>` (every check up to a stage), or `--only <stage>` (that stage alone); a step with another check (the pictures, the art) has none */
-  gate?: StageGate
-  /** the step makes the game's folder in the repo: for a game that has it already, there is nothing to make and the step is validated as it is */
+  /** the step makes the game's folder in the repo: for a game that has it already there is nothing to make */
   makesFolder?: boolean
+  check: Check
+  onValidate?: OnValidate
 }
 
-export type StepDefinition = HeadlessStep | SessionStep
-
-export const SCOUT: HeadlessStep = {
+export const SCOUT: StepDefinition = {
   id: "scout",
-  mode: "headless",
   title: "scout",
   skill: "game-scout",
   lane: "Game lane",
   skillFile: ".claude/skills/game-scout/SKILL.md",
   gates: ["validate"],
-  // `--out` puts the file where the command keeps the game's files, whatever the slug the scout settles on: moving the folder is the command's job
-  prompt: (game) => `/game-scout ${game.name} --out ${game.scoutFile}`,
-  composio: false,
-  // the one file it writes is the scout file (and reads it back to correct it): never the policy, the state or the log that sit in the same folder
-  policy: (game, repoRoot) => ({
-    repoRoot,
-    workDir: game.dir,
-    writeFiles: [game.scoutFile],
-    readFiles: [game.scoutFile],
-    bash: [BASH.checkScout, BASH.catalogList, BASH.checkGame, BASH.bggLookup, BASH.date, BASH.nodeOneLiner, mkdirRule(game.dir)],
-    composio: null,
-  }),
+  // `--out` puts the file where the flow keeps the game's files, whatever the slug the scout settles on: moving the folder is `validate`'s job
+  args: (game) => `${game.name} --out ${game.scoutFile}`,
+  notes: (game) => [
+    `The scout file goes to \`${game.scoutFile}\` (the skill's \`--out\`), whatever slug you settle on: the orchestrator moves the game's folder when the owner validates.`,
+    "The skill cannot ask in the middle and neither can you: its defaults answer every question, and what the owner may want to change goes in your report.",
+  ],
+  check: { kind: "scout" },
+  onValidate: "settle-scout",
 }
 
-export const CATALOG_ENTRY: HeadlessStep = {
+export const CATALOG_ENTRY: StepDefinition = {
   id: "catalog-entry",
-  mode: "headless",
   title: "catalog entry",
   skill: "platform-catalog-entry",
   lane: "Platform lane",
   skillFile: ".claude/skills/platform-catalog-entry/SKILL.md",
   // the first gate says the drafts are right; the second is the word that makes them public
   gates: ["validate", "publish"],
-  prompt: (game) => `/platform-catalog-entry ${game.scoutFile}`,
-  composio: true,
-  // it writes no file: its writes are Sanity's, through Composio, and only drafts before the word publish
-  policy: (game, repoRoot, extras) => ({
-    repoRoot,
-    workDir: game.dir,
-    writeFiles: [],
-    readFiles: [game.scoutFile],
-    bash: [BASH.checkScout, BASH.catalogList, BASH.nodeOneLiner],
-    composio: {
-      server: extras.composioServer,
-      slugs: ["SANITY_QUERY_DOCUMENTS", "SANITY_MUTATE_DOCUMENTS"],
-      sanity: { ...PLATFORM_SANITY, gameSlug: game.slug, publishIds: [...extras.publishIds] },
-      linear: null,
-    },
-  }),
+  args: (game) => game.scoutFile,
+  notes: () => [
+    "Stop at the drafts: the report gives the Studio link of each draft and, in the skill's own sentence, `Validate publishes N documents (id, id)`: the orchestrator reads that sentence and shows the owner those ids.",
+    "Publish only when the orchestrator sends you the owner's explicit yes to publish, and then exactly the documents of that sentence: read them back from Sanity and report.",
+  ],
+  check: { kind: "published" },
 }
 
-export const RULES_SPEC: HeadlessStep = {
+export const RULES_SPEC: StepDefinition = {
   id: "rules-spec",
-  mode: "headless",
   title: "rules spec",
   skill: "game-rules-spec",
   lane: "Game lane",
   skillFile: ".claude/skills/game-rules-spec/SKILL.md",
   gates: ["validate"],
-  // the scout file says which rulebook and which game; the rulebook itself is `rules.pdf` next to it, which the command fetched before the call
-  prompt: (game) => `/game-rules-spec ${game.scoutFile}`,
-  composio: false,
-  // the one step that writes in the repo, and only two files of it: the page of the spec and its landing page in the docs (they are left uncommitted: the game's first pull request
-  // takes them). It reads the scout file and the rulebook, never another file outside the repo, and runs the check of this game's spec and nothing else of the project.
-  policy: (game, repoRoot, extras) => {
-    const files = specPathsOf(extras.gamesDocs, game.slug)
-    return {
-      repoRoot,
-      workDir: game.dir,
-      writeFiles: [files.rules, files.index],
-      readFiles: [game.scoutFile, game.rulesPdf],
-      bash: [rulesCheckRule(game.slug), BASH.checkScout, BASH.date, mkdirRule(files.dir)],
-      composio: null,
-    }
-  },
+  // the scout file says which rulebook and which game; the rulebook itself is `rules.pdf` next to it, which the orchestrator fetched before the call
+  args: (game) => game.scoutFile,
+  notes: (game) => [
+    `The rulebook is the PDF at \`${game.rulesPdf}\` when it is there: \`Read\` it whole, with no \`pages\`. When it is not there and the rules are a PDF, answer \`STATUS: blocked\` and say where it has to be.`,
+    `Write only \`docs/games/${game.slug}/rules.md\` and \`docs/games/${game.slug}/index.md\`, and leave them uncommitted: the game's first pull request takes them.`,
+  ],
+  check: { kind: "rules" },
+  onValidate: "stamp-rules",
 }
 
-export const PLATFORM_ASSETS: SessionStep = {
+export const PLATFORM_ASSETS: StepDefinition = {
   id: "platform-assets",
-  mode: "session",
   title: "platform assets",
   skill: "platform-assets",
   lane: "Platform lane",
   skillFile: ".claude/skills/platform-assets/SKILL.md",
   gates: ["validate"],
-  // the skill finds the official pictures, the owner approves each download, and the pictures are placed in the entry and published in the session, after the owner's yes
-  prompt: (game) => `/platform-assets ${game.scoutFile}`,
-  folder: (game) => game.picturesDir,
+  args: (game) => game.scoutFile,
+  notes: (game) => [
+    `The pictures are brought into \`${game.picturesDir}\`, with their sources written down. Every download, every upload and the publication need the owner's yes: stop with \`STATUS: questions\` before each, saying what, from where, how many files and where it goes.`,
+  ],
+  check: { kind: "pictures" },
 }
 
-export const GAME_ASSETS: SessionStep = {
-  id: "game-assets",
-  mode: "session",
-  title: "game assets",
-  skill: "game-assets",
-  lane: "Game lane",
-  skillFile: ".claude/skills/game-assets/SKILL.md",
-  gates: ["validate"],
-  // the game has its folder, its Sanity project and the slots of its seed: the skill sorts the owner's files into the art folder and the seed uploads them, in the session, after the owner's yes
-  needsFolder: true,
-  prompt: (game) => `/game-assets ${game.slug}`,
-  folder: (game) => game.dir,
-}
-
-export const GAME_NEW: SessionStep = {
+export const GAME_NEW: StepDefinition = {
   id: "game-new",
-  mode: "session",
   title: "game folder",
   skill: "game-new",
   lane: "Game lane",
   skillFile: ".claude/skills/game-new/SKILL.md",
   gates: ["validate"],
-  // the folder of the game from the template, its Sanity project and its Studio: the skill asks the owner, shows what leaves the machine and creates it only after an explicit ok
+  // the folder of the game from the template, its Sanity project and its Studio: the skill shows what leaves the machine and creates it only after an explicit ok
+  args: (game) => `${game.slug} (the game is called "${game.name}"; its rulebook is the PDF at ${game.rulesPdf} when there is one; its rules spec, when there is one, is docs/games/${game.slug}/)`,
+  notes: (game) => [
+    `The name, the slug, the rulebook and the rules spec are given: do not ask for them again. The rules spec in \`docs/games/${game.slug}/\` goes into the game's first commit with the game.`,
+    "Everything that creates something outside the repo (a Sanity project, a token, the Studio, `pnpm setup-env`) waits for an explicit yes that the orchestrator relays: stop with `STATUS: questions` first, with the list of what leaves the machine.",
+  ],
   makesFolder: true,
-  gate: { stage: "scaffold" },
-  prompt: (game) => `/game-new ${game.slug} (the game is called "${game.name}"; its rulebook is the PDF at ${game.rulesPdf} when the command could fetch it; its rules spec, when there is one, is docs/games/${game.slug}/)`,
+  check: { kind: "stage", gate: { stage: "scaffold" } },
 }
 
-export const GAME_SANITY_CREATE: SessionStep = {
+export const GAME_SANITY_CREATE: StepDefinition = {
   id: "game-sanity-create",
-  mode: "session",
   title: "studio forms",
   skill: "game-sanity-create",
   lane: "Game lane",
   skillFile: ".claude/skills/game-sanity-create/SKILL.md",
   gates: ["validate"],
+  args: (game) => game.slug,
+  notes: () => ["The plan of the fields is the owner's to approve: stop with it as `STATUS: questions` before you write a schema."],
   needsFolder: true,
   // the stage of the content alone: the engine is not written yet, which `--stage content` would count
-  gate: { stage: "content", only: true },
-  prompt: (game) => `/game-sanity-create ${game.slug}`,
+  check: { kind: "stage", gate: { stage: "content", only: true } },
 }
 
-export const ENGINE_RULES: SessionStep = {
+export const GAME_ASSETS: StepDefinition = {
+  id: "game-assets",
+  title: "game assets",
+  skill: "game-assets",
+  lane: "Game lane",
+  skillFile: ".claude/skills/game-assets/SKILL.md",
+  gates: ["validate"],
+  // the game has its folder, its Sanity project and the slots of its seed: the skill sorts the owner's files into the art folder and the seed uploads them, after the owner's yes
+  args: (game) => game.slug,
+  notes: (game) => [
+    `The art folder is \`${game.dir}\`: each file is named after a slot of the game's seed. Never make, edit, crop or upscale a picture; the upload happens only after the owner's yes.`,
+  ],
+  needsFolder: true,
+  check: { kind: "art" },
+}
+
+export const ENGINE_RULES: StepDefinition = {
   id: "engine-rules",
-  mode: "session",
   title: "engine",
   skill: "engine-rules",
   lane: "Engine lane",
   skillFile: ".claude/skills/engine-rules/SKILL.md",
   gates: ["validate"],
+  args: (game) => game.slug,
+  notes: (game) => [
+    `The rules spec \`docs/games/${game.slug}/rules.md\` is the source: its open points were validated with it, so do not ask the owner for them again. The plan and each slice's pull request wait for the owner's go: stop with \`STATUS: questions\`.`,
+  ],
   needsFolder: true,
-  gate: { stage: "engine" },
-  prompt: (game) => `/engine-rules ${game.slug}`,
+  check: { kind: "stage", gate: { stage: "engine" } },
 }
 
-export const ENGINE_BOARD: SessionStep = {
+export const ENGINE_BOARD: StepDefinition = {
   id: "engine-board",
-  mode: "session",
   title: "board",
   skill: "engine-board",
   lane: "Engine lane",
   skillFile: ".claude/skills/engine-board/SKILL.md",
   gates: ["validate"],
+  args: (game) => game.slug,
+  notes: () => ["Each slice is a pull request that waits for the owner's go: stop with `STATUS: questions`. The look of the board is the owner's to approve from what you describe, never from a screenshot in a pull request."],
   needsFolder: true,
-  gate: { stage: "board" },
-  prompt: (game) => `/engine-board ${game.slug}`,
+  check: { kind: "stage", gate: { stage: "board" } },
 }
 
-export const GAME_GO_LIVE: SessionStep = {
+export const GAME_GO_LIVE: StepDefinition = {
   id: "game-go-live",
-  mode: "session",
   title: "go live",
   skill: "game-go-live",
   lane: "Game lane",
   skillFile: ".claude/skills/game-go-live/SKILL.md",
   gates: ["validate"],
+  args: (game) => game.slug,
+  notes: () => ["Turning the switches (`live`, `indexable`) is a pull request that waits for the owner's explicit go, and nothing is merged by you."],
   needsFolder: true,
   // every stage, the flags of the registry included: they are on in the checkout once the pull request that turns them on is merged and the branch is updated
-  gate: { stage: "live" },
-  prompt: (game) => `/game-go-live ${game.slug}`,
+  check: { kind: "stage", gate: { stage: "live" } },
 }
 
 export const STEPS: readonly StepDefinition[] = [SCOUT, CATALOG_ENTRY, RULES_SPEC, PLATFORM_ASSETS, GAME_NEW, GAME_SANITY_CREATE, GAME_ASSETS, ENGINE_RULES, ENGINE_BOARD, GAME_GO_LIVE]
 
-/** The tools a call is allowed by name: the read-only ones. Everything that writes or runs something is allowed by the hook alone, so that a hook that does not load refuses it. */
-export function allowedTools(step: HeadlessStep, composioPrefix: string): string[] {
-  const tools = ["ToolSearch", "WebSearch", "WebFetch"]
-  if (step.composio) tools.push(`${composioPrefix}COMPOSIO_SEARCH_TOOLS`, `${composioPrefix}COMPOSIO_GET_TOOL_SCHEMAS`)
-  return tools
+export function stepById(id: string): StepDefinition | undefined {
+  return STEPS.find((step) => step.id === id)
 }
 
 /** The first step that is not validated, `undefined` when the game is done. */

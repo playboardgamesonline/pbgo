@@ -1,13 +1,13 @@
 ---
 name: game-assets
-description: "[GAME agent] Bring a game's own art into its own Sanity project: from the component list of its rules spec and the art slots of its seed, sort the owner's source files (a folder they point to, or the images of its rulebook or press kit with their approval) into the agreed art folder, each named after its slot, dry-run the game's seed, and upload as drafts after the owner's yes; the owner then previews in the game's Studio and in local dev. Never makes, edits, crops or upscales a picture. Runs in a session of the owner's own. Use after game-sanity-create, or when the owner runs /game-assets <slug>."
+description: "[GAME agent] Bring a game's own art into its own Sanity project: from the component list of its rules spec and the art slots of its seed, sort the owner's source files (a folder they point to, or the images of its rulebook or press kit with their approval) into the agreed art folder, each named after its slot, dry-run the game's seed, and upload as drafts after the owner's yes; the owner then previews in the game's Studio and in local dev. Never makes, edits, crops or upscales a picture. Use after game-sanity-create, or when the owner runs /game-assets <slug>."
 ---
 
 # Bring a game's art into its Sanity project
 
-The step between the Studio's forms (`game-sanity-create`) and the board (`engine-board`): the game's own art, its cards, boards, tokens, backgrounds and sounds, gets into the game's own Sanity project, where the board reads it. The seed does the work (`docs/content-pipeline.md`, "Art"): it takes the files someone gives it, named after their slots; this skill sorts and names them, shows what would happen, and uploads after the owner's yes. The job ends when the art the owner handed over is in the drafts of the game's Studio and the owner has looked at it there and in local dev. It uploads, so it runs in **a session where the owner approves each command** (`pnpm add-game` opens one for it): never headless.
+The step between the Studio's forms (`game-sanity-create`) and the board (`engine-board`): the game's own art, its cards, boards, tokens, backgrounds and sounds, gets into the game's own Sanity project, where the board reads it. The seed does the work (`docs/content-pipeline.md`, "Art"): it takes the files someone gives it, named after their slots; this skill sorts and names them, shows what would happen, and uploads after the owner's yes. The job ends when the art the owner handed over is in the drafts of the game's Studio and the owner has looked at it there and in local dev. It uploads, so the owner approves each command: as a sub-agent of `/add-game` it stops with its questions before each one and the orchestrator asks the owner in the chat; run by hand, the owner is in the session.
 
-The argument is the game's slug (`pnpm add-game` gives it); ask if there is none. The owner hands every asset over: **never make a picture**, no SVG drawn, no image generated, no animation, no sound.
+The argument is the game's slug (`/add-game` gives it); ask if there is none. The owner hands every asset over: **never make a picture**, no SVG drawn, no image generated, no animation, no sound.
 
 ## What the owner decides, and the default
 
@@ -60,7 +60,7 @@ The command reads the write token itself: never read it, never print it. A pictu
 
 Give the owner the two places to look: the game's Studio (`https://<host>.sanity.studio`, the `studioHost` of `games/<slug>/apps/studio/sanity.cli.ts`), where the drafts are, and, once they have published the documents there, `pnpm dev` and `http://localhost:3100/<slug>`. A draft is not read by the game: the owner publishes in the Studio, or hands the publishing over to the agent (`game-go-live`, step 2, item 1).
 
-`pnpm add-game` runs the seed's dry run once more when the owner leaves the session and again when they validate, and shows its "Art" part at its gate: the step is validated for a game whose seed can run, and the owner may leave slots empty.
+`/add-game` runs the seed's dry run (`pnpm game-flow gate`) when the sub-agent reports and again when the owner validates, and shows its "Art" part at its gate: the step is validated for a game whose seed can run, and the owner may leave slots empty.
 
 Print this, in the owner's language, and stop:
 

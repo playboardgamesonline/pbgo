@@ -1,32 +1,5 @@
-// What the terminal shows: colours (off when the output is not a terminal or NO_COLOR is set), durations, money, links, the rule above a gate.
+// What `pnpm game-flow` prints of what other people and agents wrote: links, one-line summaries, paths with the home folder as `~`, and text with no escape sequence in it.
 import { homedir } from "node:os"
-
-export type Palette = {
-  bold: (text: string) => string
-  dim: (text: string) => string
-  green: (text: string) => string
-  red: (text: string) => string
-  yellow: (text: string) => string
-  cyan: (text: string) => string
-}
-
-export function palette(color: boolean): Palette {
-  const wrap = (open: number, close: number) => (text: string) => (color ? `\u001b[${open}m${text}\u001b[${close}m` : text)
-  return { bold: wrap(1, 22), dim: wrap(2, 22), green: wrap(32, 39), red: wrap(31, 39), yellow: wrap(33, 39), cyan: wrap(36, 39) }
-}
-
-/** `4 min 12 s`, `37 s`: how long a call took. */
-export function formatDuration(ms: number): string {
-  const seconds = Math.max(0, Math.round(ms / 1000))
-  if (seconds < 60) return `${seconds} s`
-  const minutes = Math.floor(seconds / 60)
-  const rest = seconds % 60
-  return rest === 0 ? `${minutes} min` : `${minutes} min ${rest} s`
-}
-
-export function formatUsd(amount: number): string {
-  return `$${amount.toFixed(2)}`
-}
 
 /** One line of at most `max` characters: white space collapsed, an ellipsis when it was cut. */
 export function shorten(text: string, max: number): string {
@@ -70,9 +43,4 @@ export function extractLinks(text: string): string[] {
     if (link.length > "https://".length && !found.includes(link)) found.push(link)
   }
   return found
-}
-
-/** `━━━ title ━━━`: the line above a report. */
-export function rule(title: string, palette: Palette): string {
-  return palette.bold(`━━━ ${title} ━━━`)
 }

@@ -1,6 +1,6 @@
 // The rules spec of a game (GAM-33, `.claude/skills/game-rules-spec`): `docs/games/<slug>/rules.md`, the page that says what is in the box and how the game is played, in the
 // words the engine will follow, and `docs/games/<slug>/index.md`, its landing page (the docs of the site need one for each folder). This file is the one definition of their shape: the
-// skill writes them, `pnpm check:rules` judges them with `rulesSpecProblems` and `indexProblems`, `pnpm add-game` reads the verdict, and `engine-rules` and `game-assets` rely on it
+// skill writes them, `pnpm check:rules` judges them with `rulesSpecProblems` and `indexProblems`, `pnpm game-flow` reads the verdict, and `engine-rules` and `game-assets` rely on it
 // (the component list is what the assets are looked for from, the open points are what the engine asks the owner). Pure and made of what Node strips as it is (type stripping), like
 // `scout.ts` that it builds on, so that the test and the scripts cannot disagree. The page comes from an agent that has read web pages and a rulebook: nothing in it is trusted, and a
 // sentence about it is made printable.

@@ -1,19 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { extractLinks, formatDuration, formatUsd, palette, printable, shorten, tilde, tildeAll } from "./render.ts"
+import { extractLinks, printable, shorten, tilde, tildeAll } from "./text.ts"
 
-describe("render", () => {
-  it("says how long a call took", () => {
-    expect(formatDuration(0)).toBe("0 s")
-    expect(formatDuration(37_400)).toBe("37 s")
-    expect(formatDuration(60_000)).toBe("1 min")
-    expect(formatDuration(252_000)).toBe("4 min 12 s")
-  })
-
-  it("prints money in dollars with cents", () => {
-    expect(formatUsd(0.6401)).toBe("$0.64")
-    expect(formatUsd(3)).toBe("$3.00")
-  })
-
+describe("text", () => {
   it("makes one line of at most the width, with an ellipsis when it cut", () => {
     expect(shorten("a   b\n c", 20)).toBe("a b c")
     expect(shorten("abcdefghij", 5)).toBe("abcd…")
@@ -28,11 +16,6 @@ describe("render", () => {
   it("finds the https addresses of a report, once each, without the punctuation of the sentence", () => {
     const text = "Draft https://pbgo.sanity.studio/intent/edit/id=game-x;type=game.\nSee (https://example.com/a), https://example.com/a and http://insecure.example"
     expect(extractLinks(text)).toEqual(["https://pbgo.sanity.studio/intent/edit/id=game-x;type=game", "https://example.com/a"])
-  })
-
-  it("has no escape code when colours are off", () => {
-    expect(palette(false).bold("x")).toBe("x")
-    expect(palette(true).green("x")).toContain("\u001b[32m")
   })
 })
 

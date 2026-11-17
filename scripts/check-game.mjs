@@ -5,7 +5,7 @@
 //        pnpm check:game <slug> --stage engine   a gate: exit 1 when a check up to that stage fails, so "ready for the next step" is a command
 //        pnpm check:game <slug> --only content   a gate for one stage alone: exit 1 when a check of that stage fails, whatever the stages before it say (a step done out of order)
 //        pnpm check:game --all                   every game of the registry: the last stage it passed, and what stops it
-//        pnpm check:game <slug> --json           one line of JSON (slug, missing, reached, failing): what `pnpm add-game` reads
+//        pnpm check:game <slug> --json           one line of JSON (slug, missing, reached, failing): what `pnpm game-flow` reads
 // A check is `ok`, `warn` (look at it: a convention or something only a person can judge) or `fail` (the stage is not done). What a machine cannot see, the words of the rules, the look of the board, a table played with two seats, is in the skills
 // (`.claude/skills/engine-rules`, `engine-board`, `game-go-live`); this script is the part of them that does not need a person. It reads files only: no network, no build.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
@@ -55,8 +55,8 @@ const IMPURE = [
 
 /** The checks, in the order of the stages. Each gets the game and answers `[level, message]`. */
 const CHECKS = [
-  ["scaffold", "registered", (g) => (g.entry ? ["ok", `registered (live ${g.entry.live}, indexable ${g.entry.indexable})`] : ["fail", "not in packages/games/src/registry.ts: run `pnpm add-game`"])],
-  ["scaffold", "sanity project", (g) => (!g.entry ? ["fail", "no entry, so no Sanity project"] : !g.entry.projectId || g.entry.projectId.startsWith("__") ? ["fail", "no Sanity project yet: `pnpm go-live <slug>` (`add-game` stopped half-way)"] : ["ok", `Sanity project ${g.entry.projectId}`])],
+  ["scaffold", "registered", (g) => (g.entry ? ["ok", `registered (live ${g.entry.live}, indexable ${g.entry.indexable})`] : ["fail", "not in packages/games/src/registry.ts: run `pnpm new-game <slug>`"])],
+  ["scaffold", "sanity project", (g) => (!g.entry ? ["fail", "no entry, so no Sanity project"] : !g.entry.projectId || g.entry.projectId.startsWith("__") ? ["fail", "no Sanity project yet: `pnpm go-live <slug>` (`game-new` stopped half-way)"] : ["ok", `Sanity project ${g.entry.projectId}`])],
   [
     "scaffold",
     "files",
@@ -220,10 +220,10 @@ function check(slug) {
 }
 
 /**
- * A game with no folder yet may be on its way through `pnpm add-game "<Name>"`: its state is one JSON file outside the repo (`packages/pipeline`), read here and
- * never copied, so that this report and the pipeline's cannot disagree. The stages above are this script's; the pipeline's steps come before them.
+ * A game with no folder yet may be on its way through `/add-game`: its state is one JSON file outside the repo (`packages/pipeline`), read here and
+ * never copied, so that this report and the flow's cannot disagree. The stages above are this script's; the flow's steps come before them.
  */
-function pipelineOf(slug) {
+function flowOf(slug) {
   const assets = process.env.PBGO_ASSETS_DIR || join(homedir(), "Companies", "PBGO", "assets")
   try {
     const state = JSON.parse(readFileSync(join(assets, slug, "pipeline.json"), "utf8"))
@@ -269,17 +269,17 @@ if (!slug) {
 }
 const done = check(slug)
 if (args.includes("--json")) {
-  // For the programs that ask (`pnpm add-game`): where the game has got to, and the first check that stops it
+  // For the programs that ask (`pnpm game-flow`): where the game has got to, and the first check that stops it
   const stop = done.results.find((result) => result.level === "fail")
   console.log(JSON.stringify({ slug, missing: done.missing, reached: done.reached, failing: stop ? { stage: stop.stage, name: stop.name, message: stop.message } : null }))
   process.exit(done.missing ? 2 : 0)
 }
 if (done.missing) {
-  const pipeline = pipelineOf(slug)
+  const flow = flowOf(slug)
   console.error(
-    pipeline
-      ? `There is no game ${slug} in the repo yet: games/${slug} does not exist. It is in the pipeline (${pipeline.steps}): \`pnpm add-game "${pipeline.name}"\` goes on, and \`pnpm add-game ${slug}\` makes its folder.`
-      : `There is no game ${slug}: games/${slug} does not exist. \`pnpm add-game "<Game Name>"\` starts one (its identity, its catalog entry), \`pnpm add-game ${slug}\` makes its folder.`,
+    flow
+      ? `There is no game ${slug} in the repo yet: games/${slug} does not exist. It is in the flow (${flow.steps}): \`/add-game "${flow.name}"\` goes on.`
+      : `There is no game ${slug}: games/${slug} does not exist. \`/add-game "<Game Name>"\` starts one, from its name to its folder and beyond.`,
   )
   process.exit(2)
 }

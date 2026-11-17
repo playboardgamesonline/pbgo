@@ -7,7 +7,7 @@ import { SCOUT_TYPES, SCOUT_VERSION, readScout, scoutProblems, stateProblems, ty
 /** A character by its code point: the ones that hide are not written out in this file. */
 const char = (code: number) => String.fromCodePoint(code)
 
-// The scout file as the skill writes it, and every way for it to be wrong: what the pipeline reads must be what `scoutProblems` accepts, and nothing else.
+// The scout file as the skill writes it, and every way for it to be wrong: what `/add-game` reads must be what `scoutProblems` accepts, and nothing else.
 
 const valid = (): Scout => ({
   version: 1,

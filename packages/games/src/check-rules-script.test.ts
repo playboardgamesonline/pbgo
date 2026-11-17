@@ -81,8 +81,35 @@ describe("pnpm check:rules", () => {
     expect(result.out).toContain("fail  docs/games/odd-landing/index.md\n  - The page links to the spec: [Rules spec](./rules.md)")
   })
 
+  it("stamps a spec that passes as validated, once, with the day it is given: the owner's ok", () => {
+    const result = check("stamped-run", { rules: SPEC, index: INDEX }, ["--name", "Orchard Run", "--stamp", "--date", "2026-11-17"])
+    expect(result.err).toBe("")
+    expect(result.status).toBe(0)
+    expect(result.out).toContain("stamp docs/games/stamped-run/rules.md: Orchard Run: 2–4 players, 5 components of 4 kinds, 2 open points (0 to validate), validated 2026-11-17")
+    const page = readFileSync(join(docs, "stamped-run", "rules.md"), "utf8")
+    expect(page).toContain("- Status: validated 2026-11-17")
+    expect(page).not.toContain("to validate")
+    // validating again changes nothing, whatever day it is given
+    const again = run(["stamped-run", "--stamp", "--date", "2026-12-01"])
+    expect(again.status).toBe(0)
+    expect(again.out).toContain("it is validated already, nothing changed")
+    expect(readFileSync(join(docs, "stamped-run", "rules.md"), "utf8")).toBe(page)
+  })
+
+  it("does not stamp a spec that does not pass, and leaves its file as it is", () => {
+    const broken = SPEC.replace("## Setup", "## Set up")
+    const result = check("unstamped", { rules: broken, index: INDEX }, ["--stamp", "--date", "2026-11-17"])
+    expect(result.status).toBe(1)
+    expect(result.out).not.toContain("stamp docs/games/unstamped")
+    expect(readFileSync(join(docs, "unstamped", "rules.md"), "utf8")).toBe(broken)
+    // a spec that passes but whose landing page does not is not stamped either
+    const lonely = check("unstamped-landing", { rules: SPEC, index: null }, ["--stamp", "--date", "2026-11-17"])
+    expect(lonely.status).toBe(1)
+    expect(readFileSync(join(docs, "unstamped-landing", "rules.md"), "utf8")).toBe(SPEC)
+  })
+
   it("refuses a command line that is wrong, with the usage, and exits 2", () => {
-    for (const args of [[], ["--name", "Orchard Run"], ["a", "b"], ["--nope", "a"], ["Not A Slug"], ["orchard-run", "--name"], ["orchard-run", "--name", "--help"]]) {
+    for (const args of [[], ["--name", "Orchard Run"], ["a", "b"], ["--nope", "a"], ["Not A Slug"], ["orchard-run", "--name"], ["orchard-run", "--name", "--help"], ["orchard-run", "--date", "2026-11-17"], ["orchard-run", "--stamp", "--date", "soon"]]) {
       const result = run(args)
       expect(result.status, args.join(" ")).toBe(2)
       expect(result.err, args.join(" ")).toContain("Usage: pnpm check:rules <slug>")

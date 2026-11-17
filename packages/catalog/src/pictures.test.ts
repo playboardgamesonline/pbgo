@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest"
 import { describePictures, PICTURE_NAMES, PICTURES_QUERY, readPictures, TRANSLATED_PICTURES, type PicturesRead } from "./pictures.ts"
 import { SanityError } from "./sanity.ts"
 
-// What the pictures step of `pnpm add-game` asks the platform's Sanity project after the session of `platform-assets`: which of the five pictures the published entry of a game has. The API is a stand-in.
+// What the pictures step of `/add-game` asks the platform's Sanity project once the sub-agent of `platform-assets` has reported: which of the five pictures the published entry of a game has. The API is a stand-in.
 const answer = (body: unknown, status = 200) => vi.fn(async (..._args: Parameters<typeof fetch>) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } })) as unknown as typeof fetch & ReturnType<typeof vi.fn>
 
 const FULL = { id: "game-test-game", name: "Test Game", cover: true, logo: true, icon: false, background: true, boxFront: false }

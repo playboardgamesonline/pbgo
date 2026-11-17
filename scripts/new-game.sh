@@ -6,7 +6,7 @@
 # playable outside production only, at http://localhost:3100/<slug>.
 # The name is what the hub, the Studio and the docs of the game print; without --name it is the slug, capitalised
 # (the-crew → The Crew). The slug and the name follow packages/games/src/slug.ts, which the registry test reads too.
-# Next: pnpm go-live <slug> (Sanity project, studio, write token), or pnpm add-game for both and the rules PDF.
+# Next: pnpm go-live <slug> (Sanity project, studio, write token), or the skill game-new (/game-new) for all of it, the rules PDF and setup-env included.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 source scripts/lib.sh
@@ -127,4 +127,4 @@ JS
 pnpm install --silent
 echo "✓ $DEST created from the template as \"$NAME\" and registered in packages/games (not live)"
 echo "  Play it:  pnpm dev  →  http://localhost:3100/$SLUG"
-echo "  Next:     pnpm go-live $SLUG   (Sanity project, studio, write token), or pnpm add-game for all of it"
+echo "  Next:     pnpm go-live $SLUG   (Sanity project, studio, write token), or /game-new for all of it"

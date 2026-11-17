@@ -1,7 +1,7 @@
 import { HUB_LANGUAGE, PLATFORM_DATASET, PLATFORM_PROJECT_ID, SANITY_API_VERSION, SanityError, isRecord } from "./sanity.ts"
 
 // What `pnpm catalog:pictures <slug>` reads of the platform's Sanity project (PLT-99, `.claude/skills/platform-assets`): which of the five pictures a game's published entry has. The pictures step of
-// `pnpm add-game` asks it once the owner leaves the session, so that nobody takes the skill's word for what is public. Run by Node itself (type stripping), like `scout-state.ts`: a value import has its
+// `/add-game` asks it (`pnpm game-flow gate`) once the sub-agent has reported, so that nobody takes the skill's word for what is public. Run by Node itself (type stripping), like `scout-state.ts`: a value import has its
 // `.ts` extension. No token: the dataset is public, and a draft is not seen from outside, which is the point ("published").
 
 /** The pictures of a game of the catalog, in the order the Studio shows them: the platform's seed (`platform/content/data/art.ts`) places a file in each. */

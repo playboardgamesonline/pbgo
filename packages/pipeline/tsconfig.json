@@ -4,5 +4,5 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src", "bin", "hook", "test"]
+  "include": ["src", "bin"]
 }

@@ -1,20 +1,17 @@
-// The state of a game that goes through the pipeline: one JSON file, `<assets>/<slug>/pipeline.json`, next to the scout file, outside the repo and never
-// committed, so that the command can stop and resume from any checkout. It keeps what the repo cannot say (which step was validated, what the gate showed,
-// the session, the Linear issues) and nothing `pnpm check:game` can: the stages of a game that has a folder are computed from the repo, never copied here.
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs"
+// The state of a game that goes through `/add-game`: one JSON file, `<assets>/<slug>/pipeline.json`, next to the scout file, outside the repo and never committed, so that the skill can stop and
+// resume from any session. It keeps what the repo cannot say (which step was validated, what the gate showed, the Linear issues) and nothing `pnpm check:game` can: the stages of a game that has a
+// folder are computed from the repo, never copied here. The skill is the only writer, through `pnpm game-flow`, and every write is a whole file renamed into place.
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { cleanName, slugFromName } from "@pbgo/games/slug"
 
 export const STATE_VERSION = 1
 export const STATE_FILE = "pipeline.json"
-export const LOCK_FILE = "pipeline.lock"
 export const SCOUT_FILE = "scout.json"
-/** The rulebook of the game, next to its scout file: the one the scout found (the command fetches it) or one the owner put there. The rules spec is read from it. */
+/** The rulebook of the game, next to its scout file: the one the scout found (`pnpm game-flow rulebook` fetches it) or one the owner put there. The rules spec is read from it. */
 export const RULES_PDF = "rules.pdf"
 /** The folder of the pictures of the game for the platform's catalog entry, next to the scout file: the files are named `game-<slug>-<picture>` (the seed's art step reads them there). */
 export const PICTURES_DIR = "platform"
-/** Inside a game's folder: the policy and the settings of each call, and the raw stream of each round. */
-export const WORK_DIR = ".pipeline"
 
 export type StepStatus = "pending" | "running" | "gate" | "validated" | "failed"
 
@@ -34,14 +31,14 @@ export type StepState = {
   status: StepStatus
   /** the gate the step waits at (an index of its gates) */
   gate: number
+  /** how many times the step was opened: the first work, then each change the owner asked for */
   rounds: number
-  costUsd: number
   startedAt: string | null
   validatedAt: string | null
-  /** what the last call said, shown again when the command comes back to the gate */
+  /** what the sub-agent said last, shown again when the skill comes back to the gate */
   report: string | null
   links: string[]
-  /** what the machine checked after the last call (the scout file) */
+  /** what the machine checked after the last report */
   check: { ok: boolean; lines: string[] } | null
   failure: string | null
   issue: LinearIssueRef | null
@@ -55,29 +52,17 @@ export type PipelineState = {
   slug: string
   createdAt: string
   updatedAt: string
-  /** one session for the whole game; `started` is false until the first call that makes it */
-  session: { id: string; started: boolean }
   linear: { parent: LinearIssueRef | null; labelId: string | null; error: string | null }
   steps: Record<string, StepState>
 }
 
 export function emptyStep(): StepState {
-  return { status: "pending", gate: 0, rounds: 0, costUsd: 0, startedAt: null, validatedAt: null, report: null, links: [], check: null, failure: null, issue: null }
+  return { status: "pending", gate: 0, rounds: 0, startedAt: null, validatedAt: null, report: null, links: [], check: null, failure: null, issue: null }
 }
 
-export function newState(args: { name: string; slug: string; sessionId: string; now: Date }): PipelineState {
+export function newState(args: { name: string; slug: string; now: Date }): PipelineState {
   const at = args.now.toISOString()
-  return {
-    version: STATE_VERSION,
-    name: args.name,
-    aliases: [args.name],
-    slug: args.slug,
-    createdAt: at,
-    updatedAt: at,
-    session: { id: args.sessionId, started: false },
-    linear: { parent: null, labelId: null, error: null },
-    steps: {},
-  }
+  return { version: STATE_VERSION, name: args.name, aliases: [args.name], slug: args.slug, createdAt: at, updatedAt: at, linear: { parent: null, labelId: null, error: null }, steps: {} }
 }
 
 /** The state of a step, made (pending) when the game has none yet: a step added in a later version shows up in a game that began before it. */
@@ -120,7 +105,6 @@ function parseStep(value: unknown, where: string, problems: string[]): StepState
   else problems.push(`${where}.status is "${String(status)}"`)
   if (typeof value.gate === "number" && Number.isInteger(value.gate) && value.gate >= 0) step.gate = value.gate
   if (typeof value.rounds === "number" && value.rounds >= 0) step.rounds = value.rounds
-  if (typeof value.costUsd === "number" && value.costUsd >= 0) step.costUsd = value.costUsd
   if (isStringOrNull(value.startedAt)) step.startedAt = value.startedAt ?? null
   if (isStringOrNull(value.validatedAt)) step.validatedAt = value.validatedAt ?? null
   if (isStringOrNull(value.report)) step.report = value.report ?? null
@@ -131,7 +115,10 @@ function parseStep(value: unknown, where: string, problems: string[]): StepState
   return step
 }
 
-/** A state file read: the state, or what is wrong with the file (a state of another version is refused, not guessed). */
+/**
+ * A state file read: the state, or what is wrong with the file (a state of another version is refused, not guessed). The file the terminal command wrote is read as it is: what only it
+ * used (the session of a headless call, the cost of a round) is left out of the state, and the next write drops it.
+ */
 export function parseState(text: string): { state: PipelineState; problems: [] } | { state: null; problems: string[] } {
   let data: unknown
   try {
@@ -142,12 +129,11 @@ export function parseState(text: string): { state: PipelineState; problems: [] }
   if (!isRecord(data)) return { state: null, problems: ["the file is not an object"] }
   if (data.version !== STATE_VERSION) return { state: null, problems: [`the file is version ${String(data.version)}, this command reads version ${STATE_VERSION}`] }
   const problems: string[] = []
-  const { name, slug, createdAt, updatedAt, session, linear, steps } = data
+  const { name, slug, createdAt, updatedAt, linear, steps } = data
   if (!isString(name) || !isString(slug) || !isString(createdAt) || !isString(updatedAt)) problems.push("name, slug, createdAt and updatedAt are text")
-  if (!isRecord(session) || !isString(session.id) || typeof session.started !== "boolean") problems.push("session is { id, started }")
   if (!isRecord(linear)) problems.push("linear is an object")
   if (!isRecord(steps)) problems.push("steps is an object")
-  if (problems.length > 0 || !isString(name) || !isString(slug) || !isString(createdAt) || !isString(updatedAt) || !isRecord(session) || !isRecord(linear) || !isRecord(steps)) {
+  if (problems.length > 0 || !isString(name) || !isString(slug) || !isString(createdAt) || !isString(updatedAt) || !isRecord(linear) || !isRecord(steps)) {
     return { state: null, problems }
   }
   const aliases = Array.isArray(data.aliases) ? data.aliases.filter(isString) : []
@@ -161,8 +147,7 @@ export function parseState(text: string): { state: PipelineState; problems: [] }
     slug,
     createdAt,
     updatedAt,
-    session: { id: String(session.id), started: Boolean(session.started) },
-    linear: { parent: parseIssue(linear.parent, "linear.parent", problems), labelId: isString(linear.labelId) ? linear.labelId : null, error: isString(linear.error) ? linear.error : null },
+    linear: { parent: parseIssue(linear.parent, "linear.parent", problems), labelId: isString(linear.labelId) && linear.labelId !== '""' ? linear.labelId : null, error: isString(linear.error) ? linear.error : null },
     steps: parsedSteps,
   }
   return problems.length > 0 ? { state: null, problems } : { state, problems: [] }
@@ -240,51 +225,4 @@ export function moveGameDir(root: string, fromDir: string, toSlug: string): stri
   if (existsSync(target)) throw new Error(`${target} already exists: the game cannot move to ${toSlug}`)
   renameSync(fromDir, target)
   return target
-}
-
-// ---------- a lock, so that two runs of one game never overlap ----------
-
-export class LockedError extends Error {
-  readonly pid: number
-  constructor(pid: number) {
-    super(`another run of this game is in progress (process ${pid})`)
-    this.pid = pid
-  }
-}
-
-/** The lock of a game's folder. `dir` follows the folder when it moves. */
-export class Lock {
-  dir: string
-  constructor(dir: string) {
-    this.dir = dir
-  }
-  get path(): string {
-    return join(this.dir, LOCK_FILE)
-  }
-  release(): void {
-    rmSync(this.path, { force: true })
-  }
-}
-
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (error) {
-    return typeof error === "object" && error !== null && "code" in error && error.code === "EPERM"
-  }
-}
-
-export function acquireLock(dir: string, pid: number = process.pid): Lock {
-  mkdirSync(dir, { recursive: true })
-  const path = join(dir, LOCK_FILE)
-  try {
-    writeFileSync(path, String(pid), { flag: "wx" })
-  } catch (error) {
-    if (!(typeof error === "object" && error !== null && "code" in error && error.code === "EEXIST")) throw error
-    const other = Number(readFileSync(path, "utf8").trim())
-    if (Number.isInteger(other) && other > 0 && other !== pid && alive(other)) throw new LockedError(other)
-    writeFileSync(path, String(pid))
-  }
-  return new Lock(dir)
 }

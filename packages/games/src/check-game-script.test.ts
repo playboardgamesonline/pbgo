@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 
 // `scripts/check-game.mjs` reads files only and is run by Node itself: this runs it as `pnpm check:game` does, on the template (always there, and a game that has not got far: its engine is the demo, its
-// flags are off), to check the two kinds of gate. `--stage` is every check up to a stage; `--only` is one stage alone, for a step that is done out of order (`pnpm add-game` gates the Studio's forms by it).
+// flags are off), to check the two kinds of gate. `--stage` is every check up to a stage; `--only` is one stage alone, for a step that is done out of order (`/add-game` gates the Studio's forms by it).
 const REPO = fileURLToPath(new URL("../../../", import.meta.url))
 const check = (...args: string[]) => {
   const run = spawnSync(process.execPath, ["scripts/check-game.mjs", "template", ...args], { cwd: REPO, encoding: "utf8", timeout: 30_000 })

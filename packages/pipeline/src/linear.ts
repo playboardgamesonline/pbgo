@@ -1,8 +1,7 @@
-// The Linear bookkeeping of a game: one parent issue and one sub-issue per step, moved along as the steps are validated. The command holds no key: a small
-// headless call (a small model, a small budget) does the work through Composio, from a work order that names every tool and every value. The call is not trusted
-// with decisions: what it may reach is the policy's (policy.ts), and a failure here never stops the pipeline (it is told, and tried again at the next point).
-import { tilde } from "./render.ts"
-import type { Policy } from "./policy.ts"
+// The Linear bookkeeping of a game: one parent issue and one sub-issue per step, moved along as the steps are validated. The skill holds no Linear call itself: a small sub-agent (Haiku) does the
+// work through Composio, from a brief that names every tool and every value (`pnpm game-flow linear`), and writes the ids it got to a file that the skill records (`pnpm game-flow linear-record`).
+// The sub-agent is not trusted with decisions: what Linear should say is computed here from the state, and a failure never stops the game (it is told, and tried again at the next point).
+import { tilde } from "./text.ts"
 import type { LinearIssueRef, PipelineState } from "./state.ts"
 import { stepOf } from "./state.ts"
 import type { Game, StepDefinition } from "./steps.ts"
@@ -25,26 +24,6 @@ export const LINEAR = {
 } as const
 
 export type LinearTarget = keyof typeof LINEAR.states
-
-/** The Composio tools a Linear call may run. */
-export const LINEAR_SLUGS = ["LINEAR_CREATE_LINEAR_ISSUE", "LINEAR_UPDATE_ISSUE", "LINEAR_GET_LINEAR_ISSUE", "LINEAR_SEARCH_ISSUES", "LINEAR_CREATE_LINEAR_COMMENT", "LINEAR_RUN_QUERY_OR_MUTATION"]
-
-/** The ids and the identifiers of the issues the game has in Linear: the only ones a bookkeeping call may update or comment. */
-export function issueIdsOf(state: PipelineState): string[] {
-  const refs = [state.linear.parent, ...Object.values(state.steps).map((step) => step.issue)]
-  return refs.flatMap((ref) => (ref ? [ref.id, ref.identifier] : []))
-}
-
-export function linearPolicy(game: Game, repoRoot: string, extras: { composioServer: string; issueIds: string[] }): Policy {
-  return {
-    repoRoot,
-    workDir: game.dir,
-    writeFiles: [],
-    readFiles: [],
-    bash: [],
-    composio: { server: extras.composioServer, slugs: [...LINEAR_SLUGS], sanity: null, linear: { teamId: LINEAR.teamId, projectId: LINEAR.projectId, issueIds: extras.issueIds } },
-  }
-}
 
 export type OrderIssue = {
   /** `parent`, or the id of a step */
@@ -75,19 +54,20 @@ const parentTitle = (name: string) => `${name}: add the game`
 const stepTitle = (name: string, step: StepDefinition) => `${name}: ${step.title}`
 
 function ref(issue: LinearIssueRef | null): Pick<OrderIssue, "id" | "identifier" | "state" | "title"> {
-  return { id: issue?.id ?? null, identifier: issue?.identifier ?? null, state: issue?.applied ?? null, title: issue?.title ?? null }
+  // an issue the terminal command recorded before it had made it has an empty id: it is yet to be made
+  return { id: issue?.id ? issue.id : null, identifier: issue?.identifier ? issue.identifier : null, state: issue?.id ? issue.applied : null, title: issue?.id ? issue.title : null }
 }
 
 /**
  * What Linear should say now. The first step that is not validated is In Progress, the ones after it Todo, the validated ones Done (with one comment of
- * links); the parent stays In Progress: the steps of the later versions will add their issues under it. `null` when Linear already says exactly that.
+ * links); the parent stays In Progress until the game is live. `null` when Linear already says exactly that.
  */
 export function buildOrder(state: PipelineState, steps: readonly StepDefinition[], game: Game, assetsLabel: (path: string) => string = tilde): WorkOrder | null {
   const issues: OrderIssue[] = []
   const parent = state.linear.parent
   issues.push({
     key: "parent",
-    description: `Adds ${state.name} to the platform, one step at a time: ${steps.map((step) => `${step.title} (/${step.skill})`).join(", ")}. Made and moved along by \`pnpm add-game "${state.name}"\`; each step is validated at its gate.`,
+    description: `Adds ${state.name} to the platform, one step at a time: ${steps.map((step) => `${step.title} (/${step.skill})`).join(", ")}. Made and moved along by the skill /add-game; the owner validates each step at its gate.`,
     lane: null,
     ...ref(parent),
     wantTitle: parentTitle(state.name),
@@ -104,7 +84,7 @@ export function buildOrder(state: PipelineState, steps: readonly StepDefinition[
     const done = want === "Done"
     issues.push({
       key: step.id,
-      description: `Step of \`pnpm add-game "${state.name}"\`: the skill \`/${step.skill}\`. Done when the step is validated at its gate${step.gates.includes("publish") ? "; publishing is a second word, publish" : ""}.`,
+      description: `Step of /add-game for ${state.name}: the skill \`/${step.skill}\`. Done when the owner validates the step at its gate${step.gates.includes("publish") ? "; publishing is a second word, publish" : ""}.`,
       lane: step.lane,
       ...ref(s.issue),
       wantTitle: stepTitle(state.name, step),
@@ -119,40 +99,24 @@ export function buildOrder(state: PipelineState, steps: readonly StepDefinition[
 /** What the comment of a validated step says: when, and where to look. */
 export function validationComment(state: PipelineState, step: StepDefinition, game: Game, label: (path: string) => string): string {
   const s = stepOf(state, step.id)
-  const lines = [`Validated${s.validatedAt ? ` on ${s.validatedAt.slice(0, 10)}` : ""} at the gate of \`pnpm add-game "${state.name}"\` (${s.rounds} round${s.rounds === 1 ? "" : "s"}).`]
+  const lines = [`Validated${s.validatedAt ? ` on ${s.validatedAt.slice(0, 10)}` : ""} at its gate in /add-game (${s.rounds} round${s.rounds === 1 ? "" : "s"}).`]
   if (step.id === "scout") lines.push(`Scout file: ${label(game.scoutFile)}`)
   if (step.id === "rules-spec") lines.push(`Rules spec: docs/games/${game.slug}/rules.md (in the checkout, uncommitted: the game's first pull request takes it)`)
   if (s.links.length > 0) lines.push(...s.links.map((link) => `- ${link}`))
   return lines.join("\n")
 }
 
-export const LINEAR_SCHEMA = {
-  type: "object",
-  required: ["issues"],
-  additionalProperties: false,
-  properties: {
-    labelId: { type: "string" },
-    issues: {
-      type: "array",
-      items: {
-        type: "object",
-        required: ["key", "id", "identifier", "url", "state"],
-        additionalProperties: false,
-        properties: { key: { type: "string" }, id: { type: "string" }, identifier: { type: "string" }, url: { type: "string" }, state: { type: "string" }, commented: { type: "boolean" } },
-      },
-    },
-    notes: { type: "array", items: { type: "string" } },
-  },
-} as const
+/** The shape of the answer the sub-agent writes. */
+export const LINEAR_ANSWER_SHAPE = '{"labelId": "<id of the game label>", "issues": [{"key": "<key of the work order>", "id": "<uuid>", "identifier": "GAM-41", "url": "<url>", "state": "Todo | In Progress | Done", "commented": true | false}], "notes": ["<anything that did not go as asked>"]}'
 
-/** The prompt of the bookkeeping call: the protocol, the fixed values, the work order, the rules. Nothing is left to guess. */
-export function linearPrompt(order: WorkOrder, composioPrefix: string): string {
+/** The brief of the bookkeeping sub-agent: the protocol, the fixed values, the work order, the rules, where to write the answer. Nothing is left to guess. */
+export function linearPrompt(order: WorkOrder, answerPath: string): string {
   const states = Object.entries(LINEAR.states).map(([name, id]) => `${name} ${id}`).join(", ")
   const labels = Object.entries(LINEAR.labels).map(([name, id]) => `${name} ${id}`).join(", ")
-  return `You are the bookkeeping step of a command-line tool. Do exactly the work order below in Linear, through Composio, then answer with the JSON the output schema asks for. Do nothing else: no other tool, no question, no explanation.
+  return `You are the Linear bookkeeping of the skill /add-game. Do exactly the work order below in Linear, through Composio, then write the JSON answer to ${answerPath} with the Write tool and reply with that path and nothing else. No other tool than the ones named here, no question, no explanation.
 
 How to reach Linear:
-1. Load the tools: ToolSearch with the query select:${composioPrefix}COMPOSIO_SEARCH_TOOLS,${composioPrefix}COMPOSIO_MULTI_EXECUTE_TOOL,${composioPrefix}COMPOSIO_GET_TOOL_SCHEMAS
+1. Load the Composio tools: ToolSearch with the query "composio" (max_results 10). The ones you need are those whose names end with COMPOSIO_SEARCH_TOOLS, COMPOSIO_MULTI_EXECUTE_TOOL and COMPOSIO_GET_TOOL_SCHEMAS.
 2. Call COMPOSIO_SEARCH_TOOLS once, with queries [{"use_case": "create, update and comment on Linear issues"}] and session {"generate_id": true}. Keep the session_id of its answer.
 3. Call COMPOSIO_MULTI_EXECUTE_TOOL with that session_id and sync_response_to_workbench false, one tool per call, in the order of the work order. When a call fails on its arguments, read the schema of that tool with COMPOSIO_GET_TOOL_SCHEMAS and try once more.
 
@@ -167,16 +131,16 @@ ${JSON.stringify(order, null, 2)}
 
 Rules:
 - The game label: when label.id is null, look for the label named label.name under the group "Game" (LINEAR_RUN_QUERY_OR_MUTATION with the query { team(id: "${LINEAR.teamId}") { labels(first: 250) { nodes { id name parent { id } } } } }), and when there is none, make it with LINEAR_RUN_QUERY_OR_MUTATION and the mutation { issueLabelCreate(input: { name: "<label.name>", teamId: "${LINEAR.teamId}", parentId: "${LINEAR.gameLabelGroupId}" }) { success issueLabel { id name } } }. Answer with its id as labelId.
-- An issue whose id is null: first look for one that exists with LINEAR_SEARCH_ISSUES (query = its exact wantTitle, first 10) and reuse a result of the team ${LINEAR.teamKey} whose title is exactly that; otherwise make it with LINEAR_CREATE_LINEAR_ISSUE: team_id, title (wantTitle), description, project_id, assignee_id, state_id (the id of wantState), label_ids (the game label, Feature, and its lane label when its lane is not null), and parent_id (the id of the parent issue) for every issue but the parent. Make the parent before the others.
+- An issue whose id is null: first look for one that exists, with LINEAR_RUN_QUERY_OR_MUTATION and the query { issues(filter: { title: { eq: "<its wantTitle>" }, team: { id: { eq: "${LINEAR.teamId}" } } }, first: 5) { nodes { id identifier url title state { name } } } }, and reuse the one it finds; otherwise make it with LINEAR_CREATE_LINEAR_ISSUE: team_id, title (wantTitle), description, project_id, assignee_id, state_id (the id of wantState), label_ids (the game label, Feature, and its lane label when its lane is not null), and parent_id (the id of the parent issue) for every issue but the parent. Make the parent before the others, and each issue in the state of its wantState.
 - An issue whose id is filled and whose state differs from wantState: LINEAR_UPDATE_ISSUE with issueId and stateId (the id of wantState). When its title differs from wantTitle, send title too.
-- An issue whose comment is not null and whose id is filled: LINEAR_CREATE_LINEAR_COMMENT with issueId and body (the comment), once, and answer commented true for it.
-- An issue that you made, or found by its title, in this call is neither moved nor commented in this call (the policy lets a call touch only the issues the work order already has an id for): it is made in its wantState, and answer commented false for it, the next point posts its comment.
+- An issue whose comment is not null: LINEAR_CREATE_LINEAR_COMMENT with issueId and body (the comment), once, and answer commented true for it. For every other issue answer commented false.
 - Never delete, archive or move anything, and never touch an issue that is not in the work order.
 
-Answer with the JSON only: for each issue of the work order its key, id, identifier (like ${LINEAR.teamKey}-41, taken from its url or from LINEAR_GET_LINEAR_ISSUE), url and its state as written (Todo, In Progress or Done), and the game label id as labelId.`
+The answer is this JSON, and nothing else is written to the file: ${LINEAR_ANSWER_SHAPE}
+Give each issue of the work order its key, id, identifier (like ${LINEAR.teamKey}-41, taken from its url or from LINEAR_GET_LINEAR_ISSUE), url and its state as written (Todo, In Progress or Done), and the game label id as labelId.`
 }
 
-/** What the call answered, written into the state; the problems are what the answer lacks. */
+/** What the sub-agent answered, written into the state; the problems are what the answer lacks. */
 export function applyResult(state: PipelineState, structured: unknown, order: WorkOrder): string[] {
   const problems: string[] = []
   if (typeof structured !== "object" || structured === null) return ["the answer is not an object"]
@@ -185,7 +149,7 @@ export function applyResult(state: PipelineState, structured: unknown, order: Wo
   const items = Array.isArray(answer.issues) ? answer.issues : []
   for (const wanted of order.issues) {
     const item = items.find((candidate): candidate is Record<string, unknown> => typeof candidate === "object" && candidate !== null && (candidate as { key?: unknown }).key === wanted.key)
-    if (!item || typeof item.id !== "string" || typeof item.identifier !== "string" || typeof item.url !== "string") {
+    if (!item || typeof item.id !== "string" || item.id === "" || typeof item.identifier !== "string" || typeof item.url !== "string") {
       problems.push(`no issue came back for ${wanted.key}`)
       continue
     }
@@ -202,4 +166,16 @@ export function applyResult(state: PipelineState, structured: unknown, order: Wo
     else stepOf(state, wanted.key).issue = next
   }
   return problems
+}
+
+/** The JSON of an answer that may come wrapped in a code fence or in a sentence: from its first `{` to its last `}`. */
+export function parseAnswer(text: string): unknown {
+  const start = text.indexOf("{")
+  const end = text.lastIndexOf("}")
+  if (start < 0 || end < start) return null
+  try {
+    return JSON.parse(text.slice(start, end + 1))
+  } catch {
+    return null
+  }
 }

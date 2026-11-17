@@ -1,6 +1,8 @@
-// What the command asks of the platform's Sanity itself: only whether documents are published, from the public API (the dataset is public: no token), to check what the
+// What the flow asks of the platform's Sanity itself: only whether documents are published, from the public API (the dataset is public: no token), to check what the
 // skill said it published rather than take its word for it.
-import { PLATFORM_SANITY } from "./policy.ts"
+
+/** The platform's own Sanity project: the hub's catalog and editorial (`docs/platform-sanity.md`). */
+export const PLATFORM_SANITY = { projectId: "mhgqs6fe", dataset: "production" } as const
 
 const API_VERSION = "v2025-02-19"
 

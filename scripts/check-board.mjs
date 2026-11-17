@@ -131,7 +131,7 @@ async function main() {
   const { slug } = args
   if (!existsSync(gameDir(ROOT, slug))) throw new Usage(`There is no game ${slug}: ${gameDir(ROOT, slug).slice(ROOT.length + 1)} does not exist.`)
   const entry = registryEntry(ROOT, slug)
-  if (!entry) throw new Usage(`${slug} is not in packages/games/src/registry.ts: \`pnpm add-game\` registers a game.`)
+  if (!entry) throw new Usage(`${slug} is not in packages/games/src/registry.ts: \`pnpm new-game\` registers a game.`)
 
   // What it needs on this machine
   const browser = findBrowser()

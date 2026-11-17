@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { acquireLock, emptyStep, findGame, listGames, LockedError, moveGameDir, newState, parseState, readState, STATE_FILE, stepOf, writeState } from "./state.ts"
+import { emptyStep, findGame, listGames, moveGameDir, newState, parseState, readState, STATE_FILE, stepOf, writeState } from "./state.ts"
 
 const NOW = new Date("2026-11-16T10:00:00Z")
 let root = ""
@@ -14,7 +14,7 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-const make = (name: string, slug: string) => newState({ name, slug, sessionId: "11111111-1111-4111-8111-111111111111", now: NOW })
+const make = (name: string, slug: string) => newState({ name, slug, now: NOW })
 
 describe("the state of a game", () => {
   it("is written whole and read back as it was", () => {
@@ -45,8 +45,33 @@ describe("the state of a game", () => {
     const broken = JSON.parse(JSON.stringify(make("A", "a")))
     broken.steps.scout = { status: "dreaming" }
     expect(parseState(JSON.stringify(broken)).problems[0]).toContain("steps.scout.status")
-    broken.session = { id: 1 }
+    broken.linear = "nope"
     expect(parseState(JSON.stringify(broken)).state).toBeNull()
+  })
+
+  it("reads the file the terminal command wrote, and leaves out what only it used", () => {
+    // the state of The Crew at the gate of its scout, as the terminal command left it: a session, a cost, a label that is two quotes
+    const written = {
+      version: 1,
+      name: "The Crew",
+      aliases: ["The Crew"],
+      slug: "the-crew",
+      createdAt: "2026-11-17T08:10:06.445Z",
+      updatedAt: "2026-11-17T08:11:21.295Z",
+      session: { id: "a2ab886c-2360-466f-90e8-888d25d5f020", started: true },
+      linear: { parent: { id: "", identifier: "", url: "", title: "The Crew: add the game", applied: "In Progress", commented: false }, labelId: '""', error: null },
+      steps: {
+        scout: { status: "gate", gate: 0, rounds: 1, costUsd: 0.43, startedAt: "2026-11-17T08:10:42.539Z", validatedAt: null, report: "stopped", links: ["https://example.com"], check: { ok: false, lines: ["no scout file"] }, failure: null, issue: null },
+      },
+    }
+    const parsed = parseState(JSON.stringify(written))
+    expect(parsed.problems).toEqual([])
+    const state = parsed.state
+    expect(state?.slug).toBe("the-crew")
+    expect(state?.linear.labelId).toBeNull()
+    expect(state?.steps.scout).toMatchObject({ status: "gate", rounds: 1, check: { ok: false, lines: ["no scout file"] } })
+    expect(state && "session" in state).toBe(false)
+    expect(state?.steps.scout && "costUsd" in state.steps.scout).toBe(false)
   })
 
   it("is found by the name that was typed, by a name the scout settled, or by the slug", () => {
@@ -77,8 +102,8 @@ describe("the state of a game", () => {
   })
 
   it("lists the games that have a state, the oldest first, and leaves out a folder that holds none", () => {
-    writeState(join(root, "b"), newState({ name: "B", slug: "b", sessionId: "s", now: new Date("2026-11-16T12:00:00Z") }), NOW)
-    writeState(join(root, "a"), newState({ name: "A", slug: "a", sessionId: "s", now: new Date("2026-11-16T09:00:00Z") }), NOW)
+    writeState(join(root, "b"), newState({ name: "B", slug: "b", now: new Date("2026-11-16T12:00:00Z") }), NOW)
+    writeState(join(root, "a"), newState({ name: "A", slug: "a", now: new Date("2026-11-16T09:00:00Z") }), NOW)
     mkdirSync(join(root, "art-only"))
     mkdirSync(join(root, ".hidden"))
     mkdirSync(join(root, "broken"))
@@ -93,33 +118,5 @@ describe("the state of a game", () => {
     expect(moveGameDir(root, join(root, "take-5"), "6-nimmt")).toBe(join(root, "6-nimmt"))
     expect(existsSync(join(root, "take-5"))).toBe(false)
     expect(existsSync(join(root, "6-nimmt", STATE_FILE))).toBe(true)
-  })
-})
-
-describe("the lock of a game", () => {
-  it("is taken once, refused to a second run, and let go", () => {
-    const dir = join(root, "game")
-    const lock = acquireLock(dir)
-    // a lock held by another process that is alive (the parent of this one)
-    writeFileSync(lock.path, String(process.ppid))
-    expect(() => acquireLock(dir)).toThrow(LockedError)
-    lock.release()
-    expect(existsSync(lock.path)).toBe(false)
-  })
-
-  it("is taken over when the process that held it is gone", () => {
-    const dir = join(root, "game")
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(join(dir, "pipeline.lock"), "999999999")
-    const lock = acquireLock(dir)
-    expect(readFileSync(lock.path, "utf8")).toBe(String(process.pid))
-  })
-
-  it("follows the folder when it moves", () => {
-    const lock = acquireLock(join(root, "game"))
-    const target = moveGameDir(root, join(root, "game"), "moved")
-    lock.dir = target
-    lock.release()
-    expect(existsSync(join(root, "moved", "pipeline.lock"))).toBe(false)
   })
 })
