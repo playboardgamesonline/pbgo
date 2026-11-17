@@ -5,7 +5,8 @@ import { Combobox, type ComboboxOption } from "./combobox"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 
 // The panel that picks the games of the signed-in home's play zone: a search field and the list of the games, each a row with its small cover and its name and, when it cannot be picked now (a group too large for it), the reason under its name with a warning at its end
-// (`ComboboxOption.unavailable`). It is opened by whatever the page gives it as its child, which is the tile that adds a game (`AddGameTile`): the games that are picked are drawn by the page as tiles in the row of that one, each with its settings, so the panel has no field of its own. It picks
+// (`ComboboxOption.unavailable`). It is opened by whatever the page gives it as its child, which is a free slot of the row of games (`AddGameTile`): the games that are picked are drawn by the page as tiles in the row of that one, each with its settings, so the panel has no field of its own. A row
+// with several free slots has one panel: the first slot is its trigger and the others set the page's state (`open`, `onOpenChange`), so that the panel stays open, anchored to the first free slot, as games are picked. It picks
 // several games at once (`max` more than 1: the panel stays open between picks, so that several can be added, and once `max` are in the games that are not are off and `fullNote` says to take one out) or one (`max` 1: a pick replaces the one before and closes the panel). The panel is a `Popover` that
 // holds a `Combobox`, `rounded-2xl` as the other panels of a list are, and it is modal so that its list scrolls with the wheel inside a window too. It decides nothing: `onValueChange` is how the page keeps the games.
 
@@ -21,16 +22,25 @@ type GameSelectProps = {
   searchPlaceholder: string
   /** What the list says when no game holds the text: "No game matches.". */
   empty: string
-  /** What the panel says under its list once `max` games are picked ("A search takes ten games at the most. Take one out to add another."). None: it says nothing. */
+  /** What the panel says under its list once `max` games are picked ("A search takes five games at the most. Take one out to add another."). None: it says nothing. */
   fullNote?: string
   /** Names the panel and its list: "Games". */
   "aria-label": string
   /** What opens the panel when it is pressed: the tile that adds a game, or any element that takes the props and the ref of a button. */
   children: React.ReactElement
+  /** Whether the panel is open, when the page keeps that itself: several tiles open the same panel, the first one is its trigger and the others set this. None: the panel keeps it. */
+  open?: boolean
+  /** Told when the panel opens or closes (a press on its trigger, a pick that fills the last place, Escape, a press outside). */
+  onOpenChange?: (open: boolean) => void
 }
 
-function GameSelect({ options, value, onValueChange, max, searchPlaceholder, empty, fullNote, "aria-label": label, children }: GameSelectProps) {
-  const [open, setOpen] = React.useState(false)
+function GameSelect({ options, value, onValueChange, max, searchPlaceholder, empty, fullNote, "aria-label": label, children, open: openFromPage, onOpenChange }: GameSelectProps) {
+  const [kept, keep] = React.useState(false)
+  const open = openFromPage ?? kept
+  const setOpen = (next: boolean) => {
+    keep(next)
+    onOpenChange?.(next)
+  }
   const panel = React.useRef<HTMLDivElement>(null)
   const full = max > 1 && value.length >= max
   return (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { layoutRow, PLAY_ZONE_LABELS, PLAY_ZONE_MODES, placesFor, searchModeOf, SLOT_BASE, SLOT_COLUMNS } from "./play-zone"
+import { GAME_SLOT_BASE, gameSlotsFor, layoutRow, PLAY_ZONE_LABELS, PLAY_ZONE_MODES, placesFor, searchModeOf, SLOT_BASE, SLOT_COLUMNS } from "./play-zone"
 import { QUEUE_MODE_LABELS } from "./queue"
 import { MAX_SEATS } from "./tables"
 
@@ -66,7 +66,7 @@ describe("how many places the row of a group has", () => {
     for (const people of [0, 1, 2, 3, 4]) expect(placesFor(people)).toBe(5)
   })
 
-  it("gets one more, free, as soon as every place is taken, the way the row of games gets its tile that adds one", () => {
+  it("gets one more, free, as soon as every place is taken, at the right of the last", () => {
     expect(placesFor(5)).toBe(6)
     expect(placesFor(6)).toBe(7)
     expect(placesFor(7)).toBe(8)
@@ -89,5 +89,38 @@ describe("how many places the row of a group has", () => {
   it("is not thrown by a count that is not a whole number", () => {
     expect(placesFor(Number.NaN)).toBe(5)
     expect(placesFor(5.9)).toBe(6)
+  })
+})
+
+describe("how many slots the row of games of a search has", () => {
+  const MOST = 5
+
+  it("begins with four, the games that are picked and the free slots after them, however few games are picked", () => {
+    expect(GAME_SLOT_BASE).toBe(4)
+    for (const games of [0, 1, 2, 3]) expect(gameSlotsFor(games, MOST)).toBe(4)
+  })
+
+  it("gets a fifth, free, as soon as the four are taken, the way the row of players gets its places", () => {
+    expect(gameSlotsFor(4, MOST)).toBe(5)
+  })
+
+  it("never has more slots than a search takes games, so a full row has no free slot", () => {
+    expect(gameSlotsFor(5, MOST)).toBe(5)
+    expect(gameSlotsFor(40, MOST)).toBe(5)
+  })
+
+  it("keeps a free slot while the search can take another game", () => {
+    for (let games = 0; games < MOST; games++) expect(gameSlotsFor(games, MOST) - games).toBeGreaterThan(0)
+    expect(gameSlotsFor(MOST, MOST) - MOST).toBe(0)
+  })
+
+  it("has no more slots than a search takes when that is fewer than the base", () => {
+    expect(gameSlotsFor(0, 3)).toBe(3)
+  })
+
+  it("is not thrown by a count that is not a whole number", () => {
+    expect(gameSlotsFor(Number.NaN, MOST)).toBe(4)
+    expect(gameSlotsFor(3.9, MOST)).toBe(4)
+    expect(gameSlotsFor(4.9, MOST)).toBe(5)
   })
 })

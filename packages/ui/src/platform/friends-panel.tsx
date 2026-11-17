@@ -40,9 +40,43 @@ const MOON = "M12.542 1.013A11 11 0 1 1 1.013 12.542 8.2 8.2 0 1 0 12.542 1.013Z
  * out of it for one in a game, an orange-yellow moon for one who is inactive, a red disc with a bar knocked out of it for one who does not want to be disturbed, and
  * a thick grey ring for one who is away. Its size follows the picture's and is small (8px on a small picture, 10px on a medium one, 12px on a large one, 16px on an extra large one): it stands in the bottom
  * right corner of the picture, so a smaller dot recedes towards that corner, and a ring of the colour of the page, 3px (2px on a small picture), cuts it out of the picture. The outline
- * of the offline ring is a quarter of the dot (2px of 8, 3px of 10 and of 12), like Discord's invisible, and not a hairline.
+ * of the offline ring is a quarter of the dot (2px of 8, 3px of 10 and of 12), like Discord's invisible, and not a hairline. On a picture that is as large as its place allows, whatever that is (`scaled`: the row of players of the home), the dot is a share of the picture and
+ * not the fixed size of an extra large one, in fractions and nothing else: the badge, the cut-out that is the ring, is 3/10 of the picture's width and the dot 3/4 of the badge (the offline ring, a disc with a hole of half its width), so that it keeps its proportions from the smallest picture to the largest.
  */
-function PresenceDot({ status }: { status: FriendStatus }) {
+function PresenceDot({ status, scaled = false }: { status: FriendStatus; scaled?: boolean }) {
+  if (scaled) {
+    return (
+      <AvatarBadge data-status={status} className="bg-(color:--cutout) p-0 ring-0 group-data-[size=xl]/avatar:size-3/10">
+        {status === "online" && <span aria-hidden="true" className="block size-3/4 rounded-full bg-presence-online" />}
+        {status === "playing" && (
+          <span aria-hidden="true" className="block size-3/4 text-presence-playing">
+            <svg viewBox="0 0 24 24" className="size-full" fill="currentColor" fillRule="evenodd">
+              <path d={PLAY_DISC} />
+            </svg>
+          </span>
+        )}
+        {status === "inactive" && (
+          <span aria-hidden="true" className="block size-3/4 text-presence-inactive">
+            <svg viewBox="0 0 24 24" className="size-full" fill="currentColor">
+              <path d={MOON} />
+            </svg>
+          </span>
+        )}
+        {status === "dnd" && (
+          <span aria-hidden="true" className="block size-3/4 text-presence-dnd">
+            <svg viewBox="0 0 24 24" className="size-full" fill="currentColor" fillRule="evenodd">
+              <path d={DND_DISC} />
+            </svg>
+          </span>
+        )}
+        {status === "offline" && (
+          <span aria-hidden="true" className="flex size-3/4 items-center justify-center rounded-full bg-muted-foreground">
+            <span className="block size-1/2 rounded-full bg-(color:--cutout)" />
+          </span>
+        )}
+      </AvatarBadge>
+    )
+  }
   return (
     <AvatarBadge
       data-status={status}

@@ -83,26 +83,36 @@ describe("the row of players", () => {
   it("makes every place a cell of one grid, a person's and a free place's: the same width, as large as the row allows for the places there are, never fixed by a width of its own", () => {
     const html = row({ players: [you, ann], size: 6 })
     const list = /<ul[^>]*>/.exec(html)?.[0] ?? ""
-    expect(list).toContain("grid-cols-[repeat(auto-fit,minmax(4rem,1fr))]")
+    expect(list).toContain("grid-cols-5 @xl:grid-cols-6")
     for (const place of cellsOf(html)) {
       expect(place).not.toMatch(/[\s"]w-\d/)
       expect(place).not.toContain("flex-1")
     }
     expect(html.match(/data-size="xl"/g)).toHaveLength(6)
-    expect(html).not.toContain("cqw")
   })
 
-  it("knows how many places it has, which the width of the row is made of: no wider than that many places of the most a place has", () => {
-    for (const size of [1, 5, 9]) {
-      const list = /<ul[^>]*>/.exec(row({ size }))?.[0] ?? ""
-      expect(list).toContain(`[--n:${size}]`)
-      expect(list).toContain("max-w-[calc(var(--n)*")
+  it("is plain Tailwind classes, with no arbitrary value and no custom property: as many columns as places, five to a row at the most in a narrow section, and a width that is that many places", () => {
+    const listOf = (size: number) => /<ul[^>]*>/.exec(row({ size }))?.[0] ?? ""
+    expect(listOf(5)).toContain("grid-cols-5")
+    expect(listOf(5)).not.toContain("@xl:grid-cols")
+    expect(listOf(3)).toContain("grid-cols-3")
+    expect(listOf(9)).toContain("grid-cols-5 @xl:grid-cols-9")
+    for (const size of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+      expect(listOf(size)).not.toMatch(/class="[^"]*\[/)
+      expect(listOf(size)).not.toContain("--n")
+      expect(listOf(size)).toContain("max-w-")
     }
   })
 
-  it("is aligned to the left and wraps to a second line in a column too narrow for the places, rather than shrink them below a least width", () => {
-    const list = /<ul[^>]*>/.exec(row({ players: [you, ann] }))?.[0] ?? ""
-    expect(list).toContain("minmax(4rem,1fr)")
+  it("makes the row as wide as that many places of the most a place has plus the room between two, a step at a time as the section grows", () => {
+    // Five places: 4rem each and 0.75rem between, then 5rem and 1.25rem from `@3xl`, 5.5rem, 6rem and 8rem
+    const list = /<ul[^>]*>/.exec(row({ size: 5 }))?.[0] ?? ""
+    for (const part of ["max-w-92", "@3xl:max-w-120", "@4xl:max-w-130", "@5xl:max-w-140", "@7xl:max-w-180", "gap-x-3", "@3xl:gap-x-5"]) expect(list).toContain(part)
+  })
+
+  it("is aligned to the left and wraps to a second line of the others in a column too narrow for the places, rather than shrink them below a least width", () => {
+    const list = /<ul[^>]*>/.exec(row({ players: [you, ann], size: 9 }))?.[0] ?? ""
+    expect(list).toContain("grid-cols-5 @xl:grid-cols-9")
     expect(list).not.toContain("justify-center")
     expect(list).not.toContain("justify-items-center")
   })
@@ -116,11 +126,26 @@ describe("the row of players", () => {
     expect(row({ players: [you, ann], size: 5 })).not.toContain(">Oré<")
   })
 
-  it("opens every place that nobody has, even with no game picked: a dashed circle with a plus, as many as the row has", () => {
+  it("opens every place that nobody has, even with no game picked: a circle with a plus, the outline and the background of a free slot of the games, as many as the row has", () => {
     const cells = cellsOf(row({ players: [you], size: 5 }))
     expect(cells.filter((cell) => cell.includes('data-free=""'))).toHaveLength(4)
-    expect(cells.filter((cell) => cell.includes("border-dashed"))).toHaveLength(4)
-    expect(row()).toContain("bg-transparent")
+    expect(cells.filter((cell) => cell.includes("border border-border bg-background/40"))).toHaveLength(4)
+    expect(row()).not.toContain("border-dashed")
+  })
+
+  it("scales the dot of presence with the picture, in fractions of it and not a fixed size: a badge 3/10 of the picture, the dot 3/4 of the badge", () => {
+    const html = row({ players: [you, ann], size: 5 })
+    expect(html).toContain("group-data-[size=xl]/avatar:size-3/10")
+    expect(html).toContain("size-3/4")
+    expect(html).toContain("ring-0")
+    // The fixed size and ring of an extra large picture's dot are the ones that the fractions take the place of, and nothing is a custom value
+    expect(html).not.toContain("group-data-[size=xl]/avatar:size-4")
+    expect(html).not.toContain("group-data-[size=xl]/avatar:ring-4")
+    expect(html).not.toMatch(/cqw|--presence-/)
+    // The ring of a friend who is away is a hole of half the dot's width, in proportion too
+    const away = row({ players: [you, { id: "cy", name: "Cy", status: "offline" }], size: 5 })
+    expect(away).toContain("size-1/2")
+    expect(away).not.toContain("group-data-[size=xl]/avatar:border-4")
   })
 
   it("has the free places after the people, so a row grows to the right as the row of games does", () => {
@@ -267,18 +292,27 @@ describe("the panel that picks the games", () => {
     expect(select({ max: 1, value: ["flip-7"] })).not.toContain("Flip 7")
     expect(select({ value: ["courtisans", "flip-7"] })).not.toContain("Courtisans")
   })
+
+  it("is open when the page says so, which is how every free slot of the row opens the one panel: the first is its trigger, the others set the page's state", () => {
+    expect(select({ open: true })).toContain('aria-expanded="true"')
+    expect(select({ open: false })).toContain('aria-expanded="false"')
+    // With nothing said it keeps its own state, shut to begin with
+    expect(select()).toContain('aria-expanded="false"')
+  })
 })
 
 describe("the tile that adds a game", () => {
   const tile = (props: Partial<React.ComponentProps<typeof AddGameTile>> = {}) => render(React.createElement(AddGameTile, { label: "Add a game", ...props }))
 
-  it("is a button with a plus in a dark, translucent frame, named for a screen reader, with its label under it", () => {
+  it("is a button with a plus in a dark, translucent frame, named for a screen reader, with no label drawn", () => {
     const html = tile()
     expect(html).toContain('type="button"')
     expect(html).toContain('aria-label="Add a game"')
     expect(html).toContain("bg-background/40")
     expect(html).toContain("<svg")
-    expect(html).toContain(">Add a game<")
+    // The label is what a screen reader hears: no text is drawn, as the free places of the row of players have none
+    expect(html).not.toContain(">Add a game<")
+    expect(html.replace(/<svg.*?<\/svg>/gs, "").replace(/<[^>]*>/g, "")).toBe("")
   })
 
   it("has the frame of a picture, as big as the tiles of the games, with their corners", () => {
@@ -293,9 +327,24 @@ describe("the tile that adds a game", () => {
     expect(tile({ disabled: true })).toContain('disabled=""')
   })
 
-  it("centres its label under the frame", () => {
-    expect(/<button[^>]*class="[^"]*\btext-center\b/.test(tile())).toBe(true)
-    expect(tile()).not.toMatch(/<button[^>]*class="[^"]*\btext-left\b/)
+  it("has the outline and the background of a free place of the row of players: thin, solid, a dark translucent fill", () => {
+    const place = render(React.createElement(PlayerSlots, { players: [{ id: "you", name: "Oré", you: true }], size: 3 }))
+    const html = tile()
+    for (const markup of [place, html]) {
+      expect(markup).toContain("border border-border bg-background/40")
+      expect(markup).not.toContain("border-dashed")
+    }
+    expect(html).toContain("group-hover/add:border-foreground/50")
+    expect(place).toContain("group-hover/slot:border-foreground/50")
+    expect(html).not.toContain("ring-foreground/10")
+  })
+
+  it("is as tall as the tile of a game: the room of a name is left empty under its frame, outside the button, so that only the frame is pressed", () => {
+    const html = tile()
+    expect(html).toContain('<span aria-hidden="true" class="min-h-10.5"></span>')
+    expect(html.indexOf("</button>")).toBeLessThan(html.indexOf('class="min-h-10.5"'))
+    // A game's tile keeps the same room for its name and its rank
+    expect(render(React.createElement(PickedGame, { name: "Courtisans" }))).toContain("min-h-10.5")
   })
 })
 
@@ -306,6 +355,14 @@ describe("the tile of a game in a search", () => {
     const html = tile({ config: React.createElement("p", null, "settings") })
     expect(html).toContain('aria-label="Settings of Courtisans"')
     expect(tile()).not.toContain("Settings of")
+  })
+
+  it("opens its settings in a window from its picture, with a gear at its corner that shows under the pointer and always on a screen that cannot hover", () => {
+    const html = tile({ config: React.createElement("p", null, "settings") })
+    expect(html).toContain('aria-haspopup="dialog"')
+    expect(html).toContain("[@media(hover:hover)]:opacity-0")
+    expect(html).toContain("group-hover/config:opacity-100")
+    expect(html).not.toContain("[@media(hover:hover)]:hidden")
   })
 
   it("says that its settings are not the usual ones with a dot", () => {
