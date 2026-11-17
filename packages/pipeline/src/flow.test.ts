@@ -44,6 +44,8 @@ type World = {
   fetched: { url: string; dest: string }[]
   fetch: RulebookFetch
   missing: string[] | null
+  since: (string | null)[]
+  delay: number
   run: (...argv: string[]) => Promise<{ code: number; out: string; err: string }>
 }
 
@@ -67,6 +69,8 @@ beforeEach(() => {
     fetched: [],
     fetch: { ok: true, bytes: 2048 },
     missing: [],
+    since: [],
+    delay: 0,
     run: async (...argv) => {
       out.length = 0
       err.length = 0
@@ -76,6 +80,7 @@ beforeEach(() => {
         gamesDocs: join(repo, "docs", "games"),
         exec: async (file, args) => {
           world.calls.push({ file, args })
+          if (world.delay > 0) await new Promise((done) => setTimeout(done, world.delay))
           return world.exec(file, args)
         },
         fetchRulebook: async (url, dest) => {
@@ -83,7 +88,10 @@ beforeEach(() => {
           if (world.fetch.ok) writeFileSync(dest, "%PDF-")
           return world.fetch
         },
-        missingPublished: async () => world.missing,
+        missingPublished: async (_ids, since) => {
+          world.since.push(since)
+          return world.missing
+        },
         now: () => NOW,
         out: (text) => out.push(text),
         err: (text) => err.push(text),
@@ -120,7 +128,7 @@ describe("start and status", () => {
     expect(state.name).toBe("The Crew")
     expect(STEPS.every((step) => stepOf(state, step.id).status === "pending")).toBe(true)
     expect(result.out).toContain("0/10 validated")
-    expect(result.out).toContain("Next: pnpm game-flow begin the-crew scout")
+    expect(result.out).toContain("Next [begin]: pnpm game-flow begin the-crew scout")
     expect(result.out).toContain("Linear has nothing for it yet")
   })
 
@@ -144,7 +152,7 @@ describe("start and status", () => {
     const state = stateOf("love-letter")
     expect(STEPS.map((step) => stepOf(state, step.id).status)).toEqual(["validated", "validated", "validated", "validated", "validated", "pending", "pending", "pending", "pending", "pending"])
     expect(adopted.out).toContain("5/10 validated")
-    expect(adopted.out).toContain("Next: pnpm game-flow begin love-letter game-sanity-create")
+    expect(adopted.out).toContain("Next [begin]: pnpm game-flow begin love-letter game-sanity-create")
   })
 
   it("lists the games that are in the flow, and says so when there are none", async () => {
@@ -185,7 +193,7 @@ describe("start and status", () => {
     expect(result.out).toContain("1 …")
     expect(result.out).toContain("at its gate (validate) · check failed")
     expect(result.out).toContain("linear  not made yet")
-    expect(result.out).toContain("Next: scout waits for the owner at its gate")
+    expect(result.out).toContain("Next [wait-owner]: scout waits for the owner at its gate")
     // a change the owner asks for opens a new round at the same step
     const change = await w.run("begin", "the-crew", "scout", "--change", "--scratch", w.scratch)
     expect(change.code).toBe(0)
@@ -215,7 +223,8 @@ describe("begin", () => {
     expect(result.code).toBe(0)
     expect(result.out).toContain("Scout · step 1 of 10 · round 1 · skill game-scout")
     expect(result.out).toContain(`Read ${join(w.scratch, "brief-the-crew-scout.md")} and follow it.`)
-    expect(result.out).toContain(`pnpm game-flow gate the-crew scout --report ${join(w.scratch, "report-the-crew-scout.md")}`)
+    expect(result.out).toContain(`report  ${join(w.scratch, "report-the-crew-scout-r1.md")}`)
+    expect(result.out).toContain("pnpm game-flow gate the-crew scout")
     const brief = readFileSync(join(w.scratch, "brief-the-crew-scout.md"), "utf8")
     expect(brief).toContain("# Scout · step 1 of 10 · The Crew (the-crew)")
     expect(brief).toContain(`Run the skill \`game-scout\` with the Skill tool, with this argument: \`The Crew --out ${join(w.assets, "the-crew", "scout.json")}\``)
@@ -231,13 +240,15 @@ describe("begin", () => {
     expect(stepOf(stateOf("the-crew"), "catalog-entry").status).toBe("pending")
   })
 
-  it("opens a new round with a fresh brief for a step that was interrupted, and says it is the second", async () => {
+  it("opens a new round with a fresh brief for a step whose sub-agent is gone, and says it is the second", async () => {
     await w.run("start", "The Crew")
     await w.run("begin", "the-crew", "scout", "--scratch", w.scratch)
-    const again = await w.run("begin", "the-crew", "scout", "--scratch", w.scratch)
+    const again = await w.run("begin", "the-crew", "scout", "--scratch", w.scratch, "--again")
+    expect(again.code).toBe(0)
     expect(again.out).toContain("round 2")
     expect(readFileSync(join(w.scratch, "brief-the-crew-scout.md"), "utf8")).toContain("This is round 2 of the step")
-    expect(stepOf(stateOf("the-crew"), "scout").rounds).toBe(2)
+    // each round has a report file of its own: the first is never overwritten
+    expect(stepOf(stateOf("the-crew"), "scout")).toMatchObject({ rounds: 2, reportPath: join(w.scratch, "report-the-crew-scout-r2.md") })
   })
 
   it("does not reopen a step that waits at its gate unless the owner asked for a change", async () => {
@@ -385,9 +396,9 @@ describe("validate", () => {
     expect(readFileSync(join(w.assets, "sample-game", "notes.txt"), "utf8")).toBe("kept")
     const state = stateOf("sample-game")
     expect(state).toMatchObject({ name: "Sample Game", slug: "sample-game" })
-    expect(state.aliases).toEqual(["Sample", "Sample Game"])
+    expect(state.aliases).toEqual(["Sample", "Sample Game", "sample"])
     expect(stepOf(state, "scout")).toMatchObject({ status: "validated", validatedAt: NOW.toISOString() })
-    expect(result.out).toContain("Next: pnpm game-flow begin sample-game catalog-entry")
+    expect(result.out).toContain("Next [begin]: pnpm game-flow begin sample-game catalog-entry")
     expect((await w.run("status", "Sample")).out).toContain("Sample Game (sample-game)")
   })
 
@@ -441,12 +452,13 @@ describe("validate", () => {
     const first = await w.run("validate", "the-crew", "catalog-entry")
     expect(first.code).toBe(0)
     expect(first.out).toContain("Gate 2 of 2 (publish)")
-    expect(stepOf(stateOf("the-crew"), "catalog-entry")).toMatchObject({ status: "gate", gate: 1 })
-    // the skill said it published, and the platform's Sanity does not show one of the documents
+    expect(stepOf(stateOf("the-crew"), "catalog-entry")).toMatchObject({ status: "gate", gate: 1, gateAt: NOW.toISOString() })
+    // the skill said it published, and the platform's Sanity does not show one of the documents as written since the owner's ok (a game that was in the catalog before counts only if it was written again)
     w.missing = ["publisher-kosmos"]
     const notYet = await w.run("validate", "the-crew", "catalog-entry")
     expect(notYet.code).toBe(1)
-    expect(notYet.out).toContain("not published: publisher-kosmos")
+    expect(notYet.out).toContain("not published since the owner's ok: publisher-kosmos")
+    expect(w.since.at(-1)).toBe(NOW.toISOString())
     expect(stepOf(stateOf("the-crew"), "catalog-entry").status).toBe("gate")
     w.missing = []
     const done = await w.run("check", "the-crew", "catalog-entry")
@@ -481,15 +493,17 @@ describe("validate", () => {
     expect(stepOf(stateOf("the-crew"), "catalog-entry").gate).toBe(0)
   })
 
-  it("takes a Sanity that cannot be read as unconfirmed and says so, as the skill's own read-back is what there is", async () => {
+  it("does not take a Sanity that cannot be read for a publication, and says to try again", async () => {
     await w.run("start", "The Crew", "--adopt-through", "scout")
     await w.run("begin", "the-crew", "catalog-entry", "--scratch", w.scratch)
     await w.run("gate", "the-crew", "catalog-entry", "--report", report("r.md", "STATUS: done\nValidate publishes 1 document (game-the-crew)"))
     await w.run("validate", "the-crew", "catalog-entry")
     w.missing = null
     const unconfirmed = await w.run("check", "the-crew", "catalog-entry")
-    expect(unconfirmed.code).toBe(0)
+    expect(unconfirmed.code).toBe(1)
     expect(unconfirmed.out).toContain("could not be read to confirm the publication")
+    expect((await w.run("validate", "the-crew", "catalog-entry")).code).toBe(1)
+    expect(stepOf(stateOf("the-crew"), "catalog-entry").status).toBe("gate")
   })
 
   it("says that a step is validated already, and refuses one that has no gate to answer", async () => {
@@ -651,5 +665,178 @@ describe("as pnpm runs it", () => {
     const shown = run("status", "zzz-test-game-not-in-the-repo", "--json")
     expect(shown.status).toBe(0)
     expect((JSON.parse(shown.stdout) as { slug: string }).slug).toBe("zzz-test-game-not-in-the-repo")
+  })
+})
+
+describe("a game found by the slug it had", () => {
+  it("keeps answering to its first slug once the scout settled another, and is not started again by it", async () => {
+    await w.run("start", "Sample")
+    await w.run("begin", "sample", "scout", "--scratch", w.scratch)
+    writeScout("sample")
+    await w.run("gate", "sample", "scout", "--report", report("r.md", "STATUS: done"))
+    await w.run("validate", "sample", "scout")
+    expect((await w.run("status", "sample")).out).toContain("Sample Game (sample-game)")
+    const again = await w.run("start", "sample")
+    expect(again.code).toBe(0)
+    expect(again.out).toContain("is in the flow already")
+    expect(existsSync(join(w.assets, "sample"))).toBe(false)
+  })
+})
+
+describe("one command at a time", () => {
+  it("holds the lock of the games' folder while a verb that writes runs, and none for status", async () => {
+    await w.run("start", "The Crew")
+    const lock = join(w.assets, ".game-flow.lock")
+    const seen: boolean[] = []
+    w.exec = () => {
+      seen.push(existsSync(lock))
+      return OK
+    }
+    await w.run("check", "the-crew", "platform-assets")
+    expect(seen).toEqual([true])
+    expect(existsSync(lock)).toBe(false)
+    // status asks the repo for the stage of a game that has a folder, and writes nothing
+    makeGameFolder("the-crew")
+    seen.length = 0
+    await w.run("status", "the-crew")
+    expect(seen).toEqual([false])
+  })
+
+  it("makes two verbs that run together wait for each other, so that neither loses what the other wrote", async () => {
+    await w.run("start", "The Crew")
+    w.delay = 150
+    // the first reads the state and waits for its check; the second would write meanwhile
+    const slow = w.run("check", "the-crew", "platform-assets")
+    await new Promise((done) => setTimeout(done, 40))
+    const fast = w.run("fail", "the-crew", "scout", "--reason", "no token")
+    await Promise.all([slow, fast])
+    const state = stateOf("the-crew")
+    expect(stepOf(state, "scout")).toMatchObject({ status: "failed", failure: "no token" })
+    expect(stepOf(state, "platform-assets").check).toMatchObject({ ok: true })
+  })
+})
+
+describe("reopening a step", () => {
+  it("refuses a second round while the first may be at work, and says to look first", async () => {
+    await w.run("start", "The Crew")
+    await w.run("begin", "the-crew", "scout", "--scratch", w.scratch)
+    const second = await w.run("begin", "the-crew", "scout", "--scratch", w.scratch)
+    expect(second.code).toBe(1)
+    expect(second.err).toContain("may be at work still")
+    expect(second.err).toContain("--again")
+    expect(stepOf(stateOf("the-crew"), "scout").rounds).toBe(1)
+    const status = await w.run("status", "the-crew")
+    expect(status.out).toContain("open since")
+    expect(status.out).toContain("Next [reopen]:")
+  })
+
+  it("points to the report that is there instead of opening a round that would leave it unread, and gates it without being told where it is", async () => {
+    await w.run("start", "The Crew")
+    await w.run("begin", "the-crew", "scout", "--scratch", w.scratch)
+    writeFileSync(join(w.scratch, "report-the-crew-scout-r1.md"), "STATUS: done\nSUMMARY: written while the session was away")
+    writeScout("the-crew", { ...SCOUT, name: "The Crew", slug: "the-crew" })
+    const status = await w.run("status", "the-crew")
+    expect(status.out).toContain("its report is there")
+    expect(status.out).toContain("Next [gate-ready]:")
+    const refused = await w.run("begin", "the-crew", "scout", "--scratch", w.scratch)
+    expect(refused.code).toBe(1)
+    expect(refused.err).toContain("left its report")
+    const gated = await w.run("gate", "the-crew", "scout")
+    expect(gated.code).toBe(0)
+    expect(stepOf(stateOf("the-crew"), "scout").report).toContain("written while the session was away")
+  })
+
+  it("does not gate a step that never began", async () => {
+    await w.run("start", "The Crew")
+    const refused = await w.run("gate", "the-crew", "scout")
+    expect(refused.code).toBe(1)
+    expect(refused.err).toContain("has not begun")
+    expect(stepOf(stateOf("the-crew"), "scout").status).toBe("pending")
+  })
+})
+
+describe("an expansion", () => {
+  const EXPANSION = { ...SCOUT, name: "Sample Game: Extra", slug: "sample-game-extra", type: "expansion", baseGame: { slug: "sample-game", name: "Sample Game" }, bgg: { ...SCOUT.bgg, type: "boardgameexpansion" } }
+
+  it("goes through the scout and the catalog entry only: the steps after are its base game's work", async () => {
+    await w.run("start", "Sample Game Extra", "--adopt-through", "catalog-entry")
+    writeScout("sample-game-extra", EXPANSION)
+    const status = await w.run("status", "sample-game-extra")
+    expect(status.out).toContain("Next [done]: Sample Game Extra is an expansion of sample-game")
+    const begin = await w.run("begin", "sample-game-extra", "rules-spec", "--scratch", w.scratch)
+    expect(begin.code).toBe(1)
+    expect(begin.err).toContain("is an expansion of sample-game")
+    expect((await w.run("gate", "sample-game-extra", "rules-spec")).code).toBe(1)
+  })
+
+  it("does not stop a game of its own that comes from another: a reimplementation has every step", async () => {
+    await w.run("start", "Sample Game Remake", "--adopt-through", "catalog-entry")
+    writeScout("sample-game-remake", { ...EXPANSION, name: "Sample Game Remake", slug: "sample-game-remake", type: "reimplementation", bgg: SCOUT.bgg })
+    expect((await w.run("status", "sample-game-remake")).out).toContain("Next [begin]: pnpm game-flow begin sample-game-remake rules-spec")
+  })
+})
+
+describe("taking a game on", () => {
+  it("does not take a game through a stage that the repo says it has not passed", async () => {
+    makeGameFolder("love-letter")
+    w.exec = () => ({ code: 1, stdout: "scaffold\n  ✗ sanity project: no Sanity project yet\nlove-letter has got as far as: nothing.\n", stderr: "" })
+    const refused = await w.run("start", "Love Letter", "--adopt-through", "game-new")
+    expect(refused.code).toBe(1)
+    expect(refused.err).toContain("not taken on through game folder")
+    expect(refused.err).toContain("pnpm check:game love-letter")
+    expect(existsSync(join(w.assets, "love-letter"))).toBe(false)
+  })
+})
+
+describe("the checkout of the steps that work in it", () => {
+  it("refuses the game folder when the checkout has tracked changes that are not the game's, and leaves untracked files alone", async () => {
+    await w.run("start", "The Crew", "--adopt-through", "platform-assets")
+    w.exec = () => ({ code: 0, stdout: " M README.md\n?? scratch.txt\n?? docs/games/the-crew/\n", stderr: "" })
+    const refused = await w.run("begin", "the-crew", "game-new", "--scratch", w.scratch)
+    expect(refused.code).toBe(1)
+    expect(refused.err).toContain("changes that are not the game's (README.md)")
+    expect(stepOf(stateOf("the-crew"), "game-new").status).toBe("pending")
+    w.exec = () => ({ code: 0, stdout: "?? scratch.txt\n M docs/games/the-crew/rules.md\n", stderr: "" })
+    expect((await w.run("begin", "the-crew", "game-new", "--scratch", w.scratch)).code).toBe(0)
+  })
+
+  it("wants the rules spec that the owner validated to be in this checkout: it was written there, uncommitted", async () => {
+    await w.run("start", "The Crew", "--adopt-through", "catalog-entry")
+    mkdirSync(join(w.repo, "docs", "games", "the-crew"), { recursive: true })
+    writeFileSync(join(w.repo, "docs", "games", "the-crew", "rules.md"), "# The Crew: rules spec\n")
+    await w.run("begin", "the-crew", "rules-spec", "--scratch", w.scratch)
+    await w.run("gate", "the-crew", "rules-spec", "--report", report("r.md", "STATUS: done"))
+    await w.run("validate", "the-crew", "rules-spec")
+    await w.run("begin", "the-crew", "platform-assets", "--scratch", w.scratch)
+    await w.run("gate", "the-crew", "platform-assets", "--report", report("p.md", "STATUS: done"))
+    await w.run("validate", "the-crew", "platform-assets")
+    rmSync(join(w.repo, "docs"), { recursive: true })
+    const refused = await w.run("begin", "the-crew", "game-new", "--scratch", w.scratch)
+    expect(refused.code).toBe(1)
+    expect(refused.err).toContain("rules spec (docs/games/the-crew/rules.md) is not in this checkout")
+  })
+
+  it("tells the sub-agent the Linear issue of its step and the parent it must not name", async () => {
+    await w.run("start", "The Crew", "--adopt-through", "platform-assets")
+    const state = stateOf("the-crew")
+    stepOf(state, "game-new").issue = { id: "i", identifier: "GAM-47", url: "u", title: "The Crew: game folder", applied: "In Progress", commented: false }
+    state.linear.parent = { id: "p", identifier: "GAM-41", url: "u", title: "The Crew: add the game", applied: "In Progress", commented: false }
+    writeFileSync(join(w.assets, "the-crew", "pipeline.json"), JSON.stringify(state))
+    await w.run("begin", "the-crew", "game-new", "--scratch", w.scratch)
+    const brief = readFileSync(join(w.scratch, "brief-the-crew-game-new.md"), "utf8")
+    expect(brief).toContain("`GAM-47`")
+    expect(brief).toContain("never the game's parent issue `GAM-41`")
+  })
+})
+
+describe("the rulebook, before it is fetched", () => {
+  it("says from where it would fetch it, and fetches nothing, with --dry-run: the owner is asked first", async () => {
+    await w.run("start", "Sample")
+    writeScout("sample")
+    const result = await w.run("rulebook", "sample", "--dry-run")
+    expect(result.code).toBe(0)
+    expect(result.out).toContain("It would fetch https://example.com/rules.pdf")
+    expect(result.out).toContain("a download needs their yes")
+    expect(w.fetched).toEqual([])
   })
 })

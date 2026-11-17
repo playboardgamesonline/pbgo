@@ -106,6 +106,7 @@ export const RULES_SPEC: StepDefinition = {
   notes: (game) => [
     `The rulebook is the PDF at \`${game.rulesPdf}\` when it is there: \`Read\` it whole, with no \`pages\`. When it is not there and the rules are a PDF, answer \`STATUS: blocked\` and say where it has to be.`,
     `Write only \`docs/games/${game.slug}/rules.md\` and \`docs/games/${game.slug}/index.md\`, and leave them uncommitted: the game's first pull request takes them.`,
+    "Your SUMMARY is the skill's own report whole, with its open points, each with the reading you propose: the owner's ok accepts every reading, and the orchestrator shows them each.",
   ],
   check: { kind: "rules" },
   onValidate: "stamp-rules",

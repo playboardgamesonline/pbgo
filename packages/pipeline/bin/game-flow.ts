@@ -19,7 +19,7 @@ process.exitCode = await runFlow(process.argv.slice(2), {
       return { ok: false, reason: error instanceof DownloadError ? error.message : error instanceof Error ? error.message.slice(0, 160) : "the fetch failed" }
     }
   },
-  missingPublished: (ids) => missingPublished(ids, { base: env.PBGO_SANITY_API_BASE }),
+  missingPublished: (ids, since) => missingPublished(ids, { base: env.PBGO_SANITY_API_BASE, since }),
   now: () => new Date(),
   out: (text) => console.log(text),
   err: (text) => console.error(text),

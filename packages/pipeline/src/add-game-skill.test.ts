@@ -44,7 +44,7 @@ describe("the skill /add-game", () => {
   })
 
   it("asks of a sub-agent what its brief tells it to give: the three words of its status, and the same report", () => {
-    const brief = briefOf({ step: STEPS[0] ?? (() => { throw new Error("no step") })(), game: gameOf("/assets", "Love Letter", "love-letter"), scratch: "/scratch", reportPath: "/scratch/r.md", has: { scout: false, rulesPdf: false }, round: 1 })
+    const brief = briefOf({ step: STEPS[0] ?? (() => { throw new Error("no step") })(), game: gameOf("/assets", "Love Letter", "love-letter"), scratch: "/scratch", reportPath: "/scratch/r.md", has: { scout: false, rulesPdf: false }, round: 1, issue: null, parent: null })
     expect(brief).toContain("STATUS: done | questions | blocked")
     for (const word of ["done", "questions", "blocked"]) expect(SKILL, word).toContain(`\`${word}\``)
     for (const tool of ["Agent tool", "subagent_type", "SendMessage", "haiku"]) expect(SKILL, tool).toContain(tool)

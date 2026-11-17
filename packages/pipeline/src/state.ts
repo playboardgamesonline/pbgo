@@ -34,6 +34,11 @@ export type StepState = {
   /** how many times the step was opened: the first work, then each change the owner asked for */
   rounds: number
   startedAt: string | null
+  /** when the current round was opened, and where its sub-agent writes its report (so that a session that comes back can tell a report that is there from a sub-agent that is gone) */
+  roundAt: string | null
+  reportPath: string | null
+  /** when the gate the step waits at was reached: the owner's ok to the drafts, for the second gate of the catalog entry (what is published must be newer) */
+  gateAt: string | null
   validatedAt: string | null
   /** what the sub-agent said last, shown again when the skill comes back to the gate */
   report: string | null
@@ -57,7 +62,7 @@ export type PipelineState = {
 }
 
 export function emptyStep(): StepState {
-  return { status: "pending", gate: 0, rounds: 0, startedAt: null, validatedAt: null, report: null, links: [], check: null, failure: null, issue: null }
+  return { status: "pending", gate: 0, rounds: 0, startedAt: null, roundAt: null, reportPath: null, gateAt: null, validatedAt: null, report: null, links: [], check: null, failure: null, issue: null }
 }
 
 export function newState(args: { name: string; slug: string; now: Date }): PipelineState {
@@ -106,6 +111,9 @@ function parseStep(value: unknown, where: string, problems: string[]): StepState
   if (typeof value.gate === "number" && Number.isInteger(value.gate) && value.gate >= 0) step.gate = value.gate
   if (typeof value.rounds === "number" && value.rounds >= 0) step.rounds = value.rounds
   if (isStringOrNull(value.startedAt)) step.startedAt = value.startedAt ?? null
+  if (isStringOrNull(value.roundAt)) step.roundAt = value.roundAt ?? null
+  if (isStringOrNull(value.reportPath)) step.reportPath = value.reportPath ?? null
+  if (isStringOrNull(value.gateAt)) step.gateAt = value.gateAt ?? null
   if (isStringOrNull(value.validatedAt)) step.validatedAt = value.validatedAt ?? null
   if (isStringOrNull(value.report)) step.report = value.report ?? null
   if (Array.isArray(value.links)) step.links = value.links.filter(isString)
@@ -180,13 +188,14 @@ export function readState(dir: string): PipelineState | null {
 
 const normalize = (name: string): string => cleanName(name).toLowerCase()
 
-/** The game that was asked for by `query` (a name as typed, or a slug): its folder is the slug the name makes, else the one whose state knows the name. */
+/** The game that was asked for by `query` (a name as typed, or a slug): its folder is the slug the name makes, else the one whose state knows the name or a slug it had (the scout may settle another). */
 export function findGame(root: string, query: string): FoundGame | null {
   const direct = join(root, slugFromName(query))
   const state = readState(direct)
   if (state) return { dir: direct, state }
   if (!existsSync(root)) return null
   const wanted = normalize(query)
+  const wantedSlug = slugFromName(query)
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     if (!entry.isDirectory() || entry.name.startsWith(".")) continue
     const dir = join(root, entry.name)
@@ -197,7 +206,7 @@ export function findGame(root: string, query: string): FoundGame | null {
       // the state of another game that cannot be read does not stop this one
       continue
     }
-    if (found && (found.slug === query || found.aliases.some((alias) => normalize(alias) === wanted))) return { dir, state: found }
+    if (found && (found.slug === query || found.aliases.some((alias) => normalize(alias) === wanted || slugFromName(alias) === wantedSlug))) return { dir, state: found }
   }
   return null
 }

@@ -19,8 +19,8 @@ export type CheckDeps = {
   repoRoot: string
   /** the folder of the specs of the games, `docs/games` of the checkout */
   gamesDocs: string
-  /** the documents, among these ids, that the platform's Sanity does not show as published (`null`: it could not be read) */
-  missingPublished: (ids: string[]) => Promise<string[] | null>
+  /** the documents, among these ids, that the platform's Sanity does not show as published, or not written since `since` (`null`: it could not be read) */
+  missingPublished: (ids: string[], since: string | null) => Promise<string[] | null>
 }
 
 const printed = (...texts: string[]): string[] =>
@@ -71,12 +71,14 @@ export async function runCheck(step: StepDefinition, ctx: { deps: CheckDeps; gam
       return { ok: result.code === 0, lines: stageLines(`${result.stdout}\n${result.stderr}`) }
     }
     case "published": {
-      // the report the owner validated names the documents; the platform's public API is asked, and the skill's word that it published is not taken as done
-      const ids = publishedIds(stepOf(state, step.id).report ?? "")
+      // the report the owner validated names the documents; the platform's public API is asked, and the skill's word that it published is not taken as done. A document that was in the catalog already
+      // (a game of the Notion seed, an entry completed) counts only when it was written after the owner said the drafts were right: publishing it is writing it again
+      const s = stepOf(state, step.id)
+      const ids = publishedIds(s.report ?? "")
       if (ids.length === 0) return { ok: false, lines: ['the report does not say which documents publish would make public: ask the sub-agent for the sentence "Validate publishes N documents (ids)"'] }
-      const missing = await deps.missingPublished(ids)
-      if (missing === null) return { ok: true, lines: [`${ids.join(", ")}: the platform's Sanity could not be read to confirm the publication, the skill's own read-back is what there is`] }
-      if (missing.length > 0) return { ok: false, lines: [`not published: ${missing.join(", ")}`, `published: ${ids.filter((id) => !missing.includes(id)).join(", ") || "none"}`] }
+      const missing = await deps.missingPublished(ids, s.gateAt)
+      if (missing === null) return { ok: false, lines: [`the platform's Sanity could not be read to confirm the publication of ${ids.join(", ")}: try again, or look for it in the Studio`] }
+      if (missing.length > 0) return { ok: false, lines: [`not published${s.gateAt ? " since the owner's ok" : ""}: ${missing.join(", ")}`, `published: ${ids.filter((id) => !missing.includes(id)).join(", ") || "none"}`] }
       return { ok: true, lines: [`published: ${ids.join(", ")}`] }
     }
   }
