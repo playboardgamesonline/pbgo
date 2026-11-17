@@ -277,12 +277,13 @@ export function HomePlay({ games, languages, account, className }: { games: read
       aria-labelledby="home-play"
       className={cn("min-h-[calc(100svh-var(--consent-h,0px)-var(--spacing-navbar)-1rem-var(--spacing-gutter))] min-w-0 gap-0 overflow-visible py-0 [--cutout:var(--card)]", className)}
     >
-      {/* The four parts of the card are spread over its height at equal distances: the switch at the top, the games, the group and, at the foot, the button. The games and the group have a little room at their sides */}
-      <div className="flex flex-1 flex-col justify-between gap-6 p-6">
+      {/* The four parts of the card are spread over its height: the switch at the top, the games, the group and, at the foot, the button, with spacers between them that share what is left of the height 10 : 7 : 13 (never under 1.5rem), so that the group is a little higher than at equal distances. The games and the group have a little room at their sides */}
+      <div className="flex flex-1 flex-col p-6">
         <h2 id="home-play" className="sr-only">
           Play
         </h2>
         <ModeSwitch options={MODES} value={shownMode} onValueChange={setMode} disabled={searching} aria-label="What to play" className="justify-start" />
+        <div aria-hidden="true" className="min-h-6 grow-10" />
         <section aria-labelledby="home-games" className="@container flex flex-col gap-4 px-2">
           <h3 id="home-games" className="font-heading text-lg">
             {searchMode ? "Board games" : "Board game"}
@@ -328,12 +329,14 @@ export function HomePlay({ games, languages, account, className }: { games: read
             </>
           )}
         </section>
+        <div aria-hidden="true" className="min-h-6 grow-7" />
         <section aria-labelledby="home-group" className="@container flex flex-col gap-4 px-2">
           <h3 id="home-group" className="font-heading text-lg">
             Group
           </h3>
           <PlayerSlots players={players} size={size} picker={picker} menu={menuOf} disabled={searching || opening} />
         </section>
+        <div aria-hidden="true" className="min-h-6 grow-13" />
         {/* The button is at the foot of the card, which is the foot of the screen, with what says why it is off at its right. Under `xl` a card taller than the screen keeps it in view above the consent banner, over what scrolls under it (the fade is the card's own grey); from `xl` the card is made to fit the screen and it stays at its foot */}
         <div className="sticky bottom-[var(--consent-h,0px)] z-10 -mx-6 -mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-b-4xl bg-gradient-to-t from-card from-70% to-transparent px-6 pt-4 pb-6 xl:static xl:m-0 xl:bg-none xl:p-0">
           {searchMode ? (
