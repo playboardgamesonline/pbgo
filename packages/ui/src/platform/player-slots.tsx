@@ -47,8 +47,15 @@ type PlayerSlotsProps = Omit<React.ComponentProps<"ul">, "children"> & {
   disabled?: boolean
 }
 
-/** The width of a place, which its avatar fills: one size for the card, a step larger each time the room of the row (`@container`, the page's) has the width of nine of the next size and the gaps between them, so that a whole group still sits on one line. */
-const PLACE = "w-16 @3xl:w-18 @4xl:w-22 @5xl:w-24 @6xl:w-28 @7xl:w-32"
+/**
+ * The columns of the row: as many as there are places while the room has the width of that many at the least (`minmax(<least>, 1fr)`, nine on one line at the most), and the row is no wider than that many places of the most a place has (`max-w`, from the count `--n` that `PLACE_COUNT` gives it), so that a few
+ * places are a few large avatars and nine are nine smaller ones. The least and the most grow with the room of the row (`@container`, the page's), a step at a time.
+ */
+const PLACES =
+  "grid-cols-[repeat(auto-fit,minmax(4rem,1fr))] max-w-[calc(var(--n)*5.25rem)] @3xl:max-w-[calc(var(--n)*6.75rem)] @4xl:max-w-[calc(var(--n)*7.75rem)] @5xl:max-w-[calc(var(--n)*8.75rem)] @7xl:max-w-[calc(var(--n)*10.75rem)]"
+
+/** `--n` of the row: how many places it has, from 1 to nine. Written out, so that each class is in the stylesheet. */
+const PLACE_COUNT = ["[--n:1]", "[--n:1]", "[--n:2]", "[--n:3]", "[--n:4]", "[--n:5]", "[--n:6]", "[--n:7]", "[--n:8]", "[--n:9]"] as const
 
 /** What makes an avatar of the row as wide as its place, and as tall. */
 const FILL = "data-[size=xl]:size-full aspect-square"
@@ -148,9 +155,9 @@ function PlayerSlots({ players, size, picker, menu, disabled = false, className,
   // The free places all open the same panel, so only the first of them is a stop for the keyboard's Tab, as the free seats of a table are
   const firstFree = cells.findIndex((cell) => cell.person === null)
   return (
-    <ul data-slot="player-slots" aria-label="Players" data-places={cells.length} className={cn("flex flex-wrap items-start gap-x-3 gap-y-4", className)} {...props}>
+    <ul data-slot="player-slots" aria-label="Players" data-places={cells.length} className={cn("grid items-start gap-x-3 gap-y-4", PLACES, PLACE_COUNT[cells.length], className)} {...props}>
       {cells.map((cell, index) => (
-        <li key={index} data-slot="player-slot" data-free={cell.person === null ? "" : undefined} className={cn("flex shrink-0 flex-col items-center gap-2", PLACE)}>
+        <li key={index} data-slot="player-slot" data-free={cell.person === null ? "" : undefined} className="flex min-w-0 flex-col items-center gap-2">
           {cell.person ? <Person player={cell.person} menu={menu} disabled={disabled} /> : <Free picker={picker} disabled={disabled} tabbable={index === firstFree} />}
         </li>
       ))}

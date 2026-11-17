@@ -80,22 +80,31 @@ describe("the row of players", () => {
     expect(cellsOf(row({ size: 40 }))).toHaveLength(9)
   })
 
-  it("gives every place the same fixed size, a person's and a free place's, so that none changes size as places are added: a large avatar in a column of its own width", () => {
+  it("makes every place a cell of one grid, a person's and a free place's: the same width, as large as the row allows for the places there are, never fixed by a width of its own", () => {
     const html = row({ players: [you, ann], size: 6 })
+    const list = /<ul[^>]*>/.exec(html)?.[0] ?? ""
+    expect(list).toContain("grid-cols-[repeat(auto-fit,minmax(4rem,1fr))]")
     for (const place of cellsOf(html)) {
-      expect(place).toContain("w-16")
-      expect(place).toContain("shrink-0")
+      expect(place).not.toMatch(/[\s"]w-\d/)
       expect(place).not.toContain("flex-1")
     }
     expect(html.match(/data-size="xl"/g)).toHaveLength(6)
     expect(html).not.toContain("cqw")
   })
 
-  it("is aligned to the left and wraps to a second line in a column too narrow for the places, rather than shrink them", () => {
+  it("knows how many places it has, which the width of the row is made of: no wider than that many places of the most a place has", () => {
+    for (const size of [1, 5, 9]) {
+      const list = /<ul[^>]*>/.exec(row({ size }))?.[0] ?? ""
+      expect(list).toContain(`[--n:${size}]`)
+      expect(list).toContain("max-w-[calc(var(--n)*")
+    }
+  })
+
+  it("is aligned to the left and wraps to a second line in a column too narrow for the places, rather than shrink them below a least width", () => {
     const list = /<ul[^>]*>/.exec(row({ players: [you, ann] }))?.[0] ?? ""
-    expect(list).toContain("flex-wrap")
+    expect(list).toContain("minmax(4rem,1fr)")
     expect(list).not.toContain("justify-center")
-    expect(list).not.toContain("flex-nowrap")
+    expect(list).not.toContain("justify-items-center")
   })
 
   it("puts the visitor in the first place, the others after them, and their name 'You' under their picture", () => {
