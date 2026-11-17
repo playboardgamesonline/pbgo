@@ -6,7 +6,7 @@ import { DEMO_FRIEND_FIGURES, DEMO_FRIENDS } from "./demo-data"
 
 export type { RosterFriend as ProfileFriend }
 
-// The friends that the Friends zone of a member's own profile lists (`/me/profile`): who they are, how many games each finished, the share they won and the place they came at on average, the ones who played the most first. Never another member's: a profile that somebody else opens has no list of friends. The friends are the database's
+// The friends that the Friends zone of a member's own profile lists (`/me/profile`, and their `/player/<handle>` when they open it: `profilePage`): who they are, how many games each finished, the share they won and the place they came at on average, the ones who played the most first. Never another member's: a profile that somebody else opens has no list of friends. The friends are the database's
 // (`@pbgo/core/server/friend-roster`); the demo account of development is in no database, so its friends are the made-up ones of the social panel (`demo-data.ts`).
 
 /**
