@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { DEMO_ARTICLE, demoTournaments, HOME_TOURNAMENTS, openTournaments, pagesOf, perPageFor, ROW_GAP, TOURNAMENTS_PER_PAGE_MAX, type AsideGame } from "./home-aside"
+import { ARTICLE_LINES_DEFAULT, ARTICLE_LINES_MIN, ASIDE_FIT, DEMO_ARTICLE, demoTournaments, fitAside, HOME_TOURNAMENTS, openTournaments, pagesOf, perPageFor, ROW_GAP, summaryLinesFor, TOURNAMENTS_PER_PAGE_MAX, type AsideGame } from "./home-aside"
 
 const game = (slug: string): AsideGame => ({ slug, name: slug.toUpperCase() })
 const tournament = (id: string, startsAt: string, status: "upcoming" | "live" | "finished" = "upcoming") => ({ id, name: id, status, startsAt, places: 16, registered: 4 })
@@ -36,7 +36,9 @@ describe("what the demo account shows in the column", () => {
 
   it("has an article that leads to a page of the hub", () => {
     expect(DEMO_ARTICLE.title).not.toBe("")
-    expect(DEMO_ARTICLE.summary.length).toBeLessThanOrEqual(280)
+    // Long enough to fill the article of a tall window, still a teaser
+    expect(DEMO_ARTICLE.summary.length).toBeGreaterThanOrEqual(400)
+    expect(DEMO_ARTICLE.summary.length).toBeLessThanOrEqual(600)
     expect(DEMO_ARTICLE.href.startsWith("/")).toBe(true)
   })
 
@@ -98,5 +100,63 @@ describe("how many open tournaments a page holds", () => {
     expect(pagesOf([], 3)).toEqual([])
     expect(pagesOf([1, 2, 3], 0)).toEqual([[1], [2], [3]])
     expect(pagesOf([1, 2, 3], Number.NaN)).toEqual([[1], [2], [3]])
+  })
+})
+
+describe("how many lines of the summary the article shows", () => {
+  it("is its fewest while there is no room over them, and a line more for each line of room", () => {
+    expect(ARTICLE_LINES_MIN).toBe(3)
+    expect(summaryLinesFor(0, 20)).toBe(3)
+    expect(summaryLinesFor(19, 20)).toBe(3)
+    expect(summaryLinesFor(20, 20)).toBe(4)
+    expect(summaryLinesFor(59, 20)).toBe(5)
+    expect(summaryLinesFor(60, 20)).toBe(6)
+  })
+
+  it("is its fewest where nothing is known: no room, a line that is not measured", () => {
+    expect(summaryLinesFor(-30, 20)).toBe(3)
+    expect(summaryLinesFor(100, 0)).toBe(3)
+    expect(summaryLinesFor(Number.NaN, 20)).toBe(3)
+  })
+})
+
+describe("how the right column shares its height", () => {
+  const column = { lineHeight: 20, rowHeight: 99, count: 6, empty: 0 }
+
+  it("gives the tournaments their rows first, four at the most, and the article all that is left, in lines", () => {
+    // 507px for the tournaments when the article has its three lines: four rows and their dots take 460, and the 47 left are two lines more
+    expect(fitAside({ ...column, area: 487, shown: 4 })).toEqual({ perPage: 4, lines: 5 })
+  })
+
+  it("answers the same whatever the article is drawn with, since what it takes above its fewest lines is given back to the tournaments", () => {
+    for (const [shown, area] of [[3, 507], [4, 487], [5, 467], [6, 447], [9, 387]] as const) expect(fitAside({ ...column, area, shown })).toEqual({ perPage: 4, lines: 5 })
+  })
+
+  it("counts fewer rows where the room is short, and gives the article what the rows leave", () => {
+    // 300px: two rows and their dots take 238, and the 62 left are three lines
+    expect(fitAside({ ...column, area: 300, shown: 3 })).toEqual({ perPage: 2, lines: 6 })
+  })
+
+  it("keeps the article's fewest lines, and one row, where there is no room at all", () => {
+    expect(fitAside({ ...column, area: 100, shown: 3 })).toEqual({ perPage: 1, lines: 3 })
+  })
+
+  it("has no dots to make room for when every tournament fits one page", () => {
+    // three tournaments, 500px: they are one page of 321px, with no dots, and the 179 left are eight lines
+    expect(fitAside({ ...column, count: 3, area: 500, shown: 3 })).toEqual({ perPage: 4, lines: 11 })
+  })
+
+  it("gives the article the room that the empty state leaves when no tournament is open", () => {
+    expect(fitAside({ ...column, count: 0, rowHeight: 0, empty: 120, area: 500, shown: 3 })).toEqual({ perPage: TOURNAMENTS_PER_PAGE_MAX, lines: 22 })
+  })
+
+  it("counts the tournaments alone where there is no article", () => {
+    expect(fitAside({ ...column, area: 300, shown: 0, lineHeight: 0 })).toEqual({ perPage: 2, lines: ARTICLE_LINES_DEFAULT })
+  })
+
+  it("is the default where nothing is known: a column that is not laid out, rows that are not drawn", () => {
+    expect(fitAside({ ...column, area: 0, shown: 3 })).toEqual(ASIDE_FIT)
+    expect(fitAside({ ...column, area: Number.NaN, shown: 3 })).toEqual(ASIDE_FIT)
+    expect(fitAside({ ...column, area: 400, shown: 3, rowHeight: 0 })).toEqual(ASIDE_FIT)
   })
 })

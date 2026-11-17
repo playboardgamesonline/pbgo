@@ -15,8 +15,8 @@ import { RankEmblem } from "./rank-emblem"
 // A press on the picture opens the settings of the game for this search or this table (`config`: its speed, its expansions) in a window; a small gear at the corner of the picture says that it does, shown under the pointer and always on a screen that cannot hover, and a dot says
 // that the settings are not the usual ones. A game that cannot be
 // played now (`unavailable`: a group too large for it) is shown off, with a warning at its corner whose hover says why and no settings to open; its cross still takes it out. Game art is the only colour of the platform, so the tiles add none. The page keeps which games are in the
-// search; the tiles draw it and decide nothing. The games are picked in the panel of a `GameSelect`, which a free slot of the row opens (`AddGameTile`): a dark, translucent rectangle with a plus in it, as big as the tiles of the games. A search has five slots to begin with, so the games that
-// are picked are followed by the slots that are free (`gameSlotsFor` of `@pbgo/ui/play-zone`), each of them one of these.
+// search; the tiles draw it and decide nothing. The games are picked in the panel of a `GameSelect`, which a free slot of the row opens (`AddGameTile`): a dark, translucent rectangle with a plus in it, as big as the tiles of the games. A search has four slots to begin with and a fifth, free, when the four are taken, so the games
+// that are picked are followed by the slots that are free (`gameSlotsFor` of `@pbgo/ui/play-zone`), each of them one of these.
 
 type GamePicture = {
   /** URL of a picture that fills the frame, cropped to it (the game's cover, or its background). */
