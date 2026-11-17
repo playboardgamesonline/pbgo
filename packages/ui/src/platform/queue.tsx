@@ -32,7 +32,7 @@ function Searching({ className }: { className?: string }) {
 
 /** What the two sizes of the button change while it counts: the box (the width is the idle button's least, so that nothing moves) and the cross inside it. */
 const SEARCH_SIZES = {
-  "2xl": { idle: "min-w-56", box: "h-16 w-56 text-xl", stop: "mr-2 size-12" },
+  "2xl": { idle: "min-w-56", box: "h-16 w-56 rounded-2xl text-xl", stop: "mr-2 size-12" },
   xl: { idle: "min-w-40", box: "h-12 w-40 text-base", stop: "mr-1.5 size-9" },
   lg: { idle: "min-w-36", box: "h-10 w-36 text-sm", stop: "mr-1 size-8" },
 }

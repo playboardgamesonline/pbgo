@@ -8,8 +8,8 @@ describe("playtimePodium", () => {
   it("puts the games they spent the most time at first, two at the most, each with its time", () => {
     const rows = [game("a", 3, 1, 600), game("b", 9, 4, 7500), game("c", 2, 0, 3900), game("d", 5, 2, 120), game("e", 1, 1, 30)]
     expect(playtimePodium(rows)).toEqual([
-      { slug: "b", name: "B", value: "2 h 05" },
-      { slug: "c", name: "C", value: "1 h 05" },
+      { slug: "b", name: "B", value: "2 h 05", amount: 7500 },
+      { slug: "c", name: "C", value: "1 h 05", amount: 3900 },
     ])
   })
 
@@ -38,8 +38,8 @@ describe("winRatePodium", () => {
   it("puts the games they win the most often first, two at the most, each with its share in whole percent", () => {
     const rows = [game("a", 4, 2), game("b", 3, 3), game("c", 8, 6), game("d", 5, 1), game("e", 6, 0)]
     expect(winRatePodium(rows)).toEqual([
-      { slug: "b", name: "B", value: "100%" },
-      { slug: "c", name: "C", value: "75%" },
+      { slug: "b", name: "B", value: "100%", amount: 1 },
+      { slug: "c", name: "C", value: "75%", amount: 0.75 },
     ])
   })
 

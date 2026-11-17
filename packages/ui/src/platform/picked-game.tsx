@@ -129,7 +129,7 @@ function PickedGame({ name, picture, logo, showRank = false, rank, onRemove, loa
           <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2.5} aria-hidden="true" className="size-4 @max-[7.5rem]/tile:size-3.5" />
         </button>
       )}
-      <span className="flex min-w-0 flex-col items-center gap-0.5 px-1 text-center">
+      <span className="flex min-h-10.5 min-w-0 flex-col items-center gap-0.5 px-1 text-center">
         <span className={cn("max-w-full truncate text-sm @max-[7.5rem]/tile:text-xs", unavailable !== undefined && "text-muted-foreground")}>{name}</span>
         {showRank && <GameRank rank={rank} />}
       </span>
