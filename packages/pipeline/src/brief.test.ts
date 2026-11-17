@@ -58,9 +58,9 @@ describe("the brief of a sub-agent", () => {
     expect(make(GAME_NEW)).toContain("The Linear issue of this step: none made yet: ask the orchestrator before you name an issue in a branch or a pull request.")
   })
 
-  it("asks for a report in a fixed shape, written to a file and sent back", () => {
+  it("asks for a report in a fixed shape, returned as the final message and not written to a file (the app refuses a sub-agent's file): the orchestrator writes it where the round names", () => {
     const brief = make(SCOUT)
-    expect(brief).toContain("Write it to `/scratch/report-love-letter-x.md` with the Write tool, then reply with the same text")
+    expect(brief).toContain("Return it as your final message, in this shape (`STATUS` first). Do not write a file: the app refuses a sub-agent's report file, and the orchestrator writes your message to `/scratch/report-love-letter-x.md` itself")
     for (const word of ["STATUS: done | questions | blocked", "SUMMARY:", "QUESTIONS:", "FILES:", "LINKS:", "NOT VERIFIED:"]) expect(brief).toContain(word)
     // a skill that has a report of its own (the spec's, with its open points) gives it whole
     expect(brief).toContain("when the skill has a report of its own (the scout's, the spec's with its open points), that report whole")

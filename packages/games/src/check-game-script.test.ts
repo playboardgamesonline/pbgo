@@ -1,4 +1,7 @@
 import { spawnSync } from "node:child_process"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 
@@ -49,5 +52,28 @@ describe("pnpm check:game --only", () => {
     const run = spawnSync(process.execPath, ["scripts/check-game.mjs", "--only", "scaffold", "template"], { cwd: REPO, encoding: "utf8", timeout: 30_000 })
     expect(run.status).toBe(0)
     expect(run.stdout).toContain("template has got as far as")
+  })
+})
+
+describe("pnpm check:game for a game that is not in the repo yet", () => {
+  const run = (assets: string, slug: string) => spawnSync(process.execPath, ["scripts/check-game.mjs", slug], { cwd: REPO, encoding: "utf8", timeout: 30_000, env: { ...process.env, PBGO_ASSETS_DIR: assets } })
+
+  it("says where the game is in the flow, in its own folder or in the folder of its line, and how to start it when it is in neither", () => {
+    const assets = mkdtempSync(join(tmpdir(), "check-game-flow-"))
+    try {
+      mkdirSync(join(assets, "the-line", "zzz-game-in-a-line"), { recursive: true })
+      writeFileSync(join(assets, "the-line", "zzz-game-in-a-line", "pipeline.json"), JSON.stringify({ name: "Zzz Game In A Line", steps: { scout: { status: "gate" } } }))
+      mkdirSync(join(assets, "zzz-flat-game"))
+      writeFileSync(join(assets, "zzz-flat-game", "pipeline.json"), JSON.stringify({ name: "Zzz Flat Game", steps: { scout: { status: "validated" } } }))
+      const nested = run(assets, "zzz-game-in-a-line")
+      expect(nested.status).toBe(2)
+      expect(nested.stderr).toContain('It is in the flow (scout gate): `/add-game "Zzz Game In A Line"` goes on.')
+      expect(run(assets, "zzz-flat-game").stderr).toContain("It is in the flow (scout validated)")
+      const nowhere = run(assets, "zzz-nowhere")
+      expect(nowhere.status).toBe(2)
+      expect(nowhere.stderr).toContain('`/add-game "<Game Name>"` starts one')
+    } finally {
+      rmSync(assets, { recursive: true, force: true })
+    }
   })
 })

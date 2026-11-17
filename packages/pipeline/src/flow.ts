@@ -3,7 +3,7 @@
 // per game (`state.ts`) and the skill is its only writer, one command at a time (`lock.ts` makes two that run together wait for each other). Every verb prints what to do next, and exits 0 when it
 // did what it was asked, 1 when it refused, 2 for a wrong command line.
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import { specPathsOf } from "@pbgo/games/rules-spec"
 import { readScout, type Scout } from "@pbgo/games/scout"
 import { cleanName, nameProblem, slugFromName, slugProblem } from "@pbgo/games/slug"
@@ -41,7 +41,7 @@ export const VERBS = ["status", "start", "begin", "gate", "check", "validate", "
 export const USAGE = `Usage: pnpm game-flow <verb> …     the state of a game that goes through /add-game (the skill that runs it is .claude/skills/add-game)
 
   status [<game>] [--step <id>] [--json]            where a game stands and what is next; with no game, the games in the flow
-  start "<Game Name>" [--adopt-through <step>]      a game enters the flow (a game that has a folder in the repo only with --adopt-through)
+  start "<Game Name>" [--family <folder>] [--adopt-through <step>]   a game enters the flow (--family: its folder is in the folder of its line, assets/<folder>/<slug>; a game that has a folder in the repo only with --adopt-through)
   begin <game> <step> [--scratch <dir>] [--change | --again]   opens a round of a step and writes the brief of its sub-agent (--change: the owner asked for a change; --again: the sub-agent of the open round is gone)
   gate <game> <step> [--report <file>] [--link <url>]…   the sub-agent is done: records its report (the round's own file when --report is left out), runs the machine's check, shows the gate
   check <game> <step>                               the machine's check of a step, again
@@ -66,7 +66,7 @@ class FlowError extends Error {
 
 type Parsed = { verb: string; words: string[]; values: Map<string, string[]>; flags: Set<string> }
 
-const VALUE_FLAGS = new Set(["--report", "--link", "--reason", "--scratch", "--file", "--adopt-through", "--step"])
+const VALUE_FLAGS = new Set(["--report", "--link", "--reason", "--scratch", "--file", "--adopt-through", "--step", "--family"])
 const BOOL_FLAGS = new Set(["--json", "--change", "--again", "--dry-run", "--help"])
 
 function parseArgs(argv: string[]): Parsed {
@@ -286,7 +286,11 @@ async function start(deps: FlowDeps, parsed: Parsed): Promise<number> {
   }
   const last = adopt === undefined ? null : stepById(adopt)
   if (adopt !== undefined && !last) throw new FlowError(`"${adopt}" is not a step: ${STEPS.map((each) => each.id).join(", ")}`, EXIT.usage)
-  const dir = join(deps.assets, slug)
+  const family = valueOf(parsed, "--family")
+  if (family !== undefined && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(family)) throw new FlowError(`"${family}" is not the name of a folder of a family: lowercase words joined by dashes, like the-crew`, EXIT.usage)
+  // a family is a folder that holds games, never one that is a game's own
+  if (family !== undefined && existsSync(join(deps.assets, family, "pipeline.json"))) throw new FlowError(`${tilde(join(deps.assets, family))} is the folder of a game, not of a family: pick another folder for the line`)
+  const dir = family === undefined ? join(deps.assets, slug) : join(deps.assets, family, slug)
   const state = newState({ name, slug, now: deps.now() })
   const game = gameAt(dir, name, slug)
   const taken: StepDefinition[] = []
@@ -380,10 +384,10 @@ async function begin(deps: FlowDeps, parsed: Parsed): Promise<number> {
   // the brief is written for a change too: the sub-agent that did the step may be gone (another session), and a fresh one reads it, finds what exists and carries on
   writeFileSync(briefPath, briefOf({ step, game, scratch, reportPath, has: { scout: existsSync(game.scoutFile), rulesPdf: existsSync(game.rulesPdf) }, round: reopened ? s.rounds : 1, issue: s.issue?.identifier || null, parent: state.linear.parent?.identifier || null }))
   if (change) {
-    say(deps, "A round for the change the owner asked for: send it to the sub-agent that did the step (SendMessage), and ask it to write its new report to the new file.", `  report  ${reportPath}`, `  brief   ${briefPath}  (for a fresh sub-agent when that one is gone: Read it and follow it, and give it the owner's words)`, `When it answers STATUS: done: pnpm game-flow gate ${state.slug} ${step.id}`)
+    say(deps, "A round for the change the owner asked for: send it to the sub-agent that did the step (SendMessage), and ask it to return its new report as its final message: you write it to the new file.", `  report  ${reportPath}`, `  brief   ${briefPath}  (for a fresh sub-agent when that one is gone: Read it and follow it, and give it the owner's words)`, `When it answers STATUS: done: pnpm game-flow gate ${state.slug} ${step.id}`)
     return EXIT.ok
   }
-  say(deps, `  brief   ${briefPath}`, `  report  ${reportPath}`, `Give a sub-agent (Agent tool, general-purpose) this prompt: Read ${briefPath} and follow it.`, `When it answers STATUS: done: pnpm game-flow gate ${state.slug} ${step.id}`)
+  say(deps, `  brief   ${briefPath}`, `  report  ${reportPath}  (the sub-agent returns its report as its final message: write it to this file, then gate)`, `Give a sub-agent (Agent tool, general-purpose) this prompt: Read ${briefPath} and follow it.`, `When it answers STATUS: done: write its message to the report file, then pnpm game-flow gate ${state.slug} ${step.id}`)
   return EXIT.ok
 }
 
@@ -404,7 +408,7 @@ async function gate(deps: FlowDeps, parsed: Parsed): Promise<number> {
   const reportFile = valueOf(parsed, "--report") ?? (s.reportPath && existsSync(s.reportPath) ? s.reportPath : undefined)
   let report: string | null = null
   if (reportFile !== undefined) {
-    if (!existsSync(reportFile)) throw new FlowError(`no report at ${reportFile}: the sub-agent was to write it there (when it did not, write its final message to that file yourself, then gate again)`)
+    if (!existsSync(reportFile)) throw new FlowError(`no report at ${reportFile}: a sub-agent returns its report as its final message and cannot write the file: write that message to the path yourself, then gate again`)
     report = printable(readFileSync(reportFile, "utf8")).trim().slice(0, 12_000)
     const said = STATUS_LINE.exec(report)?.[1]?.toLowerCase()
     if (said === "questions") throw new FlowError("the sub-agent asked questions: relay them to the owner and send it the answers, then wait for STATUS: done (a gate is for a finished step; when it did finish and its file still says questions, write its final message to the file)")
@@ -452,12 +456,13 @@ function settleScout(deps: FlowDeps, target: Target): string | null {
   const scout = scoutOf(target)
   if (scout === null) return "the scout file cannot be read"
   if (scout.slug !== state.slug && folderIn(deps, scout.slug)) return `games/${scout.slug} exists already: ${scout.name} has a folder, there is nothing to add`
-  const to = join(deps.assets, scout.slug)
+  // the folder keeps the folder it is in (a family's, for a game of a line)
+  const to = join(dirname(found.dir), scout.slug)
   const was = state.slug
   // the folder may be at the slug already (a move that stopped between the rename and the save)
   if (resolve(found.dir) !== resolve(to)) {
     try {
-      found.dir = moveGameDir(deps.assets, found.dir, scout.slug)
+      found.dir = moveGameDir(found.dir, scout.slug)
     } catch (error) {
       return error instanceof Error ? error.message : String(error)
     }

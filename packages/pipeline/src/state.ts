@@ -2,7 +2,7 @@
 // resume from any session. It keeps what the repo cannot say (which step was validated, what the gate showed, the Linear issues) and nothing `pnpm check:game` can: the stages of a game that has a
 // folder are computed from the repo, never copied here. The skill is the only writer, through `pnpm game-flow`, and every write is a whole file renamed into place.
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { cleanName, slugFromName } from "@pbgo/games/slug"
 
 export const STATE_VERSION = 1
@@ -188,17 +188,43 @@ export function readState(dir: string): PipelineState | null {
 
 const normalize = (name: string): string => cleanName(name).toLowerCase()
 
-/** The game that was asked for by `query` (a name as typed, or a slug): its folder is the slug the name makes, else the one whose state knows the name or a slug it had (the scout may settle another). */
+/**
+ * The folders that hold a game's state: `<root>/<slug>` and, for a family of games (a folder that holds no state of its own, the line of a game and its reimplementations: `the-crew/` with
+ * `the-crew-the-quest-for-planet-nine/` and `the-crew-mission-deep-sea/` in it), `<root>/<family>/<slug>`.
+ */
+export function gameDirs(root: string): string[] {
+  if (!existsSync(root)) return []
+  const dirs: string[] = []
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) continue
+    const dir = join(root, entry.name)
+    if (existsSync(statePath(dir))) {
+      dirs.push(dir)
+      continue
+    }
+    let children: { name: string; isDirectory: () => boolean }[]
+    try {
+      children = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const child of children) {
+      if (!child.isDirectory() || child.name.startsWith(".")) continue
+      const inside = join(dir, child.name)
+      if (existsSync(statePath(inside))) dirs.push(inside)
+    }
+  }
+  return dirs
+}
+
+/** The game that was asked for by `query` (a name as typed, or a slug): its folder is the slug the name makes, else the one whose state knows the name or a slug it had (the scout may settle another), in a family folder or not. */
 export function findGame(root: string, query: string): FoundGame | null {
   const direct = join(root, slugFromName(query))
   const state = readState(direct)
   if (state) return { dir: direct, state }
-  if (!existsSync(root)) return null
   const wanted = normalize(query)
   const wantedSlug = slugFromName(query)
-  for (const entry of readdirSync(root, { withFileTypes: true })) {
-    if (!entry.isDirectory() || entry.name.startsWith(".")) continue
-    const dir = join(root, entry.name)
+  for (const dir of gameDirs(root)) {
     let found: PipelineState | null = null
     try {
       found = readState(dir)
@@ -213,11 +239,8 @@ export function findGame(root: string, query: string): FoundGame | null {
 
 /** Every game that has a state, the oldest first. A folder whose state cannot be read is left out (the others are still listed). */
 export function listGames(root: string): FoundGame[] {
-  if (!existsSync(root)) return []
   const games: FoundGame[] = []
-  for (const entry of readdirSync(root, { withFileTypes: true })) {
-    if (!entry.isDirectory() || entry.name.startsWith(".")) continue
-    const dir = join(root, entry.name)
+  for (const dir of gameDirs(root)) {
     try {
       const state = readState(dir)
       if (state) games.push({ dir, state })
@@ -228,9 +251,9 @@ export function listGames(root: string): FoundGame[] {
   return games.sort((a, b) => a.state.createdAt.localeCompare(b.state.createdAt))
 }
 
-/** The folder of a game moves to the slug the scout settled. A folder that is there already is never overwritten. */
-export function moveGameDir(root: string, fromDir: string, toSlug: string): string {
-  const target = join(root, toSlug)
+/** The folder of a game moves to the slug the scout settled, in the folder it is in (the family's, when it has one). A folder that is there already is never overwritten. */
+export function moveGameDir(fromDir: string, toSlug: string): string {
+  const target = join(dirname(fromDir), toSlug)
   if (existsSync(target)) throw new Error(`${target} already exists: the game cannot move to ${toSlug}`)
   renameSync(fromDir, target)
   return target

@@ -225,13 +225,23 @@ function check(slug) {
  */
 function flowOf(slug) {
   const assets = process.env.PBGO_ASSETS_DIR || join(homedir(), "Companies", "PBGO", "assets")
+  // the game's own folder, or its place in the folder of its line (`<assets>/<family>/<slug>`)
+  const candidates = [join(assets, slug, "pipeline.json")]
   try {
-    const state = JSON.parse(readFileSync(join(assets, slug, "pipeline.json"), "utf8"))
-    const steps = Object.entries(state.steps ?? {}).map(([id, step]) => `${id} ${step?.status ?? "?"}`)
-    return { name: typeof state.name === "string" ? state.name : slug, steps: steps.join(" · ") || "no step yet" }
+    for (const entry of readdirSync(assets, { withFileTypes: true })) if (entry.isDirectory() && !entry.name.startsWith(".")) candidates.push(join(assets, entry.name, slug, "pipeline.json"))
   } catch {
-    return null
+    // no folder of games' files
   }
+  for (const file of candidates) {
+    try {
+      const state = JSON.parse(readFileSync(file, "utf8"))
+      const steps = Object.entries(state.steps ?? {}).map(([id, step]) => `${id} ${step?.status ?? "?"}`)
+      return { name: typeof state.name === "string" ? state.name : slug, steps: steps.join(" · ") || "no step yet" }
+    } catch {
+      // not there: try the next place
+    }
+  }
+  return null
 }
 
 const MARK = { ok: "✓", warn: "•", fail: "✗" }
