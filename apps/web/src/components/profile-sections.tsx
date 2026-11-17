@@ -49,10 +49,10 @@ export async function ProfileSections({ details, games, own, hideHistory, friend
     // What they did at a game is their games': left out where the visitor may not see them
     return [{ slug, name: entry.game.name, picture: gameThumb(entry.game), record: games === null ? null : { played: row?.played ?? 0, wins: row?.wins ?? 0, rank: rankIn.get(slug) ?? null } }]
   })
-  // What the member says of themselves: the bio in a card of its own with the languages they speak under it (each a chip with its own fill) and, just at its right (under it below `lg`, where five tiles do not leave the bio its room), a card of the favourite games they picked. Each card is as wide as
-  // what it holds and the whole is aligned to the left, never stretched to the width of the page: the bio has a least width (a bio of a word is no sliver) and a most that keeps the favourites next to it, and it gives way a little before they leave it
+  // What the member says of themselves: the bio in a card of its own with the languages they speak under it (each a chip with its own fill) and, just at its right (under it below `lg`, where five tiles do not leave the bio its room), a card of the favourite games they picked. Each card is as wide and as tall as
+  // what it holds and the whole is aligned to the left, never stretched to the width of the page or to the height of its neighbour: the bio has a least width (a bio of a word is no sliver) and a most that keeps the favourites next to it, and it gives way a little before they leave it
   const about = (hasAbout(details) || favorites.length > 0) && (
-    <div className="flex flex-col items-start gap-4 lg:flex-row lg:items-stretch">
+    <div className="flex flex-col items-start gap-4 lg:flex-row">
       <ProfileAbout details={details} className="min-w-64 max-w-md" />
       {favorites.length > 0 && <FavoriteGames games={favorites} className="lg:shrink-0" />}
     </div>

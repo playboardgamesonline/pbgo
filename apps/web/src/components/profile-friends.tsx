@@ -9,12 +9,12 @@ import { StatBarItem, StatBarValue } from "@pbgo/ui/platform/stat-bar"
 import { cn } from "@pbgo/ui/utils"
 import type { ProfileFriend } from "@/lib/profile-friends"
 
-// The Friends zone of the member's own profile, the third of the row of figures: the friends as pictures with their names under them, centred, in one row (five of them, the ones who played the most first, then a circle with the number of the others, "+4", which opens the window), and a "See all" at the top of the zone that opens a window with every friend: their picture and name,
+// The Friends zone of the member's own profile, the third of the row of figures: the friends as pictures with their names under them, centred, in one row (six of them, the ones who played the most first, then the number of the others, "+4", with no circle round it, which opens the window), and a "See all" at the top of the zone that opens a window with every friend: their picture and name,
 // the games they finished at the right of the name and under it the place they came at on average and the share they won, the way a list of players with their figures is drawn. A friend leads to their profile. A friend who keeps their games private has dashes. A member with no friend has "None yet",
 // as a game's card of achievements does. A server component: only the window is the client's, and it brings the list with it.
 
-/** How many friends the zone shows before the window that lists them all, at the most: one row of five, each in a column of its own width, so that the card is as wide as that row whatever the names are. The others are one circle, "+4", which opens the window. */
-const SHOWN = 5
+/** How many friends the zone shows before the window that lists them all, at the most: one row of six, each in a column of its own width, so that the card is as wide as that row whatever the names are. The others are one "+4", which opens the window. */
+const SHOWN = 6
 
 /** How many games a friend finished, as the list says it ("12 games"); a dash for a friend who keeps them private. */
 const gamesText = (played: number | null): string => (played === null ? "—" : `${played} ${played === 1 ? "game" : "games"}`)
@@ -65,11 +65,11 @@ export function FriendsZone({ friends, className }: { friends: readonly ProfileF
           </DialogTrigger>
         }
       >
-        <ul aria-label="Friends who played the most" className="flex gap-x-1">
+        <ul aria-label="Friends who played the most" className="flex">
           {friends.slice(0, SHOWN).map((friend) => (
-            <li key={`${friend.nickname}#${friend.tag}`} className="w-12 shrink-0">
+            <li key={`${friend.nickname}#${friend.tag}`} className="w-10 shrink-0">
               <Link href={profilePath(handleOf(friend))} className="group/friend flex flex-col items-center gap-1.5 outline-none">
-                <FriendPicture friend={friend} className="size-11 group-focus-visible/friend:ring-3 group-focus-visible/friend:ring-ring/30" />
+                <FriendPicture friend={friend} className="size-9 group-focus-visible/friend:ring-3 group-focus-visible/friend:ring-ring/30" />
                 <span title={friend.nickname} className="ph-mask w-full truncate text-center text-xs group-hover/friend:underline">
                   {friend.nickname}
                 </span>
@@ -77,10 +77,10 @@ export function FriendsZone({ friends, className }: { friends: readonly ProfileF
             </li>
           ))}
           {friends.length > SHOWN && (
-            <li className="w-12 shrink-0">
+            <li className="w-10 shrink-0">
               <DialogTrigger asChild>
                 <button type="button" aria-label={`${friends.length - SHOWN} more friends`} className="group/more flex w-full flex-col items-center outline-none">
-                  <span className="flex size-11 items-center justify-center rounded-full border border-border text-sm text-muted-foreground tabular-nums transition-colors duration-fast group-hover/more:border-foreground/50 group-hover/more:text-foreground group-focus-visible/more:ring-3 group-focus-visible/more:ring-ring/30">
+                  <span className="flex size-9 items-center justify-center rounded-full text-sm text-muted-foreground tabular-nums transition-colors duration-fast group-hover/more:text-foreground group-focus-visible/more:ring-3 group-focus-visible/more:ring-ring/30">
                     +{friends.length - SHOWN}
                   </span>
                 </button>
