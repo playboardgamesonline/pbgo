@@ -267,6 +267,13 @@ describe("the panel that picks the games", () => {
     expect(select({ max: 1, value: ["flip-7"] })).not.toContain("Flip 7")
     expect(select({ value: ["courtisans", "flip-7"] })).not.toContain("Courtisans")
   })
+
+  it("is open when the page says so, which is how every free slot of the row opens the one panel: the first is its trigger, the others set the page's state", () => {
+    expect(select({ open: true })).toContain('aria-expanded="true"')
+    expect(select({ open: false })).toContain('aria-expanded="false"')
+    // With nothing said it keeps its own state, shut to begin with
+    expect(select()).toContain('aria-expanded="false"')
+  })
 })
 
 describe("the tile that adds a game", () => {

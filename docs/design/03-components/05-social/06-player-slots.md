@@ -2,7 +2,7 @@
 
 Module: `@pbgo/ui/platform/player-slots`
 
-The row of places of the signed-in home's play zone: the people who play together, on one line. The visitor has the first place, at the left, and the others follow in the order they came, the free places after them. Every place is a large avatar of one size, a person's and a free place's, as large as the room of the row allows for the places there are, up to a most that grows with that room (the page makes it a container): a few places are a few large avatars, nine are nine smaller ones on one line; a column too narrow for them wraps the row to a second line. It begins with a few places, free but for the visitor's, and gets one more, free, each time they are all taken, up to the most a table holds (`placesFor` of `@pbgo/ui/play-zone`), the way a row of games ends with the tile that adds one.
+The row of places of the signed-in home's play zone: the people who play together, on one line. The visitor has the first place, at the left, and the others follow in the order they came, the free places after them. Every place is a large avatar of one size, a person's and a free place's, as large as the room of the row allows for the places there are, up to a most that grows with that room (the page makes it a container): a few places are a few large avatars, nine are nine smaller ones on one line; a column too narrow for them wraps the row to a second line. It begins with a few places, free but for the visitor's, and gets one more, free, each time they are all taken, up to the most a table holds (`placesFor` of `@pbgo/ui/play-zone`), the way the row of games gets its slots (`gameSlotsFor` of `@pbgo/ui/play-zone`).
 
 ```specimen
 player-slots

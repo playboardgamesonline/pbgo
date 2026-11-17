@@ -28,6 +28,15 @@ export const SLOT_BASE = 5
  */
 export const placesFor = (people: number): number => Math.min(SLOT_COLUMNS, Math.max(SLOT_BASE, (Number.isFinite(people) ? Math.floor(people) : 0) + 1))
 
+/** How many slots the row of games has to begin with, however few games are in it: the games and, after them, the slots that are free. */
+export const GAME_SLOT_BASE = 5
+
+/**
+ * How many slots the row of games of a search has: the base, and one more, free, as soon as every slot is taken, up to `max` games, the most a search takes, the way the row of players gets a place. Two games have five slots, three of them free; five games have six, the last one free;
+ * `max` games fill the row, which has no free slot. A table of one's own holds one game, so its row is the one slot of that game: that is not a count of this function.
+ */
+export const gameSlotsFor = (games: number, max: number): number => Math.min(max, Math.max(GAME_SLOT_BASE, (Number.isFinite(games) ? Math.floor(games) : 0) + 1))
+
 /** A place of the row: it holds a person or, with `person` null, is free. */
 export type SlotCell<T> = { person: T | null }
 

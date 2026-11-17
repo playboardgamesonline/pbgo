@@ -24,7 +24,7 @@ import { ModeSwitch, type ModeOption } from "@pbgo/ui/platform/mode-switch"
 import { AddGameTile, PickedGame } from "@pbgo/ui/platform/picked-game"
 import { PlayerSlots, type SlotPlayer } from "@pbgo/ui/platform/player-slots"
 import { QueueButton } from "@pbgo/ui/platform/queue"
-import { PLAY_ZONE_LABELS, PLAY_ZONE_MODES, placesFor, searchModeOf, SLOT_BASE, type PlayZoneMode } from "@pbgo/ui/play-zone"
+import { gameSlotsFor, PLAY_ZONE_LABELS, PLAY_ZONE_MODES, placesFor, searchModeOf, SLOT_BASE, type PlayZoneMode } from "@pbgo/ui/play-zone"
 import type { QueueCriteria } from "@pbgo/ui/queue"
 import { rankLabel, type Rank } from "@pbgo/ui/ranks"
 import { defaultSeats, type Pace } from "@pbgo/ui/tables"
@@ -60,21 +60,16 @@ const MODES: readonly ModeOption<PlayZoneMode>[] = PLAY_ZONE_MODES.map((value) =
 const FRIENDS_LISTED = 8
 
 /**
- * The tiles of the games are the cells of one grid, aligned to the left, and they fill the row: as many columns as there are tiles (the games picked and the tile that adds one) while the room has the width of that many at the least (`minmax(<least>, 1fr)`), and the row is no wider than that many tiles
- * of the most a tile has (`max-w`, from the count `--n` that `TILE_COUNT` gives it), so that a few games are a few large tiles and ten are two rows of small ones, all the same size at a given number. The least and the most grow with the room of the games (`@container` of their section), a step
- * at a time. A tile is as tall as its picture (4:3), its name and the rank under it that Ranked draws, which it keeps the room of in Normal too, so that the zone under the games never moves from one kind to the other.
+ * The slots of the games are the cells of one grid, aligned to the left: five columns, or three in a card too narrow for five (`@xl`, the room of their section), so that a game has the same size whatever the number of games and the kind of play, and as large as its column allows up to a most (`max-w`).
+ * A slot is as tall as its picture (4:3), its name and the rank under it that Ranked draws, which it keeps the room of in Normal too, so that the zone under the games never moves from one kind to the other.
  */
-const TILES =
-  "grid grid-cols-[repeat(auto-fit,minmax(8rem,1fr))] max-w-[calc(var(--n)*10.75rem)] gap-x-3 gap-y-6 @3xl:max-w-[calc(var(--n)*16.75rem)] @4xl:grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] @4xl:max-w-[calc(var(--n)*18.75rem)] @5xl:grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] @5xl:max-w-[calc(var(--n)*20.75rem)] @7xl:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] @7xl:max-w-[calc(var(--n)*24.75rem)]"
-
-/** `--n` of the grid of tiles: how many tiles there are, 11 at the most (ten games and the tile that adds one). Written out, so that each class is in the stylesheet. */
-const TILE_COUNT = ["[--n:1]", "[--n:1]", "[--n:2]", "[--n:3]", "[--n:4]", "[--n:5]", "[--n:6]", "[--n:7]", "[--n:8]", "[--n:9]", "[--n:10]", "[--n:11]"] as const
+const SLOTS = "grid grid-cols-3 gap-x-3 gap-y-6 @xl:grid-cols-5 max-w-4xl"
 
 /**
  * The play zone of the signed-in home: one central interface in a card that takes the height of what is left of the screen, with the same margin at its two sides and under it, in the left column of the home (the right one is `HomeAside`'s: PLT-21, PLT-119, PLT-135). Its four parts are spread over the
- * height of the card at equal distances (`justify-between`, never closer than a fixed distance): a switch that fits its cases (Normal, Ranked, Custom) at the top, then the "Board games" (the games that are picked as tiles that fill the row, ten at the most, wrapping to a second row; a
- * press on a tile opens its settings: its speed, its expansions and, for a search, the most players at a table), then the "Group" (the row of players, every place of one size too, as large as the row allows, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little
- * room at their sides, and at the foot of the card the button, with what says why it is off at its right. Normal and Ranked look for a table among players the member does not know, in as many games as they pick, the places being their group; Custom opens a table of one game for friends, private to
+ * height of the card (spacers that share what is left, never closer than a fixed distance): a switch that fits its cases (Normal, Ranked, Custom) at the top, then the "Board games" (five slots to begin with, the games that are picked as tiles and, after them, the slots that are free, each
+ * of which opens the panel of the games, one more, free, each time they are all taken, ten at the most, five to a row; a press on a tile opens its settings: its speed, its expansions and, for a search, the most players at a table), then the "Players" (the row of players, every place of one size too,
+ * as large as the row allows, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little room at their sides, and at the foot of the card the button, with what says why it is off at its right. Normal and Ranked look for a table among players the member does not know, in as many games as they pick, the places being their group; Custom opens a table of one game for friends, private to
  * begin with, the places being its seats, whose number the game's settings set; a friend picked in a place is invited when the table opens. A game that the group cannot play stays in the list and as a tile, off, with the reason; the same reason is at the right of the button. The button says
  * "Play" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left and for a member of a group who is not its leader (`@pbgo/core/lib/play-eligibility`). The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it, the zone shows
  * its games and its kind and cannot be changed until it is stopped.
@@ -100,6 +95,8 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const [access, setAccess] = useState<AccessChoice>(PRIVATE_TABLE)
   const [invitees, setInvitees] = useState<readonly Friend[]>([])
   const [opening, setOpening] = useState(false)
+  // Whether the panel of the games is open: every free slot opens it, the first one being its trigger
+  const [adding, setAdding] = useState(false)
 
   // What the zone shows is the search when there is one, else what the member has set up so far
   const shownMode = queue ? queue.mode : mode
@@ -133,8 +130,11 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const refused = shown.filter((game) => refusals.has(game.slug))
   const notices = searching ? [] : searchBlocked ? [searchBlockText(searchBlocked)] : tableBlocked ? [tableBlockText(tableBlocked)] : [...refused.slice(0, 2).map((game) => `${game.name}: ${refusals.get(game.slug)}`), ...(refused.length > 2 ? [`${refused.length - 2} more games can't be played by your group.`] : [])]
 
-  // The tile that adds a game ends the row while a game can still be added: a search takes ten, a table of one's own one, and a search that is on is read and not set
-  const canAdd = !searching && games.length > 0 && (searchMode ? true : customSlug === null)
+  // The slots of the games: a search has five to begin with and one more, free, each time they are all taken, ten at the most (`SEARCH_MAX_GAMES`), and a table of one's own the one slot of its game. The games that are picked have the first slots and the free ones come after them; they stay
+  // drawn while a search is on, off, since it is read and not set, so that the row does not change when it begins
+  const slots = searchMode ? gameSlotsFor(shown.length, SEARCH_MAX_GAMES) : 1
+  const freeSlots = Math.max(0, slots - shown.length)
+  const addLabel = searchMode ? "Add a game" : "Choose a game"
 
   const options: ComboboxOption[] = games.map((game) => ({
     value: game.slug,
@@ -292,7 +292,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
             <p className="text-sm text-muted-foreground">The games you can play are listed here.</p>
           ) : (
             <>
-              <div role="group" aria-label="Games to play" className={cn(TILES, TILE_COUNT[Math.min(shown.length + (canAdd ? 1 : 0), TILE_COUNT.length - 1)])}>
+              <div role="group" aria-label="Games to play" className={SLOTS}>
                 {shown.map((game, index) => (
                   <PickedGame
                     key={game.slug}
@@ -308,19 +308,27 @@ export function HomePlay({ games, languages, account, className }: { games: read
                     loading={index < 6 ? "eager" : "lazy"}
                   />
                 ))}
-                {canAdd && (
-                  <GameSelect
-                    options={options}
-                    value={searchMode ? picked : customSlug ? [customSlug] : []}
-                    onValueChange={(next) => (searchMode ? setPicked(next) : pickCustom(next[0]))}
-                    max={searchMode ? SEARCH_MAX_GAMES : 1}
-                    searchPlaceholder="Search games..."
-                    empty="No game matches."
-                    fullNote={`A search takes ${SEARCH_MAX_GAMES} games at the most. Take one out to add another.`}
-                    aria-label="Games"
-                  >
-                    <AddGameTile label={searchMode ? "Add a game" : "Choose a game"} />
-                  </GameSelect>
+                {Array.from({ length: freeSlots }, (_, index) =>
+                  index === 0 ? (
+                    <GameSelect
+                      key="free-0"
+                      options={options}
+                      value={searchMode ? picked : customSlug ? [customSlug] : []}
+                      onValueChange={(next) => (searchMode ? setPicked(next) : pickCustom(next[0]))}
+                      max={searchMode ? SEARCH_MAX_GAMES : 1}
+                      searchPlaceholder="Search games..."
+                      empty="No game matches."
+                      fullNote={`A search takes ${SEARCH_MAX_GAMES} games at the most. Take one out to add another.`}
+                      aria-label="Games"
+                      open={adding && !searching}
+                      onOpenChange={setAdding}
+                    >
+                      <AddGameTile label={addLabel} disabled={searching} />
+                    </GameSelect>
+                  ) : (
+                    // The other free slots open the same panel, so only the first of them is a stop for the keyboard's Tab
+                    <AddGameTile key={`free-${index}`} label={addLabel} disabled={searching} tabIndex={-1} onClick={() => setAdding(true)} />
+                  ),
                 )}
               </div>
               <p aria-live="polite" className="sr-only">
@@ -330,9 +338,9 @@ export function HomePlay({ games, languages, account, className }: { games: read
           )}
         </section>
         <div aria-hidden="true" className="min-h-6 grow-7" />
-        <section aria-labelledby="home-group" className="@container flex flex-col gap-4 px-2">
-          <h3 id="home-group" className="font-heading text-lg">
-            Group
+        <section aria-labelledby="home-players" className="@container flex flex-col gap-4 px-2">
+          <h3 id="home-players" className="font-heading text-lg">
+            Players
           </h3>
           <PlayerSlots players={players} size={size} picker={picker} menu={menuOf} disabled={searching || opening} />
         </section>

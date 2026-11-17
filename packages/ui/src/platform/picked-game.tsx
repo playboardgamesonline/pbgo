@@ -10,11 +10,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { RankBadge } from "./rank-badge"
 import { RankEmblem } from "./rank-emblem"
 
-// The games of a search or of a table that is about to be opened (the play zone of the signed-in home), as a visitor sets them: the games that are in it, each a tile with a cross that takes it out. A search may hold one game or ten, so the tiles are plain and the page sizes them
-// by how many there are. The tile is the picture of the game on a 4:3 frame, as the hub's game card has it, with the name centred under it and, in a search that is for the rank, the visitor's rank in that game centred under the name, the small emblem of its tier at the left of its name ("Gold II", or "Unranked" in a game they have not rated).
+// The games of a search or of a table that is about to be opened (the play zone of the signed-in home), as a visitor sets them: the games that are in it, each a tile with a cross that takes it out. A search may hold one game or ten, so the tiles are plain and the page sizes them: they are the
+// cells of a grid of five columns, which the number of games does not change. The tile is the picture of the game on a 4:3 frame, as the hub's game card has it, with the name centred under it and, in a search that is for the rank, the visitor's rank in that game centred under the name, the small emblem of its tier at the left of its name ("Gold II", or "Unranked" in a game they have not rated).
 // A press on the picture opens the settings of the game for this search or this table (`config`: its speed, its expansions), in a panel under it; a small button at the corner of the picture says that it does, and a dot that the settings are not the usual ones. A game that cannot be
 // played now (`unavailable`: a group too large for it) is shown off, with a warning at its corner whose hover says why and no settings to open; its cross still takes it out. Game art is the only colour of the platform, so the tiles add none. The page keeps which games are in the
-// search; the tiles draw it and decide nothing. The games are picked in the panel of a `GameSelect`, which the tile that adds a game opens (`AddGameTile`): a dark, translucent rectangle with a plus in it, the last of the row, as big as the others.
+// search; the tiles draw it and decide nothing. The games are picked in the panel of a `GameSelect`, which a free slot of the row opens (`AddGameTile`): a dark, translucent rectangle with a plus in it, as big as the tiles of the games. A search has five slots to begin with, so the games that
+// are picked are followed by the slots that are free (`gameSlotsFor` of `@pbgo/ui/play-zone`), each of them one of these.
 
 type GamePicture = {
   /** URL of a picture that fills the frame, cropped to it (the game's cover, or its background). */
@@ -143,8 +144,8 @@ type AddGameTileProps = Omit<React.ComponentProps<"button">, "children" | "type"
 }
 
 /**
- * The tile that adds a game: a dark, translucent rectangle, the frame of a picture, with a plus in it and its label centred under it, drawn at the size of the tiles of the games that are in. It is the trigger of the panel that lists the games (`GameSelect`): under the pointer and while the panel is
- * open its outline is a little stronger. It takes the sizing of the row it is in (`className`: a width), as a picked tile does.
+ * A free slot of the row of games, the tile that adds one: a dark, translucent rectangle, the frame of a picture, with a plus in it and its label centred under it, drawn at the size of the tiles of the games that are in. It is the trigger of the panel that lists the games (`GameSelect`): under the pointer and while
+ * the panel is open its outline is a little stronger. When the row has several free slots the first is the trigger and the others only ask the page to open the panel. It takes the sizing of the row it is in (`className`: a width), as a picked tile does.
  */
 function AddGameTile({ label, className, ...props }: AddGameTileProps) {
   return (
