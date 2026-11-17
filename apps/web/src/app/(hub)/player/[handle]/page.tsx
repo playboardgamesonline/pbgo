@@ -48,7 +48,7 @@ export default async function PlayerPage({ params, searchParams }: { params: Pro
         )}
         {!own && head.tag !== null && relation !== null && <AddFriendButton handle={{ nickname: head.nickname, tag: head.tag }} relation={relation} />}
       </ProfileHeader>
-      <div className="pt-6">
+      <div className="mt-6">
         <ProfileSections details={head.details} games={games} own={own} hideHistory={head.hideHistory} friends={friends} recent={RECENT_GAMES} timeFormat={viewer?.preferences.timeFormat} />
       </div>
       <ProfileViewed own={own} hidden={games === null} from={profileSourceOf(typeof from === "string" ? from : null)} />

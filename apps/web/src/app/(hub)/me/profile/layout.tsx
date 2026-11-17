@@ -26,7 +26,7 @@ export default async function ProfileLayout({ children }: Readonly<{ children: R
           </Button>
         )}
       </ProfileHeader>
-      <div className="pt-6">{children}</div>
+      <div className="mt-6">{children}</div>
     </AccountShell>
   )
 }
