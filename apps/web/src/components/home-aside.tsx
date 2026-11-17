@@ -16,7 +16,7 @@ import { HomeTournaments } from "./home-tournaments"
 
 const DAY = new Intl.DateTimeFormat("en", { dateStyle: "long", timeZone: "UTC" })
 
-/** The article: its day, its title, its summary cut after a few lines, and a button that opens it, in a card a little taller than a default one (2rem of room at its top and its foot and between its parts). A cover, when it has one, is the top of the card. */
+/** The article: its day, its title, its summary cut after four lines, and a button that opens it, in a card a little taller than a default one (2rem of room at its top and its foot and between its parts). A cover, when it has one, is the top of the card. */
 function ArticleCard({ article }: { article: HomeArticle }) {
   return (
     <Card className="gap-8 py-8">
@@ -31,7 +31,7 @@ function ArticleCard({ article }: { article: HomeArticle }) {
         <CardTitle className="text-lg leading-snug">{article.title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="line-clamp-3 text-muted-foreground">{article.summary}</p>
+        <p className="line-clamp-4 text-muted-foreground">{article.summary}</p>
       </CardContent>
       <CardFooter>
         <Button asChild variant="secondary" size="lg">

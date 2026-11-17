@@ -52,7 +52,7 @@ export function openTournaments(lists: readonly { game: AsideGame; tournaments: 
 export const DEMO_ARTICLE: HomeArticle = {
   id: "demo-article",
   title: "How a search finds your table",
-  summary: "Normal and Ranked look for a table among players you do not know. Here is what each one asks of a table, and what your rank changes.",
+  summary: "Normal and Ranked look for a table among players you do not know. Here is what each one asks of a table, what your rank changes, and how the first table to fill begins by itself.",
   date: "2026-11-12",
   href: "/about#whats-new",
 }
