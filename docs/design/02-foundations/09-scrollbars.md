@@ -17,6 +17,18 @@ A scroll area on each ground of the platform: the page, a card and glass. The sy
 scrollbar-surfaces
 ```
 
+## Rounded boxes
+
+Chromium draws a scrollbar along the straight edge of the element that scrolls and does not follow that element's corners, so the end of a thumb would stand out of a rounded box that scrolls itself. The box clips and an element inside it scrolls: the thumb then follows the corners of the box.
+
+```tsx
+<div className="overflow-hidden rounded-3xl bg-card">
+  <div className="max-h-80 overflow-y-auto p-4">…</div>
+</div>
+```
+
+The menus, the popovers, the windows and the cookie banner are built that way: a window that says `overflow-y-auto` clips and its content scrolls in an element inside it, and a popover gives the element inside it every class its caller passes but the corners. `platform.test.ts` rejects a platform component that is rounded and scrolls on the same element.
+
 ## Rules
 
 - A component never paints a scrollbar: no `scrollbar-color`, no `::-webkit-scrollbar-track` or `::-webkit-scrollbar-thumb`. `platform.test.ts` rejects them, and keeps the rule above.

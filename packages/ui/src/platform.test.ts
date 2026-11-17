@@ -205,4 +205,17 @@ describe("scrollbars", () => {
   it("the thumb is drawn over a track that has no colour, on `.platform` itself (not `html.platform` alone), so the page and every portal get it", () => {
     expect(css).toMatch(/(?<![\w-])\.platform\s*\{[^}]*scrollbar-color:\s*var\(--scrollbar-thumb\)\s+transparent;/)
   })
+
+  // Chromium draws a scrollbar along the straight edge of the element that scrolls and does not follow that element's rounded corners, so the end of a thumb stands out of a box that is rounded and scrolls itself. The box clips (`overflow-hidden`)
+  // and an element inside it scrolls, which is what the menus, the popovers, the windows and the cookie banner do. A scroller that draws no scrollbar is no problem, and the select is the one other: its viewport is the scroller and hides its bar.
+  it("a rounded box clips and an element inside it scrolls: no platform component is rounded and scrolls on the same line", () => {
+    const hits = FILES.filter((file) => file !== "select.tsx").flatMap((file) =>
+      readFileSync(new URL(file, DIRECTORY), "utf8")
+        .split("\n")
+        .flatMap((line, index) =>
+          /\boverflow-(?:x-|y-)?(?:auto|scroll)\b/.test(line) && /\brounded-/.test(line) && !line.includes("[scrollbar-width:none]") ? [`${file}:${index + 1}  ${line.trim().slice(0, 140)}`] : [],
+        ),
+    )
+    expect(hits, hits.join("\n")).toEqual([])
+  })
 })

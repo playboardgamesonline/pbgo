@@ -168,7 +168,10 @@ function GlassSettings() {
 /** The grounds a scroll area sits on, with the utility of each: the page, a card and glass (over shapes, so that it lets something through). */
 const SCROLL_GROUNDS = ["bg-background", "bg-card", "glass"] as const
 
-/** A scroll area on each ground of the platform. Each scrolls with the browser's own scrollbar, which draws its thumb alone: nothing in the markup asks for it. */
+/**
+ * A scroll area on each ground of the platform. Each scrolls with the browser's own scrollbar, which draws its thumb alone: nothing in the markup asks for it. The rounded box clips and the element inside it scrolls, so that the end of
+ * the thumb never stands out of the box's corners.
+ */
 function ScrollbarSurfaces() {
   const rows = Array.from({ length: 14 }, (_, index) => index + 1)
   return (
@@ -189,17 +192,19 @@ function ScrollbarSurfaces() {
                   <div className="absolute -bottom-6 left-1/3 size-28 rotate-45 rounded-4xl bg-presence-online" />
                 </div>
               )}
-              <div
-                role="region"
-                aria-label={ground}
-                tabIndex={0}
-                className={cn("h-44 overflow-y-auto rounded-3xl border p-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/30", ground)}
-              >
-                {rows.map((row) => (
-                  <p key={row} className="py-1 text-sm text-muted-foreground">
-                    Row {row}
-                  </p>
-                ))}
+              <div className={cn("overflow-hidden rounded-3xl border", ground)}>
+                <div
+                  role="region"
+                  aria-label={ground}
+                  tabIndex={0}
+                  className="h-44 overflow-y-auto p-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:ring-inset"
+                >
+                  {rows.map((row) => (
+                    <p key={row} className="py-1 text-sm text-muted-foreground">
+                      Row {row}
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

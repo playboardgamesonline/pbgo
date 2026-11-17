@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { splitWindow } from "../scroll-classes"
 import { cn } from "../utils"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
@@ -42,7 +43,22 @@ function DialogOverlay({
   )
 }
 
-/** The content is portaled outside the page's `.platform` wrapper, so it carries the `platform` class itself. */
+/** What a window lays its content out with: a grid, with its gap and its padding. */
+const LAYOUT = ["grid", "gap-6", "p-6", "text-sm"]
+
+const WINDOW =
+  "platform fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-4xl bg-popover p-6 text-sm text-popover-foreground shadow-overlay ring-1 ring-foreground/10 duration-fast outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+
+/** What a window that scrolls keeps for its own box: the frame, which is the window without its layout. */
+const FRAME = WINDOW.split(" ")
+  .filter((name) => !LAYOUT.includes(name))
+  .join(" ")
+
+/**
+ * The content is portaled outside the page's `.platform` wrapper, so it carries the `platform` class itself. A window that scrolls (its caller says `overflow-y-auto`) clips and its content scrolls in an element inside it, which
+ * takes the layout, the height and everything else a caller says but the width and the corners: a browser draws a scrollbar along the straight edge of the element that scrolls and does not follow its corners, so a window that
+ * scrolled itself would have the end of its thumb standing out of them (`docs/design/02-foundations/09-scrollbars.md`). A window that does not scroll is one box.
+ */
 function DialogContent({
   className,
   children,
@@ -51,18 +67,22 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const scrolling = splitWindow(className)
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
-        className={cn(
-          "platform fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-4xl bg-popover p-6 text-sm text-popover-foreground shadow-overlay ring-1 ring-foreground/10 duration-fast outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className
-        )}
+        className={scrolling ? cn(FRAME, "overflow-hidden", scrolling.box) : cn(WINDOW, className)}
         {...props}
       >
-        {children}
+        {scrolling ? (
+          <div data-slot="dialog-scroll" className={cn(LAYOUT.join(" "), scrolling.scroller)}>
+            {children}
+          </div>
+        ) : (
+          children
+        )}
         {showCloseButton && (
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
             <Button

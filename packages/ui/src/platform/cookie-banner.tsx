@@ -85,7 +85,8 @@ type CookieBannerProps = {
  * Customize swaps the card's content for the choices one by one, in a list of switches: what the site needs (always on), the analytics
  * (an identifier kept on the device, and the recordings that hang on it) and the marketing, then Back and Save. Nothing is pre-ticked: the
  * switches open on what the visitor answered before, else off. The site has no marketing cookie yet, but the switch is real and its answer
- * is kept, for the day one comes. The card never grows taller than the window: past that its content scrolls.
+ * is kept, for the day one comes. The card never grows taller than the window: past that its content scrolls, the card clipping and the view inside it
+ * scrolling (a browser draws a scrollbar along the straight edge of the element that scrolls, not along its corners).
  *
  * It is `fixed`, but it must never sit over what the page shows. It floats inside a box that holds its margin (`px-4 pb-4`, `px-6 pb-6` from
  * `sm`: its own, since the page's gutter is 64px on a desktop), and the caller measures that box and makes the room (`@pbgo/analytics` publishes its height as `--consent-h`, see
@@ -158,8 +159,7 @@ function CookieBanner({
           else onClose?.()
         }}
         className={cn(
-          "pointer-events-auto relative mx-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl animate-in flex-col overflow-y-auto rounded-4xl bg-card p-4 text-card-foreground shadow-float ring-1 ring-foreground/10 duration-slow ease-standard outline-none fade-in-0 slide-in-from-bottom-4 sm:p-5 lg:p-6",
-          reopened && "lg:pr-16"
+          "pointer-events-auto relative mx-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl animate-in flex-col overflow-hidden rounded-4xl bg-card text-card-foreground shadow-float ring-1 ring-foreground/10 duration-slow ease-standard outline-none fade-in-0 slide-in-from-bottom-4"
         )}
       >
         {reopened && (
@@ -169,7 +169,7 @@ function CookieBanner({
           </Button>
         )}
         {view === "bar" ? (
-          <div key="bar" className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:gap-8">
+          <div key="bar" className={cn("flex min-h-0 flex-col gap-3 overflow-y-auto p-4 sm:gap-4 sm:p-5 lg:flex-row lg:items-center lg:gap-8 lg:p-6", reopened && "lg:pr-16")}>
             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
               <h2 id={titleId} className={cn("font-heading text-base", reopened && "pr-8 lg:pr-0")}>
                 {texts.label}
@@ -191,7 +191,7 @@ function CookieBanner({
             </div>
           </div>
         ) : (
-          <div key="preferences" className="flex animate-in flex-col gap-4 duration-slow ease-standard fade-in-0 lg:flex-row lg:gap-10">
+          <div key="preferences" className={cn("flex min-h-0 animate-in flex-col gap-4 overflow-y-auto p-4 duration-slow ease-standard fade-in-0 sm:p-5 lg:flex-row lg:gap-10 lg:p-6", reopened && "lg:pr-16")}>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <h2 id={titleId} className={cn("font-heading text-base", reopened && "pr-8 lg:pr-0")}>
                 {texts.label}
