@@ -105,9 +105,9 @@ describe("the row of players", () => {
   })
 
   it("makes the row as wide as that many places of the most a place has plus the room between two, a step at a time as the section grows", () => {
-    // Five places: 4rem each and 0.75rem between, then 5.5rem and 1.25rem from `@3xl`, 6rem, 7rem and 9rem
+    // Five places: 4rem each and 0.75rem between, then 5rem and 1.25rem from `@3xl`, 5.5rem, 6rem and 8rem
     const list = /<ul[^>]*>/.exec(row({ size: 5 }))?.[0] ?? ""
-    for (const part of ["max-w-92", "@3xl:max-w-130", "@4xl:max-w-140", "@5xl:max-w-160", "@7xl:max-w-200", "gap-x-3", "@3xl:gap-x-5"]) expect(list).toContain(part)
+    for (const part of ["max-w-92", "@3xl:max-w-120", "@4xl:max-w-130", "@5xl:max-w-140", "@7xl:max-w-180", "gap-x-3", "@3xl:gap-x-5"]) expect(list).toContain(part)
   })
 
   it("is aligned to the left and wraps to a second line of the others in a column too narrow for the places, rather than shrink them below a least width", () => {
