@@ -127,7 +127,7 @@ Undoing a first run: discard the drafts it listed in the Studio. Uploaded images
 
 ## Art
 
-The seed does not make art and does not fetch it. It takes the files someone gives it.
+The seed does not make art and does not fetch it. It takes the files someone gives it. The skill `game-assets` (`.claude/skills/game-assets`, the step `/add-game` runs after the game's forms) does the steps below with the owner: it sorts their files into the folder, runs the dry run and uploads on their yes.
 
 1. Put the images in one folder outside the repo (Hanabi: `~/Companies/PBGO/assets/hanabi`, the same folder as the raw files; Exploding Kittens: `~/Companies/PBGO/assets/exploding-kittens`). The seed only reads it: it never writes, moves or deletes anything there. Only the top level is read, so files kept in a sub-folder (the Exploding Kittens spec keeps its cards in `cards/`) are copied next to the others. Files starting with a dot are skipped, and a file whose name is not a slot is only listed.
 2. Name each file after its slot (tables below). Case does not matter, and spaces and underscores count as hyphens: `Card_Red 3.PNG` is `card-red-3.png`, and the names of the Exploding Kittens spec (`DEFUSE_3`, `TACOCAT`, `BACK`) fill their slots as they are.
@@ -312,7 +312,7 @@ The platform's own Sanity project (`docs/platform-sanity.md`) is seeded by the s
 
 ## Starting the pipeline for another game
 
-1. `pnpm add-game` (or `pnpm new-game <slug>` then `pnpm go-live <slug>`; the skill `game-new` runs it for the owner) gives the game its package, its Sanity project, its Studio, its rulebook PDFs and its write token (`apps/web/.env.local`). A rulebook that comes later goes in with `pnpm game-rules <slug>`.
+1. `pnpm new-game <slug>` then `pnpm go-live <slug>` give the game its package, its Sanity project, its Studio and its write token (`apps/web/.env.local`); the skill `game-new` runs them for the owner, with `pnpm game-rules` for the rulebook PDFs and `pnpm setup-env`. A rulebook that comes later goes in with `pnpm game-rules <slug>`.
 2. Define the document types in `games/<slug>/apps/studio/schemaTypes/` with a `constants.ts` for the lists the seed shares, and register them in `sanity.config.ts` (`gameTypes`, and `collections` for the lists in the Studio's sidebar). The skill `game-sanity-create` (`.claude/skills/`) asks the owner which lists the game needs before any schema and holds the rules of the forms. Cards are filed by category, one document type (and so one list in the Studio) per kind of card, never one type with a `kind` field. Within a category the key is the simplest one, the one the editor reads in the list (a 7, a +4); where the engine's own key differs, the seed maps one to the other.
 3. Add `@pbgo/content-kit` and `@pbgo/studio-kit` (`workspace:*`) and `vitest` (`catalog:`) to the game's dev dependencies, with the `typecheck` (`tsc --noEmit && tsc --noEmit -p content`), `test` (`vitest run`) and `content:seed` (`node --disable-warning=ExperimentalWarning content/seed.ts`) scripts and a `vitest.config.ts` that includes `content/**/*.test.ts`. `games/exploding-kittens` is the smallest model.
 4. Write `content/config.ts` (slug, project id), `content/seed.ts` (`runSeedCli` with the game's `buildSeedDocs` and `ART_SLOTS`), `content/tsconfig.json` and `content/data/`: the game's documents, and `art-manifest.ts` with its image slots. There is nothing to copy from the kit: it stays where it is.

@@ -19,7 +19,7 @@ import {
   stampValidated,
 } from "./rules-spec.ts"
 
-// The spec of a game as the skill `game-rules-spec` writes it, and every way for it to be wrong: what the pipeline, the engine and the assets read must be what `rulesSpecProblems`
+// The spec of a game as the skill `game-rules-spec` writes it, and every way for it to be wrong: what `/add-game`, the engine and the assets read must be what `rulesSpecProblems`
 // accepts, and nothing else. The page the tests start from is the skill's own example, so that the skill and the contract cannot disagree.
 const REPO = new URL("../../../", import.meta.url)
 const read = (path: string) => readFileSync(new URL(path, REPO), "utf8")

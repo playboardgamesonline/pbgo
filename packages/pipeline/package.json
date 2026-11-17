@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "`pnpm add-game \"<name>\"`: the terminal pipeline that takes a game from its name to the platform's catalog, one headless Claude Code step at a time (`claude -p`, the owner's login) with a gate in the terminal after each. `bin/` holds the entries Node runs (type stripping), `src/` the parts (the state of a game, the steps, the call and its stream, the gates, the policy that is the allowlist of a headless step, the Linear bookkeeping), `hook/` the PreToolUse hook that enforces the policy.",
+  "description": "`pnpm game-flow`: what the skill `/add-game` keeps its state with. A game goes from its name to live in ten steps, each carried out by a sub-agent with the skill of that step and each ending at a gate that the owner answers in the chat; this package holds the state of a game (`<assets>/<slug>/pipeline.json`), the steps and their checks, the brief of a sub-agent, the Linear bookkeeping and the fetch of a rulebook, so that none of it is improvised. `bin/` holds the entry Node runs (type stripping), `src/` the parts.",
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

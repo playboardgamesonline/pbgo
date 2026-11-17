@@ -1,6 +1,6 @@
 # Build a game
 
-A game is an engine package (the rules), a binding package (what hands the engine, the look and the board to the app), a board (the 3D scene, inside the binding) and a Studio with its content. The rules code is the engine lane's work; the binding, the board, the Studio and the content are the game lane's, with the skills `game-new` and `game-sanity-create` (`.claude/skills/README.md`). `pnpm add-game` creates the packages from `template/`, with the demo game "La Plus Haute" in place of the rules, and the Sanity project that goes with them.
+A game is an engine package (the rules), a binding package (what hands the engine, the look and the board to the app), a board (the 3D scene, inside the binding) and a Studio with its content. The rules code is the engine lane's work; the binding, the board, the Studio and the content are the game lane's, with the skills `game-new` and `game-sanity-create` (`.claude/skills/README.md`). `pnpm new-game` creates the packages from `template/`, with the demo game "La Plus Haute" in place of the rules, and the Sanity project that goes with them.
 
 The pages before these describe the pieces a game is made of; these say in which order to put them together.
 

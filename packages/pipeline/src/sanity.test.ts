@@ -27,6 +27,21 @@ describe("which documents the platform's Sanity shows as published", () => {
     expect(await missingPublished([], { fetchImpl: never })).toEqual([])
   })
 
+  it("counts a document only when it was written since a moment, for a game that was in the catalog before the owner said publish", async () => {
+    let asked = ""
+    const fetchImpl = (async (url: string) => {
+      asked = url
+      return new Response(JSON.stringify({ result: ["game-x"] }))
+    }) as unknown as typeof fetch
+    expect(await missingPublished(["game-x", "publisher-y"], { fetchImpl, since: "2026-11-17T09:00:00.000Z" })).toEqual(["publisher-y"])
+    const url = new URL(asked)
+    expect(url.searchParams.get("query")).toBe("*[_id in $ids && dateTime(_updatedAt) >= dateTime($since)]._id")
+    expect(JSON.parse(url.searchParams.get("$since") ?? "")).toBe("2026-11-17T09:00:00.000Z")
+    // with no moment the query is the plain one, and no variable is sent for it
+    await missingPublished(["game-x"], { fetchImpl, since: null })
+    expect(new URL(asked).searchParams.get("$since")).toBeNull()
+  })
+
   it("takes a draft for what it is: not published", async () => {
     // the perspective makes the API leave drafts out, whatever the id: an answer that holds only the published ids
     expect(await missingPublished(["game-x"], { fetchImpl: answer({ result: [] }) as unknown as typeof fetch })).toEqual(["game-x"])

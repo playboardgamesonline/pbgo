@@ -81,7 +81,7 @@ Everything else (the options, the token, the plan, the art, the report) is the k
 
 `node --disable-warning=ExperimentalWarning packages/content-kit/src/rulebook-bin.ts <check|place> --rules [<language>=]<file.pdf> …`
 
-A game's rules are PDFs, one per language, held by the Studio fields "Rules PDF (FR|EN|ES|DE)" of the `settings` document (Mechanics tab). This command puts them there: `pnpm add-game` runs it right after the Studio exists, `pnpm game-rules` later (to add a language or replace a file). It is a file Node runs and not an entry point: `exports` stays as listed above, and `rulebook.ts` and `rulebook-cli.ts` are imported by the command and its tests only.
+A game's rules are PDFs, one per language, held by the Studio fields "Rules PDF (FR|EN|ES|DE)" of the `settings` document (Mechanics tab). This command puts them there: the skill `game-new` runs it right after the Studio exists, `pnpm game-rules` later (to add a language or replace a file). It is a file Node runs and not an entry point: `exports` stays as listed above, and `rulebook.ts` and `rulebook-cli.ts` are imported by the command and its tests only.
 
 - **`check`**: reads the PDFs and says what each one is. Sends nothing, needs no token.
 - **`place`**: needs `--slug` (whose write token is used) and `--project` (the game's Sanity project id), and takes `--dataset` (`production`) and `--env-file` (`apps/web/.env.local`). A dry run reads the dataset and says what would happen; `--apply` uploads the files and writes the draft. The token is `SANITY_API_WRITE_TOKEN_<SLUG>`, read like the seed's, and never printed.

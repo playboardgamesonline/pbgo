@@ -64,7 +64,7 @@
 # checks above, the exit code is 1 only when the Vercel project can't be reached or a Vercel call really failed (✗), else 0.
 #   --no-push   nothing is written to Vercel (the project is still read, for the Sanity write tokens it holds), and the
 #               production Supabase project is neither read nor migrated
-#   --check     only checks the settings (no network, nothing written); add-game.sh runs it first
+#   --check     only checks the settings (no network, nothing written); the skill game-new runs it first
 # Sanity: a write token SANITY_API_WRITE_TOKEN_<SLUG> (editor) for each game of packages/games/src/registry.ts that has a
 # project id. An existing one is reused: the secrets file's, else .env.local's, else the Vercel project's (read one
 # variable at a time and written to .env.local only). A new one is created, with the `npx sanity login` session, only when

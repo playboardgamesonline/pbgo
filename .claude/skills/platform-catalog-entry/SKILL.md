@@ -233,7 +233,7 @@ The Studio's own Publish button does the same, in the same order: the owner may 
 
 ## Tools
 
-`Read`, `Bash` (`node -e`, `pnpm check:scout`, `pnpm catalog:list`), `WebSearch`, `WebFetch`, and Composio's `COMPOSIO_SEARCH_TOOLS` and `COMPOSIO_MULTI_EXECUTE_TOOL` (with `SANITY_QUERY_DOCUMENTS` and `SANITY_MUTATE_DOCUMENTS`). A headless run (`claude -p`, PLT-97) has to allow them.
+`Read`, `Bash` (`node -e`, `pnpm check:scout`, `pnpm catalog:list`), `WebSearch`, `WebFetch`, and Composio's `COMPOSIO_SEARCH_TOOLS` and `COMPOSIO_MULTI_EXECUTE_TOOL` (with `SANITY_QUERY_DOCUMENTS` and `SANITY_MUTATE_DOCUMENTS`).
 
 ## Checks
 

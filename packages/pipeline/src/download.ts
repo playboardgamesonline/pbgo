@@ -85,7 +85,7 @@ export function pinned(target: Resolved): Lookup {
 
 const httpsTransport: Transport = (url, target, signal) =>
   new Promise((resolve, reject) => {
-    const req = request(url, { method: "GET", headers: { accept: "application/pdf,*/*;q=0.5", "user-agent": "pbgo-add-game" }, lookup: pinned(target), signal }, (res) => {
+    const req = request(url, { method: "GET", headers: { accept: "application/pdf,*/*;q=0.5", "user-agent": "pbgo-game-flow" }, lookup: pinned(target), signal }, (res) => {
       resolve({ status: res.statusCode ?? 0, headers: res.headers, body: res, destroy: () => res.destroy() })
     })
     req.on("error", reject)

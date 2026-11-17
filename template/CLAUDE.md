@@ -61,7 +61,7 @@ Ticker, announcements, takeover pill, chat, players list, menu of the game, seat
 
 ## Adapting to a new game
 Every job has a skill (`.claude/skills/README.md`: `game-new`, `engine-rules`, `engine-board`, `game-go-live`), and `pnpm check:game <slug>` says how far a game has got.
-1. `pnpm new-game <slug>` (or `pnpm add-game`, which asks the name and the rules PDFs and also creates the Sanity project and Studio; the skill `game-new` runs it for the owner): copies this folder, renames the packages and registers the game in `packages/games`
+1. `pnpm new-game <slug>` (the skill `game-new` runs it for the owner, then `pnpm go-live`, `pnpm game-rules` and `pnpm setup-env`: the Sanity project, its Studio and the rules PDFs): copies this folder, renames the packages and registers the game in `packages/games`
 2. Write the engine in `packages/engine/src/<game>/` (types, `GameDefinition`, tests), then `export { myGame as GAME }` in `src/index.ts`
 3. Declare the game options in `options`: the lobby renders them on its own. They name no text: their words (and those of the lines of the score, `scoreLines`) are written in the game's Sanity, Copy › Options
 4. Implement `waitingFor` and `autoPlayFor` (see "Turns and absent players" below), and list the codes of your own errors in `ERROR_CODES` of `src/lib/site.ts` (the shared ones, `SHARED_ERROR_CODES` of the kit, are worded by the platform and stay out; `src/error-codes.test.ts` checks it): their messages, like every text of the game (description, victory phrases), are written in Sanity (Gamemaster › Copy), never in the code

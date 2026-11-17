@@ -1,5 +1,5 @@
-// The file the scout leaves for the rest of the pipeline (GAM-32, `.claude/skills/game-scout`): which game it is, which edition, what BoardGameGeek says of it and what the catalog could
-// say, in one JSON file that the skill `platform-catalog-entry` and `pnpm add-game` read. The one definition of its shape: the skill writes it, `pnpm check:scout` judges it with
+// The file the scout leaves for the rest of `/add-game` (GAM-32, `.claude/skills/game-scout`): which game it is, which edition, what BoardGameGeek says of it and what the catalog could
+// say, in one JSON file that the skill `platform-catalog-entry` and `pnpm game-flow` read. The one definition of its shape: the skill writes it, `pnpm check:scout` judges it with
 // `scoutProblems` (and, with `--online`, with `stateProblems`), and the readers rely on it. Pure and made of what Node strips as it is (type stripping), like `slug.ts` that it builds on,
 // so that the test and the scripts cannot disagree. The file comes from an agent that has read web pages: nothing in it is trusted, and a sentence about it is made printable.
 import { cleanName, nameProblem, slugFromName, slugProblem } from "./slug.ts"

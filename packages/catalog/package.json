@@ -9,6 +9,7 @@
     "./editorial": "./src/editorial.ts",
     "./filter": "./src/filter.ts",
     "./picture": "./src/picture.ts",
+    "./pictures": "./src/pictures.ts",
     "./server": "./src/server.ts",
     "./route": "./src/route.ts",
     "./seo": "./src/seo.ts"

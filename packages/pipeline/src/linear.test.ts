@@ -1,17 +1,19 @@
 import { describe, expect, it } from "vitest"
-import { applyResult, buildOrder, LINEAR, linearPrompt, linearPolicy, LINEAR_SCHEMA, LINEAR_SLUGS, validationComment, type WorkOrder } from "./linear.ts"
+import { applyResult, buildOrder, LINEAR, linearPrompt, parseAnswer, validationComment, type WorkOrder } from "./linear.ts"
 import { newState, stepOf, type PipelineState } from "./state.ts"
 import { gameOf, STEPS } from "./steps.ts"
 
 const game = gameOf("/assets", "Love Letter", "love-letter")
 const NOW = new Date("2026-11-16T10:00:00Z")
-const fresh = (): PipelineState => newState({ name: "Love Letter", slug: "love-letter", sessionId: "s", now: NOW })
+const fresh = (): PipelineState => newState({ name: "Love Letter", slug: "love-letter", now: NOW })
 const label = (path: string) => path
 const order = (state: PipelineState): WorkOrder => {
   const built = buildOrder(state, STEPS, game, label)
   if (!built) throw new Error("no order")
   return built
 }
+// the parent and one issue for each step, as the answer of a bookkeeping sub-agent has them
+const ALL = ["parent", ...STEPS.map((step) => step.id)]
 const answer = (keys: string[], states: Record<string, string> = {}, commented: string[] = []) => ({
   labelId: "label-1",
   issues: keys.map((key, index) => ({ key, id: `id-${key}`, identifier: `GAM-${41 + index}`, url: `https://linear.app/x/issue/GAM-${41 + index}`, state: states[key] ?? "Todo", ...(commented.includes(key) ? { commented: true } : {}) })),
@@ -27,14 +29,29 @@ describe("what Linear should say", () => {
       ["scout", "Love Letter: scout", "In Progress", null, "Game lane"],
       ["catalog-entry", "Love Letter: catalog entry", "Todo", null, "Platform lane"],
       ["rules-spec", "Love Letter: rules spec", "Todo", null, "Game lane"],
+      ["platform-assets", "Love Letter: platform assets", "Todo", null, "Platform lane"],
+      ["game-new", "Love Letter: game folder", "Todo", null, "Game lane"],
+      ["game-sanity-create", "Love Letter: studio forms", "Todo", null, "Game lane"],
+      ["game-assets", "Love Letter: game assets", "Todo", null, "Game lane"],
+      ["engine-rules", "Love Letter: engine", "Todo", null, "Engine lane"],
+      ["engine-board", "Love Letter: board", "Todo", null, "Engine lane"],
+      ["game-go-live", "Love Letter: go live", "Todo", null, "Game lane"],
     ])
     expect(made.issues.every((issue) => issue.comment === null)).toBe(true)
+    expect(made.issues[0]?.description).toContain("/add-game")
+  })
+
+  it("holds an issue that the terminal command recorded with no id as an issue yet to be made", () => {
+    const state = fresh()
+    state.linear.parent = { id: "", identifier: "", url: "", title: "Love Letter: add the game", applied: "In Progress", commented: false }
+    const made = order(state)
+    expect(made.issues[0]).toMatchObject({ key: "parent", id: null, identifier: null, state: null, title: null })
   })
 
   it("is written into the state from the answer, and then says nothing more", () => {
     const state = fresh()
     const made = order(state)
-    expect(applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), made)).toEqual([])
+    expect(applyResult(state, answer(ALL, { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), made)).toEqual([])
     expect(state.linear.parent).toMatchObject({ id: "id-parent", identifier: "GAM-41", title: "Love Letter: add the game", applied: "In Progress", commented: false })
     expect(state.linear.labelId).toBe("label-1")
     expect(stepOf(state, "scout").issue).toMatchObject({ identifier: "GAM-42", applied: "In Progress" })
@@ -43,7 +60,7 @@ describe("what Linear should say", () => {
 
   it("moves the next step to In Progress and comments the one that was validated, once", () => {
     const state = fresh()
-    applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
+    applyResult(state, answer(ALL, { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
     const scout = stepOf(state, "scout")
     scout.status = "validated"
     scout.validatedAt = "2026-11-16T10:05:00.000Z"
@@ -64,10 +81,10 @@ describe("what Linear should say", () => {
 
   it("renames the issues when the scout settled another name", () => {
     const state = fresh()
-    applyResult(state, answer(["parent", "scout", "catalog-entry", "rules-spec"], { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
+    applyResult(state, answer(ALL, { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }), order(state))
     state.name = "6 nimmt!"
     const made = order(state)
-    expect(made.issues.map((issue) => issue.wantTitle)).toEqual(["6 nimmt!: add the game", "6 nimmt!: scout", "6 nimmt!: catalog entry", "6 nimmt!: rules spec"])
+    expect(made.issues.map((issue) => issue.wantTitle)).toEqual(["6 nimmt!: add the game", "6 nimmt!: scout", "6 nimmt!: catalog entry", "6 nimmt!: rules spec", "6 nimmt!: platform assets", "6 nimmt!: game folder", "6 nimmt!: studio forms", "6 nimmt!: game assets", "6 nimmt!: engine", "6 nimmt!: board", "6 nimmt!: go live"])
     expect(made.issues.every((issue) => issue.id !== null)).toBe(true)
   })
 
@@ -75,13 +92,15 @@ describe("what Linear should say", () => {
     const state = fresh()
     for (const step of STEPS) stepOf(state, step.id).status = "validated"
     const made = order(state)
-    expect(made.issues.map((issue) => issue.wantState)).toEqual(["In Progress", "Done", "Done", "Done"])
+    expect(made.issues.map((issue) => issue.wantState)).toEqual(["In Progress", ...STEPS.map(() => "Done")])
   })
 
   it("tells what the answer lacks", () => {
     const state = fresh()
-    expect(applyResult(state, answer(["parent", "scout"]), order(state))).toEqual(["no issue came back for catalog-entry", "no issue came back for rules-spec"])
+    expect(applyResult(state, answer(["parent", "scout"]), order(state))).toEqual(STEPS.slice(1).map((step) => `no issue came back for ${step.id}`))
     expect(applyResult(state, "nope", order(state))).toEqual(["the answer is not an object"])
+    // an issue that came back with no id is no issue
+    expect(applyResult(state, { issues: [{ key: "parent", id: "", identifier: "GAM-1", url: "u", state: "Todo" }] }, order(state))[0]).toBe("no issue came back for parent")
   })
 
   it("says where the rules spec is in the comment of its validation: in the checkout, uncommitted", () => {
@@ -92,9 +111,7 @@ describe("what Linear should say", () => {
     s.validatedAt = "2026-11-17T08:00:00.000Z"
     s.rounds = 2
     expect(step.id).toBe("rules-spec")
-    expect(validationComment(state, step, game, label)).toBe(
-      'Validated on 2026-11-17 at the gate of `pnpm add-game "Love Letter"` (2 rounds).\nRules spec: docs/games/love-letter/rules.md (in the checkout, uncommitted: the game\'s first pull request takes it)',
-    )
+    expect(validationComment(state, step, game, label)).toBe("Validated on 2026-11-17 at its gate in /add-game (2 rounds).\nRules spec: docs/games/love-letter/rules.md (in the checkout, uncommitted: the game's first pull request takes it)")
   })
 
   it("says what a comment holds: when, how many rounds, the links", () => {
@@ -105,40 +122,27 @@ describe("what Linear should say", () => {
     s.validatedAt = "2026-11-17T08:00:00.000Z"
     s.rounds = 1
     s.links = ["https://pbgo.sanity.studio/intent/edit/id=game-love-letter;type=game"]
-    expect(validationComment(state, step, game, label)).toBe('Validated on 2026-11-17 at the gate of `pnpm add-game "Love Letter"` (1 round).\n- https://pbgo.sanity.studio/intent/edit/id=game-love-letter;type=game')
+    expect(validationComment(state, step, game, label)).toBe("Validated on 2026-11-17 at its gate in /add-game (1 round).\n- https://pbgo.sanity.studio/intent/edit/id=game-love-letter;type=game")
   })
 })
 
-describe("the call that does it", () => {
-  it("is told everything: the protocol, the fixed ids, the work order, the rules", () => {
-    const prompt = linearPrompt(order(fresh()), "mcp__claude_ai_Composio__")
-    expect(prompt).toContain("select:mcp__claude_ai_Composio__COMPOSIO_SEARCH_TOOLS,mcp__claude_ai_Composio__COMPOSIO_MULTI_EXECUTE_TOOL")
+describe("the brief of the sub-agent that does it", () => {
+  it("is told everything: the protocol, the fixed ids, the work order, the rules, where to write", () => {
+    const prompt = linearPrompt(order(fresh()), "/scratch/linear-love-letter-answer.json")
+    expect(prompt).toContain('ToolSearch with the query "composio"')
+    expect(prompt).toContain("COMPOSIO_SEARCH_TOOLS, COMPOSIO_MULTI_EXECUTE_TOOL and COMPOSIO_GET_TOOL_SCHEMAS")
     for (const id of [LINEAR.teamId, LINEAR.projectId, LINEAR.assigneeId, LINEAR.gameLabelGroupId, ...Object.values(LINEAR.states), ...Object.values(LINEAR.labels)]) expect(prompt).toContain(id)
     expect(prompt).toContain('"wantTitle": "Love Letter: scout"')
-    for (const slug of ["LINEAR_CREATE_LINEAR_ISSUE", "LINEAR_UPDATE_ISSUE", "LINEAR_SEARCH_ISSUES", "LINEAR_CREATE_LINEAR_COMMENT", "issueLabelCreate"]) expect(prompt).toContain(slug)
+    for (const slug of ["LINEAR_CREATE_LINEAR_ISSUE", "LINEAR_UPDATE_ISSUE", "LINEAR_CREATE_LINEAR_COMMENT", "LINEAR_RUN_QUERY_OR_MUTATION", "issueLabelCreate"]) expect(prompt).toContain(slug)
     expect(prompt).toContain("Never delete, archive or move anything")
+    expect(prompt).toContain("/scratch/linear-love-letter-answer.json")
+    expect(prompt).toContain('"commented": true | false')
   })
 
-  it("is allowed the Linear tools it names, and no other", () => {
-    const prompt = linearPrompt(order(fresh()), "mcp__claude_ai_Composio__")
-    for (const slug of LINEAR_SLUGS) expect(prompt, slug).toContain(slug.replace("LINEAR_RUN_QUERY_OR_MUTATION", "LINEAR_RUN_QUERY_OR_MUTATION"))
-    expect(linearPolicy(game, "/repo", { composioServer: "claude_ai_Composio", issueIds: ["issue-1"] })).toMatchObject({
-      bash: [],
-      writeFiles: [],
-      composio: { server: "claude_ai_Composio", slugs: LINEAR_SLUGS, sanity: null, linear: { teamId: LINEAR.teamId, projectId: LINEAR.projectId, issueIds: ["issue-1"] } },
-    })
-  })
-
-  it("does not move or comment an issue it makes itself in the same call: the policy knows the issues of the work order only", () => {
-    const prompt = linearPrompt(order(fresh()), "mcp__claude_ai_Composio__")
-    expect(prompt).toContain("whose comment is not null and whose id is filled")
-    expect(prompt).toContain("neither moved nor commented in this call")
-    expect(prompt).toContain("answer commented false for it")
-  })
-
-  it("answers in a shape the schema describes", () => {
-    expect(LINEAR_SCHEMA.required).toEqual(["issues"])
-    expect(LINEAR_SCHEMA.properties.issues.items.required).toEqual(["key", "id", "identifier", "url", "state"])
+  it("looks for an issue by its exact title before it makes one, so that nothing is made twice", () => {
+    const prompt = linearPrompt(order(fresh()), "/x.json")
+    expect(prompt).toContain('title: { eq: "<its wantTitle>" }')
+    expect(prompt).toContain("reuse the one it finds")
   })
 
   it("uses ids that are UUIDs", () => {
@@ -148,5 +152,19 @@ describe("the call that does it", () => {
 
   it("names a lane label that exists for each step", () => {
     for (const step of STEPS) expect(Object.keys(LINEAR.labels)).toContain(step.lane)
+  })
+})
+
+describe("the answer of the sub-agent", () => {
+  it("is read from a file that holds the JSON, wrapped in a code fence or in a sentence or not", () => {
+    expect(parseAnswer('{"issues": []}')).toEqual({ issues: [] })
+    expect(parseAnswer('```json\n{"labelId": "a", "issues": []}\n```')).toEqual({ labelId: "a", issues: [] })
+    expect(parseAnswer('Done: {"issues": [{"key": "parent"}]} as asked.')).toEqual({ issues: [{ key: "parent" }] })
+  })
+
+  it("is null when there is no JSON in it", () => {
+    expect(parseAnswer("")).toBeNull()
+    expect(parseAnswer("no braces")).toBeNull()
+    expect(parseAnswer("{ not json }")).toBeNull()
   })
 })

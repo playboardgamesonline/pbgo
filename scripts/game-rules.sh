@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # pnpm game-rules <slug> --rules [<lang>=]<file.pdf> …   e.g. pnpm game-rules the-crew --rules fr=regles.pdf --rules en=rules.pdf
 # Puts a game's rules PDFs in the draft of its Sanity Settings (Studio › Identity & Mechanics › Mechanics tab, "Rules PDF (FR|EN|ES|DE)"):
-# each file is uploaded to the game's dataset and referenced by its field. pnpm add-game does it for the rules given while the
+# each file is uploaded to the game's dataset and referenced by its field. the skill game-new does it for the rules given while the
 # game is created; this is for a rulebook that comes later, or that is too big for the upload of the gamemaster (4.4 MB).
 # Nothing is published (publishing stays in the Studio). A field that already holds a file keeps it unless --overwrite, and
 # running it again with the same files changes nothing. --dry-run reads the dataset and says what would happen, writes nothing.

@@ -1,4 +1,4 @@
-// `pnpm check:scout <file> [--online]` and `pnpm check:scout --list`: is a scout file (`.claude/skills/game-scout`) what the pipeline reads? The shape, the slug and the name by the rules of
+// `pnpm check:scout <file> [--online]` and `pnpm check:scout --list`: is a scout file (`.claude/skills/game-scout`) what `/add-game` reads? The shape, the slug and the name by the rules of
 // `packages/games/src/scout.ts` and `slug.ts`; with `--online`, against what exists (no folder for the game yet, `existing.catalog` and the base game against the platform's published documents:
 // public API, no token). `--list` prints what a scouted game is compared with. Run by Node, which strips the types, hence the `.ts` extensions below. Exit 0: sound; 1: the file or what exists
 // says otherwise (or the project cannot be read); 2: a wrong command line.
