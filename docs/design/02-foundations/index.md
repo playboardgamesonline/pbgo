@@ -1,6 +1,6 @@
 # Foundations
 
-The tokens the platform's look is made of: colour, type, radius, spacing, depth, glass and motion. The rules they serve, and the two layers they sit in, are in the [Guidelines](../01-guidelines/index.md).
+The tokens the platform's look is made of: colour, type, radius, spacing, depth, glass, motion and scrollbars. The rules they serve, and the two layers they sit in, are in the [Guidelines](../01-guidelines/index.md).
 
 - [Colors](01-colors.md)
 - [Typography](02-typography.md)
@@ -10,3 +10,4 @@ The tokens the platform's look is made of: colour, type, radius, spacing, depth,
 - [Glass](06-glass.md)
 - [Motion](07-motion.md)
 - [Utilities](08-utilities.md)
+- [Scrollbars](09-scrollbars.md)

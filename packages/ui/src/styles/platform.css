@@ -628,6 +628,8 @@
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: var(--color-neutral-400);
+    /* The thumb of every scrollbar, the part that is grabbed (`scrollbar-color`, below): the text colour at an opacity, so that it takes the look of what is behind it. Chromium lights it a step more under the pointer */
+    --scrollbar-thumb: color-mix(in oklab, var(--foreground) 40%, transparent);
     --chart-1: var(--color-neutral-300);
     --chart-2: var(--color-neutral-500);
     --chart-3: var(--color-neutral-600);
@@ -674,6 +676,9 @@
     --section: 4rem;
 
     color-scheme: dark;
+    /* Scrollbars draw their thumb alone, on whatever is behind it: the track has no fill and no hairline. `scrollbar-color` is inherited, so this one declaration reaches every scroll area under the page's <html> and under the root of a portal (a menu, a select, a
+       dialog), which carries the class too. A component never sets it, and the size and the shape of the thumb stay the system's */
+    scrollbar-color: var(--scrollbar-thumb) transparent;
     color: var(--foreground);
     font-family: var(--font-body);
     font-weight: 600;

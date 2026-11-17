@@ -3,6 +3,7 @@
 import type { Specimens } from "@pbgo/docs/markdown"
 import { DURATION, EASE_STANDARD, SPRING_TRAVEL } from "@pbgo/ui/motion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@pbgo/ui/platform/table"
+import { cn } from "@pbgo/ui/utils"
 import { LineColors, NeutralRamp, SemanticColors } from "./colors"
 import { GlassLab } from "./glass-lab"
 import { MotionDemo } from "./motion-demo"
@@ -164,6 +165,50 @@ function GlassSettings() {
   )
 }
 
+/** The grounds a scroll area sits on, with the utility of each: the page, a card and glass (over shapes, so that it lets something through). */
+const SCROLL_GROUNDS = ["bg-background", "bg-card", "glass"] as const
+
+/** A scroll area on each ground of the platform. Each scrolls with the browser's own scrollbar, which draws its thumb alone: nothing in the markup asks for it. */
+function ScrollbarSurfaces() {
+  const rows = Array.from({ length: 14 }, (_, index) => index + 1)
+  return (
+    <Frame
+      code={`.platform {
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}`}
+    >
+      <div className="grid gap-6 sm:grid-cols-3">
+        {SCROLL_GROUNDS.map((ground) => (
+          <div key={ground} className="flex flex-col gap-2">
+            <Code className="w-fit">{ground}</Code>
+            <div className="relative isolate overflow-hidden rounded-3xl">
+              {ground === "glass" && (
+                <div aria-hidden="true" className="absolute inset-0 -z-10">
+                  <div className="absolute -top-6 -left-6 size-28 rotate-12 rounded-4xl bg-presence-playing" />
+                  <div className="absolute top-16 -right-4 size-32 -rotate-6 rounded-4xl bg-presence-inactive" />
+                  <div className="absolute -bottom-6 left-1/3 size-28 rotate-45 rounded-4xl bg-presence-online" />
+                </div>
+              )}
+              <div
+                role="region"
+                aria-label={ground}
+                tabIndex={0}
+                className={cn("h-44 overflow-y-auto rounded-3xl border p-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/30", ground)}
+              >
+                {rows.map((row) => (
+                  <p key={row} className="py-1 text-sm text-muted-foreground">
+                    Row {row}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Frame>
+  )
+}
+
 function MotionDurations() {
   return (
     <Frame>
@@ -219,6 +264,7 @@ export const foundationsSpecimens: Specimens = {
   "depth-rings": Rings,
   "depth-scrim": Scrim,
   "glass-lab": GlassSettings,
+  "scrollbar-surfaces": ScrollbarSurfaces,
   "motion-durations": MotionDurations,
   "motion-javascript": MotionJavascript,
 }

@@ -27,6 +27,10 @@ const FORBIDDEN: ReadonlyArray<{ rule: string; pattern: RegExp }> = [
   { rule: "no colour literal: use a token (`bg-card`, `text-muted-foreground`…)", pattern: /#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|oklch|oklab|lab|lch)\(/ },
   { rule: "no pure black or white: use `background` / `foreground`", pattern: /\b(?:bg|text|border|ring|fill|stroke)-(?:black|white)\b/ },
   {
+    rule: "scrollbars are the platform's, set once on `.platform`: no `scrollbar-color` and no `::-webkit-scrollbar-*` part of a component's own",
+    pattern: /scrollbar-(?:color|track|thumb|button|corner)\b/,
+  },
+  {
     rule: "no Tailwind palette colour: use a token",
     pattern: new RegExp(`\\b(?:bg|text|border|ring|fill|stroke|from|via|to|divide|outline|decoration|accent|caret)-(?:${PALETTE})-\\d{2,3}\\b`),
   },
@@ -184,5 +188,21 @@ describe("modal overlays", () => {
 
   it("the margin of the scroll lock is taken off the body", () => {
     expect(css).toMatch(/html\.platform body\[data-scroll-locked\]\s*\{[^}]*margin-right:\s*0\s*!important/)
+  })
+})
+
+/**
+ * A scrollbar draws its thumb alone: its track has no fill and no hairline, so what is behind it (a page, a card, a window, a menu) shows through. One declaration does it, `scrollbar-color` on `.platform`, which is the page's <html> and the root of every
+ * portal; the property is inherited, so no scroll area carries a class for it (and `FORBIDDEN` above keeps a component from painting a scrollbar of its own). The thumb is a token, the text colour at an opacity.
+ */
+describe("scrollbars", () => {
+  const css = readFileSync(new URL("./styles/platform.css", import.meta.url), "utf8")
+
+  it("the thumb is a token: the text colour at an opacity", () => {
+    expect(css).toMatch(/--scrollbar-thumb:\s*color-mix\(in oklab, var\(--foreground\) \d+%, transparent\);/)
+  })
+
+  it("the thumb is drawn over a track that has no colour, on `.platform` itself (not `html.platform` alone), so the page and every portal get it", () => {
+    expect(css).toMatch(/(?<![\w-])\.platform\s*\{[^}]*scrollbar-color:\s*var\(--scrollbar-thumb\)\s+transparent;/)
   })
 })
