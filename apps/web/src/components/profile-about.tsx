@@ -1,5 +1,6 @@
 import { isSpokenLanguage, type ProfileDetails } from "@pbgo/accounts"
 import { Card, CardContent } from "@pbgo/ui/platform/card"
+import { StatBarLabel } from "@pbgo/ui/platform/stat-bar"
 import { cn } from "@pbgo/ui/utils"
 import { LanguageChips } from "@/components/language-chips"
 
@@ -18,6 +19,7 @@ export function ProfileAbout({ details, className }: { details: ProfileDetails; 
       {bio !== null && (
         <Card className="flex-1">
           <CardContent>
+            <StatBarLabel className="mb-3 block">Bio</StatBarLabel>
             <p className="ph-mask max-w-prose text-base text-pretty break-words whitespace-pre-line">{bio}</p>
           </CardContent>
         </Card>

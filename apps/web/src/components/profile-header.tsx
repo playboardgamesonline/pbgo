@@ -35,7 +35,7 @@ export function ProfileHeader({ head, note, children }: { head: ProfileHead; not
             {head.level.level}
           </Badge>
         </div>
-        {identity && <p className="ph-mask mt-1.5 text-muted-foreground sm:mt-2.5 sm:text-lg">{identity}</p>}
+        {identity && <p className="ph-mask mt-1 text-muted-foreground sm:text-lg">{identity}</p>}
         {since && <p className="ph-mask mt-1 text-sm text-muted-foreground/60">{since}</p>}
       </div>
       {children && <div className="flex shrink-0 flex-wrap items-center gap-2">{children}</div>}
