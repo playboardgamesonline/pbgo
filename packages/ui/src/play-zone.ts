@@ -19,21 +19,21 @@ export const searchModeOf = (mode: PlayZoneMode): QueueMode | null => (mode === 
 /** The most places the row has: one for each seat of the largest table, so that a whole group sits on one line. */
 export const SLOT_COLUMNS = MAX_SEATS
 
-/** How many places the row has to begin with, however few people are in it: the visitor's and the ones that wait for a friend. */
-export const SLOT_BASE = 5
+/** How many places the row has to begin with, however few people are in it: all of them, the most a table holds, the visitor's, the ones that wait for a friend and the places that nobody has. */
+export const SLOT_BASE = SLOT_COLUMNS
 
 /**
- * How many places the row of a group has: the base, and one more, free, as soon as every place is taken, the way the row of games ends with the tile that adds one, up to the most a table holds. A group of four has the five places it began
- * with, one of them free; a fifth person fills the last and the row gets a sixth, and so on to nine, where it is full.
+ * How many places the row of a group has: the base, and one more, free, as soon as every place is taken, up to the most a table holds. The base being the most a table holds, a group of one has the nine places of a group of nine, the member's and eight free,
+ * and the row never grows: it is that of a group at its largest from the start.
  */
 export const placesFor = (people: number): number => Math.min(SLOT_COLUMNS, Math.max(SLOT_BASE, (Number.isFinite(people) ? Math.floor(people) : 0) + 1))
 
-/** How many slots the row of games has to begin with, however few games are in it: the games and, after them, the slots that are free. */
-export const GAME_SLOT_BASE = 5
+/** How many slots the row of games has to begin with, however few games are in it: two rows of six, the games and, after them, the slots that are free. */
+export const GAME_SLOT_BASE = 12
 
 /**
- * How many slots the row of games of a search has: the base, and one more, free, as soon as every slot is taken, up to `max` games, the most a search takes, the way the row of players gets a place. Two games have five slots, three of them free; five games have six, the last one free;
- * `max` games fill the row, which has no free slot. A table of one's own holds one game, so its row is the one slot of that game: that is not a count of this function.
+ * How many slots the row of games of a search has: the base, and one more, free, as soon as every slot is taken, up to `max` games, the most a search takes, the way the row of players gets its places. With the base the most a search takes, as it is on the home, the row has its twelve slots from the
+ * start, two games and ten free ones, and no more: `max` games fill it. A table of one's own holds one game, so its row is the one slot of that game: that is not a count of this function.
  */
 export const gameSlotsFor = (games: number, max: number): number => Math.min(max, Math.max(GAME_SLOT_BASE, (Number.isFinite(games) ? Math.floor(games) : 0) + 1))
 

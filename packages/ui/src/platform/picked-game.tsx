@@ -148,7 +148,7 @@ type AddGameTileProps = Omit<React.ComponentProps<"button">, "children" | "type"
 }
 
 /**
- * A free slot of the row of games, the tile that adds one: a dark, translucent rectangle with a dashed outline, the same as a free place of the row of players has, the frame of a picture, with a plus in it and no label, drawn at the size of the tiles of the games that are in and as tall as they are, the room that a name takes being left empty under the frame, so that a row of free slots is as tall
+ * A free slot of the row of games, the tile that adds one: a dark, translucent rectangle with a thin outline, the same outline and background as a free place of the row of players has, the frame of a picture, with a plus in it and no label, drawn at the size of the tiles of the games that are in and as tall as they are, the room that a name takes being left empty under the frame, so that a row of free slots is as tall
  * as a row of games and nothing moves when a game is picked. Only the frame is a button. It is the trigger of the panel that lists the games (`GameSelect`): under the pointer and while the panel is open its outline is a little stronger. When the row has several free slots the first is the trigger and the others
  * only ask the page to open the panel. It takes the sizing of the row it is in (`className`: a width), as a picked tile does.
  */
@@ -158,7 +158,7 @@ function AddGameTile({ label, className, ...props }: AddGameTileProps) {
       <button type="button" aria-label={label} className="group/add block w-full outline-none" {...props}>
         <span
           className={cn(
-            "flex aspect-4/3 w-full items-center justify-center border border-dashed border-border bg-background/40 transition-colors duration-fast group-hover/add:border-foreground/50 group-focus-visible/add:ring-3 group-focus-visible/add:ring-ring/60 group-data-[state=open]/add:border-foreground/50",
+            "flex aspect-4/3 w-full items-center justify-center border border-border bg-background/40 transition-colors duration-fast group-hover/add:border-foreground/50 group-focus-visible/add:ring-3 group-focus-visible/add:ring-ring/60 group-data-[state=open]/add:border-foreground/50",
             CORNERS,
           )}
         >

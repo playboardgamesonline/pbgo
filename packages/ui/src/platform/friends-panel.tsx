@@ -40,9 +40,10 @@ const MOON = "M12.542 1.013A11 11 0 1 1 1.013 12.542 8.2 8.2 0 1 0 12.542 1.013Z
  * out of it for one in a game, an orange-yellow moon for one who is inactive, a red disc with a bar knocked out of it for one who does not want to be disturbed, and
  * a thick grey ring for one who is away. Its size follows the picture's and is small (8px on a small picture, 10px on a medium one, 12px on a large one, 16px on an extra large one): it stands in the bottom
  * right corner of the picture, so a smaller dot recedes towards that corner, and a ring of the colour of the page, 3px (2px on a small picture), cuts it out of the picture. The outline
- * of the offline ring is a quarter of the dot (2px of 8, 3px of 10 and of 12), like Discord's invisible, and not a hairline.
+ * of the offline ring is a quarter of the dot (2px of 8, 3px of 10 and of 12), like Discord's invisible, and not a hairline. On a picture that is as large as its place allows, whatever that is (`scaled`: the row of players of the home, a column that sets the picture's width),
+ * the dot is a share of the picture's width and not the fixed size of an extra large one (the tokens `--presence-share`, a little over a fifth of it, and `--presence-ring`, a quarter of the dot for its ring and for the outline of the offline ring), so that it keeps its proportions from the smallest picture to the largest. The picture is then a container (`@container`).
  */
-function PresenceDot({ status }: { status: FriendStatus }) {
+function PresenceDot({ status, scaled = false }: { status: FriendStatus; scaled?: boolean }) {
   return (
     <AvatarBadge
       data-status={status}
@@ -53,6 +54,8 @@ function PresenceDot({ status }: { status: FriendStatus }) {
         status === "inactive" && "bg-(color:--cutout) text-presence-inactive",
         status === "dnd" && "bg-(color:--cutout) text-presence-dnd",
         status === "offline" && "border-3 border-muted-foreground bg-(color:--cutout) group-data-[size=sm]/avatar:border-2 group-data-[size=xl]/avatar:border-4",
+        scaled && "group-data-[size=xl]/avatar:size-(--presence-share) group-data-[size=xl]/avatar:ring-(length:--presence-ring)",
+        scaled && status === "offline" && "group-data-[size=xl]/avatar:border-(length:--presence-ring)",
       )}
     >
       {status === "playing" && (

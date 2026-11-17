@@ -60,15 +60,15 @@ const MODES: readonly ModeOption<PlayZoneMode>[] = PLAY_ZONE_MODES.map((value) =
 const FRIENDS_LISTED = 8
 
 /**
- * The slots of the games are the cells of one grid, aligned to the left: five columns, or three in a card too narrow for five (`@xl`, the room of their section), so that a game has the same size whatever the number of games and the kind of play, and as large as its column allows up to a most (`max-w`).
+ * The slots of the games are the cells of one grid, aligned to the left: six columns, so twelve slots are two rows, or three columns in a card too narrow for six (`@xl`, the room of their section), so that a game has the same size whatever the number of games and the kind of play, and as large as its column allows up to a most (`max-w`).
  * A slot is as tall as its picture (4:3), its name and the rank under it that Ranked draws, which it keeps the room of in Normal too, so that the zone under the games never moves from one kind to the other.
  */
-const SLOTS = "grid grid-cols-3 gap-x-3 gap-y-6 @xl:grid-cols-5 max-w-4xl"
+const SLOTS = "grid grid-cols-3 gap-x-3 gap-y-6 @xl:grid-cols-6 max-w-5xl"
 
 /**
  * The play zone of the signed-in home: one central interface in a card that takes the height of what is left of the screen, with the same margin at its two sides and a little more under it, in the left column of the home (the right one is `HomeAside`'s: PLT-21, PLT-119, PLT-135). Its four parts are spread over the
- * height of the card (spacers that share what is left, never closer than a fixed distance): a switch that fits its cases (Normal, Ranked, Custom) at the top, then the "Board games" (five slots to begin with, the games that are picked as tiles and, after them, the slots that are free, each
- * of which opens the panel of the games, one more, free, each time they are all taken, ten at the most, five to a row; a press on a tile opens its settings, in a window: its speed, its expansions and, for a search, the most players at a table), then the "Players" (the row of players, every place of one size too,
+ * height of the card: a switch that fits its cases (Normal, Ranked, Custom) at the top, then at a fixed distance (the "2xl" step) the "Board games" (twelve slots from the start, two rows of six: the games that are picked as tiles and, after them, the slots that are free, each
+ * of which opens the panel of the games, twelve games at the most; a press on a tile opens its settings, in a window: its speed, its expansions and, for a search, the most players at a table), then the "Players" (the row of players, every place of one size too,
  * as large as the row allows, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little room at their sides, and at the foot of the card the button, with what says why it is off at its right. Normal and Ranked look for a table among players the member does not know, in as many games as they pick, the places being their group; Custom opens a table of one game for friends, private to
  * begin with, the places being its seats, whose number the game's settings set; a friend picked in a place is invited when the table opens. A game that the group cannot play stays in the list and as a tile, off, with the reason; the same reason is at the right of the button. The button says
  * "Play" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left and for a member of a group who is not its leader (`@pbgo/core/lib/play-eligibility`). The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it, the zone shows
@@ -85,7 +85,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const searching = queue !== null
 
   const [mode, setMode] = useState<PlayZoneMode>("normal")
-  // A search sits the member at a table of each game, so it holds ten at the most (`SEARCH_MAX_GAMES`): the first ten are in to begin with
+  // A search sits the member at a table of each game, so it holds twelve at the most (`SEARCH_MAX_GAMES`): the first twelve are in to begin with
   const [picked, setPicked] = useState<readonly string[]>(() => games.slice(0, SEARCH_MAX_GAMES).map((game) => game.slug))
   const [customSlug, setCustomSlug] = useState<string | null>(null)
   // The settings of a game are the member's whichever kind of play they are for, so they are kept by game
@@ -130,7 +130,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const refused = shown.filter((game) => refusals.has(game.slug))
   const notices = searching ? [] : searchBlocked ? [searchBlockText(searchBlocked)] : tableBlocked ? [tableBlockText(tableBlocked)] : [...refused.slice(0, 2).map((game) => `${game.name}: ${refusals.get(game.slug)}`), ...(refused.length > 2 ? [`${refused.length - 2} more games can't be played by your group.`] : [])]
 
-  // The slots of the games: a search has five to begin with and one more, free, each time they are all taken, ten at the most (`SEARCH_MAX_GAMES`), and a table of one's own the one slot of its game. The games that are picked have the first slots and the free ones come after them; they stay
+  // The slots of the games: a search has its twelve from the start, two rows of six, the most it takes (`SEARCH_MAX_GAMES`), and a table of one's own the one slot of its game. The games that are picked have the first slots and the free ones come after them; they stay
   // drawn while a search is on, off, since it is read and not set, so that the row does not change when it begins
   const slots = searchMode ? gameSlotsFor(shown.length, SEARCH_MAX_GAMES) : 1
   const freeSlots = Math.max(0, slots - shown.length)
@@ -277,14 +277,13 @@ export function HomePlay({ games, languages, account, className }: { games: read
       aria-labelledby="home-play"
       className={cn("min-h-[calc(100svh-var(--consent-h,0px)-var(--spacing-navbar)-1rem-var(--spacing-gutter)-1.5rem)] min-w-0 gap-0 overflow-visible py-0 [--cutout:var(--card)]", className)}
     >
-      {/* The four parts of the card are spread over its height: the switch at the top, the games, the group and, at the foot, the button, with spacers between them that share what is left of the height 10 : 7 : 13 (never under 1.5rem), so that the group is a little higher than at equal distances. The games and the group have a little room at their sides */}
+      {/* The switch, the games and the players follow one another from the top, at the "2xl" distance (`mt-12`) from one to the next, and the button is at the foot with what is left of the height above it (never under 1.5rem). The games and the players have a little room at their sides */}
       <div className="flex flex-1 flex-col p-6">
         <h2 id="home-play" className="sr-only">
           Play
         </h2>
         <ModeSwitch options={MODES} value={shownMode} onValueChange={setMode} disabled={searching} aria-label="What to play" className="justify-start" />
-        <div aria-hidden="true" className="min-h-6 grow-10" />
-        <section aria-labelledby="home-games" className="@container flex flex-col gap-4 px-2">
+        <section aria-labelledby="home-games" className="@container mt-12 flex flex-col gap-4 px-2">
           <h3 id="home-games" className="font-heading text-lg">
             {searchMode ? "Board games" : "Board game"}
           </h3>
@@ -337,14 +336,13 @@ export function HomePlay({ games, languages, account, className }: { games: read
             </>
           )}
         </section>
-        <div aria-hidden="true" className="min-h-6 grow-7" />
-        <section aria-labelledby="home-players" className="@container flex flex-col gap-4 px-2">
+        <section aria-labelledby="home-players" className="@container mt-12 flex flex-col gap-4 px-2">
           <h3 id="home-players" className="font-heading text-lg">
             Players
           </h3>
           <PlayerSlots players={players} size={size} picker={picker} menu={menuOf} disabled={searching || opening} />
         </section>
-        <div aria-hidden="true" className="min-h-6 grow-13" />
+        <div aria-hidden="true" className="min-h-6 grow" />
         {/* The button is at the foot of the card, which is the foot of the screen, with what says why it is off at its right. Under `xl` a card taller than the screen keeps it in view above the consent banner, over what scrolls under it (the fade is the card's own grey); from `xl` the card is made to fit the screen and it stays at its foot */}
         <div className="sticky bottom-[var(--consent-h,0px)] z-10 -mx-6 -mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-b-4xl bg-gradient-to-t from-card from-70% to-transparent px-6 pt-4 pb-6 xl:static xl:m-0 xl:bg-none xl:p-0">
           {searchMode ? (

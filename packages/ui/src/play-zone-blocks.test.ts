@@ -83,13 +83,13 @@ describe("the row of players", () => {
   it("makes every place a cell of one grid, a person's and a free place's: the same width, as large as the row allows for the places there are, never fixed by a width of its own", () => {
     const html = row({ players: [you, ann], size: 6 })
     const list = /<ul[^>]*>/.exec(html)?.[0] ?? ""
-    expect(list).toContain("grid-cols-[repeat(auto-fit,minmax(4rem,1fr))]")
+    expect(list).toContain("grid-cols-[repeat(auto-fit,minmax(3rem,1fr))]")
     for (const place of cellsOf(html)) {
       expect(place).not.toMatch(/[\s"]w-\d/)
       expect(place).not.toContain("flex-1")
     }
     expect(html.match(/data-size="xl"/g)).toHaveLength(6)
-    expect(html).not.toContain("cqw")
+    expect(list).not.toContain("cqw")
   })
 
   it("knows how many places it has, which the width of the row is made of: no wider than that many places of the most a place has", () => {
@@ -102,7 +102,7 @@ describe("the row of players", () => {
 
   it("is aligned to the left and wraps to a second line in a column too narrow for the places, rather than shrink them below a least width", () => {
     const list = /<ul[^>]*>/.exec(row({ players: [you, ann] }))?.[0] ?? ""
-    expect(list).toContain("minmax(4rem,1fr)")
+    expect(list).toContain("minmax(3rem,1fr)")
     expect(list).not.toContain("justify-center")
     expect(list).not.toContain("justify-items-center")
   })
@@ -116,11 +116,31 @@ describe("the row of players", () => {
     expect(row({ players: [you, ann], size: 5 })).not.toContain(">Oré<")
   })
 
-  it("opens every place that nobody has, even with no game picked: a dashed circle with a plus, as many as the row has", () => {
+  it("opens every place that nobody has, even with no game picked: a circle with a plus, the outline and the background of a free slot of the games, as many as the row has", () => {
     const cells = cellsOf(row({ players: [you], size: 5 }))
     expect(cells.filter((cell) => cell.includes('data-free=""'))).toHaveLength(4)
-    expect(cells.filter((cell) => cell.includes("border-dashed"))).toHaveLength(4)
-    expect(row()).toContain("bg-transparent")
+    expect(cells.filter((cell) => cell.includes("border border-border bg-background/40"))).toHaveLength(4)
+    expect(row()).not.toContain("border-dashed")
+  })
+
+  it("has more room between places from a section wide enough for it, the most a place has being counted with the room between", () => {
+    const list = /<ul[^>]*>/.exec(row({ size: 9 }))?.[0] ?? ""
+    expect(list).toContain("gap-x-3")
+    expect(list).toContain("@3xl:gap-x-5")
+    expect(list).toContain("@3xl:max-w-[calc(var(--n)*7.25rem)]")
+  })
+
+  it("scales the dot of presence with the picture, a share of its width and not a fixed size, the picture being the container of the units", () => {
+    const html = row({ players: [you, ann], size: 5 })
+    expect(html).toContain("@container")
+    expect(html).toContain("group-data-[size=xl]/avatar:size-(--presence-share)")
+    expect(html).toContain("group-data-[size=xl]/avatar:ring-(length:--presence-ring)")
+    // The fixed size of an extra large picture's dot is the one that the share takes the place of
+    expect(html).not.toContain("group-data-[size=xl]/avatar:size-4")
+    // The ring of the dot of a friend who is away is in proportion too, not the 4px of an extra large picture
+    const away = row({ players: [you, { id: "cy", name: "Cy", status: "offline" }], size: 5 })
+    expect(away).toContain("group-data-[size=xl]/avatar:border-(length:--presence-ring)")
+    expect(away).not.toContain("group-data-[size=xl]/avatar:border-4")
   })
 
   it("has the free places after the people, so a row grows to the right as the row of games does", () => {
@@ -302,12 +322,15 @@ describe("the tile that adds a game", () => {
     expect(tile({ disabled: true })).toContain('disabled=""')
   })
 
-  it("has the dashed outline of a free place of the row of players, and no solid ring", () => {
+  it("has the outline and the background of a free place of the row of players: thin, solid, a dark translucent fill", () => {
     const place = render(React.createElement(PlayerSlots, { players: [{ id: "you", name: "Oré", you: true }], size: 3 }))
-    expect(place).toContain("border border-dashed border-border")
     const html = tile()
-    expect(html).toContain("border border-dashed border-border")
+    for (const markup of [place, html]) {
+      expect(markup).toContain("border border-border bg-background/40")
+      expect(markup).not.toContain("border-dashed")
+    }
     expect(html).toContain("group-hover/add:border-foreground/50")
+    expect(place).toContain("group-hover/slot:border-foreground/50")
     expect(html).not.toContain("ring-foreground/10")
   })
 

@@ -12,8 +12,8 @@ import { PresenceDot } from "./friends-panel"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 
 // The row of places of the signed-in home's play zone, the people who play together: the visitor first, at the left, and after them their group (a search) or the friends they will invite to the table they open (Custom), then the places that nobody has, nine places at the most, the most a table
-// has. It is aligned to the left like the rest of the zone and grows to the right the way the row of games does (`layoutRow`). The places are open whatever else the zone holds, even with no game picked: a place that nobody has is a dashed circle with a plus, and a press on it opens a panel (`picker`: the
-// friends, then a way to copy a link). A person is their picture with the dot of their presence, their name under it (the visitor's is "You") and a crown on the one who leads; an invitation that waits for an answer is a dashed outline round a picture that is a little faint. A press on a person opens their
+// has. It is aligned to the left like the rest of the zone and grows to the right the way the row of games does (`layoutRow`). The places are open whatever else the zone holds, even with no game picked: a place that nobody has is a circle with a plus, with the outline and the background of a free slot of the row of games, and a press on it opens a panel (`picker`: the
+// friends, then a way to copy a link). A person is their picture with the dot of their presence (a share of the picture, whatever its size), their name under it (the visitor's is "You") and a crown on the one who leads; an invitation that waits for an answer is a dashed outline round a picture that is a little faint. A press on a person opens their
 // menu (`menu`), when the page has one for them. The row has no label: what it is says itself. Every place has the size of a large avatar, a person and a free place alike, and never changes it: the row is made for nine on one line in the column of the home, and a column too narrow for them lets it wrap
 // to a second line rather than make the pictures smaller. It draws what it is given and decides nothing: who is in it, how many places it has (`placesFor` of `@pbgo/ui/play-zone`) and what a press does are the page's.
 
@@ -48,11 +48,11 @@ type PlayerSlotsProps = Omit<React.ComponentProps<"ul">, "children"> & {
 }
 
 /**
- * The columns of the row: as many as there are places while the room has the width of that many at the least (`minmax(<least>, 1fr)`, nine on one line at the most), and the row is no wider than that many places of the most a place has (`max-w`, from the count `--n` that `PLACE_COUNT` gives it), so that a few
- * places are a few large avatars and nine are nine smaller ones. The least and the most grow with the room of the row (`@container`, the page's), a step at a time.
+ * The columns of the row: as many as there are places while the room has the width of that many at the least (`minmax(<least>, 1fr)`, nine on one line at the most), and the row is no wider than that many places of the most a place has plus the space between two (`max-w`, from the count `--n`
+ * that `PLACE_COUNT` gives it), so that a few places are a few large avatars and nine are nine smaller ones. The least, the most and the space between places grow with the room of the row (`@container`, the page's), a step at a time: a little wider from `@3xl`.
  */
 const PLACES =
-  "grid-cols-[repeat(auto-fit,minmax(4rem,1fr))] max-w-[calc(var(--n)*5.25rem)] @3xl:max-w-[calc(var(--n)*6.75rem)] @4xl:max-w-[calc(var(--n)*7.75rem)] @5xl:max-w-[calc(var(--n)*8.75rem)] @7xl:max-w-[calc(var(--n)*10.75rem)]"
+  "grid-cols-[repeat(auto-fit,minmax(3rem,1fr))] gap-x-3 max-w-[calc(var(--n)*5.25rem)] @3xl:gap-x-5 @3xl:max-w-[calc(var(--n)*7.25rem)] @4xl:max-w-[calc(var(--n)*8.25rem)] @5xl:max-w-[calc(var(--n)*9.25rem)] @7xl:max-w-[calc(var(--n)*11.25rem)]"
 
 /** `--n` of the row: how many places it has, from 1 to nine. Written out, so that each class is in the stylesheet. */
 const PLACE_COUNT = ["[--n:1]", "[--n:1]", "[--n:2]", "[--n:3]", "[--n:4]", "[--n:5]", "[--n:6]", "[--n:7]", "[--n:8]", "[--n:9]"] as const
@@ -60,11 +60,11 @@ const PLACE_COUNT = ["[--n:1]", "[--n:1]", "[--n:2]", "[--n:3]", "[--n:4]", "[--
 /** What makes an avatar of the row as wide as its place, and as tall. */
 const FILL = "data-[size=xl]:size-full aspect-square"
 
-/** A free place: a dashed circle with a plus in it, as faint as the seats of a table that nobody has taken, a little more there under the pointer of what holds it (`group/slot`). */
+/** A free place: a circle with a plus in it, the outline and the background of a free slot of the row of games, a little stronger under the pointer of what holds it (`group/slot`). */
 function FreePlace() {
   return (
     <Avatar size="xl" className={cn(FILL, "after:hidden")}>
-      <AvatarFallback className="border border-dashed border-border bg-transparent text-muted-foreground transition-colors duration-fast group-hover/slot:border-foreground/50 group-hover/slot:text-foreground">
+      <AvatarFallback className="border border-border bg-background/40 text-muted-foreground transition-colors duration-fast group-hover/slot:border-foreground/50 group-hover/slot:text-foreground">
         <HugeiconsIcon icon={PlusSignIcon} strokeWidth={2} aria-hidden="true" className="size-6" />
       </AvatarFallback>
     </Avatar>
@@ -74,10 +74,10 @@ function FreePlace() {
 /** The picture of a person, with the dot of their presence, faint and outlined when they were invited and have not answered. */
 function Picture({ player }: { player: SlotPlayer }) {
   return (
-    <Avatar size="xl" className={cn(FILL, player.pending && "opacity-60 outline-2 outline-offset-2 outline-border outline-dashed")}>
+    <Avatar size="xl" className={cn(FILL, "@container", player.pending && "opacity-60 outline-2 outline-offset-2 outline-border outline-dashed")}>
       {player.avatarUrl && <AvatarImage src={player.avatarUrl} alt="" referrerPolicy="no-referrer" />}
       <AvatarFallback>{initials(player.name)}</AvatarFallback>
-      {player.status && !player.you && !player.pending && <PresenceDot status={player.status} />}
+      {player.status && !player.you && !player.pending && <PresenceDot status={player.status} scaled />}
     </Avatar>
   )
 }
@@ -155,7 +155,7 @@ function PlayerSlots({ players, size, picker, menu, disabled = false, className,
   // The free places all open the same panel, so only the first of them is a stop for the keyboard's Tab, as the free seats of a table are
   const firstFree = cells.findIndex((cell) => cell.person === null)
   return (
-    <ul data-slot="player-slots" aria-label="Players" data-places={cells.length} className={cn("grid items-start gap-x-3 gap-y-4", PLACES, PLACE_COUNT[cells.length], className)} {...props}>
+    <ul data-slot="player-slots" aria-label="Players" data-places={cells.length} className={cn("grid items-start gap-y-4", PLACES, PLACE_COUNT[cells.length], className)} {...props}>
       {cells.map((cell, index) => (
         <li key={index} data-slot="player-slot" data-free={cell.person === null ? "" : undefined} className="flex min-w-0 flex-col items-center gap-2">
           {cell.person ? <Person player={cell.person} menu={menu} disabled={disabled} /> : <Free picker={picker} disabled={disabled} tabbable={index === firstFree} />}
