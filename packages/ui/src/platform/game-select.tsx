@@ -22,7 +22,7 @@ type GameSelectProps = {
   searchPlaceholder: string
   /** What the list says when no game holds the text: "No game matches.". */
   empty: string
-  /** What the panel says under its list once `max` games are picked ("A search takes ten games at the most. Take one out to add another."). None: it says nothing. */
+  /** What the panel says under its list once `max` games are picked ("A search takes five games at the most. Take one out to add another."). None: it says nothing. */
   fullNote?: string
   /** Names the panel and its list: "Games". */
   "aria-label": string

@@ -34,7 +34,8 @@ describe("parsePlayRequest", () => {
     for (const game of ["", "Courtisans", "a b", "../x", "-a", 3, null, "a".repeat(65)]) expect(parsePlayRequest({ games: ["ok", game], mode: "normal" })).toBeNull()
   })
 
-  it("takes the most games a search holds and no more", () => {
+  it("takes the most games a search holds and no more, five, as nine is the most players at a table", () => {
+    expect(SEARCH_MAX_GAMES).toBe(5)
     const games = Array.from({ length: SEARCH_MAX_GAMES }, (_, index) => `game-${index}`)
     expect(parsePlayRequest({ games, mode: "normal" })?.games).toHaveLength(SEARCH_MAX_GAMES)
     expect(parsePlayRequest({ games: [...games, "one-more"], mode: "normal" })).toBeNull()

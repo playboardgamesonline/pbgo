@@ -93,23 +93,20 @@ describe("how many places the row of a group has", () => {
 })
 
 describe("how many slots the row of games of a search has", () => {
-  const MOST = 10
+  const MOST = 5
 
-  it("begins with five, the games that are picked and the free slots after them, however few games are picked", () => {
-    expect(GAME_SLOT_BASE).toBe(5)
-    for (const games of [0, 1, 2, 3, 4]) expect(gameSlotsFor(games, MOST)).toBe(5)
+  it("begins with four, the games that are picked and the free slots after them, however few games are picked", () => {
+    expect(GAME_SLOT_BASE).toBe(4)
+    for (const games of [0, 1, 2, 3]) expect(gameSlotsFor(games, MOST)).toBe(4)
   })
 
-  it("gets one more, free, as soon as every slot is taken, the way the row of players gets a place", () => {
-    expect(gameSlotsFor(5, MOST)).toBe(6)
-    expect(gameSlotsFor(6, MOST)).toBe(7)
-    expect(gameSlotsFor(8, MOST)).toBe(9)
-    expect(gameSlotsFor(9, MOST)).toBe(10)
+  it("gets a fifth, free, as soon as the four are taken, the way the row of players gets its places", () => {
+    expect(gameSlotsFor(4, MOST)).toBe(5)
   })
 
   it("never has more slots than a search takes games, so a full row has no free slot", () => {
-    expect(gameSlotsFor(10, MOST)).toBe(10)
-    expect(gameSlotsFor(40, MOST)).toBe(10)
+    expect(gameSlotsFor(5, MOST)).toBe(5)
+    expect(gameSlotsFor(40, MOST)).toBe(5)
   })
 
   it("keeps a free slot while the search can take another game", () => {
@@ -118,11 +115,12 @@ describe("how many slots the row of games of a search has", () => {
   })
 
   it("has no more slots than a search takes when that is fewer than the base", () => {
-    expect(gameSlotsFor(0, 4)).toBe(4)
+    expect(gameSlotsFor(0, 3)).toBe(3)
   })
 
   it("is not thrown by a count that is not a whole number", () => {
-    expect(gameSlotsFor(Number.NaN, MOST)).toBe(5)
-    expect(gameSlotsFor(5.9, MOST)).toBe(6)
+    expect(gameSlotsFor(Number.NaN, MOST)).toBe(4)
+    expect(gameSlotsFor(3.9, MOST)).toBe(4)
+    expect(gameSlotsFor(4.9, MOST)).toBe(5)
   })
 })
