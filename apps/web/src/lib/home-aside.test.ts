@@ -65,7 +65,10 @@ describe("what the demo account shows in the column", () => {
 })
 
 describe("how many open tournaments a page holds", () => {
-  it("is as many as fit the height with the space between the rows, three at the most", () => {
+  it("is as many as fit the height with the space between the rows, four at the most", () => {
+    expect(TOURNAMENTS_PER_PAGE_MAX).toBe(4)
+    expect(perPageFor(104 * 4 + ROW_GAP * 3, 104)).toBe(4)
+    expect(perPageFor(104 * 4 + ROW_GAP * 3 - 1, 104)).toBe(3)
     expect(perPageFor(104 * 3 + ROW_GAP * 2, 104)).toBe(3)
     expect(perPageFor(104 * 3 + ROW_GAP * 2 - 1, 104)).toBe(2)
     expect(perPageFor(104 * 2 + ROW_GAP, 104)).toBe(2)

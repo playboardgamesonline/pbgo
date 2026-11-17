@@ -279,7 +279,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
       className={cn("min-h-[calc(100svh-var(--consent-h,0px)-var(--spacing-navbar)-1rem-var(--spacing-gutter)-1rem)] min-w-0 gap-0 overflow-visible py-0 [--cutout:var(--card)]", className)}
     >
       {/* The switch, the games and the players follow one another from the top, the games at the "2xl" distance (`mt-12`, 3rem) from the switch and the players at 2rem (`mt-8`) from the games, and the button is at the foot with what is left of the height above it (never under 1.5rem). The games and the players have a little room at their sides */}
-      <div className="flex flex-1 flex-col p-6">
+      <div className="flex flex-1 flex-col p-6 pb-7">
         <h2 id="home-play" className="sr-only">
           Play
         </h2>
@@ -347,8 +347,8 @@ export function HomePlay({ games, languages, account, className }: { games: read
           <PlayerSlots players={players} size={size} picker={picker} menu={menuOf} disabled={searching || opening} />
         </section>
         <div aria-hidden="true" className="min-h-6 grow" />
-        {/* The button is at the foot of the card, which is the foot of the screen, with what says why it is off at its right. Under `xl` a card taller than the screen keeps it in view above the consent banner, over what scrolls under it (the fade is the card's own grey); from `xl` the card is made to fit the screen and it stays at its foot */}
-        <div className="sticky bottom-[var(--consent-h,0px)] z-10 -mx-6 -mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-b-4xl bg-gradient-to-t from-card from-70% to-transparent px-6 pt-4 pb-6 xl:static xl:m-0 xl:bg-none xl:p-0">
+        {/* The button is at the foot of the card, which is the foot of the screen, with what says why it is off at its right. Under `xl` a card taller than the screen keeps it in view above the consent banner, over what scrolls under it (the fade is the card's own grey); from `xl` the card is made to fit the screen and it stays at its foot. It has 1.75rem under it, a quarter of a rem more than the card has at its sides (`pb-7`, on the card's content and, under `xl`, on this wrapper, which cancels the content's) */}
+        <div className="sticky bottom-[var(--consent-h,0px)] z-10 -mx-6 -mb-7 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-b-4xl bg-gradient-to-t from-card from-70% to-transparent px-6 pt-4 pb-7 xl:static xl:m-0 xl:bg-none xl:p-0">
           {searchMode ? (
             <QueueButton size="2xl" searching={searching} seconds={seconds} disabled={asked.length === 0 || searchBlocked !== null} onSearch={search} onCancel={leaveQueue}>
               <HugeiconsIcon icon={PlayIcon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />

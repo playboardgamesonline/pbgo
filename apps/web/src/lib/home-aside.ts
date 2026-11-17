@@ -17,7 +17,7 @@ export type HomeTournament = GameTournament & { game: AsideGame }
 export const HOME_TOURNAMENTS = 12
 
 /** The most rows on a page of the open tournaments: a column that is tall enough shows this many, one that is not shows fewer, never fewer than one. */
-export const TOURNAMENTS_PER_PAGE_MAX = 3
+export const TOURNAMENTS_PER_PAGE_MAX = 4
 
 /** The space between two rows of a page, in pixels, as the page draws it (`gap-3`). */
 export const ROW_GAP = 12

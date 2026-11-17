@@ -16,10 +16,10 @@ import { HomeTournaments } from "./home-tournaments"
 
 const DAY = new Intl.DateTimeFormat("en", { dateStyle: "long", timeZone: "UTC" })
 
-/** The article: its day, its title, its summary cut after a few lines, and a button that opens it. A cover, when it has one, is the top of the card. */
+/** The article: its day, its title, its summary cut after a few lines, and a button that opens it, in a card a little taller than a default one (2rem of room at its top and its foot and between its parts). A cover, when it has one, is the top of the card. */
 function ArticleCard({ article }: { article: HomeArticle }) {
   return (
-    <Card>
+    <Card className="gap-8 py-8">
       {article.picture && (
         // eslint-disable-next-line @next/next/no-img-element -- the cover is a URL of the platform's image CDN, drawn as the game cards draw theirs
         <img src={article.picture} alt="" loading="lazy" decoding="async" className="aspect-video w-full object-cover" />
@@ -53,7 +53,7 @@ export function HomeAside({ article, tournaments, timeFormat = "auto", className
   return (
     <aside aria-label="What's new and open tournaments" className={cn("grid min-w-0 grid-cols-1 content-start gap-8 md:grid-cols-2 xl:flex xl:flex-col", className)}>
       <section aria-labelledby="whats-new" className="flex flex-col gap-3">
-        <h2 id="whats-new" className="font-heading text-lg">
+        <h2 id="whats-new" className="mb-3 font-heading text-lg">
           {"What's new"}
         </h2>
         {article ? <ArticleCard article={article} /> : <EmptyBlock title="Nothing new yet" icon={News01Icon} />}

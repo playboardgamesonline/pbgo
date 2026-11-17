@@ -13,7 +13,7 @@ import { EmptyBlock } from "./empty-block"
 import { TournamentRow } from "./tournament-row"
 
 // The open tournaments of the signed-in home, the second block of its right column: a heading with the way to the page of the tournaments, and the tournaments as rows, in pages that scroll sideways with a dot under them for each (`Pager`). From `xl` the column is beside the
-// card and as tall as it, and this block has what is left of its height: a page then holds as many rows as that height lets it, two or three, and the pages are the ones that the rows do not fit in. The dots are under the rows, at the foot of the list and not of the card, which the block
+// card and as tall as it, and this block has what is left of its height: a page then holds as many rows as that height lets it, up to four, and the pages are the ones that the rows do not fit in. The dots are under the rows, at the foot of the list and not of the card, which the block
 // need not reach. Under `xl` the block has no height of its own, so every page holds the most. With no tournament open it says so, in a frame.
 
 /** From this width the column is beside the card, as tall as it (`xl`: 80rem). */
