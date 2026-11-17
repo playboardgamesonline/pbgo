@@ -49,20 +49,20 @@ type PlayerSlotsProps = Omit<React.ComponentProps<"ul">, "children"> & {
 
 /**
  * The classes of a row by how many places it has (the index is that count, from 1 to nine), plain Tailwind and written out so that each is in the stylesheet: as many columns as there are places, five to a row at the most while the room is under `@xl` (a second row under them),
- * and the row no wider than that many places of the most a place has plus the space between two (`max-w-<n>`, a quarter of a rem each), so that a few places are a few large avatars and nine are nine smaller ones: the most a place has is 4.5rem, then 6, 7, 8 and 10rem as the room of
+ * and the row no wider than that many places of the most a place has plus the space between two (`max-w-<n>`, a quarter of a rem each), so that a few places are a few large avatars and nine are nine smaller ones: the most a place has is 4rem, then 5.5, 6, 7 and 9rem as the room of
  * the row (`@container`, the page's) grows by steps, and the space between places is 0.75rem, then 1.25rem from `@3xl`.
  */
 const ROWS = [
-  "grid-cols-1 max-w-18 @3xl:max-w-24 @4xl:max-w-28 @5xl:max-w-32 @7xl:max-w-40",
-  "grid-cols-1 max-w-18 @3xl:max-w-24 @4xl:max-w-28 @5xl:max-w-32 @7xl:max-w-40",
-  "grid-cols-2 max-w-39 @3xl:max-w-53 @4xl:max-w-61 @5xl:max-w-69 @7xl:max-w-85",
-  "grid-cols-3 max-w-60 @3xl:max-w-82 @4xl:max-w-94 @5xl:max-w-106 @7xl:max-w-130",
-  "grid-cols-4 max-w-81 @3xl:max-w-111 @4xl:max-w-127 @5xl:max-w-143 @7xl:max-w-175",
-  "grid-cols-5 max-w-102 @3xl:max-w-140 @4xl:max-w-160 @5xl:max-w-180 @7xl:max-w-220",
-  "grid-cols-5 @xl:grid-cols-6 max-w-123 @3xl:max-w-169 @4xl:max-w-193 @5xl:max-w-217 @7xl:max-w-265",
-  "grid-cols-5 @xl:grid-cols-7 max-w-144 @3xl:max-w-198 @4xl:max-w-226 @5xl:max-w-254 @7xl:max-w-310",
-  "grid-cols-5 @xl:grid-cols-8 max-w-165 @3xl:max-w-227 @4xl:max-w-259 @5xl:max-w-291 @7xl:max-w-355",
-  "grid-cols-5 @xl:grid-cols-9 max-w-186 @3xl:max-w-256 @4xl:max-w-292 @5xl:max-w-328 @7xl:max-w-400",
+  "grid-cols-1 max-w-16 @3xl:max-w-22 @4xl:max-w-24 @5xl:max-w-28 @7xl:max-w-36",
+  "grid-cols-1 max-w-16 @3xl:max-w-22 @4xl:max-w-24 @5xl:max-w-28 @7xl:max-w-36",
+  "grid-cols-2 max-w-35 @3xl:max-w-49 @4xl:max-w-53 @5xl:max-w-61 @7xl:max-w-77",
+  "grid-cols-3 max-w-54 @3xl:max-w-76 @4xl:max-w-82 @5xl:max-w-94 @7xl:max-w-118",
+  "grid-cols-4 max-w-73 @3xl:max-w-103 @4xl:max-w-111 @5xl:max-w-127 @7xl:max-w-159",
+  "grid-cols-5 max-w-92 @3xl:max-w-130 @4xl:max-w-140 @5xl:max-w-160 @7xl:max-w-200",
+  "grid-cols-5 @xl:grid-cols-6 max-w-111 @3xl:max-w-157 @4xl:max-w-169 @5xl:max-w-193 @7xl:max-w-241",
+  "grid-cols-5 @xl:grid-cols-7 max-w-130 @3xl:max-w-184 @4xl:max-w-198 @5xl:max-w-226 @7xl:max-w-282",
+  "grid-cols-5 @xl:grid-cols-8 max-w-149 @3xl:max-w-211 @4xl:max-w-227 @5xl:max-w-259 @7xl:max-w-323",
+  "grid-cols-5 @xl:grid-cols-9 max-w-168 @3xl:max-w-238 @4xl:max-w-256 @5xl:max-w-292 @7xl:max-w-364",
 ] as const
 
 /** What makes an avatar of the row as wide as its place, and as tall. */
