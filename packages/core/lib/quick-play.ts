@@ -11,8 +11,8 @@ export type PlayMode = QueueMode
 
 export const PLAY_MODES: readonly PlayMode[] = QUEUE_MODES
 
-/** The most games one search looks for: it sits the visitor at a table of each, so the number is kept small. Twelve, the two rows of six slots that the home draws. */
-export const SEARCH_MAX_GAMES = 12
+/** The most games one search looks for: it sits the visitor at a table of each, so the number is kept small. */
+export const SEARCH_MAX_GAMES = 10
 
 /** The routes of the search: it belongs to no game, the visitor's seat at each game being the one their cookie of that game stands for. */
 export const PLAY_PATH = "/api/hub/play"

@@ -24,7 +24,7 @@ import { ModeSwitch, type ModeOption } from "@pbgo/ui/platform/mode-switch"
 import { AddGameTile, PickedGame } from "@pbgo/ui/platform/picked-game"
 import { PlayerSlots, type SlotPlayer } from "@pbgo/ui/platform/player-slots"
 import { QueueButton } from "@pbgo/ui/platform/queue"
-import { GAME_SLOT_BASE, gameSlotsFor, PLAY_ZONE_LABELS, PLAY_ZONE_MODES, placesFor, searchModeOf, SLOT_BASE, type PlayZoneMode } from "@pbgo/ui/play-zone"
+import { gameSlotsFor, PLAY_ZONE_LABELS, PLAY_ZONE_MODES, placesFor, searchModeOf, SLOT_BASE, type PlayZoneMode } from "@pbgo/ui/play-zone"
 import type { QueueCriteria } from "@pbgo/ui/queue"
 import { rankLabel, type Rank } from "@pbgo/ui/ranks"
 import { defaultSeats, type Pace } from "@pbgo/ui/tables"
@@ -60,15 +60,15 @@ const MODES: readonly ModeOption<PlayZoneMode>[] = PLAY_ZONE_MODES.map((value) =
 const FRIENDS_LISTED = 8
 
 /**
- * The slots of the games are the cells of one grid, aligned to the left: six columns, so twelve slots are two rows, or three columns in a card too narrow for six (`@xl`, the room of their section), so that a game has the same size whatever the number of games and the kind of play, and as large as its column allows up to a most (`max-w`).
+ * The slots of the games are the cells of one grid, aligned to the left: five columns, so five slots are one row and a sixth a second one, or three columns in a card too narrow for five (`@xl`, the room of their section), so that a game has the same size whatever the number of games and the kind of play, and as large as its column allows up to a most (`max-w`).
  * A slot is as tall as its picture (4:3), its name and the rank under it that Ranked draws, which it keeps the room of in Normal too, so that the zone under the games never moves from one kind to the other.
  */
-const SLOTS = "grid grid-cols-3 gap-x-3 gap-y-4 @xl:grid-cols-6 max-w-5xl"
+const SLOTS = "grid grid-cols-3 gap-x-3 gap-y-4 @xl:grid-cols-5 max-w-6xl"
 
 /**
  * The play zone of the signed-in home: one central interface in a card that takes the height of what is left of the screen, with the same margin at its two sides and a little more under it, in the left column of the home (the right one is `HomeAside`'s: PLT-21, PLT-119, PLT-135). Its four parts are spread over the
- * height of the card: a switch that fits its cases (Normal, Ranked, Custom) at the top, then at a fixed distance (the "2xl" step, 3rem) the "Board games" (twelve slots from the start, two rows of six: the games that are picked as tiles and, after them, the slots that are free, each
- * of which opens the panel of the games, twelve games at the most; a press on a tile opens its settings, in a window: its speed, its expansions and, for a search, the most players at a table), then the "Players" (the row of players, every place of one size too,
+ * height of the card: a switch that fits its cases (Normal, Ranked, Custom) at the top, then at a fixed distance (the "2xl" step, 3rem) the "Board games" (five slots to begin with, one row: the games that are picked as tiles and, after them, the slots that are free, each
+ * of which opens the panel of the games, one more, free, each time they are all taken, ten games at the most; a press on a tile opens its settings, in a window: its speed, its expansions and, for a search, the most players at a table), then the "Players" (the row of players, every place of one size too,
  * as large as the row allows, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little room at their sides, and at the foot of the card the button, with what says why it is off at its right. Normal and Ranked look for a table among players the member does not know, in as many games as they pick, the places being their group; Custom opens a table of one game for friends, private to
  * begin with, the places being its seats, whose number the game's settings set; a friend picked in a place is invited when the table opens. A game that the group cannot play stays in the list and as a tile, off, with the reason; the same reason is at the right of the button. The button says
  * "Play" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left and for a member of a group who is not its leader (`@pbgo/core/lib/play-eligibility`). The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it, the zone shows
@@ -85,7 +85,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const searching = queue !== null
 
   const [mode, setMode] = useState<PlayZoneMode>("normal")
-  // A search sits the member at a table of each game, so it holds twelve at the most (`SEARCH_MAX_GAMES`): the first twelve are in to begin with
+  // A search sits the member at a table of each game, so it holds ten at the most (`SEARCH_MAX_GAMES`): the first ten are in to begin with
   const [picked, setPicked] = useState<readonly string[]>(() => games.slice(0, SEARCH_MAX_GAMES).map((game) => game.slug))
   const [customSlug, setCustomSlug] = useState<string | null>(null)
   // The settings of a game are the member's whichever kind of play they are for, so they are kept by game
@@ -130,9 +130,9 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const refused = shown.filter((game) => refusals.has(game.slug))
   const notices = searching ? [] : searchBlocked ? [searchBlockText(searchBlocked)] : tableBlocked ? [tableBlockText(tableBlocked)] : [...refused.slice(0, 2).map((game) => `${game.name}: ${refusals.get(game.slug)}`), ...(refused.length > 2 ? [`${refused.length - 2} more games can't be played by your group.`] : [])]
 
-  // The slots of the games: twelve from the start, two rows of six, in every kind of play, so that the zone under them never moves when the kind changes. A search takes up to twelve games (`SEARCH_MAX_GAMES`), a table of one's own one: of its free slots only
-  // the ones that can be pressed are drawn, the others are invisible, there for the room of the rows. The games that are picked have the first slots and the free ones come after them; the ones of a search stay drawn while it is on, off, since it is read and not set
-  const slots = searchMode ? gameSlotsFor(shown.length, SEARCH_MAX_GAMES) : GAME_SLOT_BASE
+  // The slots of the games: five to begin with and one more, free, each time they are all taken, ten at the most (`SEARCH_MAX_GAMES`), counted from the games of the search whatever the kind of play, so that the zone under them never moves when the kind changes. A table of one's own
+  // holds one game: of its free slots only the one that can be pressed is drawn, the others are invisible, there for the room of the rows. The games that are picked have the first slots and the free ones come after them; the ones of a search stay drawn while it is on, off, since it is read and not set
+  const slots = gameSlotsFor(searchMode ? shown.length : picked.length, SEARCH_MAX_GAMES)
   const freeSlots = Math.max(0, slots - shown.length)
   const pressable = searchMode ? freeSlots : customSlug === null ? 1 : 0
   const addLabel = searchMode ? "Add a game" : "Choose a game"
@@ -278,7 +278,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
       aria-labelledby="home-play"
       className={cn("min-h-[calc(100svh-var(--consent-h,0px)-var(--spacing-navbar)-1rem-var(--spacing-gutter)-1rem)] min-w-0 gap-0 overflow-visible py-0 [--cutout:var(--card)]", className)}
     >
-      {/* The switch, the games and the players follow one another from the top, the games at the "2xl" distance (`mt-12`, 3rem) from the switch and the players at 1.5rem (`mt-6`) from the games, and the button is at the foot with what is left of the height above it (never under 1.5rem). The games and the players have a little room at their sides */}
+      {/* The switch, the games and the players follow one another from the top, the games at the "2xl" distance (`mt-12`, 3rem) from the switch and the players at 2rem (`mt-8`) from the games, and the button is at the foot with what is left of the height above it (never under 1.5rem). The games and the players have a little room at their sides */}
       <div className="flex flex-1 flex-col p-6">
         <h2 id="home-play" className="sr-only">
           Play
@@ -340,7 +340,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
             </>
           )}
         </section>
-        <section aria-labelledby="home-players" className="@container mt-6 flex flex-col gap-4 px-2">
+        <section aria-labelledby="home-players" className="@container mt-8 flex flex-col gap-4 px-2">
           <h3 id="home-players" className="font-heading text-lg">
             Players
           </h3>

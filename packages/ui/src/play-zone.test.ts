@@ -93,16 +93,23 @@ describe("how many places the row of a group has", () => {
 })
 
 describe("how many slots the row of games of a search has", () => {
-  const MOST = 12
+  const MOST = 10
 
-  it("has twelve from the start, two rows of six, the games that are picked and the free slots after them, however few games are picked", () => {
-    expect(GAME_SLOT_BASE).toBe(12)
-    for (const games of [0, 1, 2, 5, 11]) expect(gameSlotsFor(games, MOST)).toBe(12)
+  it("begins with five, the games that are picked and the free slots after them, however few games are picked", () => {
+    expect(GAME_SLOT_BASE).toBe(5)
+    for (const games of [0, 1, 2, 3, 4]) expect(gameSlotsFor(games, MOST)).toBe(5)
+  })
+
+  it("gets one more, free, as soon as every slot is taken, the way the row of players gets a place", () => {
+    expect(gameSlotsFor(5, MOST)).toBe(6)
+    expect(gameSlotsFor(6, MOST)).toBe(7)
+    expect(gameSlotsFor(8, MOST)).toBe(9)
+    expect(gameSlotsFor(9, MOST)).toBe(10)
   })
 
   it("never has more slots than a search takes games, so a full row has no free slot", () => {
-    expect(gameSlotsFor(12, MOST)).toBe(12)
-    expect(gameSlotsFor(40, MOST)).toBe(12)
+    expect(gameSlotsFor(10, MOST)).toBe(10)
+    expect(gameSlotsFor(40, MOST)).toBe(10)
   })
 
   it("keeps a free slot while the search can take another game", () => {
@@ -111,11 +118,11 @@ describe("how many slots the row of games of a search has", () => {
   })
 
   it("has no more slots than a search takes when that is fewer than the base", () => {
-    expect(gameSlotsFor(0, 8)).toBe(8)
+    expect(gameSlotsFor(0, 4)).toBe(4)
   })
 
   it("is not thrown by a count that is not a whole number", () => {
-    expect(gameSlotsFor(Number.NaN, MOST)).toBe(12)
-    expect(gameSlotsFor(5.9, MOST)).toBe(12)
+    expect(gameSlotsFor(Number.NaN, MOST)).toBe(5)
+    expect(gameSlotsFor(5.9, MOST)).toBe(6)
   })
 })

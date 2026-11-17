@@ -28,12 +28,12 @@ export const SLOT_BASE = 5
  */
 export const placesFor = (people: number): number => Math.min(SLOT_COLUMNS, Math.max(SLOT_BASE, (Number.isFinite(people) ? Math.floor(people) : 0) + 1))
 
-/** How many slots the row of games has to begin with, however few games are in it: two rows of six, the games and, after them, the slots that are free. */
-export const GAME_SLOT_BASE = 12
+/** How many slots the row of games has to begin with, however few games are in it: one row of five, the games and, after them, the slots that are free. */
+export const GAME_SLOT_BASE = 5
 
 /**
- * How many slots the row of games of a search has: the base, and one more, free, as soon as every slot is taken, up to `max` games, the most a search takes, the way the row of players gets its places. With the base the most a search takes, as it is on the home, the row has its twelve slots from the
- * start, two games and ten free ones, and no more: `max` games fill it. A table of one's own holds one game, so its row is the one slot of that game: that is not a count of this function.
+ * How many slots the row of games of a search has: the base, and one more, free, as soon as every slot is taken, up to `max` games, the most a search takes, the way the row of players gets its places. Two games have five slots, three of them free; five games have six, the last one free, which makes a second
+ * row; `max` games fill the row, which has no free slot. A table of one's own holds one game and keeps the number of slots of the search, its one slot being the only one drawn: that is not a count of this function.
  */
 export const gameSlotsFor = (games: number, max: number): number => Math.min(max, Math.max(GAME_SLOT_BASE, (Number.isFinite(games) ? Math.floor(games) : 0) + 1))
 
