@@ -14,10 +14,11 @@ const order = (state: PipelineState): WorkOrder => {
 }
 // the parent and one issue for each step, as the answer of a bookkeeping sub-agent has them
 const ALL = ["parent", ...STEPS.map((step) => step.id)]
-const answer = (keys: string[], states: Record<string, string> = {}, commented: string[] = []) => ({
+const answer = (keys: string[], states: Record<string, string> = {}, commented: string[] = [], titles: Record<string, string> = {}) => ({
   labelId: "label-1",
-  issues: keys.map((key, index) => ({ key, id: `id-${key}`, identifier: `GAM-${41 + index}`, url: `https://linear.app/x/issue/GAM-${41 + index}`, state: states[key] ?? "Todo", ...(commented.includes(key) ? { commented: true } : {}) })),
+  issues: keys.map((key, index) => ({ key, id: `id-${key}`, identifier: `GAM-${41 + index}`, url: `https://linear.app/x/issue/GAM-${41 + index}`, state: states[key] ?? "Todo", ...(commented.includes(key) ? { commented: true } : {}), ...(key in titles ? { title: titles[key] } : {}) })),
 })
+const STATES = { parent: "In Progress", scout: "In Progress", "catalog-entry": "Todo" }
 
 describe("what Linear should say", () => {
   it("is a parent and a sub-issue per step, the first step In Progress and the next Todo, when the game starts", () => {
@@ -88,6 +89,37 @@ describe("what Linear should say", () => {
     expect(made.issues.every((issue) => issue.id !== null)).toBe(true)
   })
 
+  it("records the title that Linear has now, so that a rename that did not happen is asked for again", () => {
+    const state = fresh()
+    applyResult(state, answer(ALL, STATES), order(state))
+    state.name = "6 nimmt!"
+    const made = order(state)
+    // the sub-agent renamed the parent and the scout and left the others as they were, and says so
+    const old = Object.fromEntries(made.issues.map((issue) => [issue.key, issue.title ?? ""]))
+    expect(applyResult(state, answer(ALL, STATES, [], { ...old, parent: "6 nimmt!: add the game", scout: "6 nimmt!: scout" }), made)).toEqual([])
+    expect(state.linear.parent?.title).toBe("6 nimmt!: add the game")
+    expect(stepOf(state, "scout").issue?.title).toBe("6 nimmt!: scout")
+    expect(stepOf(state, "catalog-entry").issue?.title).toBe("Love Letter: catalog entry")
+    const again = order(state)
+    expect(again.issues.filter((issue) => issue.title !== issue.wantTitle).map((issue) => issue.key)).toEqual(STEPS.filter((step) => step.id !== "scout").map((step) => step.id))
+    // once they are renamed, Linear says what the state says
+    applyResult(state, answer(ALL, STATES, [], Object.fromEntries(again.issues.map((issue) => [issue.key, issue.wantTitle]))), again)
+    expect(buildOrder(state, STEPS, game, label)).toBeNull()
+  })
+
+  it("keeps the title the state had when the answer has none, and takes the wanted one for an issue that was just made", () => {
+    const state = fresh()
+    applyResult(state, answer(ALL, STATES), order(state))
+    expect(stepOf(state, "scout").issue?.title).toBe("Love Letter: scout")
+    state.name = "6 nimmt!"
+    applyResult(state, answer(ALL, STATES), order(state))
+    expect(stepOf(state, "scout").issue?.title).toBe("Love Letter: scout")
+    expect(order(state).issues.every((issue) => issue.title !== issue.wantTitle)).toBe(true)
+    // a title of blanks is no title
+    applyResult(state, answer(["scout"], STATES, [], { scout: "   " }), order(state))
+    expect(stepOf(state, "scout").issue?.title).toBe("Love Letter: scout")
+  })
+
   it("leaves the parent open when every step is validated", () => {
     const state = fresh()
     for (const step of STEPS) stepOf(state, step.id).status = "validated"
@@ -143,6 +175,14 @@ describe("the brief of the sub-agent that does it", () => {
     const prompt = linearPrompt(order(fresh()), "/x.json")
     expect(prompt).toContain('title: { eq: "<its wantTitle>" }')
     expect(prompt).toContain("reuse the one it finds")
+  })
+
+  it("renames an issue whose title differs even when its state is right, and asks for the title back", () => {
+    const prompt = linearPrompt(order(fresh()), "/x.json")
+    expect(prompt).toContain("or whose title differs from wantTitle")
+    expect(prompt).toContain("a title that differs is renamed even when the state is right")
+    expect(prompt).toContain('"title": "<the title the issue has now>"')
+    expect(prompt).toContain("its title of the work order for one you left as it was")
   })
 
   it("uses ids that are UUIDs", () => {
