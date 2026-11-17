@@ -24,7 +24,7 @@ import { ModeSwitch, type ModeOption } from "@pbgo/ui/platform/mode-switch"
 import { AddGameTile, PickedGame } from "@pbgo/ui/platform/picked-game"
 import { PlayerSlots, type SlotPlayer } from "@pbgo/ui/platform/player-slots"
 import { QueueButton } from "@pbgo/ui/platform/queue"
-import { gameSlotsFor, PLAY_ZONE_LABELS, PLAY_ZONE_MODES, placesFor, searchModeOf, SLOT_BASE, type PlayZoneMode } from "@pbgo/ui/play-zone"
+import { GAME_SLOT_BASE, gameSlotsFor, PLAY_ZONE_LABELS, PLAY_ZONE_MODES, placesFor, searchModeOf, SLOT_BASE, type PlayZoneMode } from "@pbgo/ui/play-zone"
 import type { QueueCriteria } from "@pbgo/ui/queue"
 import { rankLabel, type Rank } from "@pbgo/ui/ranks"
 import { defaultSeats, type Pace } from "@pbgo/ui/tables"
@@ -64,9 +64,6 @@ const FRIENDS_LISTED = 8
  * A slot is as tall as its picture (4:3), its name and the rank under it that Ranked draws, which it keeps the room of in Normal too, so that the zone under the games never moves from one kind to the other.
  */
 const SLOTS = "grid grid-cols-3 gap-x-3 gap-y-6 @xl:grid-cols-6 max-w-5xl"
-
-/** The slots of the first row, which holds the games: the free ones keep the room of a name under them, so that the row is as tall with no game as with some. The slots of the second row are the frames alone, so that the players are as high as they can be. */
-const FIRST_ROW = 6
 
 /**
  * The play zone of the signed-in home: one central interface in a card that takes the height of what is left of the screen, with the same margin at its two sides and a little more under it, in the left column of the home (the right one is `HomeAside`'s: PLT-21, PLT-119, PLT-135). Its four parts are spread over the
@@ -133,10 +130,11 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const refused = shown.filter((game) => refusals.has(game.slug))
   const notices = searching ? [] : searchBlocked ? [searchBlockText(searchBlocked)] : tableBlocked ? [tableBlockText(tableBlocked)] : [...refused.slice(0, 2).map((game) => `${game.name}: ${refusals.get(game.slug)}`), ...(refused.length > 2 ? [`${refused.length - 2} more games can't be played by your group.`] : [])]
 
-  // The slots of the games: a search has its twelve from the start, two rows of six, the most it takes (`SEARCH_MAX_GAMES`), and a table of one's own the one slot of its game. The games that are picked have the first slots and the free ones come after them; they stay
-  // drawn while a search is on, off, since it is read and not set, so that the row does not change when it begins
-  const slots = searchMode ? gameSlotsFor(shown.length, SEARCH_MAX_GAMES) : 1
+  // The slots of the games: twelve from the start, two rows of six, in every kind of play, so that the zone under them never moves when the kind changes. A search takes up to twelve games (`SEARCH_MAX_GAMES`), a table of one's own one: of its free slots only
+  // the ones that can be pressed are drawn, the others are invisible, there for the room of the rows. The games that are picked have the first slots and the free ones come after them; the ones of a search stay drawn while it is on, off, since it is read and not set
+  const slots = searchMode ? gameSlotsFor(shown.length, SEARCH_MAX_GAMES) : GAME_SLOT_BASE
   const freeSlots = Math.max(0, slots - shown.length)
+  const pressable = searchMode ? freeSlots : customSlug === null ? 1 : 0
   const addLabel = searchMode ? "Add a game" : "Choose a game"
 
   const options: ComboboxOption[] = games.map((game) => ({
@@ -278,7 +276,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
     <Card
       role="region"
       aria-labelledby="home-play"
-      className={cn("min-h-[calc(100svh-var(--consent-h,0px)-var(--spacing-navbar)-1rem-var(--spacing-gutter)-1.5rem)] min-w-0 gap-0 overflow-visible py-0 [--cutout:var(--card)]", className)}
+      className={cn("min-h-[calc(100svh-var(--consent-h,0px)-var(--spacing-navbar)-1rem-var(--spacing-gutter)-1rem)] min-w-0 gap-0 overflow-visible py-0 [--cutout:var(--card)]", className)}
     >
       {/* The switch, the games and the players follow one another from the top, at the "2xl" distance (`mt-12`) from one to the next, and the button is at the foot with what is left of the height above it (never under 1.5rem). The games and the players have a little room at their sides */}
       <div className="flex flex-1 flex-col p-6">
@@ -311,7 +309,10 @@ export function HomePlay({ games, languages, account, className }: { games: read
                   />
                 ))}
                 {Array.from({ length: freeSlots }, (_, index) =>
-                  index === 0 ? (
+                  index >= pressable ? (
+                    // Room only, for the second row and the rest of a table of one's own: not drawn, not pressed, not read
+                    <AddGameTile key={`room-${index}`} label={addLabel} className="invisible" disabled />
+                  ) : index === 0 ? (
                     <GameSelect
                       key="free-0"
                       options={options}
@@ -325,11 +326,11 @@ export function HomePlay({ games, languages, account, className }: { games: read
                       open={adding && !searching}
                       onOpenChange={setAdding}
                     >
-                      <AddGameTile label={addLabel} named={shown.length < FIRST_ROW} disabled={searching} />
+                      <AddGameTile label={addLabel} disabled={searching} />
                     </GameSelect>
                   ) : (
                     // The other free slots open the same panel, so only the first of them is a stop for the keyboard's Tab
-                    <AddGameTile key={`free-${index}`} label={addLabel} named={shown.length + index < FIRST_ROW} disabled={searching} tabIndex={-1} onClick={() => setAdding(true)} />
+                    <AddGameTile key={`free-${index}`} label={addLabel} disabled={searching} tabIndex={-1} onClick={() => setAdding(true)} />
                   ),
                 )}
               </div>

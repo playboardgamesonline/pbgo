@@ -145,16 +145,14 @@ function PickedGame({ name, picture, logo, showRank = false, rank, onRemove, loa
 type AddGameTileProps = Omit<React.ComponentProps<"button">, "children" | "type"> & {
   /** What a screen reader hears: "Add a game". The tile draws no label, as a free place of the row of players draws none. */
   label: string
-  /** Whether the room of a name is left empty under the frame (default): in the row that holds the games, so that a row of free slots is as tall as a row of games. A row that only holds free slots needs none. */
-  named?: boolean
 }
 
 /**
- * A free slot of the row of games, the tile that adds one: a dark, translucent rectangle with a thin outline, the same outline and background as a free place of the row of players has, the frame of a picture, with a plus in it and no label, drawn at the size of the tiles of the games that are in and, in the row
- * that holds the games (`named`), as tall as they are, the room that a name takes being left empty under the frame, so that a row of free slots is as tall as a row of games and nothing moves when a game is picked. Only the frame is a button. It is the trigger of the panel that lists the games (`GameSelect`): under the pointer and while the panel is open its outline is a little stronger. When the row has several free slots the first is the trigger and the others
+ * A free slot of the row of games, the tile that adds one: a dark, translucent rectangle with a thin outline, the same outline and background as a free place of the row of players has, the frame of a picture, with a plus in it and no label, drawn at the size of the tiles of the games that are in and as tall as
+ * they are, the room that a name and a rank take being left empty under the frame, in every row, so that a row of free slots is as tall as a row of games and nothing moves when a game is picked or the kind of play changes. Only the frame is a button. It is the trigger of the panel that lists the games (`GameSelect`): under the pointer and while the panel is open its outline is a little stronger. When the row has several free slots the first is the trigger and the others
  * only ask the page to open the panel. It takes the sizing of the row it is in (`className`: a width), as a picked tile does.
  */
-function AddGameTile({ label, named = true, className, ...props }: AddGameTileProps) {
+function AddGameTile({ label, className, ...props }: AddGameTileProps) {
   return (
     <div data-slot="add-game" className={cn("@container/tile flex min-w-0 flex-col gap-3", className)}>
       <button type="button" aria-label={label} className="group/add block w-full outline-none" {...props}>
@@ -167,7 +165,7 @@ function AddGameTile({ label, named = true, className, ...props }: AddGameTilePr
           <HugeiconsIcon icon={Add01Icon} strokeWidth={2} aria-hidden="true" className="size-6 text-muted-foreground transition-colors duration-fast group-hover/add:text-foreground group-data-[state=open]/add:text-foreground" />
         </span>
       </button>
-      {named && <span aria-hidden="true" className="min-h-10.5" />}
+      <span aria-hidden="true" className="min-h-10.5" />
     </div>
   )
 }

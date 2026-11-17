@@ -62,12 +62,12 @@ export default async function MemberHome() {
   const article = demo ? DEMO_ARTICLE : null
   const tournaments = demo ? demoTournaments(asideGames, new Date()) : openTournaments(await Promise.all(asideGames.map(async (game) => ({ game, tournaments: await getTournaments(game.slug) }))))
 
-  // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner), and starts under the fixed navbar (`pt-navbar`). The two spaces are side by side from `xl`, with the same margin at the two sides of the page and between them, and a little more under them (`mb-6`, which the zone's `min-h` takes off), the zone, a card as tall as what is left of the screen, taking what the column leaves, so that its button is at the foot of the card and of the screen, and the column as tall as the card, its last block ending where the card does
+  // The page ends above the consent banner (`--consent-h`, set on <body>; 0px without a banner), and starts under the fixed navbar (`pt-navbar`). The two spaces are side by side from `xl`, with the same margin at the two sides of the page and between them, and a little more under them (`mb-4`: 80px on a desktop, the gutter and 1rem, which the zone's `min-h` takes off), the zone, a card as tall as what is left of the screen, taking what the column leaves, so that its button is at the foot of the card and of the screen, and the column as tall as the card, its last block ending where the card does
   return (
     <div className="flex min-h-[calc(100svh-var(--consent-h,0px))] flex-col">
       <main className="flex flex-1 flex-col pt-navbar">
         <h1 className="sr-only">Home</h1>
-        <div className="mb-6 flex flex-1 flex-col gap-6 px-gutter pt-4 pb-gutter xl:flex-row xl:gap-x-gutter">
+        <div className="mb-4 flex flex-1 flex-col gap-6 px-gutter pt-4 pb-gutter xl:flex-row xl:gap-x-gutter">
           <HomePlay className="flex-1" games={games} languages={LANGUAGE_OPTIONS} account={{ id: account.id, nickname: account.nickname, avatarUrl: account.avatarUrl }} />
           <HomeAside className="w-full xl:w-80 xl:shrink-0 2xl:w-96" article={article} tournaments={tournaments} timeFormat={account.preferences.timeFormat} />
         </div>

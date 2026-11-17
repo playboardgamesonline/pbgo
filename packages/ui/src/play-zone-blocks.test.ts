@@ -346,12 +346,6 @@ describe("the tile that adds a game", () => {
     // A game's tile keeps the same room for its name and its rank
     expect(render(React.createElement(PickedGame, { name: "Courtisans" }))).toContain("min-h-10.5")
   })
-
-  it("leaves that room only in the row that holds the games: a row of free slots needs none, so the players are as high as they can be", () => {
-    expect(tile({ named: false })).not.toContain("min-h-10.5")
-    expect(tile({ named: false })).toContain("aspect-4/3")
-    expect(tile({ named: true })).toContain("min-h-10.5")
-  })
 })
 
 describe("the tile of a game in a search", () => {
