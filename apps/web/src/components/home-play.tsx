@@ -278,7 +278,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
       aria-labelledby="home-play"
       className={cn("min-h-[calc(100svh-var(--consent-h,0px)-var(--spacing-navbar)-1rem-var(--spacing-gutter)-1rem)] min-w-0 gap-0 overflow-visible py-0 [--cutout:var(--card)]", className)}
     >
-      {/* The switch, the games and the players follow one another from the top, the games at the "2xl" distance (`mt-12`, 3rem) from the switch and the players at 2rem (`mt-8`) from the games, and the button is at the foot with what is left of the height above it (never under 1.5rem). The games and the players have a little room at their sides */}
+      {/* The switch, the games and the players follow one another from the top, the games at the "2xl" distance (`mt-12`, 3rem) from the switch and the players at 1.5rem (`mt-6`) from the games, and the button is at the foot with what is left of the height above it (never under 1.5rem). The games and the players have a little room at their sides */}
       <div className="flex flex-1 flex-col p-6">
         <h2 id="home-play" className="sr-only">
           Play
@@ -340,7 +340,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
             </>
           )}
         </section>
-        <section aria-labelledby="home-players" className="@container mt-8 flex flex-col gap-4 px-2">
+        <section aria-labelledby="home-players" className="@container mt-6 flex flex-col gap-4 px-2">
           <h3 id="home-players" className="font-heading text-lg">
             Players
           </h3>
