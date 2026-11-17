@@ -90,15 +90,15 @@ export type SessionOptions = {
   session: { id: string; resume: boolean }
   /** the name the session has in `claude --resume` */
   name: string
-  model: string
 }
 
 /**
- * The arguments of a session of the owner's own: no `-p`, no policy, no hook and no permission mode of ours (the owner is in it and approves each action, with the settings they use every day: their
- * own rules and hooks are theirs to apply), the same model and the same session as the headless calls. The first message is the last word: the CLI takes what follows the options as the prompt.
+ * The arguments of a session of the owner's own: no `-p`, no policy, no hook and no permission mode of ours, and no model (the owner is in it and approves each action, with the settings and the model
+ * they use every day: their own rules, hooks and choice of model are theirs to apply, an engine is not written with the cheapest one), the same session as the headless calls. The first message is the
+ * last word: the CLI takes what follows the options as the prompt.
  */
 export function sessionArgs(options: SessionOptions): string[] {
-  const args = ["--model", options.model]
+  const args: string[] = []
   if (options.session.resume) args.push("--resume", options.session.id)
   else args.push("--session-id", options.session.id, "--name", options.name)
   args.push(options.prompt)

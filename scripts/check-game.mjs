@@ -3,6 +3,7 @@
 //   scaffold → engine → binding → board → content → live
 // Usage: pnpm check:game <slug>                  every stage, as a report (exit 0)
 //        pnpm check:game <slug> --stage engine   a gate: exit 1 when a check up to that stage fails, so "ready for the next step" is a command
+//        pnpm check:game <slug> --only content   a gate for one stage alone: exit 1 when a check of that stage fails, whatever the stages before it say (a step done out of order)
 //        pnpm check:game --all                   every game of the registry: the last stage it passed, and what stops it
 //        pnpm check:game <slug> --json           one line of JSON (slug, missing, reached, failing): what `pnpm add-game` reads
 // A check is `ok`, `warn` (look at it: a convention or something only a person can judge) or `fail` (the stage is not done). What a machine cannot see, the words of the rules, the look of the board, a table played with two seats, is in the skills
@@ -237,8 +238,16 @@ const MARK = { ok: "✓", warn: "•", fail: "✗" }
 const args = process.argv.slice(2)
 const stageAt = args.indexOf("--stage")
 const gate = stageAt >= 0 ? args[stageAt + 1] : null
-if (gate !== null && !STAGES.includes(gate)) {
-  console.error(`The stages are ${STAGES.join(", ")}, got ${gate ?? "nothing"}`)
+const onlyAt = args.indexOf("--only")
+const only = onlyAt >= 0 ? args[onlyAt + 1] : null
+for (const [flag, stage] of [["--stage", gate], ["--only", only]]) {
+  if ((flag === "--stage" ? stageAt : onlyAt) >= 0 && !STAGES.includes(stage)) {
+    console.error(`The stages are ${STAGES.join(", ")}, got ${stage ?? "nothing"} after ${flag}`)
+    process.exit(2)
+  }
+}
+if (gate !== null && only !== null) {
+  console.error("--stage (every check up to a stage) and --only (the checks of one stage) exclude each other")
   process.exit(2)
 }
 
@@ -253,9 +262,9 @@ if (args.includes("--all")) {
   process.exit(0)
 }
 
-const slug = args.find((arg, index) => !arg.startsWith("--") && args[index - 1] !== "--stage")
+const slug = args.find((arg, index) => !arg.startsWith("--") && args[index - 1] !== "--stage" && args[index - 1] !== "--only")
 if (!slug) {
-  console.error("Usage: pnpm check:game <slug> [--stage <stage>] | pnpm check:game --all")
+  console.error("Usage: pnpm check:game <slug> [--stage <stage> | --only <stage>] | pnpm check:game --all")
   process.exit(2)
 }
 const done = check(slug)
@@ -278,11 +287,13 @@ const upTo = gate ? STAGES.indexOf(gate) : STAGES.length - 1
 let failed = 0
 for (const stage of STAGES) {
   const here = done.results.filter((result) => result.stage === stage)
-  console.log(`\n${stage}${STAGES.indexOf(stage) > upTo ? " (beyond the gate)" : ""}`)
+  const counts = only !== null ? stage === only : STAGES.indexOf(stage) <= upTo
+  console.log(`\n${stage}${counts ? "" : only !== null ? " (not this gate)" : " (beyond the gate)"}`)
   for (const result of here) {
     console.log(`  ${MARK[result.level]} ${result.name}: ${result.message}`)
-    if (result.level === "fail" && STAGES.indexOf(stage) <= upTo) failed++
+    if (result.level === "fail" && counts) failed++
   }
 }
-console.log(`\n${slug} has got as far as: ${done.reached ?? "nothing"}.${gate ? (failed ? ` Not ready for after ${gate}: ${failed} to fix.` : ` Ready for what follows ${gate}.`) : ""}`)
-process.exit(gate && failed ? 1 : 0)
+const verdict = only !== null ? (failed ? ` Not ready: ${failed} to fix in the stage ${only}.` : ` The stage ${only} passes.`) : gate ? (failed ? ` Not ready for after ${gate}: ${failed} to fix.` : ` Ready for what follows ${gate}.`) : ""
+console.log(`\n${slug} has got as far as: ${done.reached ?? "nothing"}.${verdict}`)
+process.exit((gate || only) && failed ? 1 : 0)

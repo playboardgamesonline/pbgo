@@ -6,6 +6,7 @@ import { join } from "node:path"
 import { specPathsOf } from "@pbgo/games/rules-spec"
 import type { GateKind } from "./gate.ts"
 import { BASH, mkdirRule, PLATFORM_SANITY, rulesCheckRule, type Policy } from "./policy.ts"
+import type { StageGate } from "./stage.ts"
 import { PICTURES_DIR, RULES_PDF, SCOUT_FILE } from "./state.ts"
 
 /** The game as the pipeline knows it: the name, the slug, its folder of working files, its scout file, the rulebook next to it and the folder of its pictures for the platform. */
@@ -32,7 +33,7 @@ type StepBase = {
   title: string
   skill: string
   /** the lane label of its Linear issue */
-  lane: "Game lane" | "Platform lane"
+  lane: "Game lane" | "Platform lane" | "Engine lane"
   /** the skill's file, relative to the repo: the command refuses to start without it */
   skillFile: string
   /** the gates after the step, in order: the first says the work is right, the next ones are the words that act (`publish`) */
@@ -55,7 +56,11 @@ export type HeadlessStep = StepBase & {
 export type SessionStep = StepBase & {
   mode: "session"
   /** where the files of the session are, for the owner to look at: `o` at the gate opens it */
-  folder: (game: Game) => string
+  folder?: (game: Game) => string
+  /** the check after the session is `pnpm check:game <slug> --stage <stage>` (every check up to a stage), or `--only <stage>` (that stage alone); a step with another check (the pictures, the art) has none */
+  gate?: StageGate
+  /** the step makes the game's folder in the repo: for a game that has it already, there is nothing to make and the step is validated as it is */
+  makesFolder?: boolean
 }
 
 export type StepDefinition = HeadlessStep | SessionStep
@@ -162,7 +167,75 @@ export const GAME_ASSETS: SessionStep = {
   folder: (game) => game.dir,
 }
 
-export const STEPS: readonly StepDefinition[] = [SCOUT, CATALOG_ENTRY, RULES_SPEC, PLATFORM_ASSETS, GAME_ASSETS]
+export const GAME_NEW: SessionStep = {
+  id: "game-new",
+  mode: "session",
+  title: "game folder",
+  skill: "game-new",
+  lane: "Game lane",
+  skillFile: ".claude/skills/game-new/SKILL.md",
+  gates: ["validate"],
+  // the folder of the game from the template, its Sanity project and its Studio: the skill asks the owner, shows what leaves the machine and creates it only after an explicit ok
+  makesFolder: true,
+  gate: { stage: "scaffold" },
+  prompt: (game) => `/game-new ${game.slug} (the game is called "${game.name}"; its rulebook is the PDF at ${game.rulesPdf} when the command could fetch it; its rules spec, when there is one, is docs/games/${game.slug}/)`,
+}
+
+export const GAME_SANITY_CREATE: SessionStep = {
+  id: "game-sanity-create",
+  mode: "session",
+  title: "studio forms",
+  skill: "game-sanity-create",
+  lane: "Game lane",
+  skillFile: ".claude/skills/game-sanity-create/SKILL.md",
+  gates: ["validate"],
+  needsFolder: true,
+  // the stage of the content alone: the engine is not written yet, which `--stage content` would count
+  gate: { stage: "content", only: true },
+  prompt: (game) => `/game-sanity-create ${game.slug}`,
+}
+
+export const ENGINE_RULES: SessionStep = {
+  id: "engine-rules",
+  mode: "session",
+  title: "engine",
+  skill: "engine-rules",
+  lane: "Engine lane",
+  skillFile: ".claude/skills/engine-rules/SKILL.md",
+  gates: ["validate"],
+  needsFolder: true,
+  gate: { stage: "engine" },
+  prompt: (game) => `/engine-rules ${game.slug}`,
+}
+
+export const ENGINE_BOARD: SessionStep = {
+  id: "engine-board",
+  mode: "session",
+  title: "board",
+  skill: "engine-board",
+  lane: "Engine lane",
+  skillFile: ".claude/skills/engine-board/SKILL.md",
+  gates: ["validate"],
+  needsFolder: true,
+  gate: { stage: "board" },
+  prompt: (game) => `/engine-board ${game.slug}`,
+}
+
+export const GAME_GO_LIVE: SessionStep = {
+  id: "game-go-live",
+  mode: "session",
+  title: "go live",
+  skill: "game-go-live",
+  lane: "Game lane",
+  skillFile: ".claude/skills/game-go-live/SKILL.md",
+  gates: ["validate"],
+  needsFolder: true,
+  // every stage, the flags of the registry included: they are on in the checkout once the pull request that turns them on is merged and the branch is updated
+  gate: { stage: "live" },
+  prompt: (game) => `/game-go-live ${game.slug}`,
+}
+
+export const STEPS: readonly StepDefinition[] = [SCOUT, CATALOG_ENTRY, RULES_SPEC, PLATFORM_ASSETS, GAME_NEW, GAME_SANITY_CREATE, GAME_ASSETS, ENGINE_RULES, ENGINE_BOARD, GAME_GO_LIVE]
 
 /** The tools a call is allowed by name: the read-only ones. Everything that writes or runs something is allowed by the hook alone, so that a hook that does not load refuses it. */
 export function allowedTools(step: HeadlessStep, composioPrefix: string): string[] {

@@ -75,6 +75,7 @@ if (!argv.includes("-p")) {
   // what the stand-in for the check of the pictures says next is the scenario's too: the file it reads is written here
   if (chosen.pictures && process.env.FAKE_PICTURES_FILE) writeFileSync(process.env.FAKE_PICTURES_FILE, JSON.stringify(chosen.pictures))
   if (chosen.art && process.env.FAKE_ART_FILE) writeFileSync(process.env.FAKE_ART_FILE, JSON.stringify(chosen.art))
+  if (chosen.stage && process.env.FAKE_STAGE_FILE) writeFileSync(process.env.FAKE_STAGE_FILE, JSON.stringify(chosen.stage))
   process.exit(chosen.exitCode ?? 0)
 }
 

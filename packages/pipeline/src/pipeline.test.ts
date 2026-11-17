@@ -26,6 +26,8 @@ Holds       2–4 players · 5 components of 4 kinds · 2 open points
 Validate also accepts the 2 readings of the open points. Validate, or tell me what to change: components, rules, open points.`
 
 // The pages the stand-in skill leaves are the real ones: the example of the skill, for this game
+// the parent and one issue for each step: what a bookkeeping call answers
+const ISSUES = ["parent", "scout", "catalog-entry", "rules-spec", "platform-assets", "game-new", "game-sanity-create", "game-assets", "engine-rules", "engine-board", "game-go-live"]
 const SKILL = readFileSync(join(REPO, ".claude", "skills", "game-rules-spec", "SKILL.md"), "utf8")
 const example = (info: string, name: string) => `${(new RegExp(`\`\`\`markdown ${info}\\n([\\s\\S]*?)\\n\`\`\``).exec(SKILL)?.[1] ?? "").replace(/Orchard Run/g, name)}\n`
 const specWrites = (name = NAME, slug = SLUG): { path: string; content: string }[] => [
@@ -35,11 +37,13 @@ const specWrites = (name = NAME, slug = SLUG): { path: string; content: string }
 
 const SCOUT_PATH = `$ASSETS/${SLUG}/scout.json`
 const scoutCall = (over: Partial<CallSpec> = {}): CallSpec => ({ match: "^/game-scout", text: SCOUT_REPORT, cost: 0.5, writes: [{ path: SCOUT_PATH, content: scoutJson(NAME, SLUG) }], ...over })
-const linearCall = (states: Record<string, string>, commented: string[] = []): CallSpec => ({ match: "bookkeeping step", text: "{}", cost: 0.02, structured: linearAnswer(["parent", "scout", "catalog-entry", "rules-spec", "platform-assets", "game-assets"], states, { commented }) })
+const linearCall = (states: Record<string, string>, commented: string[] = []): CallSpec => ({ match: "bookkeeping step", text: "{}", cost: 0.02, structured: linearAnswer(ISSUES, states, { commented }) })
 const catalogCall = (over: Partial<CallSpec> = {}): CallSpec => ({ match: "^/platform-catalog-entry", text: DRAFTS_REPORT, cost: 0.8, ...over })
 const specCall = (over: Partial<CallSpec> = {}): CallSpec => ({ match: "^/game-rules-spec", text: SPEC_REPORT, cost: 0.9, writes: specWrites(), ...over })
 // a session of the owner's (no `-p`): the stand-in writes a picture where the skill would have put one, and the owner leaves it
 const sessionCall = (over: Partial<CallSpec> = {}): CallSpec => ({ match: "^/platform-assets", writes: [{ path: `$ASSETS/${SLUG}/platform/game-${SLUG}-logo.png`, content: "a picture" }], ...over })
+// the session of the game folder (`game-new`): the stand-in makes nothing in the repo, and the stand-in of the gate says that the scaffold passes
+const folderCall = (over: Partial<CallSpec> = {}): CallSpec => ({ match: "^/game-new", ...over })
 
 const stateOf = (run: Run, slug = SLUG): PipelineState => {
   const parsed = parseState(run.read(join(run.assets, slug, "pipeline.json")))
@@ -73,20 +77,22 @@ describe("a game from its name to its pictures", () => {
       specCall(),
       linearCall({ parent: "In Progress", scout: "Done", "catalog-entry": "Done", "rules-spec": "Done", "platform-assets": "In Progress" }, ["rules-spec"]),
       sessionCall(),
-      linearCall({ parent: "In Progress", scout: "Done", "catalog-entry": "Done", "rules-spec": "Done", "platform-assets": "Done" }, ["platform-assets"]),
+      linearCall({ parent: "In Progress", scout: "Done", "catalog-entry": "Done", "rules-spec": "Done", "platform-assets": "Done", "game-new": "In Progress" }, ["platform-assets"]),
+      folderCall(),
+      linearCall({ parent: "In Progress", scout: "Done", "catalog-entry": "Done", "rules-spec": "Done", "platform-assets": "Done", "game-new": "Done", "game-sanity-create": "In Progress" }, ["game-new"]),
     ],
   }
 
-  it("runs the scout, a change round, the catalog entry, the publication, the rules spec and the session of the pictures, one gate after each", async () => {
+  it("runs the scout, a change round, the catalog entry, the publication, the rules spec, the session of the pictures and the one of the game folder, one gate after each", async () => {
     const sanity = await fakeSanity({ published: BOTH })
-    const run = await runCli({ args: [NAME], answers: ["y", "change the edition to 2019", "validate", "validate", "publish", "validate", "validate"], scenario: happy, env: { PBGO_SANITY_API_BASE: sanity.base } }).finally(() => sanity.close())
+    const run = await runCli({ args: [NAME], answers: ["y", "change the edition to 2019", "validate", "validate", "publish", "validate", "validate", "validate"], scenario: happy, env: { PBGO_SANITY_API_BASE: sanity.base } }).finally(() => sanity.close())
     expect(run.stderr).toBe("")
     expect(run.code).toBe(0)
-    expect(run.calls).toHaveLength(10)
+    expect(run.calls).toHaveLength(11)
 
     // the calls, in order: the issues, the scout (twice: its first call and the change), the issues, the catalog entry, the word publish, the issues, the rules spec, the issues, then (a session of
     // the owner's, which is not a headless call) the issues once more
-    const [linear1, scout1, scout2, linear2, catalog, publish, linear3, spec, linear4, linear5] = run.calls
+    const [linear1, scout1, scout2, linear2, catalog, publish, linear3, spec, linear4, linear5, linear6] = run.calls
     expect(promptOf(linear1)).toContain("bookkeeping step")
     expect(promptOf(scout1)).toBe(`/game-scout ${NAME} --out ${run.assets}/${SLUG}/scout.json`)
     expect(promptOf(scout2)).toBe("change the edition to 2019")
@@ -98,6 +104,7 @@ describe("a game from its name to its pictures", () => {
     expect(promptOf(linear4)).toContain("bookkeeping step")
     expect(promptOf(linear4)).toContain("Rules spec: docs/games/test-game/rules.md")
     expect(promptOf(linear5)).toContain("bookkeeping step")
+    expect(promptOf(linear6)).toContain("bookkeeping step")
 
     // none of them could use a key or think it was nested in a Claude Code session; the login's way in is kept
     for (const call of run.calls) {
@@ -110,7 +117,7 @@ describe("a game from its name to its pictures", () => {
     }
 
     // the word that lets a Sanity write through is given to the call that publishes, and refused to every other (set to 0, whatever the shell had)
-    expect(run.calls.map((call) => call.env.PBGO_PUBLISH_OK)).toEqual(["0", "0", "0", "0", "0", "1", "0", "0", "0", "0"])
+    expect(run.calls.map((call) => call.env.PBGO_PUBLISH_OK)).toEqual(["0", "0", "0", "0", "0", "1", "0", "0", "0", "0", "0"])
 
     // one session for the game: made by its first call, resumed by every call of a step; the bookkeeping calls leave none
     const session = flagValue(scout1 as LoggedCall, "--session-id")
@@ -120,7 +127,7 @@ describe("a game from its name to its pictures", () => {
       expect(flagValue(call as LoggedCall, "--resume")).toBe(session)
       expect(call?.argv).not.toContain("--session-id")
     }
-    for (const call of [linear1, linear2, linear3, linear4, linear5]) {
+    for (const call of [linear1, linear2, linear3, linear4, linear5, linear6]) {
       expect(call?.argv).toContain("--no-session-persistence")
       expect(call?.argv).toContain("--json-schema")
       expect(flagValue(call as LoggedCall, "--model")).toBe("haiku")
@@ -153,7 +160,7 @@ describe("a game from its name to its pictures", () => {
     expect(publish?.policy?.composio?.sanity).toMatchObject({ gameSlug: SLUG, publishIds: BOTH })
     // Linear: the issues of the game are the ones it made, known from its state (none before the first call)
     expect(linear1?.policy?.composio?.linear?.issueIds).toEqual([])
-    expect(linear2?.policy?.composio?.linear?.issueIds).toEqual(["issue-parent", "GAM-40", "issue-scout", "GAM-41", "issue-catalog-entry", "GAM-42", "issue-rules-spec", "GAM-43", "issue-platform-assets", "GAM-44", "issue-game-assets", "GAM-45"])
+    expect(linear2?.policy?.composio?.linear?.issueIds).toEqual(["issue-parent", "GAM-40", "issue-scout", "GAM-41", "issue-catalog-entry", "GAM-42", "issue-rules-spec", "GAM-43", "issue-platform-assets", "GAM-44", "issue-game-new", "GAM-45", "issue-game-sanity-create", "GAM-46", "issue-game-assets", "GAM-47", "issue-engine-rules", "GAM-48", "issue-engine-board", "GAM-49", "issue-game-go-live", "GAM-50"])
     expect(run.read(join(work, "scout.settings.json"))).toContain("hook/guard.ts")
     // one log for each round, named by the time of its end, so that a round never overwrites an earlier one
     const logs = readdirSync(join(work, "logs"))
@@ -179,22 +186,31 @@ describe("a game from its name to its pictures", () => {
     expect(run.stdout).toContain("✓ Rules spec validated")
     expect(run.stdout).toContain("o opens the spec · q stops")
     expect(run.stdout).toContain("4. platform assets: /platform-assets · gate validate · a session of your own")
-    expect(run.stdout).toContain("5. game assets: /game-assets · gate validate · a session of your own")
+    expect(run.stdout).toContain("5. game folder: /game-new · gate validate · a session of your own")
+    expect(run.stdout).toContain("10. go live: /game-go-live · gate validate · a session of your own")
     expect(run.stdout).toContain("━━━ Platform assets · Test Game · a session of your own")
     expect(run.stdout).toContain("Claude Code opens here on /platform-assets, in the session of the game. You approve each action in it.")
     expect(run.stdout).toContain("✓ Platform assets validated")
     expect(run.stdout).toContain("o opens the pictures · q stops")
     expect(run.stdout).toContain("✓ Test Game (game-test-game), published: 3 of 5 pictures")
-    expect(run.stdout).toContain("Test Game is in the platform's catalog, its rules are written down")
-    expect(run.stdout).toContain("Its rules spec is in your checkout, uncommitted: docs/games/test-game/ (rules.md and index.md).")
-    expect(run.stdout).toContain("pnpm add-game test-game --name 'Test Game' --rules 'en=<the rulebook PDF>'")
-    expect(run.stdout).toContain("rulebook found by the scout: https://example.com/rules.pdf (en, v2.1)")
+    expect(run.stdout).toContain("━━━ Game folder · Test Game · a session of your own")
+    expect(run.stdout).toContain("✓ Game folder validated")
+    // the stage of the folder is the gate of the game folder, asked once the session is over and again at the word; then the command waits, the game having no folder in this checkout (the stand-in makes none)
+    expect(run.stdout).toContain("✓ test-game has got as far as: scaffold. Ready for what follows scaffold.")
+    expect(run.stdout).toContain("Test Game waits for its folder")
+    expect(run.stdout).toContain("games/test-game is not in this checkout, and the steps that work in it wait.")
     expect(run.stdout).toContain("claude --resume " + session)
 
     // the session of the pictures: Claude Code on the owner's terminal, no -p, no policy, no hook, no mode of ours, the session of the game resumed, its first message the last word
-    expect(run.sessions).toHaveLength(1)
-    const [pictures] = run.sessions
-    expect(pictures?.argv).toEqual(["--model", "sonnet", "--resume", session ?? "", `/platform-assets ${run.assets}/${SLUG}/scout.json`])
+    expect(run.sessions).toHaveLength(2)
+    const [pictures, folder] = run.sessions
+    // the game folder gets what the command knows in its first message: the name, the rulebook it fetched, the rules spec
+    expect(folder?.argv).toEqual(["--resume", session ?? "", `/game-new test-game (the game is called "Test Game"; its rulebook is the PDF at ${run.assets}/${SLUG}/rules.pdf when the command could fetch it; its rules spec, when there is one, is docs/games/test-game/)`])
+    expect(JSON.parse(`[${run.read(join(run.base, "stage.log")).trim().split("\n").join(",")}]`)).toEqual([
+      { slug: "test-game", flag: "--stage", stage: "scaffold" },
+      { slug: "test-game", flag: "--stage", stage: "scaffold" },
+    ])
+    expect(pictures?.argv).toEqual(["--resume", session ?? "", `/platform-assets ${run.assets}/${SLUG}/scout.json`])
     expect(pictures?.cwd).toBe(REPO)
     expect(pictures?.env).toMatchObject({ ANTHROPIC_API_KEY: null, ANTHROPIC_BASE_URL: null, CLAUDECODE: null, CLAUDE_CODE_ENTRYPOINT: null, USER: "tester", PBGO_PUBLISH_OK: null, PBGO_GUARD_POLICY: null })
     expect(pictures?.policy).toBeNull()
@@ -214,6 +230,9 @@ describe("a game from its name to its pictures", () => {
     expect(sanity.requests).toHaveLength(1)
     expect(JSON.parse(sanity.requests[0]?.searchParams.get("$ids") ?? "[]")).toEqual(BOTH)
     expect(sanity.requests[0]?.searchParams.get("perspective")).toBe("published")
+    expect(state.steps["game-new"]).toMatchObject({ status: "validated", rounds: 1, check: { ok: true } })
+    expect(state.steps["game-new"]?.issue).toMatchObject({ identifier: "GAM-45", applied: "Done", commented: true })
+    expect(state.steps["game-sanity-create"]?.status).toBe("pending")
     expect(state.steps["platform-assets"]).toMatchObject({ status: "validated", rounds: 1, costUsd: 0 })
     expect(state.steps["platform-assets"]?.check?.ok).toBe(true)
     expect(state.steps["platform-assets"]?.issue).toMatchObject({ identifier: "GAM-44", applied: "Done", commented: true })
@@ -430,12 +449,13 @@ describe("the rules spec", () => {
 
   it("leaves a rulebook that is there as it is, never fetches over it, and hands it to the script that makes the game's folder", async () => {
     const mine = scoutCall({ writes: [{ path: SCOUT_PATH, content: scoutJson(NAME, SLUG) }, { path: `$ASSETS/${SLUG}/rules.pdf`, content: "%PDF-1.4 the owner's own\n%%EOF\n" }] })
-    const run = await runCli({ args, answers: [...toTheSpec, "validate", "validate"], scenario: { calls: [mine, catalogCall(), { match: "^validate$", text: PUBLISHED, cost: 0.3 }, specCall(), sessionCall()] }, env: { PBGO_ADD_GAME_NO_DOWNLOAD: "" } })
+    const run = await runCli({ args, answers: [...toTheSpec, "validate", "validate", "q"], scenario: { calls: [mine, catalogCall(), { match: "^validate$", text: PUBLISHED, cost: 0.3 }, specCall(), sessionCall(), folderCall()] }, env: { PBGO_ADD_GAME_NO_DOWNLOAD: "" } })
     expect(run.code).toBe(0)
     expect(run.stdout).not.toContain("Rulebook: fetching")
     expect(run.stdout).not.toContain("Rulebook: not fetched")
     expect(run.read(join(run.assets, SLUG, "rules.pdf"))).toContain("the owner's own")
-    expect(run.stdout).toContain(`--rules en=${join(run.assets, SLUG, "rules.pdf")}`)
+    // the game folder is told where the rulebook is: the one the owner put there
+    expect(run.sessions[1]?.argv.at(-1)).toContain(`its rulebook is the PDF at ${join(run.assets, SLUG, "rules.pdf")}`)
   })
 
   it("shows up pending in a game that began before it was a step, and is run from where the game stopped", async () => {
@@ -447,7 +467,7 @@ describe("the rules spec", () => {
     writeFileSync(file, JSON.stringify(old))
     rmSync(join(first.docs, SLUG), { recursive: true })
     const list = await runCli({ args: ["--list"], base: first.base })
-    expect(list.stdout).toContain("catalog entry validated · rules spec not started · platform assets not started · game assets not started")
+    expect(list.stdout).toContain("catalog entry validated · rules spec not started · platform assets not started · game folder not started · studio forms not started · game assets not started · engine not started · board not started · go live not started")
     const second = await runCli({ args: [NAME, "--no-linear"], base: first.base, answers: ["validate", "q"], scenario: { calls: [specCall(), sessionCall()] } })
     expect(second.code).toBe(0)
     expect(promptOf(second.calls[0])).toBe(`/game-rules-spec ${second.assets}/${SLUG}/scout.json`)
@@ -483,11 +503,16 @@ describe("the pictures session", () => {
   it("is not validated while the platform does not show the entry as published, and a message opens the session again with it", async () => {
     const none = sessionCall({ pictures: { exit: 1, lines: ["No published game has the slug test-game in the platform's Sanity project: publish its entry first (platform-catalog-entry)"] } })
     const again = sessionCall({ match: "^the logo is the wrong one", pictures: { exit: 0, lines: ["Test Game (game-test-game), published: 5 of 5 pictures", "  ✓ cover"] } })
-    const run = await runCli({ args, answers: [...toTheSession, "validate", "the logo is the wrong one", "validate"], scenario: { calls: [...before(), none, again] } })
+    const run = await runCli({ args, answers: [...toTheSession, "validate", "the logo is the wrong one", "validate", "q"], scenario: { calls: [...before(), none, again, folderCall()] } })
     expect(run.code).toBe(0)
     expect(run.stdout).toContain("✗ No published game has the slug test-game")
     expect(run.stdout).toContain("✗ The platform's Sanity does not show the entry of the game as published: type what to change (a session opens again with your message).")
-    expect(run.sessions.map((session) => session.argv.at(-1))).toEqual([`/platform-assets ${run.assets}/${SLUG}/scout.json`, "the logo is the wrong one"])
+    const prompts = run.sessions.map((session) => session.argv.at(-1) ?? "")
+    expect(prompts).toHaveLength(3)
+    expect(prompts[0]).toBe(`/platform-assets ${run.assets}/${SLUG}/scout.json`)
+    expect(prompts[1]).toBe("the logo is the wrong one")
+    // the validated pictures lead on to the game folder
+    expect(prompts[2]).toMatch(/^\/game-new test-game \(the game is called "Test Game"/)
     // the message goes to the session of the game, which is resumed
     expect(run.sessions[1]?.argv).toContain("--resume")
     expect(run.stdout).toContain("✓ Platform assets validated")
@@ -504,7 +529,7 @@ describe("the pictures session", () => {
     const second = await runCli({ args: [NAME, "--no-linear"], base: first.base, answers: ["y", "q"], scenario: { calls: [sessionCall({ match: "^We were interrupted" })] } })
     expect(second.stdout).toContain("The last call of the platform assets step was interrupted.")
     expect(second.sessions).toHaveLength(1)
-    expect(second.sessions[0]?.argv.slice(0, 4)).toEqual(["--model", "sonnet", "--resume", flagValue(first.calls[0] as LoggedCall, "--session-id") ?? ""])
+    expect(second.sessions[0]?.argv.slice(0, 2)).toEqual(["--resume", flagValue(first.calls[0] as LoggedCall, "--session-id") ?? ""])
     expect(second.sessions[0]?.argv.at(-1)).toContain("We were interrupted. Check what already exists")
 
     left.steps["platform-assets"] = { ...(left.steps["platform-assets"] as { status: string }), status: "pending" }
@@ -516,24 +541,26 @@ describe("the pictures session", () => {
   })
 
   it("is not run for a game whose pictures step is validated already, and is opened by nothing but the command", async () => {
-    const first = await runCli({ args, answers: [...toTheSession, "validate"], scenario: { calls: [...before(), sessionCall()] } })
+    const first = await runCli({ args, answers: [...toTheSession, "validate", "q"], scenario: { calls: [...before(), sessionCall(), folderCall()] } })
     expect(first.code).toBe(0)
-    const again = await runCli({ args: [NAME, "--no-linear"], base: first.base })
+    const again = await runCli({ args: [NAME, "--no-linear"], base: first.base, answers: ["q"] })
+    // the pictures are not opened again, and neither is the game folder, where the first run stopped at its gate: the gate is shown again and nothing is called
     expect(again.sessions).toHaveLength(0)
     expect(again.stdout).toContain("Platform assets is validated already")
+    expect(again.stdout).toContain("Game folder waits at its gate: the report is shown again, nothing is called.")
   })
 })
 
 describe("the game's art", () => {
   // The game of the world is Hanabi, whose folder is in the repo (the command runs from the real checkout): the state of a game that the command added, with every step before the art validated, is
   // written by hand, as the steps before would have left it.
-  const added = (): string => {
+  const added = (validated: string[] = ["scout", "catalog-entry", "rules-spec", "platform-assets", "game-new", "game-sanity-create"]): string => {
     const base = world()
     const dir = join(base, "assets", "hanabi")
     mkdirSync(dir, { recursive: true })
     const at = new Date("2026-11-17T10:00:00Z")
     const state = newState({ name: "Hanabi", slug: "hanabi", sessionId: "11111111-1111-4111-8111-111111111111", now: at })
-    for (const id of ["scout", "catalog-entry", "rules-spec", "platform-assets"]) {
+    for (const id of validated) {
       const step = stepOf(state, id)
       step.status = "validated"
       step.validatedAt = at.toISOString()
@@ -545,13 +572,15 @@ describe("the game's art", () => {
   const art = (over: Partial<CallSpec> = {}): CallSpec => ({ match: "^/game-assets hanabi", art: { exit: 0, lines: ["Art (/art)", "  22 of 26 slots have a file", "  missing: card-front-9, card-front-10", "  files that match no slot: notes.txt"] }, ...over })
 
   it("is the step after the game's folder is there: a game the command added goes on from the folder, a session on its slug, and the seed's account of the art folder at the gate", async () => {
-    const run = await runCli({ args: ["Hanabi", "--no-linear"], base: added(), answers: ["validate"], scenario: { calls: [art()] } })
+    const run = await runCli({ args: ["Hanabi", "--no-linear"], base: added(), answers: ["validate", "q"], scenario: { calls: [art(), { match: "^/engine-rules hanabi" }] } })
     expect(run.stderr).toBe("")
     expect(run.code).toBe(0)
     expect(run.calls).toHaveLength(0)
-    expect(run.sessions).toHaveLength(1)
+    // the art, then the engine: the session that comes next is the engine's, which the owner leaves at its gate
+    expect(run.sessions).toHaveLength(2)
+    expect(run.sessions[1]?.argv.at(-1)).toBe("/engine-rules hanabi")
     const session = run.sessions[0]
-    expect(session?.argv).toEqual(["--model", "sonnet", "--resume", "11111111-1111-4111-8111-111111111111", "/game-assets hanabi"])
+    expect(session?.argv).toEqual(["--resume", "11111111-1111-4111-8111-111111111111", "/game-assets hanabi"])
     expect(session?.cwd).toBe(REPO)
     expect(run.stdout).toContain("✓ Scout is validated already")
     expect(run.stdout).toContain("✓ Platform assets is validated already")
@@ -564,19 +593,17 @@ describe("the game's art", () => {
     expect(run.stdout).not.toContain("DRY RUN: nothing was written or uploaded")
     expect(run.stdout).toContain("o opens the art folder · q stops")
     expect(run.stdout).toContain("✓ Game assets validated")
-    expect(run.stdout).toContain("Hanabi: every step of the command is validated")
-    expect(run.stdout).toContain("pnpm check:game hanabi")
     expect(stateOf(run, "hanabi").steps["game-assets"]).toMatchObject({ status: "validated", rounds: 1 })
   })
 
   it("is not validated while the game's seed cannot be run on the folder, and a message opens the session again with it", async () => {
     const broken = art({ art: { exit: 1, lines: ["Error: Missing script: content:seed"] } })
     const again = art({ match: "^the seed is in content", art: { exit: 0, lines: ["Art (/art)", "  26 of 26 slots have a file"] } })
-    const run = await runCli({ args: ["Hanabi", "--no-linear"], base: added(), answers: ["validate", "the seed is in content", "validate"], scenario: { calls: [broken, again] } })
+    const run = await runCli({ args: ["Hanabi", "--no-linear"], base: added(), answers: ["validate", "the seed is in content", "validate", "q"], scenario: { calls: [broken, again, { match: "^/engine-rules hanabi" }] } })
     expect(run.code).toBe(0)
     expect(run.stdout).toContain("✗ Error: Missing script: content:seed")
     expect(run.stdout).toContain("✗ The game's seed cannot be run on the art folder: type what to change (a session opens again with your message).")
-    expect(run.sessions.map((session) => session.argv.at(-1))).toEqual(["/game-assets hanabi", "the seed is in content"])
+    expect(run.sessions.map((session) => session.argv.at(-1))).toEqual(["/game-assets hanabi", "the seed is in content", "/engine-rules hanabi"])
     expect(run.stdout).toContain("✓ Game assets validated")
   })
 
@@ -587,13 +614,100 @@ describe("the game's art", () => {
   })
 
   it("waits for the folder: a game that has none stops before the art with what makes it, and the same command comes back to the art once it is there", async () => {
-    const calls = [scoutCall(), catalogCall(), { match: "^validate$", text: PUBLISHED, cost: 0.3 }, specCall(), sessionCall()]
-    const run = await runCli({ args: [NAME, "--yes", "--no-linear"], answers: ["validate", "validate", "publish", "validate", "validate"], scenario: { calls } })
+    const calls = [scoutCall(), catalogCall(), { match: "^validate$", text: PUBLISHED, cost: 0.3 }, specCall(), sessionCall(), folderCall()]
+    const run = await runCli({ args: [NAME, "--yes", "--no-linear"], answers: ["validate", "validate", "publish", "validate", "validate", "validate"], scenario: { calls } })
     expect(run.code).toBe(0)
-    expect(run.sessions).toHaveLength(1)
-    expect(run.stdout).toContain("Next, which this command does not do yet: the game's folder, its Sanity project and its Studio.")
+    expect(run.sessions).toHaveLength(2)
+    expect(run.stdout).toContain("Test Game waits for its folder")
+    expect(run.stdout).not.toContain("Studio forms ·")
     expect(run.stdout).not.toContain("Game assets ·")
-    expect(stateOf(run).steps["game-assets"]?.status).toBe("pending")
+    expect(stateOf(run).steps["game-sanity-create"]?.status).toBe("pending")
+  })
+})
+
+describe("the steps of the game itself, after its folder", () => {
+  const BEFORE = ["scout", "catalog-entry", "rules-spec", "platform-assets"]
+  const base = (validated: string[]): string => {
+    const dir = world()
+    const assets = join(dir, "assets", "hanabi")
+    mkdirSync(assets, { recursive: true })
+    const at = new Date("2026-11-17T10:00:00Z")
+    const state = newState({ name: "Hanabi", slug: "hanabi", sessionId: "11111111-1111-4111-8111-111111111111", now: at })
+    for (const id of validated) {
+      const step = stepOf(state, id)
+      step.status = "validated"
+      step.validatedAt = at.toISOString()
+    }
+    state.session.started = true
+    writeState(assets, state, at)
+    return dir
+  }
+  const asked = (run: Run) =>
+    run
+      .read(join(run.base, "stage.log"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as { slug: string; flag: string; stage: string })
+
+  it("has nothing to make for the game folder when the game has its folder already: the step is validated as it is, and the studio forms come next, gated by their stage alone", async () => {
+    const run = await runCli({ args: ["Hanabi", "--no-linear"], base: base(BEFORE), answers: ["q"], scenario: { calls: [{ match: "^/game-sanity-create hanabi" }] } })
+    expect(run.code).toBe(0)
+    expect(run.stdout).toContain("✓ Game folder: games/hanabi is there already, nothing to make")
+    expect(run.sessions).toHaveLength(1)
+    expect(run.sessions[0]?.argv.at(-1)).toBe("/game-sanity-create hanabi")
+    // the forms are gated by the checks of their own stage, not by every check up to it (the engine is not written)
+    expect(asked(run)).toEqual([{ slug: "hanabi", flag: "--only", stage: "content" }])
+    expect(stateOf(run, "hanabi").steps["game-new"]).toMatchObject({ status: "validated", rounds: 0 })
+    expect(stateOf(run, "hanabi").steps["game-sanity-create"]).toMatchObject({ status: "gate", check: { ok: true } })
+  })
+
+  it("keeps the gate of a game folder whose session was left at its gate: only a step that has not run is validated as it is, and the stage is judged again at validate", async () => {
+    const dir = base(BEFORE)
+    const file = join(dir, "assets", "hanabi", "pipeline.json")
+    const left = JSON.parse(readFileSync(file, "utf8")) as { steps: Record<string, Record<string, unknown>> }
+    left.steps["game-new"] = { ...left.steps["game-new"], status: "gate", gate: 0, rounds: 1 }
+    writeFileSync(file, JSON.stringify(left))
+    const run = await runCli({ args: ["Hanabi", "--no-linear"], base: dir, answers: ["validate", "q"], scenario: { calls: [{ match: "^/game-sanity-create hanabi" }] } })
+    expect(run.code).toBe(0)
+    expect(run.stdout).toContain("Game folder waits at its gate: the report is shown again, nothing is called.")
+    expect(run.stdout).not.toContain("nothing to make")
+    expect(run.stdout).toContain("✓ Game folder validated")
+    // the folder's stage is asked at validate, then the forms' once their session is over
+    expect(asked(run).map((call) => [call.flag, call.stage])).toEqual([["--stage", "scaffold"], ["--only", "content"]])
+    expect(stateOf(run, "hanabi").steps["game-new"]).toMatchObject({ status: "validated", rounds: 1 })
+  })
+
+  it("gates the engine by every check up to its stage, refuses to validate while one fails, and goes on to the board once the game passes", async () => {
+    const failing = "\nscaffold\n  ✓ registered: ok\n\nengine\n  ✗ own engine: still the template's demo engine (`src/demo`)\n\nhanabi has got as far as: scaffold. Not ready for after engine: 1 to fix.\n"
+    const engine = { match: "^/engine-rules hanabi", stage: { exit: 1, report: failing } }
+    const again = { match: "^the engine is in", stage: { exit: 0, report: "\nengine\n  ✓ own engine: the engine is the game's own\n\nhanabi has got as far as: engine. Ready for what follows engine.\n" } }
+    const run = await runCli({ args: ["Hanabi", "--no-linear"], base: base([...BEFORE, "game-new", "game-sanity-create", "game-assets"]), answers: ["validate", "the engine is in games/hanabi/packages/engine", "validate", "q"], scenario: { calls: [engine, again, { match: "^/engine-board hanabi" }] } })
+    expect(run.code).toBe(0)
+    expect(run.stdout).toContain("✗ hanabi has got as far as: scaffold. Not ready for after engine: 1 to fix.")
+    expect(run.stdout).toContain("✗ engine: own engine: still the template's demo engine (`src/demo`)")
+    expect(run.stdout).toContain("✗ The stage engine does not pass: type what to change (a session opens again with your message).")
+    expect(run.stdout).toContain("✓ Engine validated")
+    expect(run.sessions.map((session) => session.argv.at(-1))).toEqual(["/engine-rules hanabi", "the engine is in games/hanabi/packages/engine", "/engine-board hanabi"])
+    // the engine's stage after each session and at each word, then the board's once its session is over
+    expect(asked(run).map((call) => [call.flag, call.stage])).toEqual([["--stage", "engine"], ["--stage", "engine"], ["--stage", "engine"], ["--stage", "engine"], ["--stage", "board"]])
+    expect(stateOf(run, "hanabi").steps["engine-rules"]).toMatchObject({ status: "validated", rounds: 2 })
+    expect(stateOf(run, "hanabi").steps["engine-board"]?.status).toBe("gate")
+  })
+
+  it("goes through the board and going live, each gated by its stage, and says it is done when every step is validated", async () => {
+    const run = await runCli({
+      args: ["Hanabi", "--no-linear"],
+      base: base([...BEFORE, "game-new", "game-sanity-create", "game-assets", "engine-rules"]),
+      answers: ["validate", "validate"],
+      scenario: { calls: [{ match: "^/engine-board hanabi" }, { match: "^/game-go-live hanabi" }] },
+    })
+    expect(run.code).toBe(0)
+    expect(run.sessions.map((session) => session.argv.at(-1))).toEqual(["/engine-board hanabi", "/game-go-live hanabi"])
+    expect(asked(run).map((call) => [call.flag, call.stage])).toEqual([["--stage", "board"], ["--stage", "board"], ["--stage", "live"], ["--stage", "live"]])
+    expect(run.stdout).toContain("✓ Board validated")
+    expect(run.stdout).toContain("✓ Go live validated")
+    expect(run.stdout).toContain("Hanabi: every step of the command is validated")
+    expect(run.stdout).toContain("pnpm check:game hanabi")
   })
 })
 
@@ -691,7 +805,9 @@ describe("before anything starts", () => {
     expect(run.stdout).toContain("2. catalog entry: /platform-catalog-entry · gates validate, publish")
     expect(run.stdout).toContain("3. rules spec: /game-rules-spec · gate validate")
     expect(run.stdout).toContain("4. platform assets: /platform-assets · gate validate · a session of your own")
-    expect(run.stdout).toContain("5. game assets: /game-assets · gate validate · a session of your own")
+    expect(run.stdout).toContain("5. game folder: /game-new · gate validate · a session of your own")
+    expect(run.stdout).toContain("7. game assets: /game-assets · gate validate · a session of your own")
+    expect(run.stdout).toContain("10. go live: /game-go-live · gate validate · a session of your own")
     expect(run.stdout).toContain("claude 9.9.9 · claude.ai (max) · model sonnet")
     expect(run.stdout).toContain('"Test Game: add the game" and a sub-issue per step')
     expect(run.stdout).toContain("The repo is touched by one step, the rules spec, which writes docs/games/test-game/ and leaves it uncommitted. Nothing is published before the word publish.")
@@ -902,7 +1018,7 @@ describe("coming back to a game", () => {
     const list = await runCli({ args: ["--list"], base: first.base })
     expect(list.code).toBe(0)
     expect(list.stdout).toContain("Games in the pipeline")
-    expect(list.stdout).toContain("test-game  Test Game: scout validated · catalog entry at its gate (validate) · rules spec not started · platform assets not started · game assets not started")
+    expect(list.stdout).toContain("test-game  Test Game: scout validated · catalog entry at its gate (validate) · rules spec not started · platform assets not started · game folder not started · studio forms not started · game assets not started · engine not started · board not started · go live not started")
     const none = await runCli({ args: ["--list"] })
     expect(none.stdout).toContain("No game is in the pipeline")
   })
@@ -969,7 +1085,7 @@ describe("--help", () => {
     const run = await runCli({ args: [NAME, "--help"] })
     expect(run.code).toBe(0)
     expect(run.stdout).toContain('Usage: pnpm add-game "<Game Name>"')
-    expect(run.stdout).toContain("scout (/game-scout), then catalog entry (/platform-catalog-entry), then rules spec (/game-rules-spec), then platform assets (/platform-assets), then game assets (/game-assets)")
+    expect(run.stdout).toContain("scout (/game-scout), then catalog entry (/platform-catalog-entry), then rules spec (/game-rules-spec), then platform assets (/platform-assets), then game folder (/game-new), then studio forms (/game-sanity-create), then game assets (/game-assets), then engine (/engine-rules), then board (/engine-board), then go live (/game-go-live)")
     for (const option of ["--dry-run", "--yes", "--no-linear", "--new-session", "--redo", "--list", "--check"]) expect(run.stdout).toContain(option)
   })
 })

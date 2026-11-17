@@ -129,16 +129,16 @@ describe("running a call", () => {
 })
 
 describe("the arguments of a session of the owner's", () => {
-  const options = { prompt: "/platform-assets /assets/x/scout.json", session: { id: "11111111-1111-4111-8111-111111111111", resume: false }, name: "add-game: X", model: "sonnet" }
+  const options = { prompt: "/platform-assets /assets/x/scout.json", session: { id: "11111111-1111-4111-8111-111111111111", resume: false }, name: "add-game: X" }
 
   it("is not headless and bounds nothing: no -p, no mode, no hook, no list of tools, no budget, and the owner's own settings stay (they approve each action)", () => {
     const args = sessionArgs(options)
-    for (const word of ["-p", "--permission-mode", "--settings", "--setting-sources", "--allowedTools", "--max-budget-usd", "--output-format", "--verbose", "--no-session-persistence"]) expect(args, word).not.toContain(word)
+    for (const word of ["-p", "--model", "--permission-mode", "--settings", "--setting-sources", "--allowedTools", "--max-budget-usd", "--output-format", "--verbose", "--no-session-persistence"]) expect(args, word).not.toContain(word)
   })
 
   it("makes the session of the game when it is the first and resumes it otherwise, and ends with the first message", () => {
-    expect(sessionArgs(options)).toEqual(["--model", "sonnet", "--session-id", "11111111-1111-4111-8111-111111111111", "--name", "add-game: X", "/platform-assets /assets/x/scout.json"])
-    expect(sessionArgs({ ...options, session: { ...options.session, resume: true } })).toEqual(["--model", "sonnet", "--resume", "11111111-1111-4111-8111-111111111111", "/platform-assets /assets/x/scout.json"])
+    expect(sessionArgs(options)).toEqual(["--session-id", "11111111-1111-4111-8111-111111111111", "--name", "add-game: X", "/platform-assets /assets/x/scout.json"])
+    expect(sessionArgs({ ...options, session: { ...options.session, resume: true } })).toEqual(["--resume", "11111111-1111-4111-8111-111111111111", "/platform-assets /assets/x/scout.json"])
   })
 })
 

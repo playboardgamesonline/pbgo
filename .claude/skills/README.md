@@ -26,14 +26,14 @@ A game goes through six stages, and `pnpm check:game <slug>` says which it has r
 | Catalog entry in the platform's Sanity (a draft) | `platform-catalog-entry` (PLT-98) | the owner publishes it | written |
 | Rules spec and the list of components | `game-rules-spec` (GAM-33) | the owner validates the spec | written |
 | Platform assets: the pictures of the catalog entry | `platform-assets` (PLT-99) | the owner approved the pictures and they are published | written |
-| Game assets: the art of the game's own Sanity | `game-assets` (GAM-34) | the owner has handed the art over and looked at it | written |
 | The game's folder, its Sanity project and Studio | `game-new` | the Studio is open | written |
 | The Studio's forms, the seed | `game-sanity-create` | the drafts are seeded | written |
+| Game assets: the art of the game's own Sanity | `game-assets` (GAM-34) | the owner has handed the art over and looked at it | written |
 | The engine | `engine-rules` | `check:game --stage engine` exits 0 | written |
 | The binding and the board | `engine-board` | `check:game --stage board` exits 0 | written |
-| Content and go-live | `game-go-live` | `check:game --stage content` exits 0, then the switches are turned | written |
+| Content and go-live | `game-go-live` | `check:game --stage content` exits 0, then the switches are turned (`--stage live` exits 0) | written |
 
-`pnpm add-game "<name>"` (PLT-97, `packages/pipeline`, `docs/scripts.md`) runs these rows in this order, one gate each, up to the game's art (the first three work alone, each a headless call; the pictures and the art are sessions of the owner's own, where they approve each download, upload and publication), the folder of the game being made between the two by `game-new`; the other rows are the steps its next versions add (a skill, a `StepDefinition` in `packages/pipeline/src/steps.ts`, and the row above). A gap in the blocks of the kit or the table found while planning is not worked around in the game: it goes to the engine lane (`engine-rules` step 2), and the first game of a family tells the engine lane what was awkward ("Friction" in its plan).
+`pnpm add-game "<name>"` (PLT-97, `packages/pipeline`, `docs/scripts.md`) runs every row in this order, one gate each. The first three are headless calls of `claude -p`, bounded by a policy; the others are sessions of the owner's own, where they approve each download, upload, publication and pull request, and each ends at a machine's check of what the session left (`pnpm catalog:pictures`, the seed's dry run, `pnpm check:game --stage` or `--only`) before the owner's word. A new step is a skill, a `StepDefinition` in `packages/pipeline/src/steps.ts` and a row above. A gap in the blocks of the kit or the table found while planning is not worked around in the game: it goes to the engine lane (`engine-rules` step 2), and the first game of a family tells the engine lane what was awkward ("Friction" in its plan).
 
 ## Skills
 

@@ -4,11 +4,12 @@ import { join } from "node:path"
 import { parseCli, USAGE } from "../src/cli.ts"
 import { runCheck } from "../src/commands.ts"
 import { runClaude, runSession } from "../src/claude.ts"
-import { assetsRoot, checkArtBin, checkPicturesBin, checkRulesBin, checkScoutBin, claudeBin, REPO_ROOT } from "../src/config.ts"
+import { assetsRoot, checkArtBin, checkPicturesBin, checkRulesBin, checkScoutBin, checkStageBin, claudeBin, REPO_ROOT } from "../src/config.ts"
 import { DownloadError, downloadPdf } from "../src/download.ts"
 import { makeIo } from "../src/io.ts"
 import { EXIT, listPipeline, runPipeline, type CheckResult, type Deps, type RulebookFetch } from "../src/pipeline.ts"
 import { nodeExec } from "../src/preflight.ts"
+import { gateArgs, stageLines, type StageGate } from "../src/stage.ts"
 import { missingPublished } from "../src/sanity.ts"
 import { listGames } from "../src/state.ts"
 
@@ -69,6 +70,13 @@ async function checkArt(slug: string, dir: string): Promise<CheckResult> {
   return { ok: result.code === 0, lines: lines.length > 0 ? lines : [result.code === 0 ? "ok" : "failed"] }
 }
 
+/** A stage of the game as `pnpm check:game` judges it, for a step that is a session of the owner's: every check up to the stage, or the checks of that stage alone. It reads files only. */
+async function checkStage(slug: string, gate: StageGate): Promise<CheckResult> {
+  const bin = checkStageBin(env)
+  const result = bin ? await exec(bin, [slug, ...gateArgs(gate)], { cwd: REPO_ROOT, timeoutMs: 60_000 }) : await exec(process.execPath, [join(REPO_ROOT, "scripts", "check-game.mjs"), slug, ...gateArgs(gate)], { cwd: REPO_ROOT, timeoutMs: 60_000 })
+  return { ok: result.code === 0, lines: stageLines(`${result.stdout}\n${result.stderr}`) }
+}
+
 /** The rulebook the scout found, fetched to a file by the command itself (`download.ts` says how it is bounded). */
 async function fetchRulebook(url: string, dest: string): Promise<RulebookFetch> {
   try {
@@ -101,6 +109,7 @@ const deps: Deps = {
   fetchRulebook,
   checkPictures,
   checkArt,
+  checkStage,
   session: runSession,
   stageOf,
   verifyPublished: (ids) => missingPublished(ids, { base: env.PBGO_SANITY_API_BASE }),

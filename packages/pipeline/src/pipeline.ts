@@ -30,6 +30,7 @@ import {
   type PipelineState,
 } from "./state.ts"
 import { RunTracker, type RunResult } from "./stream.ts"
+import type { StageGate } from "./stage.ts"
 import { allowedTools, gameAt, gameOf, STEPS, type Game, type HeadlessStep, type SessionStep, type StepDefinition } from "./steps.ts"
 
 export const EXIT = { ok: 0, failed: 1, usage: 2, noInput: 3, interrupted: 130 } as const
@@ -66,6 +67,8 @@ export type Deps = {
   fetchRulebook: (url: string, dest: string) => Promise<RulebookFetch>
   /** which pictures the published entry of a game has in the platform's Sanity (`pnpm catalog:pictures <slug>`) */
   checkPictures: (slug: string) => Promise<CheckResult>
+  /** a stage of the game as `pnpm check:game` judges it (`--stage <stage>`, or `--only <stage>`), for a step that is a session of the owner's */
+  checkStage: (slug: string, gate: StageGate) => Promise<CheckResult>
   /** what the game's own seed says of the art folder, in a dry run (`pnpm -C games/<slug> content:seed --dry-run --art-dir <folder>`): its "Art" part */
   checkArt: (slug: string, dir: string) => Promise<CheckResult>
   /** a session of Claude Code on the owner's terminal, until they leave it */
@@ -331,14 +334,14 @@ async function sessionRound(ctx: Ctx, step: SessionStep, kind: "first" | "change
   }
   const prompt = kind === "first" ? step.prompt(ctx.game) : kind === "resume" ? SESSION_RESUME_MESSAGE : message
   const resume = state.session.started
-  const args = sessionArgs({ prompt, session: { id: state.session.id, resume }, name: `add-game: ${state.name}`, model: stepTuning(deps.env).model })
+  const args = sessionArgs({ prompt, session: { id: state.session.id, resume }, name: `add-game: ${state.name}` })
   state.session.started = true
   save(ctx)
 
   io.out("")
   io.out(rule(`${titleCase(step.title)} · ${state.name} · a session of your own`, pal))
   io.out(`Claude Code opens here on /${step.skill}, in the session of the game. You approve each action in it. Leave it with /exit when you are done: the command then checks what it made and asks for your validation.`)
-  io.out(pal.dim(`  folder  ${tilde(step.folder(ctx.game))}`))
+  if (step.folder) io.out(pal.dim(`  folder  ${tilde(step.folder(ctx.game))}`))
   const outcome = await deps.session({ bin: deps.claudeBin, args, cwd: deps.repoRoot, env: childEnv(deps.env) })
   io.out("")
   if (outcome.spawnError) {
@@ -420,6 +423,15 @@ function stampSpec(ctx: Ctx): string | null {
   } catch (error) {
     return `the spec cannot be stamped (${error instanceof Error ? shorten(error.message, 120) : "unreadable"})`
   }
+}
+
+// ---------- a stage of the game ----------
+
+/** What `pnpm check:game` says of the stage the step is gated by: every check up to it, or the checks of that stage alone. */
+async function checkStageStep(ctx: Ctx, step: SessionStep, gate: StageGate): Promise<void> {
+  const s = stepOf(ctx.state, step.id)
+  const verdict = await ctx.deps.checkStage(ctx.state.slug, gate)
+  s.check = { ok: verdict.ok, lines: verdict.lines }
 }
 
 // ---------- the art ----------
@@ -568,7 +580,7 @@ export function openableTarget(links: readonly string[], file: string | null): s
 }
 
 function openTarget(ctx: Ctx, step: StepDefinition): string | null {
-  const file = step.id === "scout" ? ctx.game.scoutFile : step.id === "rules-spec" ? specPathsOf(gamesDocsRoot(ctx.deps.env), ctx.state.slug).rules : step.mode === "session" ? step.folder(ctx.game) : null
+  const file = step.id === "scout" ? ctx.game.scoutFile : step.id === "rules-spec" ? specPathsOf(gamesDocsRoot(ctx.deps.env), ctx.state.slug).rules : step.mode === "session" ? (step.folder?.(ctx.game) ?? null) : null
   return openableTarget(stepOf(ctx.state, step.id).links, file !== null && existsSync(file) ? file : null)
 }
 
@@ -587,6 +599,7 @@ async function afterCall(ctx: Ctx, step: StepDefinition): Promise<void> {
   if (step.id === "rules-spec") await checkRulesStep(ctx)
   if (step.id === "platform-assets") await checkPicturesStep(ctx)
   if (step.id === "game-assets") await checkArtStep(ctx)
+  if (step.mode === "session" && step.gate) await checkStageStep(ctx, step, step.gate)
 }
 
 async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
@@ -634,6 +647,15 @@ async function gateLoop(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
           const problem = settleScout(ctx)
           if (problem) {
             io.out(pal.red(`✗ ${problem}`))
+            break
+          }
+        }
+        if (step.mode === "session" && step.gate) {
+          // the stage is judged again: the owner may have changed the game since the session ended, and a game that does not pass its stage is not validated
+          await checkStageStep(ctx, step, step.gate)
+          if (!s.check?.ok) {
+            for (const line of s.check?.lines ?? []) io.out(`${pal.red("✗")} ${tildeAll(line)}`)
+            io.out(pal.red(`✗ The stage ${step.gate.stage} does not pass: type what to change (a session opens again with your message).`))
             break
           }
         }
@@ -758,21 +780,12 @@ async function runStep(ctx: Ctx, step: StepDefinition): Promise<StepOutcome> {
 
 // ---------- the whole run ----------
 
-const RULEBOOK_LANGUAGES: readonly string[] = ["en", "fr", "es", "de"]
-
 function printNext(ctx: Ctx): void {
   const { io, pal, state } = ctx
-  const scout = readScoutFile(ctx.game.scoutFile)
-  const language = scout?.edition.rules?.language ?? null
   io.out("")
-  io.out(rule(`${state.name} is in the platform's catalog, its rules are written down`, pal))
-  io.out(`Its rules spec is in your checkout, uncommitted: docs/games/${state.slug}/ (rules.md and index.md). The game's first pull request takes it.`)
-  io.out("Next, which this command does not do yet: the game's folder, its Sanity project and its Studio.")
-  // the rulebook the command fetched (or the owner put) is the PDF to hand to the script, when its language is one of the four of the games
-  const rulebook = existsSync(ctx.game.rulesPdf) && language !== null && RULEBOOK_LANGUAGES.includes(language) ? `${language}=${ctx.game.rulesPdf}` : "en=<the rulebook PDF>"
-  io.out(`  pnpm add-game ${state.slug} --name ${shellQuote(state.name)} --rules ${shellQuote(rulebook)}`)
-  if (scout?.edition.rules) io.out(pal.dim(`  rulebook found by the scout: ${scout.edition.rules.url} (${scout.edition.rules.language}${scout.edition.rules.version ? `, ${scout.edition.rules.version}` : ""})`))
-  io.out(`Then /game-new proposes the fields of its Studio (/game-sanity-create). Once the folder is there, \`pnpm add-game ${shellQuote(state.name)}\` comes back to this game: its next step is its art (/game-assets), and the engine is written from the spec (/engine-rules).`)
+  io.out(rule(`${state.name} waits for its folder`, pal))
+  io.out(`games/${state.slug} is not in this checkout, and the steps that work in it wait. The step that makes it (the game folder) is validated, so the folder is on another branch: the game's pull request, or a worktree. Switch to it and run \`pnpm add-game ${shellQuote(state.name)}\` again, or take the step back with \`pnpm add-game ${shellQuote(state.name)} --redo game-new\`.`)
+  io.out(`Its rules spec (docs/games/${state.slug}/) and its rulebook (${tilde(ctx.game.rulesPdf)}) are where the earlier steps left them.`)
 }
 
 /** Every step of the pipeline is validated for a game that has its folder: what comes after is `pnpm check:game`'s (the engine, the board, the content, going live). */
@@ -877,9 +890,20 @@ export async function runPipeline(opts: Options, io: Io, deps: Deps): Promise<nu
 
     for (const step of STEPS) {
       // a step that works in the game's folder waits for it: the command says what makes it and stops, and the same command comes back to the step once the folder is there
-      if (step.needsFolder && stepOf(state, step.id).status !== "validated" && !folder()) {
-        printNext(ctx)
-        return EXIT.ok
+      if (stepOf(state, step.id).status !== "validated") {
+        if (step.mode === "session" && step.makesFolder && folder() && stepOf(state, step.id).status === "pending") {
+          // a game that has its folder (made by hand, or by an earlier run) and has not run this step has nothing for it to make: a step that waits at its gate keeps its gate
+          const done = stepOf(state, step.id)
+          done.status = "validated"
+          done.validatedAt = deps.now().toISOString()
+          save(ctx)
+          io.out(`${pal.green("✓")} ${titleCase(step.title)}: games/${state.slug} is there already, nothing to make`)
+          continue
+        }
+        if (step.needsFolder && !folder()) {
+          printNext(ctx)
+          return EXIT.ok
+        }
       }
       const outcome = await runStep(ctx, step)
       if (outcome === "validated") continue

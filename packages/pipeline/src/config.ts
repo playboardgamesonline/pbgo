@@ -34,6 +34,11 @@ export function checkPicturesBin(env: Env = process.env): string | null {
   return env.PBGO_CHECK_PICTURES_BIN ? env.PBGO_CHECK_PICTURES_BIN : null
 }
 
+/** What the command that gates a game's stage is: `node scripts/check-game.mjs` unless a test says another (it is run with the slug and `--stage <stage>` or `--only <stage>`). */
+export function checkStageBin(env: Env = process.env): string | null {
+  return env.PBGO_CHECK_STAGE_BIN ? env.PBGO_CHECK_STAGE_BIN : null
+}
+
 /** What the command that dry-runs a game's seed on its art folder is: `pnpm -C games/<slug> content:seed --dry-run --art-dir <folder>` unless a test says another (it is run with the slug and the folder). */
 export function checkArtBin(env: Env = process.env): string | null {
   return env.PBGO_CHECK_ART_BIN ? env.PBGO_CHECK_ART_BIN : null

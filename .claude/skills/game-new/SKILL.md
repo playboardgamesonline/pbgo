@@ -26,7 +26,7 @@ Look before asking.
 1. **Name and address.** The name the hub prints, and the slug (`playboardgamesonline.app/<slug>`). Default: the slug the name makes (The Crew → `the-crew`). The slug is lowercase letters, digits and hyphens, free, and not a route of the app: `packages/games/src/slug.ts` is the one definition, `slug.test.ts` keeps it, and `--dry-run` reports a problem in a sentence.
 2. **Rulebooks.** One PDF per language (`fr`, `en`, `es`, `de`), as absolute paths: a relative path is read from where the command is typed. Default: the PDFs the owner has; none is fine (`pnpm game-rules` adds one later, whatever its size).
 3. **Issue and branch.** The Linear issue of the game; the branch is named after it (`gam-<n>-<slug>`), cut from `origin/main` (`git fetch && git switch -c <branch> origin/main`, then `git branch --unset-upstream`). Default: the issue the owner names, else offer to create it.
-4. **Commit.** `--push` makes the script commit the new game alone and push the branch. Default: no, so the commit carries the fields too and ends with the usual `Co-Authored-By` line.
+4. **Commit.** `--push` makes the script commit the new game alone and push the branch. Default: no, so the commit carries the fields too and ends with the usual `Co-Authored-By` line. When `pnpm add-game "<Name>"` opened this session, its first message says where the rulebook is (`~/Companies/PBGO/assets/<slug>/rules.pdf`: the `--rules` file when its language is one of the four) and the rules spec that an earlier step left in the working tree, uncommitted, `docs/games/<slug>/`: that folder goes into the game's first commit, with the game.
 
 ## 3. Show what leaves the machine, then wait
 

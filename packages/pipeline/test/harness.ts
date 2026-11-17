@@ -24,6 +24,8 @@ export type CallSpec = {
   pictures?: { exit: number; lines: string[] }
   /** same, for the stand-in of the dry run of a game's seed on its art folder */
   art?: { exit: number; lines: string[] }
+  /** same, for the stand-in of the gate of a stage: the report it prints (the script's own format) and its exit code */
+  stage?: { exit: number; report: string }
   tools?: { name: string; input?: Record<string, unknown> }[]
   denials?: { tool: string; input?: Record<string, unknown>; reason?: string; hook?: boolean }[]
   structured?: unknown
@@ -113,6 +115,7 @@ export async function runCli(options: RunOptions): Promise<Run> {
   executable(join(bin, "check-scout"), `#!/bin/sh\nexec "${process.execPath}" "${join(PACKAGE, "test", "fake-check-scout.mjs")}" "$@"\n`)
   // the check of a spec is the real one (`pnpm check:rules` without pnpm), reading the specs of the temporary world
   executable(join(bin, "check-pictures"), `#!/bin/sh\nexec "${process.execPath}" "${join(PACKAGE, "test", "fake-check-pictures.mjs")}" "$@"\n`)
+  executable(join(bin, "check-stage"), `#!/bin/sh\nexec "${process.execPath}" "${join(PACKAGE, "test", "fake-check-stage.mjs")}" "$@"\n`)
   executable(join(bin, "check-art"), `#!/bin/sh\nexec "${process.execPath}" "${join(PACKAGE, "test", "fake-check-art.mjs")}" "$@"\n`)
   executable(join(bin, "check-rules"), `#!/bin/sh\nexec "${process.execPath}" --disable-warning=ExperimentalWarning "${join(REPO, "packages", "games", "scripts", "check-rules.ts")}" "$@"\n`)
   writeFileSync(join(base, "scenario.json"), JSON.stringify(options.scenario ?? {}))
@@ -130,6 +133,9 @@ export async function runCli(options: RunOptions): Promise<Run> {
     PBGO_CHECK_RULES_BIN: join(bin, "check-rules"),
     PBGO_CHECK_PICTURES_BIN: join(bin, "check-pictures"),
     PBGO_CHECK_ART_BIN: join(bin, "check-art"),
+    PBGO_CHECK_STAGE_BIN: join(bin, "check-stage"),
+    FAKE_STAGE_FILE: join(base, "stage.json"),
+    FAKE_STAGE_LOG: join(base, "stage.log"),
     FAKE_ART_FILE: join(base, "art.json"),
     FAKE_PICTURES_FILE: join(base, "pictures.json"),
     PBGO_GAMES_DOCS_DIR: docs,
@@ -174,7 +180,7 @@ export async function runCli(options: RunOptions): Promise<Run> {
     stderr,
     invocations,
     calls: invocations.filter((call) => call.argv[0] === "-p"),
-    sessions: invocations.filter((call) => call.argv[0] === "--model" && !call.argv.includes("-p")),
+    sessions: invocations.filter((call) => (call.argv[0] === "--resume" || call.argv[0] === "--session-id") && !call.argv.includes("-p")),
     base,
     assets,
     docs,
@@ -215,7 +221,7 @@ export function scoutJson(name: string, slug: string, extra: Record<string, unkn
 
 /** What a bookkeeping call answers: the ids of the issues it made or moved. */
 export function linearAnswer(keys: string[], state: Record<string, string> = {}, extra: { commented?: string[] } = {}): unknown {
-  const number = (key: string) => 40 + ["parent", "scout", "catalog-entry", "rules-spec", "platform-assets", "game-assets"].indexOf(key)
+  const number = (key: string) => 40 + ["parent", "scout", "catalog-entry", "rules-spec", "platform-assets", "game-new", "game-sanity-create", "game-assets", "engine-rules", "engine-board", "game-go-live"].indexOf(key)
   return {
     labelId: "label-1",
     issues: keys.map((key) => ({
