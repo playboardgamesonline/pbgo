@@ -187,20 +187,18 @@ One picture per card of the Studio, not per card of the box: the 94 cards of the
 | `mat` (optional) | 1 | `game` › `mat` | any | 2400 |
 | `logo` | 1 | `settings` › `logo` | any | 1024 |
 
-### Love Letter slots (15)
+### Love Letter slots (13)
 
-One picture per character of the Studio, not per card of the box: the 21 cards are 10 different faces, and every copy of a character looks alike. The files are the owner's: a face is 760 by 1060 (38:53, within 0.4 % of 5:7), and the names the owner's files already have (`CARD_SPY.png` to `CARD_PRINCESS.png`, `CARD_BACK.png`, `FAVOR_TOKEN_SYMBOL.svg`, `FAVOR_TOKEN_MASK.png`, `LOGO_LOVE_LETTER.png`) fill their slots as they are.
+One picture per character of the Studio, not per card of the box: the 21 cards are 10 different faces, and every copy of a character looks alike. The files are the owner's: a face is 760 by 1060 (38:53, within 0.4 % of 5:7), and the names the owner's files already have (`CARD_SPY.png` to `CARD_PRINCESS.png`, `CARD_BACK.png`, `LOGO_LOVE_LETTER.png`) fill their slots as they are.
 
 | File name (without extension) | Count | Placed in | Proportions | Longest side |
 | --- | --- | --- | --- | --- |
 | `spy`, `guard`, `priest`, `baron`, `handmaid`, `prince`, `chancellor`, `king`, `countess`, `princess` (`card-<key>` also accepted) | 10 | `character-<key>` › `image` | 760:1060 | 1400 |
 | `card-back` (`back` also accepted) | 1 | `game` › `cardBack` | 760:1060 | 1400 |
-| `favor-token-symbol` (an SVG, kept as it is) | 1 | `game` › `favorTokenSymbol` | any | 2048 |
-| `favor-token-mask` | 1 | `game` › `favorTokenMask` | any | 2048 |
 | `mat` (optional) | 1 | `game` › `mat` | any | 2400 |
 | `logo` (`logo-love-letter` also accepted) | 1 | `settings` › `logo` | any | 1024 |
 
-The favor token's 3D model (`FAVOR_TOKEN.glb`) is a file, not an image: no slot places it, it is dropped on the "Favor token 3D model" field of `game` in the Studio. Nothing in the table kit loads a glTF today, so the field only keeps the file until the board decides to use it.
+The favor token's 3D model (`FAVOR_TOKEN.glb`) is a file, not an image: no slot places it, it is dropped on the "Favor token 3D model" field of `game` in the Studio. Nothing in the table kit loads a glTF today, so the field only keeps the file until the board decides to use it. The model is the favor token: the Studio has no field for a symbol or a mask.
 
 What the board needs from the faces (read from the owner's pictures for the board step; the geometry is measured on the files, to confirm with a render):
 - The faces are **blank plates**: no name and no text is printed on them, so the board draws the Name and the Card text of the Studio (the language asked, else English: Spanish and German are empty). `paintFace` of the table kit wants a full rectangle and cuts the corners itself: the ten faces and the back are opaque from edge to edge.
@@ -282,7 +280,7 @@ The 22 cards come in three categories, the engine's kinds (79 number cards, 9 ac
 | Id | Type | Count | Holds |
 | --- | --- | --- | --- |
 | `character-<key>` | `character` | 10 | One per character, `character-spy` … `character-princess`, in the order of the values. The fields, in the order of the Studio form: the English game key (a dropdown of the ten keys, which the engine reads as they are), its printed value (0 to 9, read-only, which sorts the list), its name and its card text (French and English; Spanish and German empty), its quantity (2 Spies, 6 Guards, 2 each of the Priest, the Baron, the Handmaid, the Prince and the Chancellor, 1 each of the King, the Countess and the Princess: 21 cards) and, last, its visual, which the art fills. No Effect or Rule field: what a card does is the engine's. The card text is the one exception, a text to display on the card's plate, since the faces are blank plates |
-| `game` | `game` | 1 | Empty: pictures only, in three tabs (Board: the optional mat; Card backs: the back; Favor token: its symbol, its mask and its 3D model file) |
+| `game` | `game` | 1 | Empty: pictures only, in three tabs (Board: the optional mat; Card backs: the back; Favor token: its 3D model file) |
 | `settings` | `settings` | 1 | Credits: a game by Seiji Kanai, publisher Z-Man Games with its link. No illustrator line (`settings` has no field for one; the booklet names Andrew Bosley for the character art) and no description (the catalog's is English only). The draft that `pnpm game-rules` made, which holds the English rulebook, only gets its gaps filled |
 
 Two of them are singletons: `game` and `settings`. There is no category and no `rules` document: nothing on the table groups the ten characters, and the rules are the publisher's PDF. Nothing is added to `texts` or `audio`: the words of the options and the scores come after the engine, the words of the board with the board and the victory phrases at go-live, each a later pass of the skill `game-sanity-create`.
