@@ -8,31 +8,34 @@ import { GAMES } from "@pbgo/games/registry"
 import { readScout, stateProblems } from "@pbgo/games/scout"
 import { describeState, readScoutState } from "../src/scout-state.ts"
 
-const USAGE = `Usage: pnpm check:scout <file> [--online]
+const USAGE = `Usage: pnpm check:scout <file> [--online [--existing]]
        pnpm check:scout --list
 
-  <file>     a scout file, scout.json (a relative path is read from the folder the command was typed in)
-  --online   also check it against what exists: the game has no folder yet (the registry), and existing.catalog and the base game agree with the published
-             documents of the platform's Sanity project (the public API, no token). It is the state at the time of the scout: use it when the file is made, not after.
+  <file>      a scout file, scout.json (a relative path is read from the folder the command was typed in)
+  --online    also check it against what exists: the game has no folder yet (the registry), and existing.catalog and the base game agree with the published
+              documents of the platform's Sanity project (the public API, no token). It is the state at the time of the scout: use it when the file is made, not after.
+  --existing  with --online: the game has its folder in the repo already (it is taken into /add-game as it is), so the folder is what it must have; the rest is checked the same
   --list     print the games and the expansions that a scouted game is compared with: slug, type, BoardGameGeek id, base game, folder in the repo and name
   --help     this text`
 
 /** A wrong command line: reported with the usage, exit 2. */
 class UsageError extends Error {}
 
-function parse(argv: string[]): { help: boolean; online: boolean; list: boolean; file: string } {
+function parse(argv: string[]): { help: boolean; online: boolean; existing: boolean; list: boolean; file: string } {
   const args = argv[0] === "--" ? argv.slice(1) : argv
-  const options = { help: false, online: false, list: false, file: "" }
+  const options = { help: false, online: false, existing: false, list: false, file: "" }
   for (const arg of args) {
     if (arg === "--help" || arg === "-h") options.help = true
     else if (arg === "--online") options.online = true
+    else if (arg === "--existing") options.existing = true
     else if (arg === "--list") options.list = true
     else if (arg.startsWith("-")) throw new UsageError(`Unknown option ${arg}`)
     else if (options.file !== "") throw new UsageError(`One file only, got "${options.file}" and "${arg}"`)
     else options.file = arg
   }
   if (options.help) return options
-  if (options.list && (options.file !== "" || options.online)) throw new UsageError("--list takes no file and no other option")
+  if (options.list && (options.file !== "" || options.online || options.existing)) throw new UsageError("--list takes no file and no other option")
+  if (options.existing && !options.online) throw new UsageError("--existing is for --online: it says what the registry must hold for the game")
   if (!options.list && options.file === "") throw new UsageError("Give the scout file to check")
   return options
 }
@@ -62,7 +65,7 @@ try {
       console.log(`ok    ${path}: ${scout.name} (${scout.slug}, ${scout.type})`)
     } else {
       const state = { registry: GAMES.map((game) => game.slug), ...(await readScoutState()) }
-      const found = stateProblems(scout, state)
+      const found = stateProblems(scout, state, { existing: options.existing })
       if (found.length > 0) {
         console.log(`fail  ${path}: ${scout.name} (${scout.slug}, ${scout.type}), against the registry and the catalog\n${list(found)}`)
         process.exitCode = 1

@@ -362,6 +362,7 @@ describe("gate", () => {
     expect(art.out).not.toContain("Done.")
     expect(w.calls.at(-1)).toEqual({ file: "pnpm", args: ["-C", "games/skyjo", "content:seed", "--dry-run", "--art-dir", join(w.assets, "skyjo")] })
     await w.run("start", "Coup", "--adopt-through", "rules-spec")
+    writeScout("coup")
     await w.run("begin", "coup", "platform-assets", "--scratch", w.scratch)
     await w.run("gate", "coup", "platform-assets")
     expect(w.calls.at(-1)).toEqual({ file: "pnpm", args: ["catalog:pictures", "coup"] })
@@ -416,6 +417,7 @@ describe("validate", () => {
 
   it("stamps the spec as validated, with the day, when the owner validates it", async () => {
     await w.run("start", "The Crew", "--adopt-through", "catalog-entry")
+    writeScout("the-crew")
     mkdirSync(join(w.repo, "docs", "games", "the-crew"), { recursive: true })
     writeFileSync(join(w.repo, "docs", "games", "the-crew", "rules.md"), "# The Crew: rules spec\n")
     await w.run("begin", "the-crew", "rules-spec", "--scratch", w.scratch)
@@ -429,6 +431,7 @@ describe("validate", () => {
 
   it("does not validate a spec that cannot be stamped", async () => {
     await w.run("start", "The Crew", "--adopt-through", "catalog-entry")
+    writeScout("the-crew")
     mkdirSync(join(w.repo, "docs", "games", "the-crew"), { recursive: true })
     writeFileSync(join(w.repo, "docs", "games", "the-crew", "rules.md"), "# The Crew: rules spec\n")
     await w.run("begin", "the-crew", "rules-spec", "--scratch", w.scratch)
@@ -442,6 +445,7 @@ describe("validate", () => {
 
   it("has a second gate for the catalog entry, the word that makes the drafts public, and judges it on what the platform's Sanity shows", async () => {
     await w.run("start", "The Crew", "--adopt-through", "scout")
+    writeScout("the-crew")
     await w.run("begin", "the-crew", "catalog-entry", "--scratch", w.scratch)
     const sentence = "STATUS: done\nSUMMARY: two drafts\nLINKS: https://pbgo.sanity.studio/intent/edit/id=game-the-crew;type=game\nValidate publishes 2 documents (game-the-crew, publisher-kosmos)."
     const gated = await w.run("gate", "the-crew", "catalog-entry", "--report", report("r.md", sentence))
@@ -469,6 +473,7 @@ describe("validate", () => {
 
   it("keeps the report that named the documents when the sub-agent reports again at the second gate, and judges what is published", async () => {
     await w.run("start", "The Crew", "--adopt-through", "scout")
+    writeScout("the-crew")
     await w.run("begin", "the-crew", "catalog-entry", "--scratch", w.scratch)
     await w.run("gate", "the-crew", "catalog-entry", "--report", report("r.md", "STATUS: done\nLINKS: https://pbgo.sanity.studio/x\nValidate publishes 1 document (game-the-crew)"))
     await w.run("validate", "the-crew", "catalog-entry")
@@ -484,6 +489,7 @@ describe("validate", () => {
 
   it("does not go to the second gate when the report does not say which documents it would publish", async () => {
     await w.run("start", "The Crew", "--adopt-through", "scout")
+    writeScout("the-crew")
     await w.run("begin", "the-crew", "catalog-entry", "--scratch", w.scratch)
     const gated = await w.run("gate", "the-crew", "catalog-entry", "--report", report("r.md", "STATUS: done\nSUMMARY: the drafts"))
     expect(gated.out).toContain('The report does not say which documents publish would make public')
@@ -495,6 +501,7 @@ describe("validate", () => {
 
   it("does not take a Sanity that cannot be read for a publication, and says to try again", async () => {
     await w.run("start", "The Crew", "--adopt-through", "scout")
+    writeScout("the-crew")
     await w.run("begin", "the-crew", "catalog-entry", "--scratch", w.scratch)
     await w.run("gate", "the-crew", "catalog-entry", "--report", report("r.md", "STATUS: done\nValidate publishes 1 document (game-the-crew)"))
     await w.run("validate", "the-crew", "catalog-entry")
@@ -867,6 +874,7 @@ describe("the checkout of the steps that work in it", () => {
 
   it("wants the rules spec that the owner validated to be in this checkout: it was written there, uncommitted", async () => {
     await w.run("start", "The Crew", "--adopt-through", "catalog-entry")
+    writeScout("the-crew")
     mkdirSync(join(w.repo, "docs", "games", "the-crew"), { recursive: true })
     writeFileSync(join(w.repo, "docs", "games", "the-crew", "rules.md"), "# The Crew: rules spec\n")
     await w.run("begin", "the-crew", "rules-spec", "--scratch", w.scratch)
@@ -891,6 +899,142 @@ describe("the checkout of the steps that work in it", () => {
     const brief = readFileSync(join(w.scratch, "brief-the-crew-game-new.md"), "utf8")
     expect(brief).toContain("`GAM-47`")
     expect(brief).toContain("never the game's parent issue `GAM-41`")
+  })
+})
+
+describe("a game that has its folder in the repo", () => {
+  it("enters the flow with --existing: nothing is taken on, the scout runs as it is, and its check says so", async () => {
+    makeGameFolder("trio")
+    const started = await w.run("start", "Trio", "--existing")
+    expect(started.code).toBe(0)
+    expect(started.out).toContain("games/trio is in the repo already: every step runs on it, the scout included")
+    expect(started.out).not.toContain("Taken on with nothing behind it")
+    expect(STEPS.every((step) => stepOf(stateOf("trio"), step.id).status === "pending")).toBe(true)
+    expect(started.out).toContain("Next [begin]: pnpm game-flow begin trio scout")
+    expect((await w.run("begin", "trio", "scout", "--scratch", w.scratch)).code).toBe(0)
+    const brief = readFileSync(join(w.scratch, "brief-trio-scout.md"), "utf8")
+    const file = join(w.assets, "trio", "scout.json")
+    expect(brief).toContain(`Trio --out ${file} --existing`)
+    expect(brief).toContain(`pnpm check:scout ${file} --online --existing`)
+    writeScout("trio", { ...SCOUT, name: "Trio", slug: "trio" })
+    await w.run("gate", "trio", "scout", "--report", report("t.md", "STATUS: done"))
+    expect(w.calls.at(-1)).toEqual({ file: "pnpm", args: ["check:scout", file, "--online", "--existing"] })
+    // a game that has no folder is scouted as before
+    await w.run("start", "Sample")
+    await w.run("begin", "sample", "scout", "--scratch", w.scratch)
+    expect(readFileSync(join(w.scratch, "brief-sample-scout.md"), "utf8")).not.toContain("--existing")
+  })
+
+  it("is refused with --existing when it has no folder in this checkout, and when --adopt-through is asked too", async () => {
+    const none = await w.run("start", "Trio", "--existing")
+    expect(none.code).toBe(1)
+    expect(none.err).toContain("games/trio is not in this checkout")
+    makeGameFolder("trio")
+    const both = await w.run("start", "Trio", "--existing", "--adopt-through", "game-new")
+    expect(both.code).toBe(2)
+    expect(both.err).toContain("do not go together")
+    const bare = await w.run("start", "Trio")
+    expect(bare.code).toBe(1)
+    expect(bare.err).toContain("--existing")
+    expect(bare.err).toContain("--adopt-through")
+  })
+
+  it("keeps the slug of its folder when the scout validates: the folder of the repo does not move", async () => {
+    makeGameFolder("trio")
+    await w.run("start", "Trio", "--existing")
+    await w.run("begin", "trio", "scout", "--scratch", w.scratch)
+    writeScout("trio", { ...SCOUT, name: "Trio", slug: "trio-the-game" })
+    await w.run("gate", "trio", "scout", "--report", report("t.md", "STATUS: done"))
+    const refused = await w.run("validate", "trio", "scout")
+    expect(refused.code).toBe(1)
+    expect(refused.err).toContain("games/trio is this game's folder in the repo, so its slug does not change")
+    expect(stepOf(stateOf("trio"), "scout").status).toBe("gate")
+    writeScout("trio", { ...SCOUT, name: "Trio (2019)", slug: "trio" })
+    expect((await w.run("validate", "trio", "scout")).code).toBe(0)
+    expect(stateOf("trio").name).toBe("Trio (2019)")
+  })
+})
+
+describe("a step taken on as it was", () => {
+  it("is said in the status, and the command says what it has no file behind it for when the game enters the flow", async () => {
+    makeGameFolder("love-letter")
+    const started = await w.run("start", "Love Letter", "--adopt-through", "game-new")
+    expect(started.out).toContain("Taken on with nothing behind it")
+    expect(started.out).toContain(`scout: no scout file (${join(w.assets, "love-letter", "scout.json")})`)
+    expect(started.out).toContain("pnpm game-flow redo love-letter scout --only")
+    expect(started.out).toContain("rules spec: no page (docs/games/love-letter/rules.md)")
+    expect(started.out).toContain("pnpm game-flow redo love-letter rules-spec --only")
+    expect((await w.run("status", "love-letter")).out).toContain("validated 2026-11-17 · taken on as it was")
+  })
+
+  it("says nothing of a scout file and a spec that are there", async () => {
+    makeGameFolder("love-letter")
+    mkdirSync(join(w.assets, "love-letter"), { recursive: true })
+    writeScout("love-letter", { ...SCOUT, name: "Love Letter", slug: "love-letter" })
+    mkdirSync(join(w.repo, "docs", "games", "love-letter"), { recursive: true })
+    writeFileSync(join(w.repo, "docs", "games", "love-letter", "rules.md"), "# Love Letter: rules spec\n")
+    const started = await w.run("start", "Love Letter", "--adopt-through", "game-new")
+    expect(started.code).toBe(0)
+    expect(started.out).not.toContain("Taken on with nothing behind it")
+  })
+
+  it("keeps the steps that read the scout file from beginning without one, and says how to make it for a scout that was taken on", async () => {
+    await w.run("start", "The Crew", "--adopt-through", "scout")
+    const refused = await w.run("begin", "the-crew", "catalog-entry", "--scratch", w.scratch)
+    expect(refused.code).toBe(1)
+    expect(refused.err).toContain("there is no scout file yet")
+    expect(refused.err).toContain("catalog entry reads one. The scout was taken on as it was, so none was made: pnpm game-flow redo the-crew scout --only")
+    expect(stepOf(stateOf("the-crew"), "catalog-entry").status).toBe("pending")
+    await w.run("start", "Sample", "--adopt-through", "catalog-entry")
+    expect((await w.run("begin", "sample", "rules-spec", "--scratch", w.scratch)).err).toContain("rules spec reads one")
+    await w.run("start", "Coup", "--adopt-through", "rules-spec")
+    expect((await w.run("begin", "coup", "platform-assets", "--scratch", w.scratch)).err).toContain("platform assets reads one")
+    // a scout that was run and whose file is gone is not the same case
+    const state = stateOf("the-crew")
+    stepOf(state, "scout").report = "STATUS: done"
+    writeFileSync(join(w.assets, "the-crew", "pipeline.json"), JSON.stringify(state))
+    expect((await w.run("begin", "the-crew", "catalog-entry", "--scratch", w.scratch)).err).toContain("the scout step validated one, so it was moved or deleted")
+  })
+
+  it("says the same for the rulebook, which is the one the scout found", async () => {
+    await w.run("start", "The Crew", "--adopt-through", "scout")
+    const result = await w.run("rulebook", "the-crew")
+    expect(result.code).toBe(1)
+    expect(result.err).toContain("the rulebook is the one the scout found. The scout was taken on as it was")
+  })
+
+  it("is run after all with redo --only: that step alone goes back, and the ones after it keep what they have", async () => {
+    makeGameFolder("love-letter")
+    await w.run("start", "Love Letter", "--adopt-through", "game-new")
+    const redone = await w.run("redo", "love-letter", "scout", "--only")
+    expect(redone.code).toBe(0)
+    expect(redone.out).toContain("scout is back to not started and runs next: the steps after it keep what they have")
+    expect(STEPS.slice(0, 6).map((step) => stepOf(stateOf("love-letter"), step.id).status)).toEqual(["pending", "validated", "validated", "validated", "validated", "pending"])
+    expect((await w.run("status", "love-letter")).out).toContain("Next [begin]: pnpm game-flow begin love-letter scout")
+    const begun = await w.run("begin", "love-letter", "scout", "--scratch", w.scratch)
+    expect(begun.code).toBe(0)
+    expect(readFileSync(join(w.scratch, "brief-love-letter-scout.md"), "utf8")).toContain("--existing")
+    // the steps after it wait for it
+    expect((await w.run("begin", "love-letter", "game-sanity-create", "--scratch", w.scratch)).err).toContain("scout is not validated yet")
+  })
+
+  it("is taken back alone only when it was taken on as it was", async () => {
+    await w.run("start", "The Crew")
+    const refused = await w.run("redo", "the-crew", "scout", "--only")
+    expect(refused.code).toBe(1)
+    expect(refused.err).toContain("--only is for a step that was taken on as it was, and scout was not")
+    expect(stepOf(stateOf("the-crew"), "scout").status).toBe("pending")
+  })
+
+  it("tells the engine, when it begins and in its brief, that there is no rules spec behind it", async () => {
+    makeGameFolder("coup")
+    await w.run("start", "Coup", "--adopt-through", "game-assets")
+    const begun = await w.run("begin", "coup", "engine-rules", "--scratch", w.scratch)
+    expect(begun.out).toContain("Note: there is no rules spec (docs/games/coup/rules.md)")
+    expect(readFileSync(join(w.scratch, "brief-coup-engine-rules.md"), "utf8")).toContain("When it does not (a game taken on without one), the rulebook is the source")
+    mkdirSync(join(w.repo, "docs", "games", "coup"), { recursive: true })
+    writeFileSync(join(w.repo, "docs", "games", "coup", "rules.md"), "# Coup: rules spec\n")
+    expect((await w.run("begin", "coup", "engine-rules", "--again", "--scratch", w.scratch)).out).not.toContain("Note: there is no rules spec")
   })
 })
 

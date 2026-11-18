@@ -12,6 +12,8 @@ describe("the brief of a sub-agent", () => {
       expect(brief, step.id).toContain(`step ${STEPS.indexOf(step) + 1} of ${STEPS.length} · Love Letter (love-letter)`)
       expect(brief, step.id).toContain(`Run the skill \`${step.skill}\` with the Skill tool, with this argument: \`${step.args(game)}\``)
       expect(brief, step.id).toContain(`read \`${step.skillFile}\` and follow it exactly`)
+      // the file of the checkout wins over a copy that the Skill tool loaded from another one
+      expect(brief, step.id).toContain(`when its text differs from \`${step.skillFile}\`, follow the file`)
       expect(brief, step.id).toContain(checkWords(step, game))
     }
   })

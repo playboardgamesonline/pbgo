@@ -25,7 +25,7 @@ export function checkWords(step: StepDefinition, game: Game): string {
   const check = step.check
   switch (check.kind) {
     case "scout":
-      return `\`pnpm check:scout ${game.scoutFile} --online\` exits 0`
+      return `\`pnpm check:scout ${game.scoutFile} --online${game.folder ? " --existing" : ""}\` exits 0`
     case "published":
       return "the documents of your sentence `Validate publishes N documents (ids)` are published (checked after you publish, from the platform's public API)"
     case "rules":
@@ -43,7 +43,7 @@ export function briefOf(args: BriefArgs): string {
   const { step, game, scratch, reportPath, has, round, issue, parent, repair } = args
   const index = STEPS.findIndex((each) => each.id === step.id) + 1
   const notes = step.notes(game)
-  const todo = [`Run the skill \`${step.skill}\` with the Skill tool, with this argument: \`${step.args(game)}\`. When the Skill tool does not list that skill (skills are read when a session starts, and this one may be newer) or is not available to you, read \`${step.skillFile}\` and follow it exactly, with that argument.`, ...notes]
+  const todo = [`Run the skill \`${step.skill}\` with the Skill tool, with this argument: \`${step.args(game)}\`. When the Skill tool does not list that skill (skills are read when a session starts, and this one may be newer) or is not available to you, read \`${step.skillFile}\` and follow it exactly, with that argument. The file of this checkout is the skill: the Skill tool may load an older copy from another checkout, so when its text differs from \`${step.skillFile}\`, follow the file.`, ...notes]
   if (round > 1) todo.push(`This is round ${round} of the step: it was interrupted or it failed. Look at what already exists (the files, the drafts, what is published) and carry on from there; never redo what is right.`)
   if (repair !== undefined && repair.length > 0) {
     todo.push(`The game's folder is in the repo already (\`games/${game.slug}\`) and the check of this step does not pass, so this round repairs it instead of creating it: ${repair.join(" | ")}. Do not run \`pnpm new-game\`. Follow the case of section 1 of the skill that matches (a Sanity project that is gone or was never made): everything it creates outside the repo waits for the explicit yes that the orchestrator relays to you, so stop with \`STATUS: questions\` first, with what it will make.`)

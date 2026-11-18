@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import {
   CITING_SECTIONS,
@@ -413,6 +413,12 @@ describe("the skill game-rules-spec", () => {
       expect(skill).toContain(`pnpm ${name}`)
       expect(root.scripts).toHaveProperty(name)
     }
+  })
+
+  it("names the two scripts that read a PDF without poppler, and they exist", () => {
+    const named = [...new Set([...skill.matchAll(/scripts\/pdf\/[a-z-]+\.swift/g)].map((found) => found[0]))].sort()
+    expect(named).toEqual(["scripts/pdf/pdf-pages.swift", "scripts/pdf/pdf-text.swift"])
+    for (const path of named) expect(existsSync(new URL(path, REPO)), path).toBe(true)
   })
 
   it("is in the list of the skills, and in the table of a game from A to Z as written", () => {

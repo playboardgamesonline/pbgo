@@ -5,16 +5,19 @@ import { join } from "node:path"
 import type { StageGate } from "./stage.ts"
 import { PICTURES_DIR, RULES_PDF, SCOUT_FILE } from "./state.ts"
 
-/** The game as the flow knows it: the name, the slug, its folder of working files, its scout file, the rulebook next to it and the folder of its pictures for the platform. */
-export type Game = { name: string; slug: string; dir: string; scoutFile: string; rulesPdf: string; picturesDir: string }
+/**
+ * The game as the flow knows it: the name, the slug, its folder of working files, its scout file, the rulebook next to it and the folder of its pictures for the platform. `folder` says whether the game
+ * has its folder in the repo already (`games/<slug>` of this checkout): such a game is scouted as it is, with `--existing`.
+ */
+export type Game = { name: string; slug: string; dir: string; scoutFile: string; rulesPdf: string; picturesDir: string; folder: boolean }
 
 export function gameOf(assets: string, name: string, slug: string): Game {
   return gameAt(join(assets, slug), name, slug)
 }
 
 /** A game whose folder is where it was found (the folder of its state), whatever it is called. */
-export function gameAt(dir: string, name: string, slug: string): Game {
-  return { name, slug, dir, scoutFile: join(dir, SCOUT_FILE), rulesPdf: join(dir, RULES_PDF), picturesDir: join(dir, PICTURES_DIR) }
+export function gameAt(dir: string, name: string, slug: string, folder = false): Game {
+  return { name, slug, dir, scoutFile: join(dir, SCOUT_FILE), rulesPdf: join(dir, RULES_PDF), picturesDir: join(dir, PICTURES_DIR), folder }
 }
 
 /** The words the owner answers a gate with: `validate` says the work is right, `publish` is the one that makes drafts public. */
@@ -53,6 +56,8 @@ export type StepDefinition = {
   args: (game: Game) => string
   /** what the brief of the sub-agent adds for this step */
   notes: (game: Game) => string[]
+  /** the skill reads the game's scout file (its argument): the step does not begin without one */
+  needsScout?: boolean
   /** the step works in the game's folder of the repo (`games/<slug>`, which `game-new` makes): it waits while the game has none in this checkout */
   needsFolder?: boolean
   /** the step makes the game's folder in the repo: for a game that has it already there is nothing to make */
@@ -68,10 +73,12 @@ export const SCOUT: StepDefinition = {
   lane: "Game lane",
   skillFile: ".claude/skills/game-scout/SKILL.md",
   gates: ["validate"],
-  // `--out` puts the file where the flow keeps the game's files, whatever the slug the scout settles on: moving the folder is `validate`'s job
-  args: (game) => `${game.name} --out ${game.scoutFile}`,
+  // `--out` puts the file where the flow keeps the game's files, whatever the slug the scout settles on: moving the folder is `validate`'s job. A game that has a folder in the repo is scouted with `--existing`
+  args: (game) => `${game.name} --out ${game.scoutFile}${game.folder ? " --existing" : ""}`,
   notes: (game) => [
-    `The scout file goes to \`${game.scoutFile}\` (the skill's \`--out\`), whatever slug you settle on: the orchestrator moves the game's folder when the owner validates.`,
+    game.folder
+      ? `The game has its folder in the repo already (\`games/${game.slug}\`): it is scouted as it is, with \`--existing\`, and its slug stays \`${game.slug}\`. The scout file goes to \`${game.scoutFile}\` (the skill's \`--out\`).`
+      : `The scout file goes to \`${game.scoutFile}\` (the skill's \`--out\`), whatever slug you settle on: the orchestrator moves the game's folder when the owner validates.`,
     "The skill cannot ask in the middle and neither can you: its defaults answer every question, and what the owner may want to change goes in your report.",
   ],
   check: { kind: "scout" },
@@ -91,6 +98,7 @@ export const CATALOG_ENTRY: StepDefinition = {
     "Stop at the drafts: the report gives the Studio link of each draft and, in the skill's own sentence, `Validate publishes N documents (id, id)`: the orchestrator reads that sentence and shows the owner those ids.",
     "Publish only when the orchestrator sends you the owner's explicit yes to publish, and then exactly the documents of that sentence: read them back from Sanity and report.",
   ],
+  needsScout: true,
   check: { kind: "published" },
 }
 
@@ -108,6 +116,7 @@ export const RULES_SPEC: StepDefinition = {
     `Write only \`docs/games/${game.slug}/rules.md\` and \`docs/games/${game.slug}/index.md\`, and leave them uncommitted: the game's first pull request takes them.`,
     "Your SUMMARY is the skill's own report whole, with its open points, each with the reading you propose: the owner's ok accepts every reading, and the orchestrator shows them each.",
   ],
+  needsScout: true,
   check: { kind: "rules" },
   onValidate: "stamp-rules",
 }
@@ -123,6 +132,7 @@ export const PLATFORM_ASSETS: StepDefinition = {
   notes: (game) => [
     `The pictures are brought into \`${game.picturesDir}\`, with their sources written down. Every download, every upload and the publication need the owner's yes: stop with \`STATUS: questions\` before each, saying what, from where, how many files and where it goes.`,
   ],
+  needsScout: true,
   check: { kind: "pictures" },
 }
 
@@ -183,7 +193,7 @@ export const ENGINE_RULES: StepDefinition = {
   gates: ["validate"],
   args: (game) => game.slug,
   notes: (game) => [
-    `The rules spec \`docs/games/${game.slug}/rules.md\` is the source: its open points were validated with it, so do not ask the owner for them again. The plan and each slice's pull request wait for the owner's go: stop with \`STATUS: questions\`.`,
+    `When the rules spec \`docs/games/${game.slug}/rules.md\` exists it is the source: its open points were validated with it, so do not ask the owner for them again. When it does not (a game taken on without one), the rulebook is the source and every case it leaves open goes in your questions. The plan and each slice's pull request wait for the owner's go: stop with \`STATUS: questions\`.`,
   ],
   needsFolder: true,
   check: { kind: "stage", gate: { stage: "engine" } },

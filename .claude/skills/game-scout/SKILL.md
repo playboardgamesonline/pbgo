@@ -7,7 +7,7 @@ description: "[GAME agent] Identify a game before it is added. From a game's nam
 
 The first step of "A game from A to Z" (`.claude/skills/README.md`): before a game is built, say which game it is. The job ends when the owner confirms the edition at the gate. It reads the web, BoardGameGeek and the catalog, writes one file and one report, and nothing else: no write to Notion, Linear, Sanity or Supabase (the catalog is read through its public API), no commit, no download.
 
-The argument is the game's name as the owner says it, and optionally `--out <file>`; ask if there is no name. Run as a sub-agent of `/add-game` it cannot ask in the middle: the defaults below answer every question, and the reply at the gate changes them. The file and the report are in English; a reply at the gate is in the language the owner writes in.
+The argument is the game's name as the owner says it, and optionally `--out <file>` and `--existing` (the game has its folder in the repo already and is taken into `/add-game` as it is, section 1); ask if there is no name. Run as a sub-agent of `/add-game` it cannot ask in the middle: the defaults below answer every question, and the reply at the gate changes them. The file and the report are in English; a reply at the gate is in the language the owner writes in.
 
 The file is `--out`, else `~/Companies/PBGO/assets/<slug>/scout.json` (the folder outside the repo where a game's art lives: `mkdir -p` it). The next steps find the file by the slug: when the slug changes at the gate and the file is at that default path, write it at the new one and remove the old `scout.json`, and its folder only if it is then empty. Its shape is `packages/games/src/scout.ts`, the one definition, with the meaning of each key; `platform-catalog-entry` (PLT-98) reads it next, and `/add-game` keeps it with the game's other files.
 
@@ -23,7 +23,7 @@ The file is `--out`, else `~/Companies/PBGO/assets/<slug>/scout.json` (the folde
 
 `pnpm check:scout --list` prints every published game and expansion of the platform's catalog (slug, type, BoardGameGeek id, base game, whether it has a folder in the repo, name) and the games of the registry that the catalog lacks.
 
-- **A folder.** A game with `folder` `yes` is not scouted: say its stage (`pnpm check:game <slug>`), write nothing, stop.
+- **A folder.** A game with `folder` `yes` is not scouted as a new game: say its stage (`pnpm check:game <slug>`), write nothing, stop. The one exception is a game taken into `/add-game` as it is, whose argument carries `--existing`: it is scouted all the same, as it is. Its slug stays the one of its folder, whatever rule 5 would settle, `existing.catalog` is read from the catalog as for any game, the report's first line says that the game has a folder and its stage, and the file is checked with `pnpm check:scout <file> --online --existing` (the registry must hold the game, which the plain command refuses).
 - **An entry.** A game that is in the list has `existing.catalog` `published`: keep its slug and its type, and read the figures it has in `pnpm catalog:list` to put them beside the scouted ones in the report (`platform-catalog-entry` completes the entry). A draft that is not published is not visible from here, and is `none`.
 - **The same game under another name.** Step 2 gives the names BoardGameGeek knows it by: compare each of them, and its item number, with the list. "Take 5" is 6 nimmt!, and an English edition may name a game as the catalog does not. One game with two entries: stop and ask.
 - **The slug.** For a game: `node --disable-warning=ExperimentalWarning -e 'import("./packages/games/src/slug.ts").then(({ slugFromName, slugProblem }) => { const slug = slugFromName(process.argv[1]); console.log(slug, slugProblem(slug) ?? "ok") })' "<name>"`. For an expansion: `node --disable-warning=ExperimentalWarning -e 'import("./packages/games/src/slug.ts").then(({ slugFromName, slugProblem }) => { const slug = process.argv[1] + "-" + slugFromName(process.argv[2]); console.log(slug, slugProblem(slug, [], "expansion") ?? "ok") })' "<base slug>" "<name>"`.
@@ -71,7 +71,7 @@ Write every key, two spaces of indent, to the file; `scoutedAt` is today (`date 
 pnpm check:scout <file> --online
 ```
 
-It must exit 0: the shape, the slug and the name by the rules of `slug.ts`, the figures in their ranges, and against what exists (no folder for the game, `existing.catalog`, the base game and the entry's own type and base game agree with the published catalog). Each problem starts with its key; fix it and run it again. Without a network, run it without `--online` and say so in the report.
+(`pnpm check:scout <file> --online --existing` for a game that has its folder, section 1.) It must exit 0: the shape, the slug and the name by the rules of `slug.ts`, the figures in their ranges, and against what exists (no folder for the game, `existing.catalog`, the base game and the entry's own type and base game agree with the published catalog). Each problem starts with its key; fix it and run it again. Without a network, run it without `--online` and say so in the report.
 
 ## 7. Report, then the gate
 

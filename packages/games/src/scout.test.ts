@@ -454,6 +454,15 @@ describe("stateProblems", () => {
     expect(problems).toEqual(['slug: "skyjo" is already a game of the site (games/skyjo): scouting is for a game that is not built yet'])
   })
 
+  it("scouts a game that has its folder when it is told it is one, and judges everything else the same", () => {
+    expect(stateProblems(scout({ name: "Skyjo", slug: "skyjo" }), state, { existing: true })).toEqual([])
+    // the folder is what it must have: a game that has none is scouted without the option
+    expect(stateProblems(scout(), state, { existing: true })).toEqual(['slug: "sample-game" is not a game of the site (no games/sample-game): --existing is for a game that has its folder, and a game that has none is scouted without it'])
+    // the rest is not relaxed: the catalog's entry, its type and its base game are still compared
+    const published = scout({ name: "Trio", slug: "trio", existing: { catalog: "none" }, bgg: bgg(286096) })
+    expect(stateProblems(published, { ...state, registry: ["trio"] }, { existing: true })).toEqual(['existing.catalog: says "none", but the catalog has published the game "trio"'])
+  })
+
   it("wants existing.catalog to say what the catalog holds", () => {
     expect(stateProblems(scout({ existing: { catalog: "published" } }), state)).toEqual(['existing.catalog: says "published", but the catalog has no published game "sample-game"'])
     const published = scout({ name: "Azul", slug: "azul", existing: { catalog: "none" }, bgg: bgg(230802) })

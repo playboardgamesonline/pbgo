@@ -5,6 +5,7 @@
 import type { Metadata, MetadataRoute } from "next"
 import { OG_LOCALES, type Locale } from "@pbgo/core/lib/i18n"
 import { pickLocalized, sharePicture, type CatalogEntry, type Creator } from "./catalog"
+import { playLead, playTitle } from "./play-phrase"
 
 /**
  * Whether search engines may index the hub page of a game (`/game/<slug>`): the one rule behind the page's `robots` meta, its JSON-LD and
@@ -79,15 +80,9 @@ export function gameSeo(entry: CatalogEntry, description: GameSeo["description"]
   }
 }
 
-/** The phrase that a game's page is found by, "Play Courtisans Online": its title in search results and its heading. */
-export const playTitle = (name: string) => `Play ${name} Online`
-
-/**
- * The sentence that opens the description of a game's page in search results and on social cards: it starts with the phrase, "Play Courtisans
- * online". A game that is not live cannot be played yet, and its description says it is coming soon, so that a search result never promises a
- * table that is not there (the line of the page itself, `playLine`, is the same for every game: the page says the rest).
- */
-export const playLead = ({ name, live }: Pick<GameSeo, "name" | "live">) => (live ? `Play ${name} online with friends or rivals.` : `Play ${name} online, coming soon.`)
+// The phrase a game's page is found by, "Play Courtisans Online" (`playTitle`), and the sentence that opens its description (`playLead`, "Play Courtisans online with friends or rivals.", or "…, coming soon." for a game that is not
+// live) are written in `play-phrase.ts`, so that the checks of production (`pnpm check:production`) read the same words. They are exported from here, as ever.
+export { playLead, playTitle }
 
 /** How many play, as a sentence says it: "for 2 to 5 players", "for 3 or more players", "for 2 players". Null when the game's players are not known. */
 function playersPhrase(players: GameSeo["players"]): string | null {

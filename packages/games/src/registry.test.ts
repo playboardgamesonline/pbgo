@@ -1,9 +1,23 @@
-import { readdirSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import { isProjectId } from "@pbgo/core/sanity/env"
 import { GAMES, listedGames } from "./registry"
 import { RESERVED_SLUGS, SLUG_PATTERN } from "./slug"
+
+// `live` and `indexable` are turned by the pull request that puts a game online (`game-go-live`). A test of a game's seed that holds one to a value passes for every game that is not online yet and
+// fails the day its game goes, so none may: the test is what is wrong then, never the switch. The pattern is a switch written as a key with a value (`live: false`, `"indexable": true`) or read from an entry (`entry.live`).
+const SWITCH_HELD = /\b(live|indexable)\b["']?\s*:\s*(true|false)\b|\.(live|indexable)\b/
+
+/** The test files of every game's `content` folder (its seed and its parity tests), as paths from the games' folder. */
+function contentTests(games: string): string[] {
+  return readdirSync(games, { withFileTypes: true }).flatMap((game) => {
+    const content = join(games, game.name, "content")
+    if (!game.isDirectory() || !existsSync(content)) return []
+    return readdirSync(content, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith(".test.ts")).map((file) => `${game.name}/content/${file}`)
+  })
+}
 
 describe("game registry", () => {
   it("has unique, URL-safe slugs", () => {
@@ -27,6 +41,27 @@ describe("game registry", () => {
 
   it("only indexes live games", () => {
     for (const g of GAMES) if (g.indexable) expect(g.live, g.slug).toBe(true)
+  })
+
+  it("leaves the switches to the go-live stage: no test of a game's content holds `live` or `indexable` to a value", () => {
+    const games = fileURLToPath(new URL("../../../games", import.meta.url))
+    const files = contentTests(games)
+    expect(files.length, "no test file found under games/*/content: the guard would pass for nothing").toBeGreaterThan(0)
+    const held = files.flatMap((file) =>
+      readFileSync(join(games, file), "utf8")
+        .split("\n")
+        .flatMap((line, at) => (SWITCH_HELD.test(line) ? [`games/${file}:${at + 1}  ${line.trim()}`] : [])),
+    )
+    expect(held, "a seed test that holds a switch fails the day its game goes live: remove the test, never the switch").toEqual([])
+  })
+
+  it("sees a switch held to a value in the forms a seed test would write it, and no other line", () => {
+    for (const line of ["expect(own).toMatch(/live: false/)", 'expect(own).toContain("indexable: true")', 'expect(entry).toMatchObject({ "live": false })', "expect(entry.live).toBe(false)", "expect(GAMES.find((g) => g.slug === SLUG)?.indexable).toBe(true)"]) {
+      expect(SWITCH_HELD.test(line), line).toBe(true)
+    }
+    for (const line of ['expect(own).toContain(`sanityProjectId: "${PROJECT_ID}"`)', 'it("never goes live on its own", () => {', "const alive = true", "return isIndexable(entry)"]) {
+      expect(SWITCH_HELD.test(line), line).toBe(false)
+    }
   })
 
   it("has consistent player counts", () => {

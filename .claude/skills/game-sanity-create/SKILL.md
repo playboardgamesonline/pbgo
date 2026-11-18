@@ -38,6 +38,7 @@ Then give the owner the plan as a table (one row per list: fields in order, tran
 - No text, translation, image or sound of the game in code or in `apps/web/public/<slug>/` as a fallback: a game's content lives in Sanity only (the owner's ruling), so a missing value shows instead of being hidden.
 - Nothing invented: what the rulebook or the owner does not give stays empty and is listed in the report. A translation the agent wrote itself is flagged, for the owner to read.
 - Nothing published from code (the seed writes drafts, the owner publishes in the Studio) and no token printed, or written anywhere but `apps/web/.env.local`.
+- No test of the seed holds the registry's `live` or `indexable` to a value (`live: false`): the go-live stage turns them, and the test would fail that day. `registry.test.ts` fails on one.
 
 ## 4. Build
 

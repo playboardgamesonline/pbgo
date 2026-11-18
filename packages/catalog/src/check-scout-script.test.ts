@@ -102,6 +102,20 @@ describe("pnpm check:scout", () => {
     expect(catalogGame.stdout).toContain('as the game "flip-7"')
   })
 
+  it("scouts a game that has its folder with --existing, and only with --online", () => {
+    const skyjo = scoutFile({ name: "Skyjo", slug: "skyjo" })
+    const taken = check("skyjo-existing.json", skyjo, ["--online", "--existing"])
+    expect(taken.status, taken.stdout).toBe(0)
+    expect(taken.stdout).toContain("against the registry and the catalog")
+    // a game that has no folder is not an existing one
+    const none = check("sample-existing.json", scoutFile(), ["--online", "--existing"])
+    expect(none.status).toBe(1)
+    expect(none.stdout).toContain("--existing is for a game that has its folder")
+    const offline = check("skyjo-offline.json", skyjo, ["--existing"])
+    expect(offline.status).toBe(2)
+    expect(offline.stderr).toContain("--existing is for --online")
+  })
+
   it("wants the base game of an expansion to be in the catalog", () => {
     const expansion = { name: "Flip 7: The Village", slug: "flip-7-the-village", type: "expansion", baseGame: { slug: "flip-7", name: "Flip 7" } }
     expect(check("expansion.json", scoutFile(expansion), ["--online"]).status).toBe(0)
@@ -143,7 +157,7 @@ describe("pnpm check:scout", () => {
   it("prints its usage for --help", () => {
     const result = run(["--help"])
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain("Usage: pnpm check:scout <file> [--online]")
+    expect(result.stdout).toContain("Usage: pnpm check:scout <file> [--online [--existing]]")
     expect(result.stdout).toContain("pnpm check:scout --list")
   })
 
