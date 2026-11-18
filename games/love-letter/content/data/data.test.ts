@@ -10,7 +10,7 @@ import { CHARACTER_LIST, buildCharacters, characterId } from "./characters.ts"
 import { buildSeedDocs } from "./index.ts"
 import { buildSettings } from "./settings.ts"
 import { seedDocs } from "./test-fixtures.ts"
-import { buildTexts, ENGINE_TEXTS, ERROR_MESSAGES } from "./texts.ts"
+import { BOARD_WORDS, buildTexts, ENGINE_TEXTS, ERROR_MESSAGES } from "./texts.ts"
 
 /**
  * What a text may hold, from the owner's blank faces (see "Pictures" in this game's CLAUDE.md): the plate of four faces is shorter (the portrait runs lower) and holds three lines at the text size of the publisher's own sheet,
@@ -142,9 +142,9 @@ describe("the texts", () => {
     ...ENGINE_TEXTS.map(({ key, ...said }) => ({ where: `engineTexts.${key}`, kind: "localeText", said })),
   ]
 
-  it("are the one `texts` document of the shared Studio, with the engine's words and the message of the game's own error code, and nothing else", () => {
+  it("are the one `texts` document of the Studio, with the engine's words, the message of the game's own error code and the words of the board, and nothing else", () => {
     expect(texts()._id).toBe("texts")
-    expect(Object.keys(texts()).sort()).toEqual(["_id", "_type", "engineTexts", "errorMessages"])
+    expect(Object.keys(texts()).sort()).toEqual(["_id", "_type", "engineTexts", "errorMessages", ...BOARD_WORDS.map((word) => word.key)].sort())
   })
 
   it("name the three lines of the score once each, and the one code the game refuses with", () => {
@@ -153,8 +153,12 @@ describe("the texts", () => {
   })
 
   it("are written in English and in French, and leave Spanish and German empty: nothing is translated that has no source, and the board shows the English", () => {
-    const objects = [...(texts().errorMessages as { message: object }[]).map((item) => item.message), ...(texts().engineTexts as { text: object }[]).map((item) => item.text)]
-    expect(objects).toHaveLength(4)
+    const objects = [
+      ...(texts().errorMessages as { message: object }[]).map((item) => item.message),
+      ...(texts().engineTexts as { text: object }[]).map((item) => item.text),
+      ...BOARD_WORDS.map((word) => texts()[word.key] as object),
+    ]
+    expect(objects).toHaveLength(ERROR_MESSAGES.length + ENGINE_TEXTS.length + BOARD_WORDS.length)
     for (const value of objects) expect(Object.keys(value).sort()).toEqual(["_type", "en", "fr"])
   })
 

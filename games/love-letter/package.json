@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Love Letter for apps/web: site constants, logo, default look and the engine (GAME). No board yet: outside production a table can be opened but one that starts has nothing to show, and in production its page says \"coming soon\".",
+  "description": "Love Letter for apps/web: site constants, logo, default look, the engine (GAME) and its board, a 3D table on @pbgo/table loaded on demand.",
   "exports": {
     ".": "./src/index.ts",
     "./ui": "./src/ui.tsx",
@@ -21,8 +21,15 @@
   "dependencies": {
     "@love-letter/engine": "workspace:*",
     "@pbgo/core": "workspace:*",
+    "@pbgo/table": "workspace:*",
     "@pbgo/ui": "workspace:*",
-    "server-only": "catalog:"
+    "@react-three/drei": "catalog:",
+    "@react-three/fiber": "catalog:",
+    "@sanity/client": "catalog:",
+    "next-sanity": "catalog:",
+    "server-only": "catalog:",
+    "sonner": "catalog:",
+    "three": "catalog:"
   },
   "peerDependencies": {
     "next": "catalog:",
@@ -37,6 +44,7 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/three": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
