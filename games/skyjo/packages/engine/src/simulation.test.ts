@@ -13,8 +13,8 @@ import { type Action, CLIENT_ACTIONS, SKYJO_ERROR_CODES, type SkyjoEvent, type S
  *
  * Tables of 2 to 8 players play to the end. Some players are away a third of the time, so that the takeover plays for them in every step.
  * After each accepted move this file checks what must hold whatever the cards are: that no card is lost, that the turn goes to the right
- * player, that cards only leave a grid by being placed over or thrown away in a column, that the count of a round is the one the rulebook
- * gives (written again here, from the names of the faces, not read from the engine), that a stored copy of the state replays the move, and
+ * player, that cards only leave a grid by being placed over or thrown away in a column, that the count of a round is the one the booklets
+ * give (EN p.4-5, FR p.4; written again here, from the names of the faces, not read from the engine), that a stored copy of the state replays the move, and
  * that no view shows a hidden card.
  */
 
@@ -27,7 +27,7 @@ function flag(name: string, detail: string): void {
 }
 const report = (): string[] => [...found].map(([name, { count, examples }]) => `${name} ×${count}: ${examples.join(" | ")}`)
 
-// --- The rulebook's count, written again from the names of the faces
+// --- The booklets' count, written again from the names of the faces
 
 const valueOfFace = (face: string): number => Number(face.replace("card-minus-", "-").replace("card-", ""))
 const faceOfId = (state: State, id: number): string => CATALOGUE[state.ids.indexOf(id)]!
@@ -107,9 +107,9 @@ function checkMove({ at, before, action, after, events }: Move): void {
     const doubled = ender > 0 && !strictlyLowest
     if (doubled) tally.doubled++
     const expectedScores = sums.map((value, seat) => (seat === seatOfEnder && doubled ? value * 2 : value))
-    ok("the count of the round is not the rulebook's", isDeepStrictEqual(after.rounds.at(-1), expectedScores), () => `${JSON.stringify(after.rounds.at(-1))} against ${JSON.stringify(expectedScores)}`)
+    ok("the count of the round is not the booklets'", isDeepStrictEqual(after.rounds.at(-1), expectedScores), () => `${JSON.stringify(after.rounds.at(-1))} against ${JSON.stringify(expectedScores)}`)
     ok("the end event does not say the count", isDeepStrictEqual(entry.scores, expectedScores))
-    ok("the doubling is not the rulebook's", entry.doubled === doubled)
+    ok("the doubling is not the booklets'", entry.doubled === doubled)
     ok("the ender did not have every card turned over", before.grids[seatOfEnder]!.length === 12)
     ok("the dealer did not move on", after.dealer === (before.dealer + 1) % before.seats.length)
     // everybody played their last turn: the ender is the only one who ended it, and the turn came back to them

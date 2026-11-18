@@ -56,7 +56,8 @@ export async function runCheck(step: StepDefinition, ctx: { deps: CheckDeps; gam
       if (!existsSync(game.scoutFile)) return { ok: false, lines: [`no scout file was written (${tilde(game.scoutFile)}): the skill stopped before it, say what it asks`] }
       const parsed = readScout(readFileSync(game.scoutFile, "utf8"))
       if (parsed.scout === null) return { ok: false, lines: [`${tilde(game.scoutFile)} is not a scout file:`, ...parsed.problems.map((problem) => `  - ${problem}`)] }
-      return verdict(await deps.exec("pnpm", ["check:scout", game.scoutFile, "--online"], { cwd: deps.repoRoot, timeoutMs: 120_000 }))
+      // a game that has its folder in the repo is judged as an existing one: the folder is no reason to refuse its scout file
+      return verdict(await deps.exec("pnpm", ["check:scout", game.scoutFile, "--online", ...(game.folder ? ["--existing"] : [])], { cwd: deps.repoRoot, timeoutMs: 120_000 }))
     }
     case "rules": {
       if (!existsSync(specPathsOf(deps.gamesDocs, state.slug).rules)) return { ok: false, lines: [`no spec was written (docs/games/${state.slug}/rules.md): the skill stopped before it, say what it asks`] }

@@ -395,15 +395,20 @@ const TYPE_WORDS: Record<ScoutType, string> = { "base-game": "a base game", expa
  * has as another type or from another base game, a game that the catalog already has under another slug (one game has one entry), a base game that is not published. It is the state at
  * the time of the scout: a file kept after the entry was made says "none" no more, and is not judged again. Two names are one game only among their peers: the games, and the expansions of
  * one base game (two games may each have an expansion named "Legends"); a BoardGameGeek item that is known to be another one settles it.
+ * `existing` is a game that has its folder already and is taken into `/add-game` as it is: its folder is then what it must have, and everything else is judged the same.
  */
-export function stateProblems(scout: Scout, state: ScoutState): string[] {
+export function stateProblems(scout: Scout, state: ScoutState, options: { existing?: boolean } = {}): string[] {
   const problems: string[] = []
   const add = (sentence: string) => problems.push(printable(sentence))
   const kind = scout.type === "expansion" ? "expansion" : "game"
   const there = (kind === "expansion" ? state.expansions : state.games).find((entry) => entry.slug === scout.slug)
   const base = scout.baseGame?.slug ?? null
 
-  if (state.registry.includes(scout.slug)) add(`slug: "${scout.slug}" is already a game of the site (games/${scout.slug}): scouting is for a game that is not built yet`)
+  if (options.existing === true) {
+    if (!state.registry.includes(scout.slug)) add(`slug: "${scout.slug}" is not a game of the site (no games/${scout.slug}): --existing is for a game that has its folder, and a game that has none is scouted without it`)
+  } else if (state.registry.includes(scout.slug)) {
+    add(`slug: "${scout.slug}" is already a game of the site (games/${scout.slug}): scouting is for a game that is not built yet`)
+  }
 
   if (scout.existing.catalog === "published" && there === undefined) add(`existing.catalog: says "published", but the catalog has no published ${kind} "${scout.slug}"`)
   if (scout.existing.catalog === "none" && there !== undefined) add(`existing.catalog: says "none", but the catalog has published the ${kind} "${scout.slug}"`)

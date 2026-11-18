@@ -2,7 +2,7 @@ import { existsSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { REPO_ROOT } from "./config.ts"
-import { CATALOG_ENTRY, ENGINE_BOARD, ENGINE_RULES, firstOpen, GAME_ASSETS, GAME_GO_LIVE, GAME_NEW, GAME_SANITY_CREATE, gameOf, PLATFORM_ASSETS, RULES_SPEC, SCOUT, STEPS, stepById } from "./steps.ts"
+import { CATALOG_ENTRY, ENGINE_BOARD, ENGINE_RULES, firstOpen, GAME_ASSETS, GAME_GO_LIVE, GAME_NEW, GAME_SANITY_CREATE, gameAt, gameOf, PLATFORM_ASSETS, RULES_SPEC, SCOUT, STEPS, stepById } from "./steps.ts"
 
 const game = gameOf("/assets", "Love Letter", "love-letter")
 
@@ -16,8 +16,12 @@ describe("the steps", () => {
   })
 
   it("give their skill the argument it needs, the scout file where the flow keeps it", () => {
-    expect(game).toEqual({ name: "Love Letter", slug: "love-letter", dir: "/assets/love-letter", scoutFile: "/assets/love-letter/scout.json", rulesPdf: "/assets/love-letter/rules.pdf", picturesDir: "/assets/love-letter/platform" })
+    expect(game).toEqual({ name: "Love Letter", slug: "love-letter", dir: "/assets/love-letter", scoutFile: "/assets/love-letter/scout.json", rulesPdf: "/assets/love-letter/rules.pdf", picturesDir: "/assets/love-letter/platform", folder: false })
     expect(SCOUT.args(game)).toBe("Love Letter --out /assets/love-letter/scout.json")
+    // a game that has its folder in the repo is scouted as it is, and keeps its slug
+    const built = gameAt("/assets/love-letter", "Love Letter", "love-letter", true)
+    expect(SCOUT.args(built)).toBe("Love Letter --out /assets/love-letter/scout.json --existing")
+    expect(SCOUT.notes(built).join(" ")).toContain("with `--existing`, and its slug stays `love-letter`")
     expect(CATALOG_ENTRY.args(game)).toBe("/assets/love-letter/scout.json")
     expect(RULES_SPEC.args(game)).toBe("/assets/love-letter/scout.json")
     expect(PLATFORM_ASSETS.args(game)).toBe("/assets/love-letter/scout.json")
@@ -57,7 +61,7 @@ describe("the steps", () => {
       { kind: "published" },
       { kind: "rules" },
       { kind: "pictures" },
-      { kind: "stage", gate: { stage: "scaffold" } },
+      { kind: "stage", gate: { stage: "scaffold", online: true } },
       { kind: "stage", gate: { stage: "content", only: true } },
       { kind: "art" },
       { kind: "stage", gate: { stage: "engine" } },

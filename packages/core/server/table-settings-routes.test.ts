@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { NO_AGE_RULES } from "../lib/age-rules"
 import type { GameRouteContext } from "../lib/binding"
 import { postJoin } from "../routes/api/games/[code]/join/route"
+import { POST as leave } from "../routes/api/games/[code]/leave/route"
 import { POST as settings } from "../routes/api/games/[code]/settings/route"
 import { postGame } from "../routes/api/games/route"
 import { newPlayerSecret, playerIdOf } from "./player-id"
@@ -42,6 +43,8 @@ const h = vi.hoisted(() => ({
   account: null as null | { id: string; nickname: string; avatarUrl: string | null; language: string | null },
   /** The rank the signed-in member has in the game */
   rank: null as null | { tier: string; division?: number },
+  /** The group the signed-in member is in (PLT-141), as the database says it */
+  group: null as null | { id: string; leader: string; members: string[] },
   /** A project where migration 0014 is not applied: the database refuses everything that names the column */
   noColumn: false,
   broadcasts: [] as Array<{ channel: string; event: string; payload: unknown }>,
@@ -66,6 +69,7 @@ vi.mock("../lib/locale-server", () => ({ getLocale: async () => "en" }))
 vi.mock("./rate-limit", () => ({ rateLimit: async () => {} }))
 vi.mock("./presence", () => ({ markSeen: async () => {}, seatMember: async () => {} }))
 vi.mock("./standings", () => ({ readPlayerStanding: async () => ({ rank: h.rank }) }))
+vi.mock("./groups", () => ({ readGroupOf: async () => h.group }))
 vi.mock("./supabase", () => {
   const missing = { code: "42703", message: "column games.settings does not exist" }
   class Filters {
@@ -98,10 +102,20 @@ vi.mock("./supabase", () => {
       return { data: [{ code: row.code }], error: null }
     }
   }
+  class Delete extends Filters {
+    async select() {
+      const key = `${this.filters.game}:${this.filters.code}`
+      const row = h.rows.get(key) as StoredRow | undefined
+      if (!row || row.version !== this.filters.version) return { data: [] as Array<{ code: string }>, error: null }
+      h.rows.delete(key)
+      return { data: [{ code: row.code }], error: null }
+    }
+  }
   const db = {
     from: () => ({
       select: (columns = "") => new Select(columns),
       update: (patch: Record<string, unknown>) => new Update(patch),
+      delete: () => new Delete(),
       insert: async (row: Record<string, unknown>) => {
         if (h.noColumn && "settings" in row) return { error: { code: "PGRST204", message: "Could not find the 'settings' column" } }
         const key = `${row.game}:${row.code}`
@@ -192,6 +206,7 @@ beforeEach(() => {
   h.headers = {}
   h.account = null
   h.rank = null
+  h.group = null
   h.noColumn = false
   h.broadcasts.length = 0
   h.scheduled.length = 0
@@ -304,6 +319,82 @@ describe("a table is opened with settings", () => {
     expect(row.players).toHaveLength(1)
     expect("settings" in row).toBe(false)
     expect(console.error).toHaveBeenCalled()
+  })
+})
+
+describe("a table is opened for the leader's group (PLT-141)", () => {
+  const ANN_ID = "0b9f6a52-8c0e-4d6e-9d53-4a1d2f6a7c11"
+  const BOB_ID = "5d0f5b8e-6f8e-4f55-9d6e-3f1a2b4c5d6e"
+  const GROUP_ID = "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f"
+  const asMember = (id: string) => (h.account = { id, nickname: "Ann", avatarUrl: null, language: null })
+  const party = (over: Record<string, unknown> = {}) => ({ settings: input({ visibility: "private", seats: 2, party: true, ...over }) })
+
+  it("keeps it private, for the number of people in the group, with the mark that says it was opened for them", async () => {
+    asMember(ANN_ID)
+    h.group = { id: GROUP_ID, leader: ANN_ID, members: [ANN_ID, BOB_ID] }
+    const answer = await send(new Map(), create, party(), null)
+    expect(answer.status).toBe(200)
+    expect((h.rows.get(`${SLUG}:${answer.body.code}`) as StoredRow).settings).toEqual({ visibility: "private", pace: "normal", seats: 2, party: true })
+  })
+
+  it("is the leader's to open: a member of the group who does not lead it is refused, and nothing is opened", async () => {
+    asMember(BOB_ID)
+    h.group = { id: GROUP_ID, leader: ANN_ID, members: [ANN_ID, BOB_ID] }
+    const answer = await send(new Map(), create, party(), null)
+    expect([answer.status, answer.body.error]).toEqual([403, "GROUP_NOT_LEADER"])
+    expect(h.rows.size).toBe(0)
+  })
+
+  it("is refused for a member who is in no group, and for a guest", async () => {
+    asMember(ANN_ID)
+    expect((await send(new Map(), create, party(), null)).body.error).toBe("GROUP_NOT_LEADER")
+    h.account = null
+    expect((await send(new Map(), create, { nickname: "Ann", ...party() }, null)).body.error).toBe("GROUP_NOT_LEADER")
+    expect(h.rows.size).toBe(0)
+  })
+
+  it("is refused when it would be public: strangers are not the people it was set for", async () => {
+    asMember(ANN_ID)
+    h.group = { id: GROUP_ID, leader: ANN_ID, members: [ANN_ID, BOB_ID] }
+    const answer = await send(new Map(), create, party({ visibility: "public" }), null)
+    expect([answer.status, answer.body.error]).toEqual([400, "INVALID_REQUEST"])
+    expect(h.rows.size).toBe(0)
+  })
+
+  it("goes with its leader, the seats of the group with it, when the leader gives it up from the home", async () => {
+    const ann = person("Ann")
+    const bob = person("Bob")
+    lobby([ann, bob], { settings: { visibility: "private", pace: "normal", seats: 3, party: true } })
+    const answer = await send(ann.jar, leave)
+    expect(answer.status).toBe(200)
+    expect(h.rows.has(KEY)).toBe(false)
+  })
+
+  it("goes on without a member who leaves it, as any lobby does", async () => {
+    const ann = person("Ann")
+    const bob = person("Bob")
+    lobby([ann, bob], { settings: { visibility: "private", pace: "normal", seats: 3, party: true } })
+    await send(bob.jar, leave)
+    expect(stored().players.map((player) => player.nickname)).toEqual(["Ann"])
+    expect(stored().host_id).toBe(ann.id)
+  })
+
+  it("does not take a table that was not opened for a group with its host: the next player has it", async () => {
+    const ann = person("Ann")
+    const bob = person("Bob")
+    lobby([ann, bob], { settings: { visibility: "private", pace: "normal", seats: 3 } })
+    await send(ann.jar, leave)
+    expect(stored().players.map((player) => player.nickname)).toEqual(["Bob"])
+    expect(stored().host_id).toBe(bob.id)
+  })
+
+  it("stays private and theirs when its host sets the table from the lobby", async () => {
+    const ann = person("Ann")
+    const bob = person("Bob")
+    lobby([ann, bob], { settings: { visibility: "private", pace: "normal", seats: 3, party: true } })
+    const answer = await send(ann.jar, settings, { settings: input({ visibility: "public", minRank: "Gold", seats: 2 }) })
+    expect(answer.status).toBe(200)
+    expect(stored().settings).toMatchObject({ visibility: "private", seats: 2, party: true })
   })
 })
 

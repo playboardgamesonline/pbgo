@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { columnCells, columnOf, isPosition, isTriple, roundScores, sum } from "./scoring"
 
-// Rulebook, page 3: the count of a round, and the doubling of the player who ended it.
+// The count of a round, and the doubling of the player who ended it (EN p.4-5, FR p.4).
 
 describe("the cells of a grid", () => {
   it("are numbered column by column: three cells per column, four columns", () => {
@@ -16,7 +16,7 @@ describe("the cells of a grid", () => {
   })
 })
 
-describe("a column to throw away (page 2)", () => {
+describe("a column to throw away (EN p.5, FR p.3)", () => {
   it("is three equal cards, whatever they are worth", () => {
     expect(isTriple([4, 4, 4])).toBe(true)
     expect(isTriple([-2, -2, -2])).toBe(true)
@@ -27,7 +27,7 @@ describe("a column to throw away (page 2)", () => {
   })
 })
 
-describe("the count of a round (page 3)", () => {
+describe("the count of a round (EN p.4-5, FR p.4)", () => {
   it("adds the cards, the negative ones taking points off", () => {
     expect(sum([12, -2, 0, 7, -1])).toBe(16)
   })
@@ -37,7 +37,7 @@ describe("the count of a round (page 3)", () => {
   })
 
   it("doubles the player who ended the round when they do not have strictly the lowest count", () => {
-    // the rulebook's example: A ends with 10, B has 24, C has 10: A is not strictly lowest, so 20
+    // the booklets' example (EN p.5 Image I, FR p.4 fig. 3): A ends with 10, B has 24, C has 10: A is not strictly lowest, so 20
     expect(roundScores([10, 24, 10], 0)).toEqual({ scores: [20, 24, 10], doubled: true })
     expect(roundScores([30, 24, 31], 0)).toEqual({ scores: [60, 24, 31], doubled: true })
   })

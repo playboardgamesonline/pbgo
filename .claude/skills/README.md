@@ -44,7 +44,7 @@ A game goes through six stages, and `pnpm check:game <slug>` says which it has r
 - `game-rules-spec` — write a game's rules spec before its engine: from the rulebook the scout found (and the publisher's FAQ and errata), the component list and the rules as the engine will follow them, one page of the docs, `docs/games/<slug>/rules.md`, with the cases the rulebook leaves open and a reading proposed for each, checked by `pnpm check:rules`, then a gate until the owner validates (`packages/games/src/rules-spec.test.ts` keeps the shape of the page and the skill's examples)
 - `game-new` — start a new game from nothing: the questions to ask the owner, the checks, then `pnpm new-game`, `pnpm go-live`, `pnpm game-rules` and `pnpm setup-env` (code from the template, Sanity project, Studio, rules PDFs, environment) one at a time after an explicit ok, then the hand-over to `game-sanity-create` for the fields
 - `game-sanity-create` — build or reshape a game's Sanity content model: the questions to ask the owner, the Studio-form rules and don'ts, the schemas, the guards, the seed and the Studio deploy
-- `game-go-live` — put a finished game live: the gate `check:game --stage content`, what only a person can say, the preview, the two switches of the registry, the checks of production
+- `game-go-live` — put a finished game live: the gate `check:game --stage content`, what only a person can say, the preview, the two switches of the registry, the checks of production (`pnpm check:production <slug>`)
 
 ### ENGINE
 - `engine-rules` — write a game's engine from its rulebook: the plan first (rules as coded, the cases left open, who sees what, the blocks and the gaps), the slices, the tests and the contract suite, the gate `check:game --stage engine`

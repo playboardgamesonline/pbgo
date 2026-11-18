@@ -26,7 +26,7 @@ Read it: the name, the slug, the type (`base-game`, `expansion` or `reimplementa
 
 Read **all** of it before writing a line, the components, the setup, the summary and the FAQ at the end, the designer's notes and the examples of play: an example often says what the text leaves out. The sources, in this order:
 
-1. **`rules.pdf` next to the scout file** (`~/Companies/PBGO/assets/<slug>/rules.pdf`): the rulebook the scout found, which `pnpm game-flow rulebook` downloaded, or one the owner put there. It is the authority. `Read` it whole, with no `pages`: it returns every page, the text of each and its picture, and the pictures settle what the text jumbles (a table, a card, a diagram). A rulebook that `Read` refuses as too long is read with `pages`, twenty at most per call, in order from page 1; that needs `pdftoppm` (poppler), and when `Read` says it is not installed, stop with the blocked report below and say `brew install poppler`.
+1. **`rules.pdf` next to the scout file** (`~/Companies/PBGO/assets/<slug>/rules.pdf`): the rulebook the scout found, which `pnpm game-flow rulebook` downloaded, or one the owner put there. It is the authority. `Read` it whole, with no `pages`: it returns every page, the text of each and its picture, and the pictures settle what the text jumbles (a table, a card, a diagram). A rulebook that `Read` refuses as too long is read with `pages`, twenty at most per call, in order from page 1; that needs `pdftoppm` (poppler), and when `Read` says it is not installed, read the PDF with the Swift and PDFKit of macOS, which need nothing installed: `swift scripts/pdf/pdf-text.swift <rules.pdf> [first] [last]` prints the page count and the text of the pages (jumbled where the text sits on a picture), and `swift scripts/pdf/pdf-pages.swift <rules.pdf> <outDir> [scale]` renders each page to a PNG in `<outDir>`, a folder of your temp files, to look at what the text jumbles (a small booklet page needs a scale of 4 to be readable; the pictures are a reading aid, never an asset: delete the folder when you are done). Only when neither works, stop with the blocked report below and say `brew install poppler`.
 2. **The rulebook's address** (`edition.rules.url`) when it is a web page: `WebFetch`, and the `offset` it gives to read on. `WebFetch` returns the bytes of a PDF, not its text: a rulebook that is a PDF and is not at `rules.pdf` cannot be read. Then stop, and say in the report where to put it (the full path) and that the owner types "retry" once it is there. Never write a spec from a summary of a PDF.
 3. **The publisher's own FAQ, errata and updated rulebook** (from `sources` or a search of the publisher's site): an official answer wins over the booklet where they differ, and the open point says so.
 
@@ -179,7 +179,7 @@ Validate also accepts the 3 readings of the open points. Validate, or tell me wh
 
 Nothing goes on until the owner answers. A clear yes ("validate", "yes", "ok", "oui", "go") ends the step; silence is not one, and neither is an answer that mixes a yes and a change: that one is a change. A change is to a count, a rule, a reading or the scope of the page. Edit the page, run `pnpm check:rules <slug>`, print the report again, stop again. The owner validating accepts every reading of the open points as it is written, which the report says.
 
-A rulebook that cannot be read (a PDF that is not at `rules.pdf`, a page that does not answer, `pdftoppm` missing for a long one) is not a failure to hide: write no spec, and give the report in this shape instead, and stop:
+A rulebook that cannot be read (a PDF that is not at `rules.pdf`, a page that does not answer, a long PDF that `Read` refuses for want of `pdftoppm` and that the two scripts of section 2 cannot open either) is not a failure to hide: write no spec, and give the report in this shape instead, and stop:
 
 ```
 Sample Game (sample-game): rules spec
@@ -201,7 +201,7 @@ When the owner validates, `pnpm check:rules <slug> --name "<name>" --stamp` sets
 
 ## Tools
 
-`Read` (the scout file, `rules.pdf`, the repo), `Write` and `Edit` (the two files of `docs/games/<slug>/`, and nothing else), `Bash` (`pnpm check:rules`, `pnpm check:scout`, `date`, `mkdir -p`), `WebSearch` and `WebFetch`.
+`Read` (the scout file, `rules.pdf`, the repo), `Write` and `Edit` (the two files of `docs/games/<slug>/`, and nothing else), `Bash` (`pnpm check:rules`, `pnpm check:scout`, `date`, `mkdir -p`, and `swift scripts/pdf/pdf-text.swift` and `pdf-pages.swift` for a rulebook that `Read` cannot take whole), `WebSearch` and `WebFetch`.
 
 ## Checks
 

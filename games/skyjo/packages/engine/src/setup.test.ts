@@ -4,7 +4,7 @@ import { setupGame, setupStep, MAX_PLAYERS, MIN_PLAYERS } from "./setup"
 import { CATALOGUE } from "./catalogue"
 import { gridUp, kinds, newState, players, problems, refusal, seatOf, seedOf, valueOfId } from "./test-utils"
 
-// Rulebook, page 1: preparing a round. 12 cards face down to each player in four columns of three, one card face up starts the discard, the rest is the draw pile.
+// Preparing a round (EN p.4, FR p.2): 12 cards face down to each player in four columns of three, one card face up starts the discard, the rest is the draw pile.
 
 describe("setting a game up, at every table size", () => {
   for (let n = MIN_PLAYERS; n <= MAX_PLAYERS; n++) {

@@ -3,7 +3,7 @@
 // The sub-agent is not trusted with decisions: what Linear should say is computed here from the state, and a failure never stops the game (it is told, and tried again at the next point).
 import { tilde } from "./text.ts"
 import type { LinearIssueRef, PipelineState } from "./state.ts"
-import { stepOf } from "./state.ts"
+import { isAdopted, stepOf } from "./state.ts"
 import type { Game, StepDefinition } from "./steps.ts"
 
 /** Ids of the Games team of the owner's Linear: stable, and not secrets. */
@@ -96,9 +96,10 @@ export function buildOrder(state: PipelineState, steps: readonly StepDefinition[
   return needed ? { game: { name: state.name, slug: state.slug }, label: { name: state.name, id: state.linear.labelId }, issues } : null
 }
 
-/** What the comment of a validated step says: when, and where to look. */
+/** What the comment of a validated step says: when, and where to look. A step taken on as it was had no gate: it says so, and names no scout file or spec that nobody made. */
 export function validationComment(state: PipelineState, step: StepDefinition, game: Game, label: (path: string) => string): string {
   const s = stepOf(state, step.id)
+  if (isAdopted(s)) return `Taken on as it was${s.validatedAt ? ` on ${s.validatedAt.slice(0, 10)}` : ""}: done outside /add-game, so it has no gate, no round and no file of the flow behind it.`
   const lines = [`Validated${s.validatedAt ? ` on ${s.validatedAt.slice(0, 10)}` : ""} at its gate in /add-game (${s.rounds} round${s.rounds === 1 ? "" : "s"}).`]
   if (step.id === "scout") lines.push(`Scout file: ${label(game.scoutFile)}`)
   if (step.id === "rules-spec") lines.push(`Rules spec: docs/games/${game.slug}/rules.md (in the checkout, uncommitted: the game's first pull request takes it)`)

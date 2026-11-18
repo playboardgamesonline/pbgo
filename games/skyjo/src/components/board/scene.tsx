@@ -243,15 +243,17 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
             <group position={[plate.x, 0, plate.z]} rotation-y={plate.yaw}>
               <PlayerSeat id={player.id} spot={{ x: 0, z: 0, yaw: 0 }} viewer={false} line={pointsText(seat.total)} status={status} />
             </group>
-            {/* What lies in front of the player: twelve cells of three rows by four columns, face down until turned, a hole where a column was thrown away; the grid turns to face its player (`faceSeat`) */}
+            {/* What lies in front of the player: twelve cells of three rows by four columns, face down until turned, a hole where a column was thrown away; the grid turns to face its player (`faceSeat`). The cards of the opening deal are not on the
+                table while the start screen is up: they mount, and are dealt round the table, when it goes (a card that is already there when its entrance is given does not fly) */}
             <Zone
               frame={{ x: grid.at.x, z: grid.at.z, yaw: grid.yaw }}
               layout={cells.map(({ cell, position }) => cellPose(position, cell.up, grid.scale))}
               size={CARD_SIZE}
-              cards={cells.map(({ cell, position }) => cardOf(cell, player.id, position))}
+              cards={held ? [] : cells.map(({ cell, position }) => cardOf(cell, player.id, position))}
             />
             {/* The cells of the viewer's grid they can press: a floor zone each, the card plus the room around it, drawn only while there is a card to choose */}
             {viewer &&
+              !held &&
               [...presses].map((position) => {
                 const zone = cellZone(grid, position)
                 return (

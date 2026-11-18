@@ -12,14 +12,11 @@ import { runCheck, stageOf, stampRules, type CheckDeps, type CheckResult } from 
 import { applyResult, buildOrder, linearPrompt, parseAnswer } from "./linear.ts"
 import { withLock } from "./lock.ts"
 import { publishLine, publishedIds } from "./publish.ts"
-import { findGame, listGames, moveGameDir, newState, stepOf, writeState, type FoundGame, type PipelineState } from "./state.ts"
+import { ADOPTED, findGame, isAdopted, listGames, moveGameDir, newState, stepOf, writeState, type FoundGame, type PipelineState } from "./state.ts"
 import { firstOpen, gameAt, STEPS, stepById, type Game, type StepDefinition } from "./steps.ts"
 import { extractLinks, printable, shorten, tilde, tildeAll } from "./text.ts"
 
 export const EXIT = { ok: 0, failed: 1, usage: 2 } as const
-
-/** What the report of a step that was taken on as it was says: it was done outside `/add-game`. */
-export const ADOPTED = "taken on as it was: done outside /add-game"
 
 /** The rulebook of a game, fetched to a file: the number of bytes kept, or why nothing was. */
 export type RulebookFetch = { ok: true; bytes: number } | { ok: false; reason: string }
@@ -41,13 +38,13 @@ export const VERBS = ["status", "start", "begin", "gate", "check", "validate", "
 export const USAGE = `Usage: pnpm game-flow <verb> …     the state of a game that goes through /add-game (the skill that runs it is .claude/skills/add-game)
 
   status [<game>] [--step <id>] [--json]            where a game stands and what is next; with no game, the games in the flow
-  start "<Game Name>" [--family <folder>] [--adopt-through <step>]   a game enters the flow (--family: its folder is in the folder of its line, assets/<folder>/<slug>; a game that has a folder in the repo only with --adopt-through)
+  start "<Game Name>" [--family <folder>] [--existing | --adopt-through <step>]   a game enters the flow (--family: its folder is in the folder of its line, assets/<folder>/<slug>; a game that has a folder in the repo only with --existing, every step run on it, or --adopt-through, the steps up to one taken on as they are)
   begin <game> <step> [--scratch <dir>] [--change | --again]   opens a round of a step and writes the brief of its sub-agent (--change: the owner asked for a change; --again: the sub-agent of the open round is gone)
   gate <game> <step> [--report <file>] [--link <url>]…   the sub-agent is done: records its report (the round's own file when --report is left out), runs the machine's check, shows the gate
   check <game> <step>                               the machine's check of a step, again
   validate <game> <step>                            the owner said ok: the next gate, or the step is validated
   fail <game> <step> --reason "<why>"               the step cannot go on (a sub-agent that is blocked)
-  redo <game> <step>                                that step and the ones after it go back to not started
+  redo <game> <step> [--only]                       that step and the ones after it go back to not started (--only: that step alone, one that was taken on as it was)
   rulebook <game> [--dry-run]                       fetches the rulebook the scout found to rules.pdf (never over a file that is there); --dry-run says from where and fetches nothing
   linear <game> [--scratch <dir>]                   what Linear should say now: the brief of the bookkeeping sub-agent, or nothing to do
   linear-record <game> [--scratch <dir>] [--file <answer>]   records the ids that sub-agent wrote
@@ -67,7 +64,7 @@ class FlowError extends Error {
 type Parsed = { verb: string; words: string[]; values: Map<string, string[]>; flags: Set<string> }
 
 const VALUE_FLAGS = new Set(["--report", "--link", "--reason", "--scratch", "--file", "--adopt-through", "--step", "--family"])
-const BOOL_FLAGS = new Set(["--json", "--change", "--again", "--dry-run", "--help"])
+const BOOL_FLAGS = new Set(["--json", "--change", "--again", "--dry-run", "--help", "--existing", "--only"])
 
 function parseArgs(argv: string[]): Parsed {
   const args = argv[0] === "--" ? argv.slice(1) : argv
@@ -97,7 +94,7 @@ function locate(deps: FlowDeps, query: string | undefined): Target {
   if (!query) throw new FlowError("Name the game: a name as typed, or its slug", EXIT.usage)
   const found = findGame(deps.assets, query)
   if (!found) throw new FlowError(`${query} is not in the flow yet: pnpm game-flow start "${query}"`)
-  return { found, game: gameAt(found.dir, found.state.name, found.state.slug), state: found.state }
+  return { found, game: gameAt(found.dir, found.state.name, found.state.slug, folderIn(deps, found.state.slug)), state: found.state }
 }
 
 function stepArg(parsed: Parsed, at: number): StepDefinition {
@@ -149,7 +146,7 @@ function stepLine(target: Target, step: StepDefinition, index: number): string {
   let what: string
   switch (s.status) {
     case "validated":
-      what = `validated${s.validatedAt ? ` ${s.validatedAt.slice(0, 10)}` : ""}`
+      what = `validated${s.validatedAt ? ` ${s.validatedAt.slice(0, 10)}` : ""}${isAdopted(s) ? " · taken on as it was" : ""}`
       break
     case "gate":
       what = `at its gate (${step.gates[s.gate] ?? step.gates[0]}${step.gates.length > 1 ? `, ${s.gate + 1} of ${step.gates.length}` : ""})${s.check ? (s.check.ok ? " · check ok" : " · check failed") : ""}`
@@ -185,7 +182,7 @@ function nextOf(deps: FlowDeps, target: Target): Next {
   }
   if (s.status === "failed") return { step: open.id, action: "reopen", text: `${open.title} failed (${shorten(s.failure ?? "no reason given", 90)}): pnpm game-flow begin ${state.slug} ${open.id} opens a new round with a fresh sub-agent` }
   if (open.needsFolder && !folder) return { step: open.id, action: "wait-folder", text: `games/${state.slug} is not in this checkout, and ${open.title} works in it: switch to the branch or the worktree that has it, then ask for the status again` }
-  if (open.makesFolder && folder) return { step: open.id, action: "make-folder", text: `games/${state.slug} is already here, so ${open.title} has nothing to make: pnpm game-flow gate ${state.slug} ${open.id} (no sub-agent) runs its check, then validate` }
+  if (open.makesFolder && folder) return { step: open.id, action: "make-folder", text: `games/${state.slug} is already here, so ${open.title} has nothing to make: pnpm game-flow gate ${state.slug} ${open.id} (no sub-agent) runs its check, which asks Sanity whether the game's project is there, then validate. When that check fails on the project, pnpm game-flow begin ${state.slug} ${open.id} opens the step to repair it` }
   return { step: open.id, action: "begin", text: `pnpm game-flow begin ${state.slug} ${open.id} --scratch <your temp folder> opens ${open.title} and writes the brief of its sub-agent` }
 }
 
@@ -281,8 +278,11 @@ async function start(deps: FlowDeps, parsed: Parsed): Promise<number> {
   }
   const slug = slugFromName(name)
   const adopt = valueOf(parsed, "--adopt-through")
-  if (folderIn(deps, slug) && adopt === undefined) {
-    throw new FlowError(`${slug} has a folder in the repo (games/${slug}): a game that has one is not scouted. To take it on from where it is, pass --adopt-through <step>: the steps up to it are recorded as done outside /add-game (pnpm check:game ${slug} says how far the game has got)`)
+  const onFolder = parsed.flags.has("--existing")
+  if (onFolder && adopt !== undefined) throw new FlowError("--existing and --adopt-through do not go together: --existing runs every step on a game that has a folder, --adopt-through takes the steps up to one on as they are", EXIT.usage)
+  if (onFolder && !folderIn(deps, slug)) throw new FlowError(`games/${slug} is not in this checkout: --existing is for a game that has its folder in the repo (a new game is started with no flag)`)
+  if (folderIn(deps, slug) && adopt === undefined && !onFolder) {
+    throw new FlowError(`${slug} has a folder in the repo (games/${slug}), so it is not scouted as a new game. Pass --existing to run every step on it, the scout included (the skill scouts it as it is), or --adopt-through <step> to take the steps up to one on as they are, done outside /add-game (pnpm check:game ${slug} says how far the game has got)`)
   }
   const last = adopt === undefined ? null : stepById(adopt)
   if (adopt !== undefined && !last) throw new FlowError(`"${adopt}" is not a step: ${STEPS.map((each) => each.id).join(", ")}`, EXIT.usage)
@@ -292,7 +292,7 @@ async function start(deps: FlowDeps, parsed: Parsed): Promise<number> {
   if (family !== undefined && existsSync(join(deps.assets, family, "pipeline.json"))) throw new FlowError(`${tilde(join(deps.assets, family))} is the folder of a game, not of a family: pick another folder for the line`)
   const dir = family === undefined ? join(deps.assets, slug) : join(deps.assets, family, slug)
   const state = newState({ name, slug, now: deps.now() })
-  const game = gameAt(dir, name, slug)
+  const game = gameAt(dir, name, slug, folderIn(deps, slug))
   const taken: StepDefinition[] = []
   let adopting = last !== null
   for (const step of STEPS) {
@@ -313,8 +313,28 @@ async function start(deps: FlowDeps, parsed: Parsed): Promise<number> {
   }
   const target: Target = { found: { dir, state }, game, state }
   save(deps, target)
-  say(deps, `${name} is in the flow: ${tilde(dir)}/pipeline.json`, `Linear has nothing for it yet: pnpm game-flow linear ${slug} --scratch <your temp folder> says what to make.`, "")
+  say(deps, `${name} is in the flow: ${tilde(dir)}/pipeline.json`, `Linear has nothing for it yet: pnpm game-flow linear ${slug} --scratch <your temp folder> says what to make.`)
+  if (onFolder) say(deps, `games/${slug} is in the repo already: every step runs on it, the scout included (the skill scouts it as it is, with --existing), and the game folder is checked, not made.`)
+  const gaps = adoptionGaps(deps, game, taken)
+  if (gaps.length > 0) say(deps, "", "Taken on with nothing behind it, so each of these is a choice, to make now:", ...gaps.map((gap) => `  ${gap}`))
+  say(deps, "")
   return status(deps, { verb: "status", words: [slug], values: new Map(), flags: new Set() })
+}
+
+/**
+ * What a step taken on as it was has no file behind it for: the scout file, which the catalog entry, the rules spec and the platform assets read, and the page of the rules spec, which the engine is written from.
+ * Said when the game enters the flow, so that a step skipped is a choice that is seen, and with the command that runs the step after all.
+ */
+function adoptionGaps(deps: FlowDeps, game: Game, taken: readonly StepDefinition[]): string[] {
+  const gaps: string[] = []
+  const took = (id: string) => taken.some((step) => step.id === id)
+  if (took("scout") && !existsSync(game.scoutFile)) {
+    gaps.push(`scout: no scout file (${tilde(game.scoutFile)}): the catalog entry, the rules spec and the platform assets read one, and pnpm game-flow rulebook fetches the rulebook the scout found, so none of them goes on without it. pnpm game-flow redo ${game.slug} scout --only runs the scout on this game`)
+  }
+  if (took("rules-spec") && !existsSync(specPathsOf(deps.gamesDocs, game.slug).rules)) {
+    gaps.push(`rules spec: no page (docs/games/${game.slug}/rules.md): the engine is written from the rulebook alone, and no reading of its open cases is validated. pnpm game-flow redo ${game.slug} rules-spec --only writes the spec first`)
+  }
+  return gaps
 }
 
 // ---------- begin ----------
@@ -323,7 +343,7 @@ async function start(deps: FlowDeps, parsed: Parsed): Promise<number> {
 async function requireCheckout(deps: FlowDeps, target: Target, step: StepDefinition): Promise<void> {
   const { state } = target
   const spec = stepOf(state, "rules-spec")
-  if (spec.status === "validated" && spec.report !== ADOPTED && !existsSync(specPathsOf(deps.gamesDocs, state.slug).rules)) {
+  if (spec.status === "validated" && !isAdopted(spec) && !existsSync(specPathsOf(deps.gamesDocs, state.slug).rules)) {
     throw new FlowError(`the rules spec (docs/games/${state.slug}/rules.md) is not in this checkout: it was written, uncommitted, in another one: switch to it before ${step.title}`)
   }
   if (!step.makesFolder) return
@@ -350,6 +370,7 @@ async function begin(deps: FlowDeps, parsed: Parsed): Promise<number> {
   }
   requirePrevious(target, step)
   requireNotExpansion(target, step)
+  if (step.needsScout && !existsSync(game.scoutFile)) throw new FlowError(noScoutText(target, `${step.title} reads one`))
   const change = parsed.flags.has("--change")
   if (s.status === "gate" && !change) throw new FlowError(`${step.title} waits at its gate: show the owner its report (pnpm game-flow status ${state.slug} --step ${step.id}). A change they ask for is pnpm game-flow begin ${state.slug} ${step.id} --change`)
   if (change && s.status === "pending") throw new FlowError(`${step.title} has not begun: there is nothing to change yet`)
@@ -361,7 +382,13 @@ async function begin(deps: FlowDeps, parsed: Parsed): Promise<number> {
   }
   const folder = folderIn(deps, state.slug)
   if (step.needsFolder && !folder) throw new FlowError(`games/${state.slug} is not in this checkout, and ${step.title} works in it: switch to the branch or the worktree that has it (the pull request of the game folder, say)`)
-  if (step.makesFolder && folder && s.status === "pending") throw new FlowError(`games/${state.slug} is already here, so ${step.title} has nothing to make: pnpm game-flow gate ${state.slug} ${step.id} runs its check, then validate`)
+  // the folder is there already: the step has nothing to make, unless its check says what is missing (the game's Sanity project is gone, or was never made): then it is opened to repair that
+  let repair: string[] | undefined
+  if (step.makesFolder && folder && s.status === "pending") {
+    const verdict = await runCheck(step, { deps, game, state })
+    if (verdict.ok) throw new FlowError(`games/${state.slug} is already here and the check of ${step.title} passes, so it has nothing to make: pnpm game-flow gate ${state.slug} ${step.id} shows the check, then validate`)
+    repair = verdict.lines
+  }
   if (step.needsFolder || step.makesFolder) await requireCheckout(deps, target, step)
   const scratch = resolve(valueOf(parsed, "--scratch") ?? join(target.found.dir, ".flow"))
   const reopened = s.status !== "pending"
@@ -381,14 +408,30 @@ async function begin(deps: FlowDeps, parsed: Parsed): Promise<number> {
   mkdirSync(scratch, { recursive: true })
   const index = STEPS.findIndex((each) => each.id === step.id) + 1
   say(deps, `${step.title[0]?.toUpperCase() ?? ""}${step.title.slice(1)} · step ${index} of ${STEPS.length} · round ${s.rounds} · skill ${step.skill}`)
+  if (repair !== undefined) say(deps, `A repair, not a creation: games/${state.slug} is in the repo already and its check says:`, ...repair.map((line) => `  ${tildeAll(line)}`))
+  if (step.id === "engine-rules" && !existsSync(specPathsOf(deps.gamesDocs, state.slug).rules)) {
+    say(deps, `Note: there is no rules spec (docs/games/${state.slug}/rules.md), so the engine is planned from the rulebook alone and every case it leaves open goes in the sub-agent's questions.`)
+  }
   // the brief is written for a change too: the sub-agent that did the step may be gone (another session), and a fresh one reads it, finds what exists and carries on
-  writeFileSync(briefPath, briefOf({ step, game, scratch, reportPath, has: { scout: existsSync(game.scoutFile), rulesPdf: existsSync(game.rulesPdf) }, round: reopened ? s.rounds : 1, issue: s.issue?.identifier || null, parent: state.linear.parent?.identifier || null }))
+  writeFileSync(briefPath, briefOf({ step, game, scratch, reportPath, has: { scout: existsSync(game.scoutFile), rulesPdf: existsSync(game.rulesPdf) }, round: reopened ? s.rounds : 1, issue: s.issue?.identifier || null, parent: state.linear.parent?.identifier || null, repair }))
   if (change) {
     say(deps, "A round for the change the owner asked for: send it to the sub-agent that did the step (SendMessage), and ask it to return its new report as its final message: you write it to the new file.", `  report  ${reportPath}`, `  brief   ${briefPath}  (for a fresh sub-agent when that one is gone: Read it and follow it, and give it the owner's words)`, `When it answers STATUS: done: pnpm game-flow gate ${state.slug} ${step.id}`)
     return EXIT.ok
   }
   say(deps, `  brief   ${briefPath}`, `  report  ${reportPath}  (the sub-agent returns its report as its final message: write it to this file, then gate)`, `Give a sub-agent (Agent tool, general-purpose) this prompt: Read ${briefPath} and follow it.`, `When it answers STATUS: done: write its message to the report file, then pnpm game-flow gate ${state.slug} ${step.id}`)
   return EXIT.ok
+}
+
+/** Why a step that reads the scout file cannot go on without it, and what makes one: for a game whose scout was taken on as it was, the scout run on it after all (the skill scouts a game that has a folder with `--existing`). */
+function noScoutText(target: Target, why: string): string {
+  const { state, game } = target
+  const scout = stepOf(state, "scout")
+  const how = isAdopted(scout)
+    ? `. The scout was taken on as it was, so none was made: pnpm game-flow redo ${state.slug} scout --only runs it on this game, as it is, then this goes on`
+    : scout.status === "validated"
+      ? ": the scout step validated one, so it was moved or deleted: put it back"
+      : ": the scout is not validated yet, and comes first"
+  return `there is no scout file yet (${tilde(game.scoutFile)}), and ${why}${how}`
 }
 
 // ---------- gate, check ----------
@@ -456,6 +499,7 @@ function settleScout(deps: FlowDeps, target: Target): string | null {
   const scout = scoutOf(target)
   if (scout === null) return "the scout file cannot be read"
   if (scout.slug !== state.slug && folderIn(deps, scout.slug)) return `games/${scout.slug} exists already: ${scout.name} has a folder, there is nothing to add`
+  if (scout.slug !== state.slug && folderIn(deps, state.slug)) return `games/${state.slug} is this game's folder in the repo, so its slug does not change, and the scout file says ${scout.slug}: a game that has a folder is scouted with its own slug`
   // the folder keeps the folder it is in (a family's, for a game of a line)
   const to = join(dirname(found.dir), scout.slug)
   const was = state.slug
@@ -544,22 +588,32 @@ async function fail(deps: FlowDeps, parsed: Parsed): Promise<number> {
   return EXIT.ok
 }
 
+/** A step back to not started: what it recorded of its work goes, its Linear issue stays. */
+function resetStep(s: ReturnType<typeof stepOf>): void {
+  s.status = "pending"
+  s.gate = 0
+  s.gateAt = null
+  s.failure = null
+  s.validatedAt = null
+  s.report = null
+  s.reportPath = null
+  s.check = null
+  s.links = []
+}
+
 async function redo(deps: FlowDeps, parsed: Parsed): Promise<number> {
   const target = locate(deps, parsed.words[0])
   const step = stepArg(parsed, 1)
-  const from = STEPS.findIndex((each) => each.id === step.id)
-  for (const later of STEPS.slice(from)) {
-    const s = stepOf(target.state, later.id)
-    s.status = "pending"
-    s.gate = 0
-    s.gateAt = null
-    s.failure = null
-    s.validatedAt = null
-    s.report = null
-    s.reportPath = null
-    s.check = null
-    s.links = []
+  if (parsed.flags.has("--only")) {
+    // a step taken on as it was has nothing of the flow's behind it, so it can be run now without the steps after it going back: they keep what they have
+    if (!isAdopted(stepOf(target.state, step.id))) throw new FlowError(`--only is for a step that was taken on as it was, and ${step.title} was not: redo without it takes that step and the ones after it back to not started`)
+    resetStep(stepOf(target.state, step.id))
+    save(deps, target)
+    say(deps, `${step.title} is back to not started and runs next: the steps after it keep what they have. pnpm game-flow begin ${target.state.slug} ${step.id} --scratch <your temp folder> opens it.`)
+    return EXIT.ok
   }
+  const from = STEPS.findIndex((each) => each.id === step.id)
+  for (const later of STEPS.slice(from)) resetStep(stepOf(target.state, later.id))
   save(deps, target)
   say(deps, `${step.title} and the steps after it are back to not started (their Linear issues and what the skills made are kept: the skills fill and never replace).`)
   return EXIT.ok
@@ -574,7 +628,7 @@ async function rulebook(deps: FlowDeps, parsed: Parsed): Promise<number> {
     say(deps, `${tilde(game.rulesPdf)} is there already: it is kept.`)
     return EXIT.ok
   }
-  if (!existsSync(game.scoutFile)) throw new FlowError(`there is no scout file yet (${tilde(game.scoutFile)}): the rulebook is the one the scout found`)
+  if (!existsSync(game.scoutFile)) throw new FlowError(noScoutText(target, "the rulebook is the one the scout found"))
   const url = scoutOf(target)?.edition.rules?.url ?? null
   if (url === null) {
     say(deps, `The scout found no address for the rulebook: put the PDF at ${tilde(game.rulesPdf)} if the rules are a PDF (a rulebook that is a web page is read as it is).`)
