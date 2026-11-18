@@ -60,8 +60,13 @@ export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
   heldScale: ["card in hand scale", 0.4, 1.4, 0.01],
 }
 
-/** The width and height of a card of the game, in world units: the faces of Sanity are 296 by 476 */
-export const CARD = { width: 1.2, height: 1.93 }
+/**
+ * The width and height of a card of the game, in world units, and the radius of its corners. The faces of Sanity are 296 by 476, with a white contour 16 units wide whose outer corners are an arc of 25 units, transparent beyond it. The card has to be cut
+ * where the contour is, or the transparent corner pixels of the picture lie on the card and read black: the table's default radius (6% of the smaller side, 18 units here) leaves a black crescent in each corner. The table draws a corner as a quadratic
+ * curve, which at 45 degrees passes 6% of its radius nearer the corner than a circular arc of the same radius does (at 25 units a hairline of black is left there): a radius of 25 x (4 - 2 x the square root of 2), 29.3 units, puts the curve on the arc at
+ * 45 degrees and inside it everywhere else.
+ */
+export const CARD = { width: 1.2, height: 1.93, radius: (1.2 * 29.3) / 296 }
 
 /** What grows with the table, for `n` players: from the values for two (the fewest) to those for eight (the most), in steps in between. */
 export function tableOf(n: number) {

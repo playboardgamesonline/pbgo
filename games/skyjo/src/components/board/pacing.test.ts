@@ -86,6 +86,7 @@ describe("the timeline of the last move", () => {
     const events: SkyjoEvent[] = [
       { kind: "reveal", by: "ana", position: 0, card: face(1), how: "opening" },
       { kind: "start", by: "ana", sum: 4, how: "sum" },
+      { kind: "start", by: "ana", sum: 4, how: "ender" },
       { kind: "last", by: "ana" },
       { kind: "reshuffle" },
       { kind: "end", scores: [1, 2, 3], ender: "ana", doubled: false },
