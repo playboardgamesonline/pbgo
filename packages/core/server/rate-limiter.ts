@@ -66,6 +66,8 @@ export const RATE_LIMITS = {
   externalUnlink: { limit: 10, windowMs: 10 * 60_000, by: "ip" },
   /** The whole social state of a member (`GET /api/hub/friends`, PLT-23): the panel of every page of the hub asks for it about every 20 s while a tab is in view, and after each action. Per IP, since the route belongs to no game, with room for a few members and tabs behind one address */
   friendsRead: { limit: 120, windowMs: 60_000, by: "ip" },
+  /** The table that the leader of a member's group opened for it (`GET /api/hub/groups/table`, PLT-141): every tab of a member who is in a group asks for it every few seconds while it is in view, and the leader's home while it waits. Per IP, since the route belongs to no game, with room for a few members and tabs behind one address */
+  partyRead: { limit: 240, windowMs: 60_000, by: "ip" },
   /** A member sending a friend request (`POST /api/hub/friends/request`): a few at a time, a typo or a name that does not exist counts too. Per IP, with room for a few members behind one address */
   friendRequest: { limit: 30, windowMs: 10 * 60_000, by: "ip" },
   /** A member answering a request, removing a friend, blocking or unblocking (the other `POST`s of `/api/hub/friends`): one press each, and a list of requests is answered one by one. Per IP, with room for a few members behind one address */

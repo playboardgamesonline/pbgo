@@ -9,7 +9,7 @@ import { HomeAside } from "@/components/home-aside"
 import { HomePlay, type PlayGame } from "@/components/home-play"
 import { ageStatesOf, lockedExpansions } from "@/lib/age-state"
 import { getExpansions, getTournaments } from "@/lib/game-activity"
-import { expansionOption, LANGUAGE_OPTIONS } from "@/lib/game-activity-props"
+import { expansionOption } from "@/lib/game-activity-props"
 import { gamePicture } from "@/lib/game-card-props"
 import { gameThumb } from "@/lib/game-thumb"
 import { DEMO_ARTICLE, demoTournaments, openTournaments, type AsideGame } from "@/lib/home-aside"
@@ -68,7 +68,7 @@ export default async function MemberHome() {
       <main className="flex flex-1 flex-col pt-navbar">
         <h1 className="sr-only">Home</h1>
         <div className="mb-4 flex flex-1 flex-col gap-6 px-gutter pt-4 pb-gutter xl:flex-row xl:gap-x-gutter">
-          <HomePlay className="flex-1" games={games} languages={LANGUAGE_OPTIONS} account={{ id: account.id, nickname: account.nickname, avatarUrl: account.avatarUrl }} />
+          <HomePlay className="flex-1" games={games} account={{ id: account.id, nickname: account.nickname, avatarUrl: account.avatarUrl }} />
           <HomeAside className="w-full xl:w-80 xl:shrink-0 2xl:w-96" article={article} tournaments={tournaments} timeFormat={account.preferences.timeFormat} />
         </div>
       </main>

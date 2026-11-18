@@ -152,8 +152,6 @@ function FriendPickerFrame() {
       onInvite={async (friend) => sendInvitation(friend)}
       // a way to bring somebody who is not a friend yet
       link={{ onCopy: copy, copied }}
-      // for a table that does not exist yet: "Add" and "Added" in place of "Invite" and "Invited"
-      labels={{ action: "Add", done: "Added" }}
     />
   </PopoverContent>
 </Popover>`}>

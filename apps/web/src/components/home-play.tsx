@@ -2,14 +2,15 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Alert02Icon, ArrowRight01Icon, DiceIcon, PlayIcon, SlidersHorizontalIcon, TrophyIcon } from "@hugeicons/core-free-icons"
+import { Alert02Icon, ArrowRight01Icon, DiceIcon, Loading03Icon, PlayIcon, SlidersHorizontalIcon, TrophyIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
 import type { AgeRefusal } from "@pbgo/accounts"
 import { createApi } from "@pbgo/core/lib/api"
+import { partyWaitLine, partyWaitText, startableWith, type PartyTable } from "@pbgo/core/lib/party"
 import { gameRefusal, gameRefusalText, searchBlock, searchBlockText, tableBlock, tableBlockText, type PlayGroup } from "@pbgo/core/lib/play-eligibility"
 import { SEARCH_MAX_GAMES } from "@pbgo/core/lib/quick-play"
 import { engineOptionsOf } from "@pbgo/core/lib/table-options"
-import { creationSettings, PRIVATE_TABLE, type AccessChoice } from "@pbgo/core/lib/table-settings"
+import { creationSettings, PRIVATE_TABLE } from "@pbgo/core/lib/table-settings"
 import type { Friend } from "@pbgo/ui/friends"
 import { orderedMembers, youLead, type GroupMember } from "@pbgo/ui/groups"
 import { Button } from "@pbgo/ui/platform/button"
@@ -18,23 +19,23 @@ import type { ComboboxOption } from "@pbgo/ui/platform/combobox"
 import { DropdownMenuItem, DropdownMenuSeparator } from "@pbgo/ui/platform/dropdown-menu"
 import { GameSelect } from "@pbgo/ui/platform/game-select"
 import { FriendPicker } from "@pbgo/ui/platform/invite-friend"
-import { LobbyAccess, type LanguageOption } from "@pbgo/ui/platform/lobby-access"
 import { LobbyPlayerCount, LobbySettings, type ExpansionOption } from "@pbgo/ui/platform/lobby-settings"
 import { ModeSwitch, type ModeOption } from "@pbgo/ui/platform/mode-switch"
 import { AddGameTile, PickedGame } from "@pbgo/ui/platform/picked-game"
 import { PlayerSlots, type SlotPlayer } from "@pbgo/ui/platform/player-slots"
-import { QueueButton } from "@pbgo/ui/platform/queue"
-import { gameSlotsFor, PLAY_ZONE_LABELS, PLAY_ZONE_MODES, placesFor, searchModeOf, SLOT_BASE, type PlayZoneMode } from "@pbgo/ui/play-zone"
+import { PartyWait, QueueButton } from "@pbgo/ui/platform/queue"
+import { gameSlotsFor, PLAY_ZONE_LABELS, PLAY_ZONE_MODES, placesFor, searchModeOf, type PlayZoneMode } from "@pbgo/ui/play-zone"
 import type { QueueCriteria } from "@pbgo/ui/queue"
 import { rankLabel, type Rank } from "@pbgo/ui/ranks"
-import { defaultSeats, type Pace } from "@pbgo/ui/tables"
+import type { Pace } from "@pbgo/ui/tables"
 import { cn } from "@pbgo/ui/utils"
 import { leaveQueue, startSearch, useQueue, useQueueSeconds } from "@/lib/matchmaking"
+import { cancelParty, readParty, setParty, startParty, usePartyTable } from "@/lib/party"
+import { enterBoard } from "@/lib/table-door"
 import { useCopied } from "@/lib/use-copied"
 import { useSocial } from "@/lib/use-social"
 import { useAgeGate } from "./age-gate"
 import { useGroupActions } from "./group-actions"
-import { inviteToTable } from "./invitation-actions"
 
 /** A game that the play zone can look for a table of, or open one of: the picture its tile draws (`gamePicture`), the member's rank in it (none for a game they have not rated), what it asks of them for their age (PLT-125), how many may play and its expansions. */
 export type PlayGame = {
@@ -65,16 +66,33 @@ const FRIENDS_LISTED = 8
  */
 const SLOTS = "grid grid-cols-3 gap-x-3 gap-y-4 @xl:grid-cols-5 max-w-6xl"
 
+/** What the button of Custom becomes while the leader waits for their group at the table they opened: who is awaited, with the cross that gives it up, and, once the wait has lasted and enough of the group is seated, the button that starts with the people who came. */
+function PartyWaiting({ table, least, busy, onCancel, onStart }: { table: PartyTable; least: number; busy: boolean; onCancel: () => void; onStart: () => void }) {
+  const { label, count } = partyWaitText(table)
+  const startable = startableWith(table, least)
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <PartyWait size="2xl" label={label} count={count} onCancel={onCancel} />
+      {startable !== null && (
+        <Button size="2xl" variant="outline" disabled={busy} onClick={onStart}>
+          Start with {startable}
+        </Button>
+      )}
+    </div>
+  )
+}
+
 /**
  * The play zone of the signed-in home: one central interface in a card that takes the height of what is left of the screen, with the same margin at its two sides and a little more under it, in the left column of the home (the right one is `HomeAside`'s: PLT-21, PLT-119, PLT-135). Its four parts are spread over the
  * height of the card: a switch that fits its cases (Normal, Ranked, Custom) at the top, then at a fixed distance (the "2xl" step, 3rem) the "Board games" (four slots to begin with: the games that are picked as tiles and, after them, the slots that are free, each
  * of which opens the panel of the games, a fifth, free, when the four are taken, five games at the most; a press on a tile opens its settings, in a window: its speed, its expansions and, for a search, the most players at a table), then the "Players" (the row of players, every place of one size too,
- * as large as the row allows, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little room at their sides, and at the foot of the card the button, with what says why it is off at its right. Normal and Ranked look for a table among players the member does not know, in as many games as they pick, the places being their group; Custom opens a table of one game for friends, private to
- * begin with, the places being its seats, whose number the game's settings set; a friend picked in a place is invited when the table opens. A game that the group cannot play stays in the list and as a tile, off, with the reason; the same reason is at the right of the button. The button says
- * "Play" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left and for a member of a group who is not its leader (`@pbgo/core/lib/play-eligibility`). The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it, the zone shows
- * its games and its kind and cannot be changed until it is stopped.
+ * as large as the row allows, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little room at their sides, and at the foot of the card the button, with what says why it is off at its right. The places are the member's group in every mode, and a press on a friend in the panel of a free place invites them to it at once. Normal and Ranked look for a table among players the member does not know, in as many games as they pick; Custom starts a game of one game for the group (PLT-141: the group is the table, so it has no number of seats or kind of access to set).
+ * A game that the group cannot play (it is larger than the game's most players) stays in the list and as a tile, off, with the reason, in every mode; the same reason is at the right of the button. The button says "Play" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left, for a member of a group who is not its leader, and, in Custom, when the group is smaller than the game needs or a member is in a game or offline
+ * (`@pbgo/core/lib/play-eligibility`). "Start game" opens a private table for the group with the game's own route and the member stays here: with a group the button becomes the wait for it (`PartyWait`: who is awaited and how many are seated, with a cross that gives the table up, and, after a minute, "Start with N"), while each member's own tab sits down at the table
+ * by itself and everybody is taken to the board's start screen when it fills (`PartySync`, `lib/party.ts`); alone, in a game that takes one player, the table is started at once. The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it, the zone shows
+ * its games and its kind and cannot be changed until it is stopped, and so does the wait for a group's table.
  */
-export function HomePlay({ games, languages, account, className }: { games: readonly PlayGame[]; languages: readonly LanguageOption[]; account: { id: string; nickname: string; avatarUrl?: string | null }; className?: string }) {
+export function HomePlay({ games, account, className }: { games: readonly PlayGame[]; account: { id: string; nickname: string; avatarUrl?: string | null }; className?: string }) {
   const router = useRouter()
   const { friends, group } = useSocial(account)
   const groups = useGroupActions()
@@ -83,6 +101,10 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const queue = useQueue()
   const seconds = useQueueSeconds(queue)
   const searching = queue !== null
+  // The table that the leader of the member's group opened for it (PLT-141): the leader's wait for the group, which `PartySync` keeps read, or the member's own at it
+  const party = usePartyTable()
+  const leadingAt = party !== null && party.host && party.status === "lobby" ? party : null
+  const leading = leadingAt !== null
 
   const [mode, setMode] = useState<PlayZoneMode>("normal")
   // A search sits the member at a table of each game, so it holds five at the most (`SEARCH_MAX_GAMES`): the first five are in to begin with
@@ -90,18 +112,16 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const [customSlug, setCustomSlug] = useState<string | null>(null)
   // The settings of a game are the member's whichever kind of play they are for, so they are kept by game
   const [configs, setConfigs] = useState<Readonly<Record<string, GameConfig>>>({})
-  // The table opened by hand: how many seats (the game's median until the member picks), who may join (private to begin with) and the friends to invite once it exists
-  const [seats, setSeats] = useState<number | null>(null)
-  const [access, setAccess] = useState<AccessChoice>(PRIVATE_TABLE)
-  const [invitees, setInvitees] = useState<readonly Friend[]>([])
+  // The table of the group is being opened, or a start is on its way
   const [opening, setOpening] = useState(false)
   // Whether the panel of the games is open: every free slot opens it, the first one being its trigger
   const [adding, setAdding] = useState(false)
 
-  // What the zone shows is the search when there is one, else what the member has set up so far
-  const shownMode = queue ? queue.mode : mode
+  // What the zone shows is the search when there is one, the table that the leader is waiting at when there is one, else what the member has set up so far. Neither can be changed until it is stopped
+  const locked = searching || leading
+  const shownMode = queue ? queue.mode : leading ? "custom" : mode
   const searchMode = searchModeOf(shownMode)
-  const chosen = queue ? queue.games.map((game) => game.slug) : searchMode ? picked : customSlug ? [customSlug] : []
+  const chosen = queue ? queue.games.map((game) => game.slug) : leadingAt ? [leadingAt.game] : searchMode ? picked : customSlug ? [customSlug] : []
   const shown = games.filter((game) => chosen.includes(game.slug))
   const customGame = games.find((game) => game.slug === customSlug)
   const configOf = (slug: string): GameConfig => configs[slug] ?? USUAL
@@ -109,32 +129,37 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const maxPlayersOf = (game: PlayGame) => Math.min(game.range.max, configOf(game.slug).maxPlayers ?? game.range.max)
   const isUsual = (game: PlayGame) => configOf(game.slug).pace === USUAL.pace && configOf(game.slug).expansions.length === 0 && maxPlayersOf(game) === game.range.max
 
-  // The member and the people who play with them: their group (the leader first), the friends invited to it who have not answered, or, for a table of their own, the friends they picked
+  // The member and the people who play with them, whichever the kind of play: their group (the leader first) and the friends invited to it who have not answered
   const members = group ? orderedMembers(group).filter((member) => !member.you) : []
   const waiting = friends.filter((friend) => friend.pending === "invited")
   const me: SlotPlayer = { id: "you", name: account.nickname, avatarUrl: account.avatarUrl, you: true, leader: searchMode ? (group ? youLead(group) : false) : !group || youLead(group) }
   const slotOf = (friend: Friend | GroupMember, rest: Partial<SlotPlayer> = {}): SlotPlayer => ({ id: friend.id, name: friend.nickname, tag: friend.tag, avatarUrl: friend.avatarUrl, status: friend.status, ...rest })
-  const players: SlotPlayer[] = searchMode
-    ? [me, ...members.map((member) => slotOf(member, { leader: member.leader })), ...waiting.map((friend) => slotOf(friend, { pending: true }))]
-    : [me, ...invitees.map((friend) => slotOf(friend, { pending: true }))]
-  const tableSeats = seats ?? (customGame ? defaultSeats(customGame.range.min, customGame.range.max) : SLOT_BASE)
-  // A group has five places to begin with and one more each time they are all taken; a table of one's own has the seats of its game, five until a game is picked
-  const size = searchMode ? placesFor(players.length) : customGame ? Math.max(tableSeats, players.length) : SLOT_BASE
+  const players: SlotPlayer[] = [me, ...members.map((member) => slotOf(member, { leader: member.leader })), ...waiting.map((friend) => slotOf(friend, { pending: true }))]
+  // Five places to begin with and one more each time they are all taken, whichever the kind of play: the places are the member's group
+  const size = placesFor(players.length)
 
-  // What the group cannot do: games it is too large for stay, off, a member who is in a game stops the search, and only the leader of a group looks for a game or opens a table
-  const playGroup: PlayGroup = { size: group ? group.members.length : 1, inGame: members.filter((member) => member.status === "playing").map((member) => member.nickname), leads: group ? youLead(group) : true }
-  const refusals = new Map(games.flatMap((game) => { const refusal = searchMode ? gameRefusal(playGroup, game.range) : null; return refusal ? [[game.slug, gameRefusalText(refusal)] as const] : [] }))
+  // What the group cannot do: games it is too large for stay, off, a member who is in a game stops the search and the start of a game, so does one who is offline (the start needs everybody to sit down), and only the leader of a group looks for a game or starts one
+  const playGroup: PlayGroup = {
+    size: group ? group.members.length : 1,
+    inGame: members.filter((member) => member.status === "playing").map((member) => member.nickname),
+    offline: members.filter((member) => member.status === "offline").map((member) => member.nickname),
+    leads: group ? youLead(group) : true,
+  }
+  const refusals = new Map(games.flatMap((game) => { const refusal = gameRefusal(playGroup, game.range); return refusal ? [[game.slug, gameRefusalText(refusal)] as const] : [] }))
   const searchBlocked = searchMode ? searchBlock(playGroup) : null
-  const tableBlocked = shownMode === "custom" ? tableBlock(playGroup) : null
+  const tableBlocked = shownMode === "custom" ? tableBlock(playGroup, customGame?.range ?? null) : null
   const asked = shown.filter((game) => !refusals.has(game.slug))
   const refused = shown.filter((game) => refusals.has(game.slug))
-  const notices = searching ? [] : searchBlocked ? [searchBlockText(searchBlocked)] : tableBlocked ? [tableBlockText(tableBlocked)] : [...refused.slice(0, 2).map((game) => `${game.name}: ${refusals.get(game.slug)}`), ...(refused.length > 2 ? [`${refused.length - 2} more games can't be played by your group.`] : [])]
+  // A member who sits at the table of the group is told they wait for the others, in place of the reason that only the leader starts
+  const seatedAt = party !== null && !party.host && party.you && party.status === "lobby" ? party : null
+  const reasons = searchBlocked ? [searchBlockText(searchBlocked)] : tableBlocked ? [tableBlockText(tableBlocked)] : [...refused.slice(0, 2).map((game) => `${game.name}: ${refusals.get(game.slug)}`), ...(refused.length > 2 ? [`${refused.length - 2} more games can't be played by your group.`] : [])]
+  const notices = searching || leading || seatedAt ? [] : reasons
 
   // The slots of the games: four to begin with and a fifth, free, when they are all taken, five at the most (`SEARCH_MAX_GAMES`), counted from the games of the search whatever the kind of play, so that the zone under them never moves when the kind changes. A table of one's own
   // holds one game: of its free slots only the one that can be pressed is drawn, the others are invisible, there for the room of the rows. The games that are picked have the first slots and the free ones come after them; the ones of a search stay drawn while it is on, off, since it is read and not set
   const slots = gameSlotsFor(searchMode ? shown.length : picked.length, SEARCH_MAX_GAMES)
   const freeSlots = Math.max(0, slots - shown.length)
-  const pressable = searchMode ? freeSlots : customSlug === null ? 1 : 0
+  const pressable = searchMode ? freeSlots : shown.length === 0 ? 1 : 0
   const addLabel = searchMode ? "Add a game" : "Choose a game"
 
   const options: ComboboxOption[] = games.map((game) => ({
@@ -146,13 +171,9 @@ export function HomePlay({ games, languages, account, className }: { games: read
 
   function pickCustom(slug: string | undefined) {
     setCustomSlug(slug ?? null)
-    setSeats(null)
-    const game = games.find((candidate) => candidate.slug === slug)
-    // A game that takes fewer players has no room for all the friends that were picked
-    if (game) setInvitees((current) => current.slice(0, Math.max(0, game.range.max - 1)))
   }
 
-  /** The settings panel of a game's tile: for a search the most players at a table, above the speed (not for a ranked search, which is played at the usual speed), the number of players of a table of one's own, and the expansions. */
+  /** The settings panel of a game's tile: for a search the most players at a table, above the speed (not for a ranked search, which is played at the usual speed), and the expansions. The people of a table of one's own are the member's group: it has no number of players to set. */
   function settingsOf(game: PlayGame) {
     return (
       <LobbySettings
@@ -174,47 +195,26 @@ export function HomePlay({ games, languages, account, className }: { games: read
         pace={configOf(game.slug).pace}
         chosen={configOf(game.slug).expansions}
         expansions={game.expansions}
-        afterSpeed={shownMode === "custom" ? <LobbyPlayerCount range={game.range} count={Math.max(tableSeats, players.length)} onCountChange={setSeats} disabled={opening} /> : undefined}
         onChange={(value) => setConfigs((all) => ({ ...all, [game.slug]: { ...configOf(game.slug), pace: value.pace, expansions: value.expansions } }))}
         onLockedPick={(_id, locked) => void demand(locked.kind as AgeRefusal)}
       />
     )
   }
 
-  /** The panel of a free place: the friends right away. In a search they are invited to the group, with a link for someone who has no account yet; for a table of one's own they are picked, and invited when it opens, a table that does not exist having no link to copy. */
-  const picker = searchMode ? (
+  /** The panel of a free place, the same in every mode: the friends who are in no group, right away, with a link to copy for someone who has no account yet. One press invites the friend to the member's group, which the row then shows as a faint picture until they answer. */
+  const picker = (
     <FriendPicker
       friends={friends.filter((friend) => friend.group === undefined)}
-      invited={new Set(friends.filter((friend) => friend.pending === "invited").map((friend) => friend.id))}
+      invited={new Set(waiting.map((friend) => friend.id))}
       limit={FRIENDS_LISTED}
       onInvite={groups.inviteFromPicker}
       link={{ onCopy: copy, copied }}
     />
-  ) : (
-    <FriendPicker
-      friends={friends}
-      invited={new Set(invitees.map((friend) => friend.id))}
-      limit={FRIENDS_LISTED}
-      labels={{ action: "Add", done: "Added" }}
-      onInvite={(friend) => {
-        if (invitees.length + 1 >= size) return false
-        setInvitees((current) => (current.some((other) => other.id === friend.id) ? current : [...current, friend]))
-        return true
-      }}
-    />
   )
 
-  /** What a press on a person of the row opens: in a group, their profile and, for the leader, the lead and the way out of the group; the member's own place has "Leave group". For a table of one's own, a friend picked can be taken out. */
+  /** What a press on a person of the row opens, in every mode: in a group, their profile and, for the leader, the lead and the way out of the group; the member's own place has "Leave group". A friend who was invited and has not answered has none, nor does a member with no group. */
   function menuOf(player: SlotPlayer) {
-    if (player.pending && searchMode) return null
-    if (!searchMode) {
-      return player.you ? null : (
-        <DropdownMenuItem variant="destructive" onSelect={() => setInvitees((current) => current.filter((friend) => friend.id !== player.id))}>
-          Remove
-        </DropdownMenuItem>
-      )
-    }
-    if (!group) return null
+    if (player.pending || !group) return null
     if (player.you) return <DropdownMenuItem onSelect={() => groups.leave()}>Leave group</DropdownMenuItem>
     const member = group.members.find((candidate) => candidate.id === player.id)
     if (!member) return null
@@ -253,21 +253,58 @@ export function HomePlay({ games, languages, account, className }: { games: read
     }
   }
 
-  /** Opens the table with the game's own route, as the game's page does, keeps who may join, the speed and the seats with it, sends the engine its options, invites the friends picked and takes the member to its lobby, where they share its link. */
+  /**
+   * "Start game" (Custom, PLT-141): the group is the table. It opens a private table of the game with the game's own route, with one seat for each person of the member's group (the game's settings give the speed, its expansions the engine's options), and the member stays on the home:
+   * with a group, the table waits for the others, whose own tabs sit down at it by themselves (`PartySync`), and the ready check begins when the last one is seated; alone, in a game that takes one player, the table is started at once. Either way everybody ends at the board's start screen.
+   */
   async function open() {
     if (!customGame) return
     const config = configOf(customGame.slug)
+    const together = playGroup.size > 1
+    const settings = creationSettings(PRIVATE_TABLE, config.pace, playGroup.size, customGame.range, together)
+    const api = createApi(customGame.slug)
+    let code: string | null = null
     setOpening(true)
     try {
-      const api = createApi(customGame.slug)
       // A game for adults asks for the member's date of birth when it is missing (PLT-125): they give it, and the call goes on
-      const table = await guard(() => api.create({}, creationSettings(access, config.pace, Math.max(tableSeats, players.length), customGame.range)))
+      const table = await guard(() => api.create({}, settings))
+      code = table.code
       const options = engineOptionsOf({ expansions: config.expansions, helpers: [] }, { expansions: customGame.expansions.map(({ id }) => id), helpers: [] }, Object.keys(table.options))
       if (Object.keys(options).length > 0) await guard(() => api.options(table.code, options)).catch(fail)
-      await Promise.all(invitees.map((friend) => inviteToTable(friend, { game: customGame.slug, code: table.code })))
-      router.push(`/game/${customGame.slug}/${table.code}`)
+      if (together) {
+        // The wait is drawn at once, and read again from the server every few seconds from here (`PartySync`)
+        setParty({ game: customGame.slug, code: table.code, status: "lobby", seats: settings.seats, seated: 1, you: true, host: true, waited: 0 })
+        void readParty()
+      } else {
+        await guard(() => api.start(table.code))
+        enterBoard(router, customGame.slug, table.code)
+      }
     } catch (error) {
       fail(error)
+      // A table that was opened and could not be started would only wait
+      if (code && !together) void api.leave(code).catch(() => {})
+    } finally {
+      setOpening(false)
+    }
+  }
+
+  /** The leader gives the table up: it goes, with the seats of the group, and the others' tabs stop waiting. */
+  async function cancel() {
+    try {
+      await cancelParty()
+    } catch (error) {
+      fail(error)
+    }
+  }
+
+  /** The leader starts with the people who came, after the wait: the ready check begins, and everybody seated is taken to the start screen. */
+  async function startWithThem() {
+    setOpening(true)
+    try {
+      await startParty()
+    } catch (error) {
+      fail(error)
+    } finally {
       setOpening(false)
     }
   }
@@ -283,7 +320,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
         <h2 id="home-play" className="sr-only">
           Play
         </h2>
-        <ModeSwitch options={MODES} value={shownMode} onValueChange={setMode} disabled={searching} aria-label="What to play" className="justify-start" />
+        <ModeSwitch options={MODES} value={shownMode} onValueChange={setMode} disabled={locked} aria-label="What to play" className="justify-start" />
         <section aria-labelledby="home-games" className="@container mt-12 flex flex-col gap-4 px-2">
           <h3 id="home-games" className="font-heading text-lg">
             {searchMode ? "Board games" : "Board game"}
@@ -302,9 +339,9 @@ export function HomePlay({ games, languages, account, className }: { games: read
                     showRank={shownMode === "ranked"}
                     rank={game.rank}
                     unavailable={refusals.get(game.slug)}
-                    config={searching ? undefined : settingsOf(game)}
+                    config={locked ? undefined : settingsOf(game)}
                     configured={!isUsual(game)}
-                    onRemove={searching ? undefined : searchMode ? () => setPicked(picked.filter((slug) => slug !== game.slug)) : () => pickCustom(undefined)}
+                    onRemove={locked ? undefined : searchMode ? () => setPicked(picked.filter((slug) => slug !== game.slug)) : () => pickCustom(undefined)}
                     loading={index < 6 ? "eager" : "lazy"}
                   />
                 ))}
@@ -323,14 +360,14 @@ export function HomePlay({ games, languages, account, className }: { games: read
                       empty="No game matches."
                       fullNote={`A search takes ${SEARCH_MAX_GAMES} games at the most. Take one out to add another.`}
                       aria-label="Games"
-                      open={adding && !searching}
+                      open={adding && !locked}
                       onOpenChange={setAdding}
                     >
-                      <AddGameTile label={addLabel} disabled={searching} />
+                      <AddGameTile label={addLabel} disabled={locked} />
                     </GameSelect>
                   ) : (
                     // The other free slots open the same panel, so only the first of them is a stop for the keyboard's Tab
-                    <AddGameTile key={`free-${index}`} label={addLabel} disabled={searching} tabIndex={-1} onClick={() => setAdding(true)} />
+                    <AddGameTile key={`free-${index}`} label={addLabel} disabled={locked} tabIndex={-1} onClick={() => setAdding(true)} />
                   ),
                 )}
               </div>
@@ -344,24 +381,23 @@ export function HomePlay({ games, languages, account, className }: { games: read
           <h3 id="home-players" className="font-heading text-lg">
             Players
           </h3>
-          <PlayerSlots players={players} size={size} picker={picker} menu={menuOf} disabled={searching || opening} />
+          <PlayerSlots players={players} size={size} picker={picker} menu={menuOf} disabled={locked || opening} />
         </section>
         <div aria-hidden="true" className="min-h-6 grow" />
         {/* The button is at the foot of the card, which is the foot of the screen, with what says why it is off at its right. Under `xl` a card taller than the screen keeps it in view above the consent banner, over what scrolls under it (the fade is the card's own grey); from `xl` the card is made to fit the screen and it stays at its foot. It has 1.75rem under it, a quarter of a rem more than the card has at its sides (`pb-7`, on the card's content and, under `xl`, on this wrapper, which cancels the content's) */}
         <div className="sticky bottom-[var(--consent-h,0px)] z-10 -mx-6 -mb-7 flex flex-wrap items-center gap-x-6 gap-y-3 rounded-b-4xl bg-gradient-to-t from-card from-70% to-transparent px-6 pt-4 pb-7 xl:static xl:m-0 xl:bg-none xl:p-0">
-          {searchMode ? (
+          {leadingAt ? (
+            <PartyWaiting table={leadingAt} least={games.find((game) => game.slug === leadingAt.game)?.range.min ?? 2} busy={opening} onCancel={cancel} onStart={startWithThem} />
+          ) : searchMode ? (
             <QueueButton size="2xl" searching={searching} seconds={seconds} disabled={asked.length === 0 || searchBlocked !== null} onSearch={search} onCancel={leaveQueue}>
               <HugeiconsIcon icon={PlayIcon} strokeWidth={2} data-icon="inline-start" aria-hidden="true" />
               Play
             </QueueButton>
           ) : (
-            <div className="flex items-center gap-3">
-              <Button size="2xl" disabled={opening || !customGame || tableBlocked !== null} onClick={open}>
-                Start game
-                <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
-              </Button>
-              <LobbyAccess languages={languages} defaultVisibility="private" onChange={setAccess} size="icon-2xl" disabled={opening} />
-            </div>
+            <Button size="2xl" disabled={opening || asked.length === 0 || tableBlocked !== null} onClick={open}>
+              Start game
+              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
+            </Button>
           )}
           {notices.length > 0 && (
             <div role="status" className="flex min-w-0 max-w-md flex-col gap-1 text-sm text-muted-foreground">
@@ -372,6 +408,13 @@ export function HomePlay({ games, languages, account, className }: { games: read
                 </p>
               ))}
             </div>
+          )}
+          {seatedAt && (
+            // A member who sits at the table of their group waits for the others: no warning, it is not a reason
+            <p role="status" className="flex min-w-0 max-w-md items-center gap-2 text-sm text-muted-foreground">
+              <HugeiconsIcon icon={Loading03Icon} strokeWidth={2} aria-hidden="true" className="size-4 shrink-0 animate-spin" />
+              {partyWaitLine(seatedAt)}
+            </p>
           )}
         </div>
       </div>

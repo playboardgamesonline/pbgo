@@ -5,6 +5,7 @@ import { PLATFORM_THEME_COLOR } from "@pbgo/ui/theme"
 import "../globals.css"
 import { DisplaySync } from "@/components/display-sync"
 import { LanguageSync } from "@/components/language-sync"
+import { PartySync } from "@/components/party-sync"
 import { PlatformDocument } from "@/components/platform-document"
 import { PresenceBeat } from "@/components/presence-beat"
 import { SearchSync } from "@/components/search-sync"
@@ -30,7 +31,7 @@ export const viewport: Viewport = { themeColor: PLATFORM_THEME_COLOR, colorSchem
  * Each game has its own root layout, `app/[game]/layout.tsx`.
  * The analytics are mounted here and not in `PlatformDocument`, which the gamemaster uses too: it never reports. So is the navbar
  * (`SiteHeader`): mounted once, it stays from one page to the next, and it draws nothing on the pages that have none (the sign-in and the sign-up,
- * which are a page of their own, the pages of a doc, which have a side menu of their own, the legal pages, the 404). `LanguageSync` and `DisplaySync` are mounted once too: they keep the device of a signed-in visitor in the language, the motion and the transparency of their account. So is `PresenceBeat`, which tells the server that a signed-in member has the site open (the players online), and `SearchSync`, which keeps the search of a visitor who pressed Play alive and takes them to the table that begins. So is the toaster, which says what went wrong when a table could not be opened, joined or started.
+ * which are a page of their own, the pages of a doc, which have a side menu of their own, the legal pages, the 404). `LanguageSync` and `DisplaySync` are mounted once too: they keep the device of a signed-in visitor in the language, the motion and the transparency of their account. So is `PresenceBeat`, which tells the server that a signed-in member has the site open (the players online), `SearchSync`, which keeps the search of a visitor who pressed Play alive and takes them to the table that begins, and `PartySync`, which sits a member down at the table that their group's leader opened for the group and takes everybody to its board when it begins. So is the toaster, which says what went wrong when a table could not be opened, joined or started.
  * `modal` is the window that a link of the site opens over the page the visitor is on (the settings: `@modal`).
  */
 export default function HubLayout({ children, modal }: Readonly<{ children: React.ReactNode; modal: React.ReactNode }>) {
@@ -41,6 +42,7 @@ export default function HubLayout({ children, modal }: Readonly<{ children: Reac
       <DisplaySync />
       <PresenceBeat />
       <SearchSync />
+      <PartySync />
       {children}
       {modal}
       <Toaster />

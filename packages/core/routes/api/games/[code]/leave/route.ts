@@ -2,15 +2,17 @@ import { after } from "next/server"
 import type { GameRouteContext } from "../../../../../lib/binding"
 import { trackAfter, trackAnonymously, trackGameFinished } from "../../../../../server/analytics"
 import { handle } from "../../../../../server/api"
+import { normalizeCode } from "../../../../../server/code"
 import { deleteEmptyTable, servedGame, updateGame } from "../../../../../server/games"
 import { getPlayerId } from "../../../../../server/player"
 import { rateLimit } from "../../../../../server/rate-limit"
 import { markTakenOver, recordGameResult } from "../../../../../server/results"
 import { type Departure, departureOf, leavePatch, settleLeavers } from "../../../../../server/table-rules"
+import { readTableSettingsOf } from "../../../../../server/table-settings"
 
 /**
  * `POST /api/<slug>/games/<code>/leave`: the player leaves the table (PLT-120). What it does depends on where the table is:
- *   - in the lobby the player is unseated, and the table has another host if they were it;
+ *   - in the lobby the player is unseated, and the table has another host if they were it, but for the table that its host opened for their group (PLT-141): it goes with them, the seats of the group with it (the leader's cross on the home);
  *   - in its ready check the player is unseated and the check is over, since the game was set up for the seats it had (PLT-107);
  *   - in a game in progress the seat stays, marked `left`, and the server plays it from then on (`GAME.autoPlayFor`, as for an absent player), so that the others can finish. The seat counts for no rating, whoever's move it was, and
  *     the player may open another game at once: a table that holds a player who left holds nobody. If the steps the game now waits for are all theirs, it goes on until it waits for somebody who is there, and if that is the end
@@ -24,6 +26,8 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
   await rateLimit(game.slug, request, "leave")
   const { GAME } = game.binding
   const id = await getPlayerId(game.slug)
+  // Whether the table was opened for a group: its host leaving it ends it. Read before the write, which cannot wait for the database
+  const party = id ? (await readTableSettingsOf(game.slug, normalizeCode(params.code ?? ""))).party === true : false
 
   // Set by the run of the modifier that the write came from: a write lost to a concurrent request runs it again
   const outcome = { from: null as Departure | null, left: false, ended: false, played: [] as string[], changed: false }
@@ -33,7 +37,7 @@ export const POST = handle(async (request: Request, { game, params }: GameRouteC
     outcome.ended = false
     outcome.played = []
     outcome.changed = false
-    const patch = id ? leavePatch(row, id) : null
+    const patch = id ? leavePatch(row, id, party) : null
     if (!patch) return null
     outcome.changed = true
     outcome.from = departureOf(row.status)

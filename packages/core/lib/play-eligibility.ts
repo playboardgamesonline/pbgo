@@ -1,18 +1,18 @@
 // What stops a group from playing a game, or from searching at all, as the home's play zone says it (PLT-21): pure, so that it is tested as it is. The server decides all the same (a refusal of its routes is a toast); this is what the page knows in
-// advance and can say: a game that the group is too large for is greyed out with the reason, and a search that cannot start says why above its button. A reason that only the server can know (a member too young for a game for adults, a rank gap) is not here: the
-// routes refuse it and the page tells it then.
+// advance and can say: a game that the group is too large for is greyed out with the reason, a search that cannot start says why beside its button, and so does a game that cannot be started for the group (PLT-141). A reason that only the server can know (a member
+// too young for a game for adults, a rank gap) is not here: the routes refuse it and the page tells it then.
 
 /** How many players a game takes, from its least to its most (`playerRange` of `@pbgo/ui/tables`). */
 export type GameLimits = { min: number; max: number }
 
 /**
- * The people the visitor looks for a table with: how many sit together (the visitor, alone, is 1), which of the others are in a game now, by nickname, which the members of a group show each other already, and whether the visitor decides for them: alone, or the leader of the group.
- * In a group only its leader looks for a game or opens a table.
+ * The people the visitor looks for a table with: how many sit together (the visitor, alone, is 1), which of the others are in a game now and which are offline, by nickname, which the members of a group show each other already, and whether the visitor decides for them: alone, or the leader
+ * of the group. In a group only its leader looks for a game or opens a table.
  */
-export type PlayGroup = { size: number; inGame: readonly string[]; leads: boolean }
+export type PlayGroup = { size: number; inGame: readonly string[]; offline: readonly string[]; leads: boolean }
 
 /** The visitor with nobody: a search of their own, which they decide. */
-export const ALONE: PlayGroup = { size: 1, inGame: [], leads: true }
+export const ALONE: PlayGroup = { size: 1, inGame: [], offline: [], leads: true }
 
 /** Why a game cannot be played by the group, as a code and the figures it is made of; `gameRefusalText` words it. */
 export type GameRefusal = { code: "GROUP_TOO_LARGE"; players: number; max: number }
@@ -50,17 +50,35 @@ export function searchBlockText(block: SearchBlock): string {
   return "A group can't search together. Leave the group to search alone."
 }
 
-/** Why the visitor cannot open a table from the zone: they are in a group they do not lead. */
-export type TableBlock = { code: "NOT_LEADER" }
+/** Why the visitor cannot start a game for the group from the zone (Custom, PLT-141): they are in a group they do not lead, the group is smaller than the game needs, a member is in a game, or a member is offline. */
+export type TableBlock =
+  | { code: "NOT_LEADER" }
+  | { code: "GROUP_TOO_SMALL"; players: number; min: number }
+  | { code: "MEMBER_IN_GAME"; names: readonly string[] }
+  | { code: "MEMBER_OFFLINE"; names: readonly string[] }
 
-/** Whether the visitor can open a table: in a group, only its leader does. Null when they can. */
-export function tableBlock(group: Pick<PlayGroup, "leads">): TableBlock | null {
-  return group.leads ? null : { code: "NOT_LEADER" }
+/**
+ * Whether the visitor can start a game for the group: in a group only its leader does; the group is the table, so it must be at least what the game needs (`limits`, the game's: none while no game is picked); and everybody must be there to sit down by themselves, so a member
+ * who is in a game or is offline stops it. The reasons come in that order. Null when they can.
+ */
+export function tableBlock(group: PlayGroup, limits: GameLimits | null): TableBlock | null {
+  if (!group.leads) return { code: "NOT_LEADER" }
+  if (limits && group.size < limits.min) return { code: "GROUP_TOO_SMALL", players: group.size, min: limits.min }
+  if (group.inGame.length > 0) return { code: "MEMBER_IN_GAME", names: group.inGame }
+  if (group.offline.length > 0) return { code: "MEMBER_OFFLINE", names: group.offline }
+  return null
 }
 
-const TABLE_BLOCK_TEXTS: Record<TableBlock["code"], string> = { NOT_LEADER: "Only the leader of your group can start a game." }
-
-/** A table block in a sentence, for the line above the button. */
+/** A table block in a sentence, for the line beside the button. */
 export function tableBlockText(block: TableBlock): string {
-  return TABLE_BLOCK_TEXTS[block.code]
+  switch (block.code) {
+    case "NOT_LEADER":
+      return "Only the leader of your group can start a game."
+    case "GROUP_TOO_SMALL":
+      return `This game needs at least ${block.min} players. Invite ${block.min - block.players === 1 ? "a friend" : "friends"} first.`
+    case "MEMBER_IN_GAME":
+      return `${listOf(block.names)} ${block.names.length === 1 ? "is" : "are"} in a game.`
+    case "MEMBER_OFFLINE":
+      return `${listOf(block.names)} ${block.names.length === 1 ? "is" : "are"} offline.`
+  }
 }

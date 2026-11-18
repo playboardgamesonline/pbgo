@@ -7,6 +7,7 @@ import {
   defaultTableSettings,
   effectiveSettings,
   isLocked,
+  isParty,
   modeOf,
   OPEN_TO_ANYONE,
   parseTableSettings,
@@ -280,5 +281,32 @@ describe("creationSettings", () => {
   it("leaves out a language that is not one the lobby offers and a speed it does not offer", () => {
     expect(creationSettings({ visibility: "public", minRank: null, language: "klingon" }, "async", null, range)).toMatchObject({ language: null, pace: "normal" })
     expect(creationSettings({ visibility: "public", minRank: null, language: "en-GB" }, "normal", null, range).language).toBeNull()
+  })
+})
+
+describe("a table opened for a group (PLT-141)", () => {
+  it("is read back from what it kept: only `true` says it was opened for the host's group", () => {
+    expect(parseTableSettings({ visibility: "private", seats: 3, party: true })).toEqual({ visibility: "private", seats: 3, party: true })
+    expect(parseTableSettings({ party: false })).toEqual({})
+    expect(parseTableSettings({ party: "yes" })).toEqual({})
+    expect([isParty({ party: true }), isParty({}), isParty({ party: false })]).toEqual([true, false, false])
+  })
+
+  it("is accepted from a host who sends it private, and kept", () => {
+    expect(checkTableSettings(input({ visibility: "private", party: true }), limits)).toEqual({ ok: true, settings: { visibility: "private", pace: "normal", seats: 4, party: true } })
+    expect(checkTableSettings(input({ visibility: "private", party: false }), limits)).toEqual({ ok: true, settings: { visibility: "private", pace: "normal", seats: 4 } })
+  })
+
+  it("is refused when it is public: strangers are not the people it was set for", () => {
+    expect(checkTableSettings(input({ visibility: "public", party: true }), limits)).toEqual({ ok: false, code: "INVALID_REQUEST" })
+  })
+
+  it("is refused when it says something else than true or false", () => {
+    for (const party of ["yes", 1, [], {}]) expect(checkTableSettings(input({ visibility: "private", party }), limits)).toEqual({ ok: false, code: "INVALID_REQUEST" })
+  })
+
+  it("is what the home asks for when the leader starts a game for their group, and nothing otherwise", () => {
+    expect(creationSettings(PRIVATE_TABLE, "normal", 3, { min: 2, max: 5 }, true)).toEqual({ visibility: "private", minRank: null, language: null, pace: "normal", seats: 3, party: true })
+    expect(creationSettings(PRIVATE_TABLE, "normal", 3, { min: 2, max: 5 })).not.toHaveProperty("party")
   })
 })

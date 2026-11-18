@@ -130,15 +130,17 @@ export async function startWhenFull(game: PlayableGame, row: GameRow, who: { id:
 }
 
 /**
- * Takes a player out of a lobby they sit at, the way leaving one does (`leavePatch`: another host if they were it), and deletes the table when nobody is left (`deleteEmptyTable`). Nothing for a table that is not a lobby, that is gone or that they do not sit at.
+ * Takes a player out of a lobby they sit at, the way leaving one does (`leavePatch`: another host if they were it, none for the table of a group, which goes with its host), and deletes the table when nobody is left (`deleteEmptyTable`). Nothing for a table that is not a lobby, that is gone or that they do not sit at.
  * Says whether they were unseated.
  */
 export async function leaveLobby(game: GameRef, code: string, seat: string): Promise<boolean> {
   const outcome = { changed: false }
   try {
+    // The table that its host opened for a group goes with them (PLT-141): read before the write, which cannot wait for the database
+    const party = (await readTableSettingsOf(game.slug, code)).party === true
     const row = await updateGame(game, code, (row) => {
       outcome.changed = false
-      const patch = row.status === "lobby" ? leavePatch(row, seat) : null
+      const patch = row.status === "lobby" ? leavePatch(row, seat, party) : null
       outcome.changed = patch !== null
       return patch
     })

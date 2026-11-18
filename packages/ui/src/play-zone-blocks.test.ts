@@ -221,13 +221,13 @@ describe("the panel of friends of a free place", () => {
     expect(picker({ limit: 5 })).not.toContain("Search to see")
   })
 
-  it("says what a press does in the page's words, and shows the friends that are done in them", () => {
-    expect(picker()).toContain(">Invite<")
-    const html = picker({ labels: { action: "Add", done: "Added" }, invited: new Set(["a"]) })
-    expect(html).toContain(">Add<")
-    expect(html).toContain(">Added<")
-    expect(html).toContain("Friend a is added")
-    expect(html).toContain("Add Friend c")
+  it("says what a press does, Invite, and shows the friends that were invited already as Invited", () => {
+    const html = picker({ invited: new Set(["a"]) })
+    expect(html).toContain(">Invite<")
+    expect(html).toContain(">Invited<")
+    expect(html).toContain("Friend a is invited")
+    expect(html).toContain("Invite Friend c")
+    expect(html).not.toContain(">Add<")
   })
 
   it("has a way to copy a link under the list for the page that has one, and none otherwise", () => {

@@ -25,23 +25,19 @@ type InviteFriendListProps = {
   invited?: ReadonlySet<string>
   /** At most this many friends are listed, the connected ones first, and a line says how many the search will find: for a list in a small panel. None: all of them. */
   limit?: number
-  /** The words of the button of a row and of its done state: "Invite" and "Invited" unless the page says more ("Add" and "Added", for a table that does not exist yet). */
-  labels?: { action: string; done: string }
   className?: string
 }
 
 type RowState = "sending" | "sent"
 
-const INVITE_LABELS = { action: "Invite", done: "Invited" }
-
-function InviteRow({ friend, state, labels, onPress }: { friend: Friend; state?: RowState; labels: { action: string; done: string }; onPress: () => void }) {
+function InviteRow({ friend, state, onPress }: { friend: Friend; state?: RowState; onPress: () => void }) {
   const line = statusLine(friend)
   return (
     <li data-slot="invite-friend" data-status={friend.status} data-state={state}>
       <button
         type="button"
         disabled={state !== undefined}
-        aria-label={state === "sent" ? `${friend.nickname} is ${labels.done.toLowerCase()}` : `${labels.action} ${friend.nickname}`}
+        aria-label={state === "sent" ? `${friend.nickname} is invited` : `Invite ${friend.nickname}`}
         onClick={onPress}
         className="group/invite flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-default disabled:hover:bg-transparent"
       >
@@ -66,7 +62,7 @@ function InviteRow({ friend, state, labels, onPress }: { friend: Friend; state?:
         >
           {state === "sending" && <Spinner className="size-3" />}
           {state === "sent" && <HugeiconsIcon icon={Tick02Icon} strokeWidth={2} className="size-3.5" />}
-          {state === "sending" ? "Sending…" : state === "sent" ? labels.done : labels.action}
+          {state === "sending" ? "Sending…" : state === "sent" ? "Invited" : "Invite"}
         </span>
       </button>
     </li>
@@ -74,7 +70,7 @@ function InviteRow({ friend, state, labels, onPress }: { friend: Friend; state?:
 }
 
 /** What the picker lists, with its search: it is the content of the window, and is drawn on its own by the design docs. */
-function InviteFriendList({ friends, onInvite, invited, limit, labels = INVITE_LABELS, className }: InviteFriendListProps) {
+function InviteFriendList({ friends, onInvite, invited, limit, className }: InviteFriendListProps) {
   const [query, setQuery] = React.useState("")
   const [rows, setRows] = React.useState<Record<string, RowState>>({})
   const found = suggestionsOf(friends, query)
@@ -101,7 +97,7 @@ function InviteFriendList({ friends, onInvite, invited, limit, labels = INVITE_L
         <h3 className="px-2 text-xs text-muted-foreground">{label}</h3>
         <ul className="flex flex-col">
           {list.map((friend) => (
-            <InviteRow key={friend.id} friend={friend} state={stateOf(friend)} labels={labels} onPress={() => void press(friend)} />
+            <InviteRow key={friend.id} friend={friend} state={stateOf(friend)} onPress={() => void press(friend)} />
           ))}
         </ul>
       </section>

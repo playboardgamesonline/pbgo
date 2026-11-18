@@ -14,8 +14,11 @@ import { useSitDown } from "./sit-down"
 // when their seat was the last and the table has begun, its board (`seatedPath`). A refusal (a rank or a language the table asks, a table that filled, one that began, the date of birth) is told in a toast in the platform's words, and the page asks for its tables again, since the one that
 // was refused is the one that changed.
 
-/** `join(code)` sits the visitor at the table `code` of the game `slug` and takes them to it; `joining` is true while it is being done, and `dialogs` are the windows it may open (the nickname, the date of birth), to render beside the list. */
-export function useJoinTable(slug: string, signedIn: boolean) {
+/**
+ * `join(code)` sits the visitor at the table `code` of the game `slug` and takes them to it (it answers whether they sit there now); `joining` is true while it is being done, and `dialogs` are the windows it may open (the nickname, the date of birth), to render beside the list.
+ * With `stay` it takes them nowhere while the table waits (the member whose group's leader opened it sits down in the tab they have open, PLT-141) and only to its board when their seat was the last and the table has begun; a refusal does not draw the page again.
+ */
+export function useJoinTable(slug: string, signedIn: boolean, { stay = false }: { stay?: boolean } = {}) {
   const router = useRouter()
   const pathname = usePathname()
   const { sitDown, dialog } = useSitDown(slug, signedIn)
@@ -25,29 +28,33 @@ export function useJoinTable(slug: string, signedIn: boolean) {
   const busy = useRef(false)
 
   const join = useCallback(
-    async (code: string) => {
-      if (busy.current) return
+    async (code: string): Promise<boolean> => {
+      if (busy.current) return false
       busy.current = true
       try {
         const who = await sitDown()
-        if (!who) return
+        if (!who) return false
         setJoining(true)
         // A table with an expansion for adults asks for the date of birth when it is missing (PLT-125): the visitor gives it, and the join goes on
         const table = await guard(() => createApi(slug).join(code, who))
-        if (table.status !== "lobby") return enterBoard(router, slug, table.code)
-        const lobby = seatedPath(slug, table.code, table.status)
-        // Already on the page of this table: it is drawn again, with the visitor's seat in it
-        if (pathname.toLowerCase() === lobby.toLowerCase()) router.refresh()
-        else router.push(lobby)
+        if (table.status !== "lobby") enterBoard(router, slug, table.code)
+        else if (!stay) {
+          const lobby = seatedPath(slug, table.code, table.status)
+          // Already on the page of this table: it is drawn again, with the visitor's seat in it
+          if (pathname.toLowerCase() === lobby.toLowerCase()) router.refresh()
+          else router.push(lobby)
+        }
+        return true
       } catch (error) {
         fail(error)
-        router.refresh()
+        if (!stay) router.refresh()
+        return false
       } finally {
         busy.current = false
         setJoining(false)
       }
     },
-    [slug, sitDown, guard, fail, router, pathname],
+    [slug, stay, sitDown, guard, fail, router, pathname],
   )
 
   const dialogs: ReactNode = (
