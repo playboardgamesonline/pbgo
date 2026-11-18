@@ -29,6 +29,11 @@ export const releaseHovered = (id: number) => {
 /** The card the viewer picked, or none: held up on a screen that cannot hover */
 export const holdPicked = (card: LensCard | null) => set({ picked: card })
 
+/** The card held up is no longer on the table (a card that is played, a choice that goes, a reveal that ends does not get a pointer-out event when it goes): let it go, unless it is one of the cards `ids` that are */
+export const releaseHoveredUnless = (ids: ReadonlySet<number>) => {
+  if (state.hovered && !ids.has(state.hovered.id)) set({ hovered: null })
+}
+
 const subscribe = (listener: () => void) => {
   listeners.add(listener)
   return () => {

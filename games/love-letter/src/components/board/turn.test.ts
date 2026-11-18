@@ -1,6 +1,6 @@
 import type { CharacterKey, Face, PlayerView, PublicPhase } from "@love-letter/engine"
 import { describe, expect, it } from "vitest"
-import { type Choice, keepAction, NO_CHOICE, playAction, pressable, pressCard, pressTarget, type Step, stepOf, swapOrder, validChoice } from "./turn"
+import { type Choice, keepAction, lensIds, NO_CHOICE, playAction, pressable, pressCard, pressTarget, type Step, stepOf, swapOrder, validChoice } from "./turn"
 
 const face = (id: number, type: CharacterKey): Face => ({ id, type })
 
@@ -155,5 +155,14 @@ describe("what is sent", () => {
     expect(playAction(face(4, "handmaid"))).toEqual({ type: "play", card: 4 })
     expect(playAction(face(4, "priest"), "ben")).toEqual({ type: "play", card: 4, target: "ben" })
     expect(playAction(face(4, "guard"), "ben", "baron")).toEqual({ type: "play", card: 4, target: "ben", guess: "baron" })
+  })
+})
+
+describe("the cards the lens may hold", () => {
+  it("are the faces on the table: the hand, the play areas, the hands laid down and the cards set aside, with the nine faces of a guess and the reveal when they are there", () => {
+    const view = { ...viewOf({ hand: [face(1, "guard"), face(2, "spy")] }), faceUp: [face(7, "priest")], players: [{ id: "ben", cards: 1, hand: [face(8, "king")], area: [face(9, "baron")], out: false, shielded: false, tokens: 0 }] }
+    expect([...lensIds(view, false, false)].sort()).toEqual([1, 2, 7, 8, 9])
+    expect([...lensIds(view, true, false)].filter((id) => id < 0)).toEqual([-1, -2, -3, -4, -5, -6, -7, -8, -9])
+    expect([...lensIds(view, false, true)].filter((id) => id < 0)).toEqual([-100, -101])
   })
 })

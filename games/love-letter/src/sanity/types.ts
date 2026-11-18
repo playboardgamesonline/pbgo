@@ -246,6 +246,27 @@ export type Texts = {
   deal?: LocaleString;
   swap?: LocaleString;
   targetPlayer?: LocaleString;
+  eventRound?: LocaleString;
+  eventDraw?: LocaleString;
+  eventPlay?: LocaleString;
+  eventGuessHit?: LocaleString;
+  eventGuessMiss?: LocaleString;
+  eventLook?: LocaleString;
+  eventCompare?: LocaleString;
+  eventSwap?: LocaleString;
+  eventProtect?: LocaleString;
+  eventDiscard?: LocaleString;
+  eventDiscardSelf?: LocaleString;
+  eventOutGuard?: LocaleString;
+  eventOutBaron?: LocaleString;
+  eventOutPrincess?: LocaleString;
+  eventChancellor?: LocaleString;
+  eventBottom?: LocaleString;
+  eventFizzled?: LocaleString;
+  eventReveal?: LocaleString;
+  eventEnd?: LocaleString;
+  eventSpy?: LocaleString;
+  eventOver?: LocaleString;
 };
 
 export type LocaleStringList = {
@@ -654,7 +675,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../../src/sanity/queries.ts
 // Variable: CATALOG_QUERY
-// Query: {  "game": *[_id == "game"][0]{ cardBack },  "texts": *[_id == "texts"][0]{ round, tokensToWin, start, out, shielded, roundWinner, pickCard, mustPlayCountess, chooseOther, chooseAny, nameCharacter, noTarget, keepOne, putBack, play, keep, deal, swap, targetPlayer },  "characters": *[_type == "character"]{ key, name, text, image }}
+// Query: {  "game": *[_id == "game"][0]{ cardBack },  "texts": *[_id == "texts"][0]{ round, tokensToWin, start, out, shielded, roundWinner, pickCard, mustPlayCountess, chooseOther, chooseAny, nameCharacter, noTarget, keepOne, putBack, play, keep, deal, swap, targetPlayer, eventRound, eventDraw, eventPlay, eventGuessHit, eventGuessMiss, eventLook, eventCompare, eventSwap, eventProtect, eventDiscard, eventDiscardSelf, eventOutGuard, eventOutBaron, eventOutPrincess, eventChancellor, eventBottom, eventFizzled, eventReveal, eventEnd, eventSpy, eventOver },  "characters": *[_type == "character"]{ key, name, text, image }}
 export type CATALOG_QUERY_RESULT = {
   game:
     | {
@@ -691,6 +712,27 @@ export type CATALOG_QUERY_RESULT = {
         deal: null;
         swap: null;
         targetPlayer: null;
+        eventRound: null;
+        eventDraw: null;
+        eventPlay: null;
+        eventGuessHit: null;
+        eventGuessMiss: null;
+        eventLook: null;
+        eventCompare: null;
+        eventSwap: null;
+        eventProtect: null;
+        eventDiscard: null;
+        eventDiscardSelf: null;
+        eventOutGuard: null;
+        eventOutBaron: null;
+        eventOutPrincess: null;
+        eventChancellor: null;
+        eventBottom: null;
+        eventFizzled: null;
+        eventReveal: null;
+        eventEnd: null;
+        eventSpy: null;
+        eventOver: null;
       }
     | {
         round: LocaleString | null;
@@ -712,6 +754,27 @@ export type CATALOG_QUERY_RESULT = {
         deal: LocaleString | null;
         swap: LocaleString | null;
         targetPlayer: LocaleString | null;
+        eventRound: LocaleString | null;
+        eventDraw: LocaleString | null;
+        eventPlay: LocaleString | null;
+        eventGuessHit: LocaleString | null;
+        eventGuessMiss: LocaleString | null;
+        eventLook: LocaleString | null;
+        eventCompare: LocaleString | null;
+        eventSwap: LocaleString | null;
+        eventProtect: LocaleString | null;
+        eventDiscard: LocaleString | null;
+        eventDiscardSelf: LocaleString | null;
+        eventOutGuard: LocaleString | null;
+        eventOutBaron: LocaleString | null;
+        eventOutPrincess: LocaleString | null;
+        eventChancellor: LocaleString | null;
+        eventBottom: LocaleString | null;
+        eventFizzled: LocaleString | null;
+        eventReveal: LocaleString | null;
+        eventEnd: LocaleString | null;
+        eventSpy: LocaleString | null;
+        eventOver: LocaleString | null;
       }
     | null;
   characters: Array<{
@@ -742,7 +805,7 @@ export type CATALOG_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "game": *[_id == "game"][0]{ cardBack },\n  "texts": *[_id == "texts"][0]{ round, tokensToWin, start, out, shielded, roundWinner, pickCard, mustPlayCountess, chooseOther, chooseAny, nameCharacter, noTarget, keepOne, putBack, play, keep, deal, swap, targetPlayer },\n  "characters": *[_type == "character"]{ key, name, text, image }\n}': CATALOG_QUERY_RESULT;
+    '{\n  "game": *[_id == "game"][0]{ cardBack },\n  "texts": *[_id == "texts"][0]{ round, tokensToWin, start, out, shielded, roundWinner, pickCard, mustPlayCountess, chooseOther, chooseAny, nameCharacter, noTarget, keepOne, putBack, play, keep, deal, swap, targetPlayer, eventRound, eventDraw, eventPlay, eventGuessHit, eventGuessMiss, eventLook, eventCompare, eventSwap, eventProtect, eventDiscard, eventDiscardSelf, eventOutGuard, eventOutBaron, eventOutPrincess, eventChancellor, eventBottom, eventFizzled, eventReveal, eventEnd, eventSpy, eventOver },\n  "characters": *[_type == "character"]{ key, name, text, image }\n}': CATALOG_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

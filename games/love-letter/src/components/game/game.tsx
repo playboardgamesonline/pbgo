@@ -1,27 +1,35 @@
 "use client"
 
-import type { PlayerView } from "@love-letter/engine"
+import type { LoveLetterEvent, PlayerView } from "@love-letter/engine"
 import dynamic from "next/dynamic"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useAnnouncementSettings } from "@pbgo/core/components/game/announcement"
-import { GameProvider, useGame } from "@pbgo/core/components/game/context"
+import { GameProvider, useGame, useGameLog } from "@pbgo/core/components/game/context"
 import { DebugSlot } from "@pbgo/core/components/game/debug-controls"
 import { useDebugFolder } from "@pbgo/core/components/game/debug-folders"
 import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-over"
-import { GameHud, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
+import { GameHud, groupTurns, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
 import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
 import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import type { ClientDebugCommand } from "@pbgo/core/lib/api"
 import { useApi } from "@pbgo/core/lib/binding-context"
 import type { PublicGame } from "@pbgo/core/lib/game-types"
 import { seatsOf } from "@pbgo/core/lib/seat-avatar"
+import { useMotion } from "@pbgo/core/lib/use-motion"
 import { type ClientCatalog, MISSING_CATALOG } from "../../lib/catalog"
+import { actorsOf, sentenceOf } from "../../lib/history"
 import { fill } from "../../lib/words"
+import { type Arrival, type Reveal, timelineOf } from "../board/pacing"
 import type { ClientAction } from "../board/turn"
 import { Lens } from "./lens"
 
 const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
+
+/** No card waits for its turn to come in and nothing is shown: the cards of a table that was just opened are where they lie */
+const NO_ENTRANCES: ReadonlyMap<number, Arrival> = new Map()
+const NO_DRAWS: ReadonlyMap<string, number> = new Map()
+const NO_REVEALS: readonly Reveal[] = []
 
 /** `held` and `onLoaded` are the start screen's (PLT-107): behind it the board is drawn and loads, says so, and holds its opening (the camera's entrance, the start announcement) until the screen goes */
 type Props = {
@@ -58,12 +66,31 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   const t = useText()
   const api = useApi()
   const { victoryPhrases, playerColors } = useSkin()
-  const { game, view } = useGame<PlayerView>()
+  const { game, view, nickname } = useGame<PlayerView>()
   // What the server sends is the catalog of Sanity; a board shown with none (the admin's preview) reads every word as missing
   const catalog = (data as ClientCatalog | undefined) ?? MISSING_CATALOG
   const { words } = catalog
+  // What happened, as the platform keeps it for the table and sends it to this player: the state and the view hold no log
+  const log = useGameLog<LoveLetterEvent>()
+  // How long the last move takes to play out (`timelineOf`). The board draws the view at once; what it holds back waits for that time: the cards that come in one after the other, the reveals to read, the announcements and the end screen.
+  // A table that is opened, or reloaded, is drawn as it is and plays nothing (`openedAt`), but for the opening deal, which is drawn when the start screen goes
+  const motion = useMotion()
+  const timeline = useMemo(() => timelineOf(log, motion === "reduced"), [log, motion])
+  const [openedAt] = useState(() => (held ? 0 : timeline.v))
+  const [playedV, setPlayedV] = useState(openedAt)
+  const busyUntil = useRef(0)
+  const busy = playedV < timeline.v
+  useEffect(() => {
+    // behind the start screen the cards of the opening deal are not drawn: the clock of the deal starts when the screen goes
+    if (held || timeline.v <= playedV) return
+    // a move that comes while another plays out waits for both
+    busyUntil.current = Math.max(busyUntil.current, Date.now() + timeline.settle * 1000)
+    const timer = setTimeout(() => setPlayedV(timeline.v), Math.max(0, busyUntil.current - Date.now()))
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a move that was taken note of is not timed again: only a newer version of the log, or the start screen going, starts a timer
+  }, [timeline.v, held])
   const settings = useAnnouncementSettings()
-  const { announce, element: announcement, current } = useAnnouncements(settings)
+  const { announce, element: announcement, current } = useAnnouncements(settings, { paused: busy })
   const [sending, setSending] = useState(false)
   const previous = useRef<{ round: number; turn: string | null; phase: string } | null>(null)
 
@@ -161,21 +188,51 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
     }),
   })
 
+  const history = useMemo(() => {
+    const events = log.map((line) => line.event)
+    const actors = actorsOf(events)
+    const context = { words: catalog.words, names: catalog.names, nickname }
+    return groupTurns(
+      events.map((event, i) => ({ event, actor: actors[i] ?? null })),
+      { actor: (entry) => entry.actor, render: (entry) => sentenceOf(entry.event, context) },
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the history follows the log and the catalog; `nickname` is a new function on every render and says the same thing
+  }, [log, catalog])
+  /** What a reveal says under its faces: who did it, then the sentence of the history */
+  const caption = (reveal: Reveal) => {
+    const by = "by" in reveal.event ? reveal.event.by : null
+    return `${by ? `${nickname(by)} · ` : ""}${sentenceOf(reveal.event, { words: catalog.words, names: catalog.names, nickname })}`
+  }
+  const playing = timeline.v > openedAt
+
   return (
     <GameHud
       onLeave={onLeave}
-      ticker={<Ticker activePlayerId={ended ? null : turn} waitingFor={ended ? undefined : game.waitingFor} status={!ended && <RoundStatus catalog={catalog} />} history={[]} />}
+      ticker={<Ticker activePlayerId={ended ? null : turn} waitingFor={ended ? undefined : game.waitingFor} status={!ended && <RoundStatus catalog={catalog} />} history={history} />}
       overlay={
         <>
           {announcement}
           <Lens />
           <StalledTurn onUpdate={onUpdate} />
-          {ended && !current && <GameOver onUpdate={onUpdate} history={[]} />}
+          {ended && !current && !busy && <GameOver onUpdate={onUpdate} history={history} />}
           <DebugSlot />
         </>
       }
     >
-      <Scene view={view} catalog={catalog} onAction={(action) => void send(action)} busy={sending} held={held} onLoaded={onLoaded} />
+      <Scene
+        view={view}
+        catalog={catalog}
+        onAction={(action) => void send(action)}
+        busy={sending}
+        v={timeline.v}
+        entrances={playing ? timeline.entrances : NO_ENTRANCES}
+        drawn={playing ? timeline.drawn : NO_DRAWS}
+        reveals={playing ? timeline.reveals : NO_REVEALS}
+        caption={caption}
+        deal={openedAt === 0 || playing}
+        held={held}
+        onLoaded={onLoaded}
+      />
     </GameHud>
   )
 }

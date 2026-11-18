@@ -36,7 +36,7 @@ export const ERROR_MESSAGES: (Said & { code: string })[] = [
 
 /**
  * The words of the board: the fields of the "Board" tab of `texts` (`WORD_FIELDS` of `src/lib/words.ts`, which `board-words.test.ts` keeps equal to this list and to the Studio). The `{placeholders}` are filled in by the board: `{number}` is the round,
- * `{count}` the favor tokens that win and `{target}` the name of a player. English is the base every language falls back to; French follows the leaflet's terms (manche, pion Faveur) and the board speaks to a player as "tu", like the prompts of the other games. Both are written for the platform,
+ * `{count}` the favor tokens that win, `{target}`, `{player}` and `{winners}` the names of players, and `{card}` and `{guess}` the name of a character. English is the base every language falls back to; French follows the leaflet's terms (manche, pion Faveur) and the board speaks to a player as "tu", like the prompts of the other games. Both are written for the platform,
  * for the owner to read; Spanish and German have no source and stay empty.
  */
 export const BOARD_WORDS: (Said & { key: string })[] = [
@@ -59,6 +59,27 @@ export const BOARD_WORDS: (Said & { key: string })[] = [
   { key: "deal", fr: "Distribuer", en: "Deal" },
   { key: "swap", fr: "Inverser", en: "Swap" },
   { key: "targetPlayer", fr: "Choisir {target}", en: "Choose {target}" },
+  { key: "eventRound", fr: "Distribue la manche {number}", en: "Deals round {number}" },
+  { key: "eventDraw", fr: "Pioche une carte", en: "Draws a card" },
+  { key: "eventPlay", fr: "Joue {card}", en: "Plays {card}" },
+  { key: "eventGuessHit", fr: "Nomme {guess} : {target} le détient", en: "Names {guess}: {target} holds it" },
+  { key: "eventGuessMiss", fr: "Nomme {guess} : {target} ne l’a pas", en: "Names {guess}: {target} does not" },
+  { key: "eventLook", fr: "Regarde la main de {target}", en: "Looks at the hand of {target}" },
+  { key: "eventCompare", fr: "Compare sa main à celle de {target}", en: "Compares hands with {target}" },
+  { key: "eventSwap", fr: "Échange sa main avec {target}", en: "Trades hands with {target}" },
+  { key: "eventProtect", fr: "Est protégé jusqu’à son prochain tour", en: "Is protected until their next turn" },
+  { key: "eventDiscard", fr: "Fait défausser {card} à {player}", en: "Makes {player} discard {card}" },
+  { key: "eventDiscardSelf", fr: "Défausse {card}", en: "Discards {card}" },
+  { key: "eventOutGuard", fr: "{player} quitte la manche : nommé par le Garde", en: "{player} is out: named by the Guard" },
+  { key: "eventOutBaron", fr: "{player} quitte la manche : carte la plus faible", en: "{player} is out: the lower card" },
+  { key: "eventOutPrincess", fr: "{player} quitte la manche : la Princesse", en: "{player} is out: the Princess" },
+  { key: "eventChancellor", fr: "Pioche des cartes pour le Chancelier", en: "Draws cards for the Chancellor" },
+  { key: "eventBottom", fr: "Glisse les autres sous la pioche", en: "Puts the others under the deck" },
+  { key: "eventFizzled", fr: "Joue sans effet", en: "Plays with no effect" },
+  { key: "eventReveal", fr: "La pioche est vide : les mains sont dévoilées", en: "The deck is empty: the hands are shown" },
+  { key: "eventEnd", fr: "Manche gagnée par {winners}", en: "Round won by {winners}" },
+  { key: "eventSpy", fr: "{player} gagne le pion de l’Espionne", en: "{player} earns the Spy’s token" },
+  { key: "eventOver", fr: "Partie gagnée par {winners}", en: "Game won by {winners}" },
 ]
 
 /** A `localeString` and a `localeText` of the shared Studio schema with the languages that have a text. The content kit's builders refuse an empty language; here Spanish and German stay empty on purpose, as in the characters. */

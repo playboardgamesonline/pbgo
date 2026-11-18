@@ -103,11 +103,12 @@ const config = {
       move = null
       return null
     },
-    // Where the controls lie, from what the board offers: the cards of the hand in the fan nearest the viewer (z beyond 4, floating), the pad or pads of the moment and the nine faces of a Guard in the strip in the middle (x within 2.6, z between -1.4 and 1.7, lying on the
+    // Where the controls lie, from what the board offers: the cards of the hand in the fan nearest the viewer (z beyond 5.6, floating), the pad or pads of the moment and the nine faces of a Guard in the strip in the middle (x within 2.6, z between -1.4 and 1.7, lying on the
     // table), and the zone of a player, which the board lifts to a card's height (y about 0.35) so that the whole zone answers, cards included
     find({ label, pressables, state }) {
       const world = (pressable) => pressable.world
-      const inHand = (pressable) => world(pressable) && world(pressable)[2] > 4.2 && world(pressable)[1] > 0.2
+      const inHand = (pressable) => world(pressable) && world(pressable)[2] > 5.6 && world(pressable)[1] > 0.2
+      // a card that is still coming in from the deck is not in the hand yet: the fan lies beyond z 5.6, and a card in the air is pressed where it no longer is
       const inStrip = (pressable) => world(pressable) && Math.abs(world(pressable)[0]) < 2.6 && world(pressable)[2] > -1.4 && world(pressable)[2] < 1.7 && world(pressable)[1] < 0.1
       const isZone = (pressable) => world(pressable) && world(pressable)[1] > 0.3 && world(pressable)[1] < 0.4 && world(pressable)[2] < 4.2
       const byX = (a, b) => world(a)[0] - world(b)[0]
@@ -129,8 +130,33 @@ const config = {
     },
   },
 
-  // The cases of the Rig the table folder of the debug panel, each recorded as frames
+  // The cases of the Rig the table folder of the debug panel, and the moves that tell something to read, each recorded as frames
   scenarios: {
+    // the viewer plays the first card that shows something to read if they hold one (a Guard, a Priest, a Baron, a King), else their first card, on the first player who can be chosen; the others' moves of the same turn are recorded too
+    async move({ table, record, settle }) {
+      const state = await table.advance({ until: viewerTurn, label: "the viewer's turn" })
+      const playable = handOf(state).filter((card) => state.view.me.playable.includes(card.id))
+      const card = playable.find((held) => ["guard", "priest", "baron", "king"].includes(held.type)) ?? playable[0]
+      const target = state.view.phase.targets[0]
+      const picks = RULE[card.type] === null || target === undefined ? {} : { target, ...(card.type === "guard" ? { guess: "princess" } : {}) }
+      await settle()
+      return record(
+        async () => {
+          await table.act(0, { type: "play", card: card.id, ...picks })
+          // the next seat, whose card may show something to read to the viewer
+          await settle()
+          await table.rig("turn")
+        },
+        { seconds: 8 },
+      )
+    },
+    // the deck is cut to its last card and the round is played out: the hands that are left are laid down and the winner is counted
+    async deckout({ table, record, settle }) {
+      await table.advance({ until: viewerTurn, label: "the viewer's turn" })
+      await table.rig("oneCardLeft")
+      await settle()
+      return record(() => table.rig("round"), { seconds: 7 })
+    },
     // the viewer holds the Countess and the King: she must be played
     async countess({ table, record, settle }) {
       await table.advance({ until: viewerTurn, label: "the viewer's turn" })

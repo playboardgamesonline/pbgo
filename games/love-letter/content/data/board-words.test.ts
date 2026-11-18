@@ -22,8 +22,8 @@ describe("the seed's words of the board", () => {
     }
   })
 
-  it("only name what the board fills in: a round number, a count of favor tokens or the name of a player", () => {
-    const known = ["count", "number", "target"]
+  it("only name what the board fills in: a round number, a count of favor tokens, the names of players or of characters", () => {
+    const known = ["card", "count", "guess", "number", "player", "target", "winners"]
     for (const word of BOARD_WORDS) for (const name of placeholders(word.en)) expect(known, `${word.key} {${name}}`).toContain(name)
   })
 

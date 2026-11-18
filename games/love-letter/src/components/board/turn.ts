@@ -110,3 +110,16 @@ export function playAction(card: Face, target?: string, guess?: CharacterKey): C
 export function keepAction(step: Extract<Step, { kind: "order" }>): ClientAction {
   return { type: "keep", card: step.kept.id, bottom: step.others.map((face) => face.id) }
 }
+
+/**
+ * The ids by which the lens knows the cards that are on the table now, for the board to let go of a card that has gone (a card that is played, a choice that ends, a reveal that is over gets no pointer-out event): the faces in the play areas, in the viewer's hand, in the hands
+ * laid down and set aside face up, by their id in the game; the nine faces of a Guard's guess and the two of a reveal take negative numbers of their own (`-1` to `-9`, and `-100` and `-101`).
+ */
+export function lensIds(view: PlayerView, guessing: boolean, revealing: boolean): Set<number> {
+  const ids = new Set<number>()
+  for (const player of view.players) for (const face of [...player.area, ...(player.hand ?? [])]) ids.add(face.id)
+  for (const face of [...(view.me?.hand ?? []), ...view.faceUp]) ids.add(face.id)
+  if (guessing) for (let i = 1; i <= 9; i++) ids.add(-i)
+  if (revealing) for (const id of [-100, -101]) ids.add(id)
+  return ids
+}
