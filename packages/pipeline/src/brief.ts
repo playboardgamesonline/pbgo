@@ -23,7 +23,7 @@ export function checkWords(step: StepDefinition, game: Game): string {
   const check = step.check
   switch (check.kind) {
     case "scout":
-      return `\`pnpm check:scout ${game.scoutFile} --online\` exits 0`
+      return `\`pnpm check:scout ${game.scoutFile} --online${game.folder ? " --existing" : ""}\` exits 0`
     case "published":
       return "the documents of your sentence `Validate publishes N documents (ids)` are published (checked after you publish, from the platform's public API)"
     case "rules":

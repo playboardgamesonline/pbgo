@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { applyResult, buildOrder, LINEAR, linearPrompt, parseAnswer, validationComment, type WorkOrder } from "./linear.ts"
-import { newState, stepOf, type PipelineState } from "./state.ts"
+import { ADOPTED, newState, stepOf, type PipelineState } from "./state.ts"
 import { gameOf, STEPS } from "./steps.ts"
 
 const game = gameOf("/assets", "Love Letter", "love-letter")
@@ -144,6 +144,23 @@ describe("what Linear should say", () => {
     s.rounds = 2
     expect(step.id).toBe("rules-spec")
     expect(validationComment(state, step, game, label)).toBe("Validated on 2026-11-17 at its gate in /add-game (2 rounds).\nRules spec: docs/games/love-letter/rules.md (in the checkout, uncommitted: the game's first pull request takes it)")
+  })
+
+  it("says of a step taken on as it was that it had no gate, and names no scout file and no spec that nobody made", () => {
+    const state = fresh()
+    for (const id of ["scout", "rules-spec"]) {
+      const s = stepOf(state, id)
+      s.status = "validated"
+      s.validatedAt = "2026-11-18T00:30:00.000Z"
+      s.report = ADOPTED
+    }
+    for (const step of STEPS.filter((each) => each.id === "scout" || each.id === "rules-spec")) {
+      const comment = validationComment(state, step, game, label)
+      expect(comment, step.id).toBe("Taken on as it was on 2026-11-18: done outside /add-game, so it has no gate, no round and no file of the flow behind it.")
+    }
+    // and the work order posts it once, as it posts the others
+    const posted = order(state).issues.filter((issue) => issue.comment !== null).map((issue) => issue.key)
+    expect(posted).toEqual(["scout", "rules-spec"])
   })
 
   it("says what a comment holds: when, how many rounds, the links", () => {

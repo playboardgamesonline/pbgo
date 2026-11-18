@@ -13,6 +13,9 @@ export const RULES_PDF = "rules.pdf"
 /** The folder of the pictures of the game for the platform's catalog entry, next to the scout file: the files are named `game-<slug>-<picture>` (the seed's art step reads them there). */
 export const PICTURES_DIR = "platform"
 
+/** What the report of a step that was taken on as it was says: it was done outside `/add-game`, so no gate, no round and no sub-agent's report is behind it. */
+export const ADOPTED = "taken on as it was: done outside /add-game"
+
 export type StepStatus = "pending" | "running" | "gate" | "validated" | "failed"
 
 /** An issue made in Linear, and what was last written to it, so that a sync never repeats itself. */
@@ -69,6 +72,9 @@ export function newState(args: { name: string; slug: string; now: Date }): Pipel
   const at = args.now.toISOString()
   return { version: STATE_VERSION, name: args.name, aliases: [args.name], slug: args.slug, createdAt: at, updatedAt: at, linear: { parent: null, labelId: null, error: null }, steps: {} }
 }
+
+/** Whether the step was taken on as it was (`pnpm game-flow start … --adopt-through`) and not run by the flow. */
+export const isAdopted = (step: Pick<StepState, "report">): boolean => step.report === ADOPTED
 
 /** The state of a step, made (pending) when the game has none yet: a step added in a later version shows up in a game that began before it. */
 export function stepOf(state: PipelineState, id: string): StepState {
