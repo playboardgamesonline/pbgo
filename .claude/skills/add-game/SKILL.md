@@ -28,6 +28,7 @@ A step does not begin before the one before it is validated, and steps 6 to 10 w
 
 ## 0. Before the first step
 
+- **The file of your checkout is this skill, not the copy that was loaded.** The Skill tool may hand you another checkout's copy of a skill, an older one (the `.claude/skills/` of a sibling worktree). At the start, `Read` `.claude/skills/add-game/SKILL.md` of the checkout you run in and follow that file where it differs from what was loaded; the brief of each step says the same of the step's skill: its `SKILL.md` in this checkout wins over the Skill tool's text.
 - The sub-agents read and write the game's folder, `~/Companies/PBGO/assets/<slug>/` or, for a game of a line, `~/Companies/PBGO/assets/<family>/<slug>/` (the brief gives the exact path). When a read or a write there is refused, ask for access to that folder for this session (once).
 - Your temp folder (the scratchpad of your system prompt) is what you pass as `--scratch`: the briefs, the reports and the Linear answers go there.
 - Commands run from the root of this checkout, which has had `pnpm install`.

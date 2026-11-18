@@ -41,7 +41,7 @@ export function briefOf(args: BriefArgs): string {
   const { step, game, scratch, reportPath, has, round, issue, parent } = args
   const index = STEPS.findIndex((each) => each.id === step.id) + 1
   const notes = step.notes(game)
-  const todo = [`Run the skill \`${step.skill}\` with the Skill tool, with this argument: \`${step.args(game)}\`. When the Skill tool does not list that skill (skills are read when a session starts, and this one may be newer) or is not available to you, read \`${step.skillFile}\` and follow it exactly, with that argument.`, ...notes]
+  const todo = [`Run the skill \`${step.skill}\` with the Skill tool, with this argument: \`${step.args(game)}\`. When the Skill tool does not list that skill (skills are read when a session starts, and this one may be newer) or is not available to you, read \`${step.skillFile}\` and follow it exactly, with that argument. The file of this checkout is the skill: the Skill tool may load an older copy from another checkout, so when its text differs from \`${step.skillFile}\`, follow the file.`, ...notes]
   if (round > 1) todo.push(`This is round ${round} of the step: it was interrupted or it failed. Look at what already exists (the files, the drafts, what is published) and carry on from there; never redo what is right.`)
   return `# ${step.title[0]?.toUpperCase() ?? ""}${step.title.slice(1)} · step ${index} of ${STEPS.length} · ${game.name} (${game.slug})
 

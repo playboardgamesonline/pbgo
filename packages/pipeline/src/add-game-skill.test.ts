@@ -50,6 +50,11 @@ describe("the skill /add-game", () => {
     for (const tool of ["Agent tool", "subagent_type", "SendMessage", "haiku"]) expect(SKILL, tool).toContain(tool)
   })
 
+  it("tells the orchestrator to read its own file in its checkout, whatever copy the Skill tool loaded", () => {
+    expect(SKILL).toContain("`Read` `.claude/skills/add-game/SKILL.md` of the checkout you run in")
+    expect(existsSync(join(REPO_ROOT, ".claude/skills/add-game/SKILL.md"))).toBe(true)
+  })
+
   it("is run through a script of the root that exists, and no longer through the terminal command that it replaced", () => {
     expect(root.scripts["game-flow"]).toBe("node --disable-warning=ExperimentalWarning packages/pipeline/bin/game-flow.ts")
     expect(existsSync(join(REPO_ROOT, "packages/pipeline/bin/game-flow.ts"))).toBe(true)
