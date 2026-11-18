@@ -85,7 +85,7 @@ describe("the timeline of the last move", () => {
   it("gives every event of the game a beat, so that a move that says nothing new still takes its time", () => {
     const events: SkyjoEvent[] = [
       { kind: "reveal", by: "ana", position: 0, card: face(1), how: "opening" },
-      { kind: "start", by: "ana", sum: 4 },
+      { kind: "start", by: "ana", sum: 4, how: "sum" },
       { kind: "last", by: "ana" },
       { kind: "reshuffle" },
       { kind: "end", scores: [1, 2, 3], ender: "ana", doubled: false },

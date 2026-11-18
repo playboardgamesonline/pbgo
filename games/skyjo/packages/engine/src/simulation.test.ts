@@ -44,7 +44,7 @@ function bookletCount(state: State, seat: number): number {
   return total
 }
 
-const tally = { games: 0, moves: 0, rounds: 0, columns: 0, doubled: 0, reshuffles: 0, ends: 0, sizes: new Set<number>(), stages: new Set<string>() }
+const tally = { games: 0, moves: 0, rounds: 0, columns: 0, doubled: 0, reshuffles: 0, ends: 0, endersBegan: 0, sumsBegan: 0, sizes: new Set<number>(), stages: new Set<string>() }
 
 type Move = { at: string; before: State; action: Action | null; after: State; events: SkyjoEvent[] }
 
@@ -118,6 +118,26 @@ function checkMove({ at, before, action, after, events }: Move): void {
   if (newRound) {
     ok("a new round did not keep its first cards face down", after.grids.every((grid) => grid.every((cell) => cell !== null && !cell.up)))
     ok("a new round has the 150 cards", after.deck.length + after.discard.length + after.grids.flat().length === 150)
+    // the player who ended the round before will begin this one (EN p.4)
+    ok("the opening does not name the player who ended the last round", after.stage.kind === "reveal" && after.stage.starter === before.ender, () => JSON.stringify(after.stage))
+  }
+
+  // who begins (EN p.4, FR p.2): the player who ended the round before, whatever the sums; in the first round, the highest sum
+  const started = events.find((event): event is Extract<SkyjoEvent, { kind: "start" }> => event.kind === "start")
+  if (started) {
+    const opening = before.stage.kind === "reveal" ? before.stage : null
+    ok("a round began outside its opening", opening !== null)
+    if (opening !== null) {
+      const starter = before.seats.indexOf(started.by)
+      const sums = after.grids.map((grid) => grid.flatMap((cell) => (cell?.up ? [valueOfFace(faceOfId(after, cell.card))] : [])).reduce((a, b) => a + b, 0))
+      ok("the round was not begun by the player the opening names", opening.starter === null || starter === opening.starter)
+      ok("the start does not say how the round's first player was found", started.how === (opening.starter === null ? "sum" : "ender"))
+      ok("the first round was not begun by the highest sum", opening.starter !== null || sums[starter] === Math.max(...sums))
+      ok("the start does not say the sum of the first player", started.sum === sums[starter])
+      ok("the turn did not go to the player who begins", after.stage.kind === "choose" && after.stage.seat === starter)
+    }
+    if (started.how === "ender") tally.endersBegan++
+    else tally.sumsBegan++
   }
 
   // the views keep their secrets
@@ -187,6 +207,8 @@ describe("random games, checked after every move", () => {
     expect(tally.ends).toBeGreaterThanOrEqual(14)
     expect(tally.columns).toBeGreaterThan(0)
     expect(tally.doubled).toBeGreaterThan(0)
+    expect(tally.sumsBegan).toBeGreaterThan(0)
+    expect(tally.endersBegan).toBeGreaterThan(0)
     for (const stage of ["reveal", "choose", "place", "flip", "between"]) expect(tally.stages, stage).toContain(stage)
   })
 })

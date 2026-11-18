@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import { assertSeedId } from "@pbgo/content-kit"
+import { assertSeedId, LANGUAGE_IDS } from "@pbgo/content-kit"
+import type { LanguageId } from "@pbgo/content-kit"
+import type { Doc } from "@pbgo/content-kit/testing"
 import { describe, expect, it } from "vitest"
 import { CARD_KEYS } from "../../apps/studio/schemaTypes/constants.ts"
 import { DATASET, PROJECT_ID, REPO_ROOT, SLUG } from "../config.ts"
@@ -9,7 +11,7 @@ import { CARD_LIST, buildCards, cardId } from "./cards.ts"
 import { buildSeedDocs } from "./index.ts"
 import { buildSettings } from "./settings.ts"
 import { seedDocs } from "./test-fixtures.ts"
-import { BOARD_WORDS, ENGINE_TEXTS, ERROR_MESSAGES } from "./texts.ts"
+import { BOARD_WORDS, buildTexts, ENGINE_TEXTS, ERROR_MESSAGES } from "./texts.ts"
 
 describe("the seed", () => {
   it("is the one of the game of the registry: its slug and its Sanity project", () => {
@@ -85,6 +87,70 @@ describe("the credits", () => {
     expect(settings.creditsAuthors).toBe("Alexander Bernhardt")
     expect(settings.publisher).toBe("Magilano")
     expect(settings).not.toHaveProperty("creditsIllustrators")
+  })
+
+  it("link to the publisher's website as the platform's catalog does: the booklets give no website, and magilano.eu only redirects to this one", () => {
+    expect(buildSettings().publisherUrl).toBe("https://magilano.com/")
+  })
+})
+
+describe("the settings the seed fills", () => {
+  const settings = () => buildSettings() as Doc
+
+  it("hold the description, the credits and the publisher, and nothing else", () => {
+    expect(Object.keys(settings()).sort()).toEqual(["_id", "_type", "creditsAuthors", "creditsAuthorsI18n", "descriptionI18n", "publisher", "publisherUrl"])
+  })
+
+  it("describe the game in every language, in at least the 80 characters the Launch list asks for and at most the 400 the gamemaster keeps", () => {
+    expect(settings().descriptionI18n._type).toBe("localeText")
+    for (const language of LANGUAGE_IDS) {
+      const text = settings().descriptionI18n[language] as string
+      expect(text.length, language).toBeGreaterThanOrEqual(80)
+      expect(text.length, language).toBeLessThanOrEqual(400)
+    }
+    // The localized description is read first and holds every language, so the single-language one (French, from before) stays empty
+    expect(settings()).not.toHaveProperty("description")
+  })
+})
+
+describe("the victory phrase", () => {
+  const phrases = () => (buildTexts() as Doc).victoryPhrases as { _type: string } & Record<LanguageId, string[]>
+  const every = (check: (phrase: string, where: string) => void) => {
+    for (const language of LANGUAGE_IDS) for (const phrase of phrases()[language]) check(phrase, `${language}: ${phrase}`)
+  }
+
+  it("is a localeStringList: the four languages and nothing else", () => {
+    expect(phrases()._type).toBe("localeStringList")
+    expect(Object.keys(phrases()).sort()).toEqual(["_type", ...LANGUAGE_IDS].sort())
+  })
+
+  it("is one phrase in every language: the game over reads the same sentence", () => {
+    for (const language of LANGUAGE_IDS) expect(phrases()[language], language).toHaveLength(1)
+  })
+
+  it("names the winner and their points once each, and holds no other braces", () => {
+    every((phrase, where) => {
+      expect(phrase.match(/\{pseudo\}/g), where).toHaveLength(1)
+      expect(phrase.match(/\{points\}/g), where).toHaveLength(1)
+      expect(phrase.replace(/\{(pseudo|points)\}/g, ""), where).not.toMatch(/[{}]/)
+    })
+  })
+
+  it("leads to the name: the announcement shows what comes before it, so the sentence says the rule there", () => {
+    every((phrase, where) => expect(phrase.split("{pseudo}")[0]!.trim().length, where).toBeGreaterThanOrEqual(20))
+  })
+
+  it("follows the typography of the other texts: trimmed, one line, one space at a time, the typographic apostrophe, no marker", () => {
+    every((phrase, where) => {
+      expect(phrase, where).toBe(phrase.trim())
+      expect(phrase, where).not.toMatch(/ {2}|\t|[\r\n]/)
+      expect(phrase, where).not.toContain("'")
+      expect(phrase, where).not.toMatch(/\bTODO\b|\b(tbd|fixme|lorem|ipsum|placeholder|xxx)\b|\?\?|<\/?[a-z]|https?:\/\//i)
+    })
+  })
+
+  it("stays inside what a screen of the game over can hold", () => {
+    every((phrase, where) => expect(phrase.length, where).toBeLessThanOrEqual(120))
   })
 })
 
