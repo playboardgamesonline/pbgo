@@ -46,6 +46,8 @@ function PadButton({ pad, label, tone, font, disabled, onPress }: PadProps) {
 
 export type StripProps = {
   step: Step
+  /** What to say when there is nothing to press: the viewer is out, or another player deals the next round (already in words) */
+  note?: string
   words: Vocabulary
   tones: Tones
   /** The colours of the sentence: the ink, and the accent for a rule that holds the player back */
@@ -64,8 +66,8 @@ export type StripProps = {
  * The strip in the middle of the table (`STRIP` of the layout): the sentence that says what to do, written flat on the table, and the pad of the moment, one thing at a time: Play, Swap and Keep after a Chancellor, Deal between two rounds. The nine characters of a Guard's
  * guess are small faces that the scene draws in the same strip, under the sentence. It lies in the middle band, never in the bottom of the window that the cookie banner covers.
  */
-export function Strip({ step, words, tones, ink, accent, fonts, busy, onPlay, onKeep, onSwap, onDeal }: StripProps) {
-  const { lines, height } = fitSentence(sentenceOf(step, words), STRIP.sentence.width, STRIP.sentence.height)
+export function Strip({ step, note = "", words, tones, ink, accent, fonts, busy, onPlay, onKeep, onSwap, onDeal }: StripProps) {
+  const { lines, height } = fitSentence(step.kind === "none" ? note : sentenceOf(step, words), STRIP.sentence.width, STRIP.sentence.height)
   const held = step.kind === "pick" && step.forced
   const [swap, keep] = pairPlaces()
   return (

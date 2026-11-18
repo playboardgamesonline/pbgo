@@ -45,6 +45,8 @@ export const WORD_FIELDS = [
   "eventEnd",
   "eventSpy",
   "eventOver",
+  "outOfRound",
+  "waitDeal",
 ] as const
 
 export type WordField = (typeof WORD_FIELDS)[number]

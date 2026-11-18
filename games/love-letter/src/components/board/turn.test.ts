@@ -1,6 +1,6 @@
 import type { CharacterKey, Face, PlayerView, PublicPhase } from "@love-letter/engine"
 import { describe, expect, it } from "vitest"
-import { type Choice, keepAction, lensIds, NO_CHOICE, playAction, pressable, pressCard, pressTarget, type Step, stepOf, swapOrder, validChoice } from "./turn"
+import { type Choice, keepAction, lensIds, NO_CHOICE, noteOf, playAction, pressable, pressCard, pressTarget, type Step, stepOf, swapOrder, validChoice } from "./turn"
 
 const face = (id: number, type: CharacterKey): Face => ({ id, type })
 
@@ -164,5 +164,25 @@ describe("the cards the lens may hold", () => {
     expect([...lensIds(view, false, false)].sort()).toEqual([1, 2, 7, 8, 9])
     expect([...lensIds(view, true, false)].filter((id) => id < 0)).toEqual([-1, -2, -3, -4, -5, -6, -7, -8, -9])
     expect([...lensIds(view, false, true)].filter((id) => id < 0)).toEqual([-100, -101])
+  })
+})
+
+describe("what the strip says when there is nothing to press", () => {
+  const seat = (id: string, out: boolean) => ({ id, cards: out ? 0 : 1, hand: null, area: [], out, shielded: false, tokens: 0 })
+  const among = (view: PlayerView, out: boolean): PlayerView => ({ ...view, players: [seat("ada", out), seat("ben", false)] })
+
+  it("says that the viewer is out of the round, while the round goes on", () => {
+    const hand = [face(1, "spy")]
+    expect(noteOf(among(viewOf({ hand: [], phase: { kind: "turn", player: "ben", targets: ["ada"] } }), true))).toEqual({ kind: "out" })
+    expect(noteOf(among(viewOf({ hand: [], phase: { kind: "keep", player: "ben" } }), true))).toEqual({ kind: "out" })
+    expect(noteOf(among(viewOf({ hand, phase: { kind: "turn", player: "ben", targets: ["ada"] } }), false))).toBeNull()
+  })
+
+  it("says who deals the next round, to everybody but the player who deals it, and nothing once the game is over or to a spectator", () => {
+    const between = (next: string): PublicPhase => ({ kind: "between", next, winners: [], spy: null, revealed: false })
+    expect(noteOf(among(viewOf({ hand: [], phase: between("ben") }), false))).toEqual({ kind: "deal", player: "ben" })
+    expect(noteOf(among(viewOf({ hand: [], phase: between("ada") }), false))).toBeNull()
+    expect(noteOf(among(viewOf({ hand: [], phase: { kind: "over" } }), true))).toBeNull()
+    expect(noteOf({ ...viewOf({ hand: [], phase: between("ben") }), me: null })).toBeNull()
   })
 })

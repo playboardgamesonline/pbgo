@@ -10,7 +10,7 @@ import { CHARACTER_LIST, buildCharacters, characterId } from "./characters.ts"
 import { buildSeedDocs } from "./index.ts"
 import { buildSettings } from "./settings.ts"
 import { seedDocs } from "./test-fixtures.ts"
-import { BOARD_WORDS, buildTexts, ENGINE_TEXTS, ERROR_MESSAGES } from "./texts.ts"
+import { BOARD_WORDS, buildTexts, ENGINE_TEXTS, ERROR_MESSAGES, POINTS_SHORT, VICTORY_PHRASES } from "./texts.ts"
 
 /**
  * What a text may hold, from the owner's blank faces (see "Pictures" in this game's CLAUDE.md): the plate of four faces is shorter (the portrait runs lower) and holds three lines at the text size of the publisher's own sheet,
@@ -142,9 +142,9 @@ describe("the texts", () => {
     ...ENGINE_TEXTS.map(({ key, ...said }) => ({ where: `engineTexts.${key}`, kind: "localeText", said })),
   ]
 
-  it("are the one `texts` document of the Studio, with the engine's words, the message of the game's own error code and the words of the board, and nothing else", () => {
+  it("are the one `texts` document of the Studio, with the engine's words, the message of the game's own error code, the words of the board, the victory phrases and the label of the score, and nothing else", () => {
     expect(texts()._id).toBe("texts")
-    expect(Object.keys(texts()).sort()).toEqual(["_id", "_type", "engineTexts", "errorMessages", ...BOARD_WORDS.map((word) => word.key)].sort())
+    expect(Object.keys(texts()).sort()).toEqual(["_id", "_type", "engineTexts", "errorMessages", "ui_game", "victoryPhrases", ...BOARD_WORDS.map((word) => word.key)].sort())
   })
 
   it("name the three lines of the score once each, and the one code the game refuses with", () => {
@@ -157,8 +157,9 @@ describe("the texts", () => {
       ...(texts().errorMessages as { message: object }[]).map((item) => item.message),
       ...(texts().engineTexts as { text: object }[]).map((item) => item.text),
       ...BOARD_WORDS.map((word) => texts()[word.key] as object),
+      (texts().ui_game as { pointsShort: object }).pointsShort,
     ]
-    expect(objects).toHaveLength(ERROR_MESSAGES.length + ENGINE_TEXTS.length + BOARD_WORDS.length)
+    expect(objects).toHaveLength(ERROR_MESSAGES.length + ENGINE_TEXTS.length + BOARD_WORDS.length + 1)
     for (const value of objects) expect(Object.keys(value).sort()).toEqual(["_type", "en", "fr"])
   })
 
@@ -190,6 +191,73 @@ describe("the texts", () => {
         }
       }
     }
+  })
+})
+
+describe("the score label", () => {
+  it("says tokens and not points, in English and in French, and names the score once", () => {
+    const label = (buildTexts() as Doc).ui_game as { pointsShort: { _type: string } & Record<string, string> }
+    expect(Object.keys(label)).toEqual(["pointsShort"])
+    expect(label.pointsShort._type).toBe("localeString")
+    expect(label.pointsShort.en).toBe(POINTS_SHORT.en)
+    expect(label.pointsShort.fr).toBe(POINTS_SHORT.fr)
+    for (const text of [POINTS_SHORT.en, POINTS_SHORT.fr]) {
+      expect(text.match(/\{points\}/g)).toHaveLength(1)
+      expect(text).not.toMatch(/\bpts?\b/i)
+    }
+  })
+})
+
+describe("the victory phrase", () => {
+  const phrases = () => (buildTexts() as Doc).victoryPhrases as { _type: string } & Record<"fr" | "en", string[]>
+  const every = (check: (phrase: string, where: string) => void) => {
+    for (const language of ["fr", "en"] as const) for (const phrase of phrases()[language]) check(phrase, `${language}: ${phrase}`)
+  }
+  /** What the end screen keeps of a phrase: what comes before `{pseudo}`, with the tokens in it, the separators at its end dropped (`winnerAnnouncement` of core) */
+  const announced = (phrase: string) => phrase.split("{pseudo}")[0]!.replace("{points}", "4").replace(/[\s:,–-]+$/, "").trim()
+
+  it("are a localeStringList in English and in French, Spanish and German left empty like the other words", () => {
+    expect(phrases()._type).toBe("localeStringList")
+    expect(Object.keys(phrases()).sort()).toEqual(["_type", "en", "fr"])
+    expect(phrases().en).toEqual(VICTORY_PHRASES.en)
+    expect(phrases().fr).toEqual(VICTORY_PHRASES.fr)
+  })
+
+  it("are one phrase in each language", () => {
+    expect(phrases().en).toHaveLength(1)
+    expect(phrases().fr).toHaveLength(1)
+  })
+
+  it("end with the winner and say something before them, since the end screen reads only what comes before `{pseudo}`", () => {
+    every((phrase, where) => {
+      expect(phrase.match(/\{pseudo\}/g), where).toHaveLength(1)
+      expect(phrase.endsWith("{pseudo}"), where).toBe(true)
+      expect(announced(phrase).length, where).toBeGreaterThan(8)
+      expect(announced(phrase), where).not.toContain("{")
+    })
+  })
+
+  it("name the tokens at most once and before the winner, and hold no other braces", () => {
+    every((phrase, where) => {
+      expect(phrase.match(/\{points\}/g)?.length ?? 0, where).toBeLessThanOrEqual(1)
+      if (phrase.includes("{points}")) expect(phrase.indexOf("{points}"), where).toBeLessThan(phrase.indexOf("{pseudo}"))
+      expect(phrase.replace(/\{(pseudo|points)\}/g, ""), where).not.toMatch(/[{}]/)
+    })
+  })
+
+  it("follow the typography of the other texts: trimmed, one line, one space at a time, the typographic apostrophe, no marker", () => {
+    every((phrase, where) => {
+      expect(phrase, where).toBe(phrase.trim())
+      expect(phrase, where).not.toMatch(/ {2}|\t|[\r\n]/)
+      expect(phrase, where).not.toContain("'")
+      expect(phrase, where).not.toMatch(/\bTODO\b|\b(tbd|fixme|lorem|ipsum|placeholder|xxx)\b|\?\?|<\/?[a-z]|https?:\/\//i)
+    })
+  })
+
+  it("differ from one language to the next, and fit a line of the announcement", () => {
+    const all = [...phrases().en, ...phrases().fr]
+    expect(new Set(all).size).toBe(all.length)
+    every((phrase, where) => expect(phrase.length, where).toBeLessThanOrEqual(120))
   })
 })
 

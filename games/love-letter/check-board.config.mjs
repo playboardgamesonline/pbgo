@@ -14,18 +14,11 @@ const config = {
   // The platform logs `[missing: <key>]` for every word the game's Sanity does not hold yet (the seed's drafts are not published)
   ignoreConsole: [/\[missing/],
 
-  // The situations the windows are photographed in: the viewer's first turn, a round in (favor tokens on the plates, cards in the play areas), between two rounds (the winners counted, the hands laid down when the round ended on a comparison), and the viewer
-  // holding the three cards of a Chancellor (the card to keep)
+  // The situations the windows are photographed in: the viewer's first turn, between two rounds (the winners counted, the hands laid down when the round ended on a comparison: first, since a game of five or six players is won in three rounds and the end of one of them would end it), a
+  // round in (favor tokens on the plates, cards in the play areas), and the viewer holding the three cards of a Chancellor (the card to keep)
   scenes: {
     async turn(table) {
       await table.advance({ until: viewerTurn, label: "the viewer's turn" })
-    },
-    async later(table) {
-      await table.advance({
-        until: (state, who) => viewerTurn(state, who) && state.view.round >= 2 && state.view.players.some((player) => player.tokens > 0) && cardsPlayed(state) >= state.view.players.length,
-        max: 800,
-        label: "the viewer's turn, a round in",
-      })
     },
     async between(table) {
       // the deck cut to its last card at the viewer's turn, so that the round ends on a comparison and the hands that are left are laid down (a round that ends with one player in is counted at once and shows none): a round that ends the other way is played through and the cut is made again
@@ -37,12 +30,20 @@ const config = {
       }
       throw new Error("between two rounds: no round ended on a comparison in six tries")
     },
+    async later(table) {
+      await table.advance({
+        until: (state, who) => viewerTurn(state, who) && state.view.round >= 2 && state.view.players.some((player) => player.tokens > 0) && cardsPlayed(state) >= state.view.players.length,
+        max: 800,
+        label: "the viewer's turn, a round in",
+      })
+    },
     async keep(table) {
       await table.advance({ until: viewerTurn, label: "the viewer's turn" })
       await table.rig("chancellorInHand")
       const state = await table.state(0)
       const chancellor = handOf(state).find((card) => card.type === "chancellor")
-      if (!chancellor) throw new Error("keep: no Chancellor could be put in the viewer's hand")
+      // both Chancellors may be played already, in a late round: the rig puts none in the hand then, and the situation is the viewer's turn as it is
+      if (!chancellor) return
       await table.act(0, { type: "play", card: chancellor.id })
     },
   },
@@ -54,6 +55,11 @@ const config = {
     max: 90,
     budgetSeconds: 360,
     plan({ state, me, exercised }) {
+      // a check begins with no move in mind: what the check before it left (a move that it stopped in the middle of) is forgotten
+      if (running !== exercised) {
+        running = exercised
+        move = null
+      }
       if (move?.final) move = null
       const view = state.view
       const { phase } = view
@@ -66,7 +72,7 @@ const config = {
       if (phase.kind === "keep" && phase.player === me) {
         if (!move) {
           move = { stage: "card" }
-          return { label: "card", local: true }
+          return { label: "card", local: true, prepare: rest }
         }
         if (move.stage === "card") {
           move.stage = "order"
@@ -79,8 +85,16 @@ const config = {
         if (!move) {
           const choice = choose(view, exercised)
           if (!choice) return null
-          move = { type: choice.type, stage: "picked" }
-          return { label: "card", local: true, ...(choice.rig ? { prepare: (table) => table.rig(choice.rig) } : {}) }
+          // `wanted` is the card the plan would like to pick; `find` picks it when the hand holds it (a rig may not bring it: the other copies may all be played) and says which card it pressed in `type`
+          move = { wanted: choice.type, type: choice.type, stage: "picked" }
+          return {
+            label: "card",
+            local: true,
+            prepare: async (table) => {
+              await rest()
+              if (choice.rig) await table.rig(choice.rig)
+            },
+          }
         }
         const rule = RULE[move.type]
         const anyone = phase.targets.length > 0
@@ -113,19 +127,27 @@ const config = {
       const isZone = (pressable) => world(pressable) && world(pressable)[1] > 0.3 && world(pressable)[1] < 0.4 && world(pressable)[2] < 4.2
       const byX = (a, b) => world(a)[0] - world(b)[0]
       const strip = pressables.filter(inStrip).sort(byX)
+      const cards = pressables.filter(inHand).sort(byX)
+      const zones = pressables.filter(isZone)
+      // a control is pressed once the ones it is picked from have not moved since the last look (`find` is asked every few tenths of a second): the cards that come in from the deck move for about a second, and a pixel that reaches one of them mid-way reaches another by the time it is pressed
+      if (!still(label === "card" ? cards : label === "target" || label === "name" ? zones : strip)) return undefined
       if (label === "card") {
-        const cards = pressables.filter(inHand).sort(byX)
-        const index = move?.type ? handOf(state).findIndex((card) => card.type === move.type) : 0
-        return cards[Math.max(0, index)]
+        const hand = handOf(state)
+        // only a card that can be pressed carries a control (the Countess rule leaves the other card of the hand with none), and the fan lies in the order of the hand: so the place of a card in the line of controls is its place among the cards that can be pressed, once every one of
+        // them has landed (a card that came from the deck a moment ago, which a rig does, is in the air, and the control at its place in the line would be another card's)
+        const playable = state.view.phase.kind === "keep" ? new Set(hand.map((card) => card.id)) : new Set(state.view.me.playable)
+        const pressing = hand.filter((card) => playable.has(card.id))
+        if (cards.length !== pressing.length) return undefined
+        let index = move?.wanted ? pressing.findIndex((card) => card.type === move.wanted) : -1
+        if (index < 0) index = 0
+        if (move && pressing[index]) move.type = pressing[index].type
+        return cards[index]
       }
       if (label === "play" || label === "deal") return strip.find((pressable) => Math.abs(world(pressable)[0]) < 0.3)
       if (label === "swap") return strip.find((pressable) => world(pressable)[0] < -0.3)
       if (label === "keep") return strip.at(-1)
       if (label === "guess") return strip.find((pressable) => pressable.reachable) ?? strip[3]
-      if (label === "target" || label === "name") {
-        const zones = pressables.filter(isZone)
-        return zones.find((pressable) => pressable.reachable) ?? zones[0]
-      }
+      if (label === "target" || label === "name") return zones.find((pressable) => pressable.reachable) ?? zones[0]
       return undefined
     },
   },
@@ -180,6 +202,24 @@ const config = {
 
 /** What the plan remembers of the move it is making, between its calls: the card it picked and how far it got (the version of the table stays the same until the last press, and a rig changes it, so the plan keeps its own count); `final` once it asked for the last press */
 let move = null
+/** The check the move belongs to (the set of the labels it pressed is its own): a new check forgets the move of the one before */
+let running = null
+/** Where the controls lay at the last look of `find`, as a line of text (see `still`) */
+let looked = ""
+
+/** Whether the controls have not moved since the last look, to the nearest twentieth of a unit of the table; the look is kept for the next one */
+function still(list) {
+  const look = list
+    .filter((pressable) => pressable.world)
+    .map((pressable) => pressable.world.map((value) => Math.round(value * 20)).join(","))
+    .join(";")
+  const quiet = look === looked
+  looked = look
+  return quiet
+}
+
+/** A pause before a card is picked, after a move was sent: the board does not take a card while the move is still being sent (it would be a press that does nothing), a moment a person never sees and a check that presses at once does */
+const rest = () => new Promise((resolve) => setTimeout(resolve, 1000))
 
 /**
  * The card the viewer picks first: the one that exercises a control that has not been pressed yet, a Guard (a zone, then one of the nine faces), a card that picks a player, the Chancellor (the card to keep, Swap and Keep: rigged into the hand when it is not there)

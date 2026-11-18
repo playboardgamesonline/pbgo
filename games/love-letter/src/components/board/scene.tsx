@@ -19,7 +19,7 @@ import { matTexture } from "./mat"
 import { type Arrival, PACE_FIELDS, PACE_SETTINGS, type Reveal } from "./pacing"
 import { RevealView, useReveal } from "./sequence"
 import { CARD_SIZE, useFaces } from "./textures"
-import { type Choice, type ClientAction, keepAction, NO_CHOICE, playAction, pressable, pressCard, pressTarget, lensIds, type Step, stepOf, swapOrder, validChoice } from "./turn"
+import { type Choice, type ClientAction, keepAction, NO_CHOICE, playAction, pressable, pressCard, pressTarget, lensIds, noteOf, type Step, stepOf, swapOrder, validChoice } from "./turn"
 
 /** The pool of light of the mat: how far across it spreads, in world units. Past it the table is the plain colour it fades into. */
 const MAT_SIZE = 30
@@ -134,6 +134,9 @@ function World({ view, catalog, onAction, busy, v, entrances, drawn, reveals, ca
   // the cards of the hands come in from the deck once the table is dealing; none lies on the table while the start screen is up, so that the opening deal is seen
   const entering = deal && !onStartScreen ? dealt : undefined
 
+  // what the strip says when there is nothing to press: the viewer is out of the round, or another player deals the next round
+  const note = noteOf(view)
+  const noteText = note === null ? "" : note.kind === "out" ? words.outOfRound : fill(words.waitDeal, { player: nickname(note.player) })
   // The cards the lens can hold up that are on the table now: the one it holds is let go when its card is not (a card that goes gets no pointer-out event)
   const guessing = step.kind === "guess"
   const alive = useMemo(() => lensIds(view, guessing, !!reveal), [view, guessing, reveal])
@@ -266,6 +269,7 @@ function World({ view, catalog, onAction, busy, v, entrances, drawn, reveals, ca
       {/* The strip in the middle: the sentence that says what to do and the pad of the moment */}
       <Strip
         step={step}
+        note={reveal ? "" : noteText}
         words={words}
         tones={tones}
         ink={theme.foreground}

@@ -50,6 +50,8 @@ export const texts = createTexts(
     word("eventEnd", "History · a round is won ({winners})"),
     word("eventSpy", "History · the Spy's token ({player})"),
     word("eventOver", "History · the game is won ({winners})"),
+    word("outOfRound", "Strip · the viewer is out of the round"),
+    word("waitDeal", "Strip · the next round is dealt by another player ({player})"),
   ],
   [{ name: "board", title: "Board" }],
 )

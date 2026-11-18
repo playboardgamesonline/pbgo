@@ -80,20 +80,39 @@ export const BOARD_WORDS: (Said & { key: string })[] = [
   { key: "eventEnd", fr: "Manche gagnée par {winners}", en: "Round won by {winners}" },
   { key: "eventSpy", fr: "{player} gagne le pion de l’Espionne", en: "{player} earns the Spy’s token" },
   { key: "eventOver", fr: "Partie gagnée par {winners}", en: "Game won by {winners}" },
+  { key: "outOfRound", fr: "Tu as quitté la manche", en: "You are out of the round" },
+  { key: "waitDeal", fr: "{player} distribue la manche suivante", en: "{player} deals the next round" },
 ]
+
+/**
+ * The sentence that crowns the winner of a table: the shared `victoryPhrases` of `texts` (a `localeStringList`, which the end screen picks from, so a list of one is that phrase every time). The end screen reads only what comes BEFORE `{pseudo}` (the winner goes in a line of their own under it,
+ * with their favor tokens), so the phrase ends with `{pseudo}` and the words before it lead into the name: "The Princess reads the letter of", then "Ada · 4 tokens". One phrase for each language, in the voice of the game (the letters, the court, the Princess). English and French are written for the game, for
+ * the owner to read; Spanish and German have no source and stay empty.
+ */
+export const VICTORY_PHRASES = {
+  fr: ["La princesse lit la lettre de {pseudo}"],
+  en: ["The Princess reads the letter of {pseudo}"],
+}
+
+/**
+ * The score of a player is their favor tokens: the label the scoreboard, the share image and the announcement of the end write it with (`pointsShort` of the shared interface labels, `ui_game`) says tokens and not points. `{points}` is their score.
+ */
+export const POINTS_SHORT: Said = { fr: "{points} pions", en: "{points} tokens" }
 
 /** A `localeString` and a `localeText` of the shared Studio schema with the languages that have a text. The content kit's builders refuse an empty language; here Spanish and German stay empty on purpose, as in the characters. */
 const localeStringOf = ({ fr, en }: Said) => ({ _type: "localeString" as const, fr, en })
 const localeTextOf = ({ fr, en }: Said) => ({ _type: "localeText" as const, fr, en })
 
 /**
- * The part of the shared `texts` document that the seed fills: the engine's words, the messages of the game's own error codes (one keyed item each, the `_key` the Copy page writes) and the words of the board (one `localeString` each, under the name of its field), so that the seed adds the ones Sanity lacks and keeps the ones
- * edited in the Studio. Everything else of Copy (the interface labels, the messages of the shared codes, which the platform words, the victory phrases) is set in the Studio and left alone.
+ * The part of the shared `texts` document that the seed fills: the engine's words, the messages of the game's own error codes (one keyed item each, the `_key` the Copy page writes), the words of the board (one `localeString` each, under the name of its field), the victory phrases
+ * and the one interface label that says the score is tokens, so that the seed adds the ones Sanity lacks and keeps the ones edited in the Studio. Everything else of Copy (the other interface labels, the messages of the shared codes, which the platform words) is set in the Studio and left alone.
  */
 export function buildTexts(): SeedDoc {
   return {
     _id: TEXTS_ID,
     _type: "texts",
+    victoryPhrases: { _type: "localeStringList", fr: [...VICTORY_PHRASES.fr], en: [...VICTORY_PHRASES.en] },
+    ui_game: { pointsShort: localeStringOf(POINTS_SHORT) },
     errorMessages: ERROR_MESSAGES.map(({ code, ...words }) => ({ _key: code, _type: "errorMessage", code, message: localeStringOf(words) })),
     engineTexts: ENGINE_TEXTS.map(({ key, ...words }) => ({ _key: engineTextKey(key), _type: "engineText", key, text: localeTextOf(words) })),
     ...Object.fromEntries(BOARD_WORDS.map(({ key, ...words }) => [key, localeStringOf(words)])),

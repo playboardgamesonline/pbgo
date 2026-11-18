@@ -123,3 +123,17 @@ export function lensIds(view: PlayerView, guessing: boolean, revealing: boolean)
   if (revealing) for (const id of [-100, -101]) ids.add(id)
   return ids
 }
+
+/**
+ * What the strip says when there is nothing to press: the viewer is out of the round (they read the table and wait for it to end), or the next round is dealt by another player (the one who takes the first turn deals it). Nothing otherwise: it is somebody's turn, the ticker
+ * says whose, and the game over has its own screen.
+ */
+export type Note = { kind: "out" } | { kind: "deal"; player: string }
+
+export function noteOf(view: PlayerView): Note | null {
+  const { me, phase } = view
+  if (!me) return null
+  if (phase.kind === "between") return phase.next === me.id ? null : { kind: "deal", player: phase.next }
+  if (phase.kind === "turn" || phase.kind === "keep") return view.players.find((player) => player.id === me.id)?.out ? { kind: "out" } : null
+  return null
+}
