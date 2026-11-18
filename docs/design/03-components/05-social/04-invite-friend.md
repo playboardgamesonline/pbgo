@@ -17,7 +17,7 @@ invite-friend
 
 ## As a panel
 
-`FriendPicker` is the same list for a [popover](../03-overlays/03-popover.md), the one a free place of the [player slots](06-player-slots.md) opens: the friends right away, with no menu that leads to a window. The connected ones come first, then the others, with the search field above; `limit` keeps the list short, and a line says how many more the search will find. Under the list, after a separator, `link` gives a "Copy link" row that says so once it is copied, for somebody who is not a friend yet. The search field takes the focus as the panel opens and has no ring round it then. `labels` is what a press does in the page's words: "Add" and "Added" for a table that does not exist yet, whose friends are invited when it opens.
+`FriendPicker` is the same list for a [popover](../03-overlays/03-popover.md), the one a free place of the [player slots](06-player-slots.md) opens: the friends right away, with no menu that leads to a window. The connected ones come first, then the others, with the search field above; `limit` keeps the list short, and a line says how many more the search will find. Under the list, after a separator, `link` gives a "Copy link" row that says so once it is copied, for somebody who is not a friend yet. The search field takes the focus as the panel opens and has no ring round it then.
 
 ```specimen
 friend-picker

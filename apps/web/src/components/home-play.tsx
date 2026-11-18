@@ -69,8 +69,8 @@ const SLOTS = "grid grid-cols-3 gap-x-3 gap-y-4 @xl:grid-cols-5 max-w-6xl"
  * The play zone of the signed-in home: one central interface in a card that takes the height of what is left of the screen, with the same margin at its two sides and a little more under it, in the left column of the home (the right one is `HomeAside`'s: PLT-21, PLT-119, PLT-135). Its four parts are spread over the
  * height of the card: a switch that fits its cases (Normal, Ranked, Custom) at the top, then at a fixed distance (the "2xl" step, 3rem) the "Board games" (four slots to begin with: the games that are picked as tiles and, after them, the slots that are free, each
  * of which opens the panel of the games, a fifth, free, when the four are taken, five games at the most; a press on a tile opens its settings, in a window: its speed, its expansions and, for a search, the most players at a table), then the "Players" (the row of players, every place of one size too,
- * as large as the row allows, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little room at their sides, and at the foot of the card the button, with what says why it is off at its right. Normal and Ranked look for a table among players the member does not know, in as many games as they pick, the places being their group; Custom opens a table of one game for friends, private to
- * begin with, the places being its seats, whose number the game's settings set; a friend picked in a place is invited when the table opens. A game that the group cannot play stays in the list and as a tile, off, with the reason; the same reason is at the right of the button. The button says
+ * as large as the row allows, five to begin with and one more each time they are all taken, nine at the most, the member first), both with a little room at their sides, and at the foot of the card the button, with what says why it is off at its right. The places are the member's group in every mode, and a press on a friend in the panel of a free place invites them to it at once. Normal and Ranked look for a table among players the member does not know, in as many games as they pick; Custom opens a table of one game
+ * for the group, private to begin with, whose number of seats the game's settings set, and invites each member of the group to it. A game that the group cannot play (it is larger than the game's most players) stays in the list and as a tile, off, with the reason, in every mode; the same reason is at the right of the button. The button says
  * "Play" (Normal and Ranked) or "Start game" (Custom), and is off when no game is left and for a member of a group who is not its leader (`@pbgo/core/lib/play-eligibility`). The search is the platform's one queue (`lib/matchmaking.ts`): while one is on, whichever page began it, the zone shows
  * its games and its kind and cannot be changed until it is stopped.
  */
@@ -90,10 +90,9 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const [customSlug, setCustomSlug] = useState<string | null>(null)
   // The settings of a game are the member's whichever kind of play they are for, so they are kept by game
   const [configs, setConfigs] = useState<Readonly<Record<string, GameConfig>>>({})
-  // The table opened by hand: how many seats (the game's median until the member picks), who may join (private to begin with) and the friends to invite once it exists
+  // The table opened by hand: how many seats (the game's median until the member picks) and who may join (private to begin with)
   const [seats, setSeats] = useState<number | null>(null)
   const [access, setAccess] = useState<AccessChoice>(PRIVATE_TABLE)
-  const [invitees, setInvitees] = useState<readonly Friend[]>([])
   const [opening, setOpening] = useState(false)
   // Whether the panel of the games is open: every free slot opens it, the first one being its trigger
   const [adding, setAdding] = useState(false)
@@ -109,21 +108,19 @@ export function HomePlay({ games, languages, account, className }: { games: read
   const maxPlayersOf = (game: PlayGame) => Math.min(game.range.max, configOf(game.slug).maxPlayers ?? game.range.max)
   const isUsual = (game: PlayGame) => configOf(game.slug).pace === USUAL.pace && configOf(game.slug).expansions.length === 0 && maxPlayersOf(game) === game.range.max
 
-  // The member and the people who play with them: their group (the leader first), the friends invited to it who have not answered, or, for a table of their own, the friends they picked
+  // The member and the people who play with them, whichever the kind of play: their group (the leader first) and the friends invited to it who have not answered
   const members = group ? orderedMembers(group).filter((member) => !member.you) : []
   const waiting = friends.filter((friend) => friend.pending === "invited")
   const me: SlotPlayer = { id: "you", name: account.nickname, avatarUrl: account.avatarUrl, you: true, leader: searchMode ? (group ? youLead(group) : false) : !group || youLead(group) }
   const slotOf = (friend: Friend | GroupMember, rest: Partial<SlotPlayer> = {}): SlotPlayer => ({ id: friend.id, name: friend.nickname, tag: friend.tag, avatarUrl: friend.avatarUrl, status: friend.status, ...rest })
-  const players: SlotPlayer[] = searchMode
-    ? [me, ...members.map((member) => slotOf(member, { leader: member.leader })), ...waiting.map((friend) => slotOf(friend, { pending: true }))]
-    : [me, ...invitees.map((friend) => slotOf(friend, { pending: true }))]
+  const players: SlotPlayer[] = [me, ...members.map((member) => slotOf(member, { leader: member.leader })), ...waiting.map((friend) => slotOf(friend, { pending: true }))]
   const tableSeats = seats ?? (customGame ? defaultSeats(customGame.range.min, customGame.range.max) : SLOT_BASE)
-  // A group has five places to begin with and one more each time they are all taken; a table of one's own has the seats of its game, five until a game is picked
+  // A search has five places to begin with and one more each time they are all taken; a table of one's own has the seats of its game, never fewer than the people in the row, and five until a game is picked
   const size = searchMode ? placesFor(players.length) : customGame ? Math.max(tableSeats, players.length) : SLOT_BASE
 
   // What the group cannot do: games it is too large for stay, off, a member who is in a game stops the search, and only the leader of a group looks for a game or opens a table
   const playGroup: PlayGroup = { size: group ? group.members.length : 1, inGame: members.filter((member) => member.status === "playing").map((member) => member.nickname), leads: group ? youLead(group) : true }
-  const refusals = new Map(games.flatMap((game) => { const refusal = searchMode ? gameRefusal(playGroup, game.range) : null; return refusal ? [[game.slug, gameRefusalText(refusal)] as const] : [] }))
+  const refusals = new Map(games.flatMap((game) => { const refusal = gameRefusal(playGroup, game.range); return refusal ? [[game.slug, gameRefusalText(refusal)] as const] : [] }))
   const searchBlocked = searchMode ? searchBlock(playGroup) : null
   const tableBlocked = shownMode === "custom" ? tableBlock(playGroup) : null
   const asked = shown.filter((game) => !refusals.has(game.slug))
@@ -147,9 +144,6 @@ export function HomePlay({ games, languages, account, className }: { games: read
   function pickCustom(slug: string | undefined) {
     setCustomSlug(slug ?? null)
     setSeats(null)
-    const game = games.find((candidate) => candidate.slug === slug)
-    // A game that takes fewer players has no room for all the friends that were picked
-    if (game) setInvitees((current) => current.slice(0, Math.max(0, game.range.max - 1)))
   }
 
   /** The settings panel of a game's tile: for a search the most players at a table, above the speed (not for a ranked search, which is played at the usual speed), the number of players of a table of one's own, and the expansions. */
@@ -181,40 +175,20 @@ export function HomePlay({ games, languages, account, className }: { games: read
     )
   }
 
-  /** The panel of a free place: the friends right away. In a search they are invited to the group, with a link for someone who has no account yet; for a table of one's own they are picked, and invited when it opens, a table that does not exist having no link to copy. */
-  const picker = searchMode ? (
+  /** The panel of a free place, the same in every mode: the friends who are in no group, right away, with a link to copy for someone who has no account yet. One press invites the friend to the member's group, which the row then shows as a faint picture until they answer. */
+  const picker = (
     <FriendPicker
       friends={friends.filter((friend) => friend.group === undefined)}
-      invited={new Set(friends.filter((friend) => friend.pending === "invited").map((friend) => friend.id))}
+      invited={new Set(waiting.map((friend) => friend.id))}
       limit={FRIENDS_LISTED}
       onInvite={groups.inviteFromPicker}
       link={{ onCopy: copy, copied }}
     />
-  ) : (
-    <FriendPicker
-      friends={friends}
-      invited={new Set(invitees.map((friend) => friend.id))}
-      limit={FRIENDS_LISTED}
-      labels={{ action: "Add", done: "Added" }}
-      onInvite={(friend) => {
-        if (invitees.length + 1 >= size) return false
-        setInvitees((current) => (current.some((other) => other.id === friend.id) ? current : [...current, friend]))
-        return true
-      }}
-    />
   )
 
-  /** What a press on a person of the row opens: in a group, their profile and, for the leader, the lead and the way out of the group; the member's own place has "Leave group". For a table of one's own, a friend picked can be taken out. */
+  /** What a press on a person of the row opens, in every mode: in a group, their profile and, for the leader, the lead and the way out of the group; the member's own place has "Leave group". A friend who was invited and has not answered has none, nor does a member with no group. */
   function menuOf(player: SlotPlayer) {
-    if (player.pending && searchMode) return null
-    if (!searchMode) {
-      return player.you ? null : (
-        <DropdownMenuItem variant="destructive" onSelect={() => setInvitees((current) => current.filter((friend) => friend.id !== player.id))}>
-          Remove
-        </DropdownMenuItem>
-      )
-    }
-    if (!group) return null
+    if (player.pending || !group) return null
     if (player.you) return <DropdownMenuItem onSelect={() => groups.leave()}>Leave group</DropdownMenuItem>
     const member = group.members.find((candidate) => candidate.id === player.id)
     if (!member) return null
@@ -253,7 +227,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
     }
   }
 
-  /** Opens the table with the game's own route, as the game's page does, keeps who may join, the speed and the seats with it, sends the engine its options, invites the friends picked and takes the member to its lobby, where they share its link. */
+  /** Opens the table with the game's own route, as the game's page does, keeps who may join, the speed and the seats with it, sends the engine its options, invites each member of the member's group to it and takes the member to its lobby, where they share its link. */
   async function open() {
     if (!customGame) return
     const config = configOf(customGame.slug)
@@ -264,7 +238,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
       const table = await guard(() => api.create({}, creationSettings(access, config.pace, Math.max(tableSeats, players.length), customGame.range)))
       const options = engineOptionsOf({ expansions: config.expansions, helpers: [] }, { expansions: customGame.expansions.map(({ id }) => id), helpers: [] }, Object.keys(table.options))
       if (Object.keys(options).length > 0) await guard(() => api.options(table.code, options)).catch(fail)
-      await Promise.all(invitees.map((friend) => inviteToTable(friend, { game: customGame.slug, code: table.code })))
+      await Promise.all(members.map((member) => inviteToTable(member, { game: customGame.slug, code: table.code })))
       router.push(`/game/${customGame.slug}/${table.code}`)
     } catch (error) {
       fail(error)
@@ -356,7 +330,7 @@ export function HomePlay({ games, languages, account, className }: { games: read
             </QueueButton>
           ) : (
             <div className="flex items-center gap-3">
-              <Button size="2xl" disabled={opening || !customGame || tableBlocked !== null} onClick={open}>
+              <Button size="2xl" disabled={opening || asked.length === 0 || tableBlocked !== null} onClick={open}>
                 Start game
                 <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} data-icon="inline-end" aria-hidden="true" />
               </Button>
