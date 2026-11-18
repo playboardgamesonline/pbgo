@@ -1,6 +1,6 @@
 import { viewLog } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
-import { areaNames, handNames, kinds, layout, playCard, playStep, refusal, viewOf } from "./test-utils"
+import { areaNames, handNames, kinds, layout, playCard, playStep, refusal, viewOf, waiting } from "./test-utils"
 import type { LoveLetterLogEntry } from "./types"
 
 // Rulebook, pp. 8-13: what each character does when it is played. One section for each, with its page. The log is read the way a player reads it (`viewLog`):
@@ -259,5 +259,180 @@ describe("the Prince (p. 10)", () => {
     const after = playCard(state, "ana", "prince", { target: "bob" })
     expect(handNames(after, "bob")).toEqual(["spy"])
     expect(after.stage).toMatchObject({ kind: "between", revealed: true, winners: [0] })
+  })
+})
+
+describe("the Handmaid (p. 11)", () => {
+  const table = () => layout({ players: 3, hands: { ana: ["handmaid", "spy"], bob: ["guard"], cleo: ["priest"] }, deck: ["king", "guard", "baron"] })
+
+  it("protects its player: until the start of their next turn, the other players cannot pick them", () => {
+    const after = playCard(table(), "ana", "handmaid")
+    expect(after.shielded).toEqual([true, false, false])
+    // bob is next: his Guard cannot pick ana, only cleo
+    expect(refusal(() => playCard(after, "bob", "guard", { target: "ana", guess: "priest" }))).toBe("INVALID_TARGET")
+    expect(() => playCard(after, "bob", "guard", { target: "cleo", guess: "priest" })).not.toThrow()
+    expect(viewOf(after, "bob").phase).toMatchObject({ kind: "turn", player: "bob", targets: ["cleo"] })
+  })
+
+  it("lasts through the turns of the others and ends when the turn comes back to the player (p. 11)", () => {
+    let state = playCard(table(), "ana", "handmaid")
+    state = playCard(state, "bob", "guard", { target: "cleo", guess: "king" })
+    expect(state.shielded).toEqual([true, false, false])
+    expect(waiting(state)).toEqual(["cleo"])
+    state = playCard(state, "cleo", "priest", { target: "bob" })
+    // the turn comes back to ana: she draws, and her protection is over
+    expect(waiting(state)).toEqual(["ana"])
+    expect(state.shielded).toEqual([false, false, false])
+    expect(viewOf(state, "bob").players[0]!.shielded).toBe(false)
+  })
+
+  it("protects only once played: a Handmaid in a hand picks nobody away (p. 11)", () => {
+    const state = layout({ players: 3, hands: { ana: ["guard", "spy"], bob: ["handmaid"], cleo: ["priest"] }, deck: ["king"] })
+    expect(() => playCard(state, "ana", "guard", { target: "bob", guess: "handmaid" })).not.toThrow()
+  })
+
+  it("does not keep its player out of the turns: they play when it comes round to them", () => {
+    const state = playCard(table(), "ana", "handmaid")
+    expect(state.out).toEqual([false, false, false])
+    expect(areaNames(state, "ana")).toEqual(["handmaid"])
+  })
+
+  it("shows everybody who is protected (p. 11: the Handmaid is played face up), and says that it was played", () => {
+    const { state, events } = playStep(table(), "ana", "handmaid")
+    for (const viewer of ["ana", "bob", "cleo", "stranger", null]) {
+      expect(viewOf(state, viewer).players.map((player) => player.shielded), String(viewer)).toEqual([true, false, false])
+      expect(read(events, viewer).filter((event) => event.kind === "protect"), String(viewer)).toEqual([{ kind: "protect", by: "ana" }])
+    }
+  })
+
+  it("is ended by a new round: nobody is protected when it is dealt (the reading validated for p. 11)", () => {
+    const state = layout({ players: 2, hands: { ana: ["handmaid", "princess"], bob: ["guard"] }, deck: [], rest: "away" })
+    const after = playCard(state, "ana", "handmaid")
+    expect(after.stage).toMatchObject({ kind: "between" })
+    expect(after.shielded[0]).toBe(true)
+  })
+})
+
+describe("the Countess (p. 9)", () => {
+  const holding = (other: "king" | "prince" | "guard" | "princess" | "chancellor" | "handmaid") =>
+    layout({ players: 3, hands: { ana: ["countess", other], bob: ["priest"], cleo: ["baron"] }, deck: ["spy", "guard"] })
+
+  it("has no effect when played: she lies in front of her player and nothing else changes", () => {
+    const { state, events } = playStep(holding("guard"), "ana", "countess")
+    expect(areaNames(state, "ana")).toEqual(["countess"])
+    expect(handNames(state, "ana")).toEqual(["guard"])
+    expect(kinds({ events })).toEqual(["play", "draw"])
+    expect(state.out).toEqual([false, false, false])
+  })
+
+  it("must be played when the other card is the King (INVALID: MUST_PLAY_COUNTESS for the other card)", () => {
+    const state = holding("king")
+    expect(refusal(() => playCard(state, "ana", "king", { target: "bob" }))).toBe("MUST_PLAY_COUNTESS")
+    expect(() => playCard(state, "ana", "countess")).not.toThrow()
+  })
+
+  it("must be played when the other card is a Prince", () => {
+    const state = holding("prince")
+    expect(refusal(() => playCard(state, "ana", "prince", { target: "bob" }))).toBe("MUST_PLAY_COUNTESS")
+    expect(() => playCard(state, "ana", "countess")).not.toThrow()
+  })
+
+  it("is checked before the player picked and the character named: the refusal is the Countess's (MUST_PLAY_COUNTESS)", () => {
+    expect(refusal(() => playCard(holding("king"), "ana", "king"))).toBe("MUST_PLAY_COUNTESS")
+    expect(refusal(() => playCard(holding("king"), "ana", "king", { target: "zed" }))).toBe("MUST_PLAY_COUNTESS")
+  })
+
+  it("can still be played by choice with any other card: the Guard, the Princess, the Chancellor, the Handmaid", () => {
+    for (const other of ["guard", "princess", "chancellor", "handmaid"] as const) {
+      expect(() => playCard(holding(other), "ana", "countess"), other).not.toThrow()
+      expect(() => playCard(holding(other), "ana", other, other === "guard" ? { target: "bob", guess: "baron" } : {}), other).not.toThrow()
+    }
+  })
+
+  it("does not force the King or the Prince when they are the two cards of the hand without her (p. 9)", () => {
+    const state = layout({ players: 3, hands: { ana: ["king", "prince"], bob: ["priest"], cleo: ["baron"] }, deck: ["spy", "guard"] })
+    expect(() => playCard(state, "ana", "king", { target: "bob" })).not.toThrow()
+    expect(() => playCard(state, "ana", "prince", { target: "bob" })).not.toThrow()
+  })
+
+  it("is the only card a player is offered when it is forced, which only they know: `playable` is for them alone", () => {
+    const state = holding("king")
+    const countess = state.hands[0]![0]!
+    expect(viewOf(state, "ana").me!.playable).toEqual([countess])
+    expect(viewOf(state, "ana").me!.hand.map((face) => face.type)).toEqual(["countess", "king"])
+    expect(viewOf(state, "bob").me!.playable).toEqual([])
+    expect(viewOf(holding("guard"), "ana").me!.playable).toHaveLength(2)
+  })
+
+  it("does not show the other card, so nobody can tell whether the play was forced (p. 9)", () => {
+    const forced = playStep(holding("king"), "ana", "countess")
+    const chosen = playStep(holding("guard"), "ana", "countess")
+    for (const viewer of ["bob", "cleo", "stranger", null]) {
+      const [a, b] = [read(forced.events, viewer), read(chosen.events, viewer)]
+      expect(a.map((event) => event.kind), String(viewer)).toEqual(b.map((event) => event.kind))
+      expect(JSON.stringify(a), String(viewer)).not.toContain("king")
+      expect(viewOf(forced.state, viewer).phase.kind, String(viewer)).toBe(viewOf(chosen.state, viewer).phase.kind)
+    }
+    expect(JSON.stringify(read(forced.events, "bob"))).not.toContain('"king"')
+  })
+
+  it("is not forced when the player has only one card to play, nor after a trade of hands (the rule is about the two cards of a turn)", () => {
+    const state = layout({ players: 3, hands: { ana: ["king", "guard"], bob: ["priest"], cleo: ["countess"] }, deck: ["spy", "guard"] })
+    // ana trades with cleo: she holds the Countess alone, and cleo the Guard; the next player has two cards, no King or Prince among them
+    const after = playCard(state, "ana", "king", { target: "cleo" })
+    expect(handNames(after, "ana")).toEqual(["countess"])
+    expect(viewOf(after, "bob").me!.playable).toHaveLength(2)
+  })
+})
+
+describe("the Princess (p. 8)", () => {
+  const table = () => layout({ players: 3, hands: { ana: ["princess", "guard"], bob: ["priest"], cleo: ["baron"] }, deck: ["spy", "guard"] })
+
+  it("knocks out the player who plays her, their other card laid face up in front of them (pp. 5, 8)", () => {
+    const { state, events } = playStep(table(), "ana", "princess")
+    expect(state.out).toEqual([true, false, false])
+    expect(areaNames(state, "ana")).toEqual(["princess", "guard"])
+    expect(handNames(state, "ana")).toEqual([])
+    expect(kinds({ events })).toEqual(["play", "out", "draw"])
+    expect(events[1]!.event).toMatchObject({ kind: "out", player: "ana", cause: "princess", cards: [{ type: "guard" }] })
+  })
+
+  it("is a card a player may play when it is the lowest they can: it is legal, and it costs them the round", () => {
+    const state = layout({ players: 3, hands: { ana: ["princess", "spy"], bob: ["priest"], cleo: ["baron"] }, deck: ["guard"] })
+    expect(() => playCard(state, "ana", "princess")).not.toThrow()
+  })
+
+  it("passes the turn to the next player and skips the one who is out from then on (p. 5)", () => {
+    const after = playCard(table(), "ana", "princess")
+    expect(waiting(after)).toEqual(["bob"])
+    const later = playCard(playCard(after, "bob", "spy"), "cleo", "guard", { target: "bob", guess: "king" })
+    // the turn goes round to bob again: ana, who is out, is skipped
+    expect(waiting(later)).toEqual(["bob"])
+  })
+
+  it("ends the round at once when it leaves one player, who wins it (p. 6)", () => {
+    const state = layout({ players: 2, hands: { ana: ["princess", "guard"], bob: ["priest"] }, deck: ["spy"] })
+    const { state: after, events } = playStep(state, "ana", "princess")
+    expect(after.stage).toMatchObject({ kind: "between", revealed: false, winners: [1] })
+    expect(kinds({ events })).toEqual(["play", "out", "end"])
+    expect(after.won).toEqual([0, 1])
+  })
+
+  it("does not earn the Spy's token to a player who is out, whatever they played or discarded before (the reading validated for p. 13)", () => {
+    const state = layout({ players: 2, hands: { ana: ["princess", "spy"], bob: ["priest"] }, areas: { ana: ["spy"] }, deck: ["guard"] })
+    const after = playCard(state, "ana", "princess")
+    expect(after.spies).toEqual([0, 0])
+    expect(after.won).toEqual([0, 1])
+  })
+})
+
+describe("the Spy (p. 13)", () => {
+  it("has no effect when played: it lies in front of its player and nothing else changes", () => {
+    const state = layout({ players: 3, hands: { ana: ["spy", "guard"], bob: ["priest"], cleo: ["baron"] }, deck: ["handmaid", "guard"] })
+    const { state: after, events } = playStep(state, "ana", "spy")
+    expect(areaNames(after, "ana")).toEqual(["spy"])
+    expect(kinds({ events })).toEqual(["play", "draw"])
+    expect(after.out).toEqual([false, false, false])
+    expect(after.shielded).toEqual([false, false, false])
   })
 })

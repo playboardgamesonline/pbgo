@@ -93,6 +93,7 @@ export const LOVE_LETTER_ERROR_CODES = [
   "UNKNOWN_CARD", // the card is not in the player's hand
   "INVALID_TARGET", // the player the card picks is missing, is not at the table, or cannot be chosen: out of the round, protected by a Handmaid, or the player themselves where the card says another
   "INVALID_CHOICE", // the character a Guard names is missing, or is not one of the nine other characters
+  "MUST_PLAY_COUNTESS", // the player holds the Countess and the King or a Prince: they must play her
 ] as const
 export type LoveLetterErrorCode = (typeof LOVE_LETTER_ERROR_CODES)[number]
 
@@ -169,6 +170,7 @@ export type PlayerView = {
  * - `compare`: a Baron of `by` compared hands with `target`: the two read both cards, the others read that it happened.
  * - `swap`: a King of `by` traded hands with `target`: the two read both cards, the others read that it happened. `cards.by` is what `by` held before, `cards.target`
  *   what `target` held.
+ * - `protect`: a Handmaid of `by` protects them until the start of their next turn.
  * - `discard`: a Prince of `by` made `player` (who can be `by`) discard `card`, now face up in front of them.
  * - `out`: `player` is out of the round, `cause` says how (`guard`: named by a Guard, `baron`: the lower card, `princess`: she was played or discarded). `cards` are the
  *   cards of their hand, laid face up in front of them (none when the Princess was the card a Prince made them discard).
@@ -185,6 +187,7 @@ export type LoveLetterEvent =
   | { kind: "look"; by: string; target: string; card?: CharacterKey }
   | { kind: "compare"; by: string; target: string; cards?: { by: CharacterKey; target: CharacterKey } }
   | { kind: "swap"; by: string; target: string; cards?: { by: CharacterKey; target: CharacterKey } }
+  | { kind: "protect"; by: string }
   | { kind: "discard"; by: string; player: string; card: Face }
   | { kind: "out"; player: string; cards: Face[]; cause: "guard" | "baron" | "princess" }
   | { kind: "fizzled"; by: string }

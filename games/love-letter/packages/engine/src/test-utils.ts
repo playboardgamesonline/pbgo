@@ -280,13 +280,21 @@ export function pickable(state: State, playerId: string): string[] {
   return state.seats.filter((id, seat) => id !== playerId && !state.out[seat] && !state.shielded[seat])
 }
 
+/** The cards a player may play, written again here: their whole hand, or the Countess alone when the other card is the King or a Prince (p. 9). */
+export function playableIds(state: State, playerId: string): number[] {
+  const hand = state.hands[seatOf(state, playerId)]!
+  const keys = names(state, hand)
+  const forced = keys.includes("countess") && (keys.includes("king") || keys.includes("prince"))
+  return forced ? hand.filter((id) => keyOf(state, id) === "countess") : [...hand]
+}
+
 /** A legal move for the player the game waits for: the choices are the ones a table makes, at random. */
 export function randomAction(state: State, rng: Rng): Action {
   const [playerId] = waiting(state)
   if (playerId === undefined) throw new Error("The game waits for nobody")
   if (state.stage.kind === "between") return { type: "deal", playerId }
-  const hand = state.hands[seatOf(state, playerId)]!
-  const card = hand[Math.floor(rng() * hand.length)]!
+  const choices = playableIds(state, playerId)
+  const card = choices[Math.floor(rng() * choices.length)]!
   const rule = CARDS[keyOf(state, card)].target
   const allowed = rule === "any" ? [playerId, ...pickable(state, playerId)] : rule === "other" ? pickable(state, playerId) : []
   const target = allowed[Math.floor(rng() * allowed.length)]

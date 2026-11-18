@@ -54,7 +54,6 @@ function modelPlay(before: State, mover: number, card: number, target: number | 
     m.areas[seat]!.push(...m.hands[seat]!)
     m.hands[seat] = []
     m.out[seat] = true
-    m.shielded[seat] = false
   }
   const held = (seat: number) => m.hands[seat]![0]!
   switch (nameOf(before, card)) {
@@ -83,8 +82,14 @@ function modelPlay(before: State, mover: number, card: number, target: number | 
       }
       break
     }
+    case "handmaid":
+      m.shielded[mover] = true
+      break
+    case "princess":
+      knock(mover)
+      break
     default:
-      // priest, spy, handmaid, chancellor, countess, princess: nothing yet in this slice
+      // priest, spy, countess: nothing changes in the hands, the areas or the protection; the Chancellor comes with its own stage
       break
   }
   return m
@@ -117,6 +122,10 @@ const tally = {
   swaps: 0,
   discards: 0,
   fizzles: 0,
+  handmaids: 0,
+  princesses: 0,
+  forcedCountesses: 0,
+  chosenCountesses: 0,
   sizes: new Set<number>(),
   stages: new Set<string>(),
 }
@@ -177,6 +186,21 @@ function checkMove({ at, before, action, after, events }: Move): void {
 
     // what the log says of the effect
     const key = nameOf(before, card)
+    const heldKeys = before.hands[mover]!.map((id) => nameOf(before, id))
+    const forced = heldKeys.includes("countess") && (heldKeys.includes("king") || heldKeys.includes("prince"))
+    ok("the Countess's rule was broken: a King or a Prince was played with her in hand", !forced || key === "countess")
+    if (key === "countess") {
+      if (forced) tally.forcedCountesses++
+      else tally.chosenCountesses++
+    }
+    if (key === "handmaid") {
+      tally.handmaids++
+      ok("a Handmaid did not protect its player", after.shielded[mover] === true || before.hands[mover]!.length === 0 || ended)
+    }
+    if (key === "princess") {
+      tally.princesses++
+      ok("a Princess that was played did not knock out its player", after.out[mover] === true)
+    }
     if (key === "guard" || key === "priest" || key === "baron" || key === "king") {
       const pickable = before.seats.flatMap((_, seat) => (seat !== mover && !before.out[seat] && !before.shielded[seat] ? [seat] : []))
       if (pickable.length === 0) {
@@ -310,8 +334,7 @@ describe("random games, checked after every move", () => {
     expect(report()).toEqual([])
     expect([...tally.sizes].sort()).toEqual([2, 3, 4, 5, 6])
     expect(tally.overs).toBe(tally.games)
-    // a card played with nobody to pick needs a Handmaid: it is counted from the characters that pick nobody on
-    for (const [what, count] of Object.entries(tally)) if (typeof count === "number" && what !== "fizzles") expect(count, what).toBeGreaterThan(0)
+    for (const [what, count] of Object.entries(tally)) if (typeof count === "number") expect(count, what).toBeGreaterThan(0)
     for (const stage of ["play", "between"]) expect(tally.stages, stage).toContain(stage)
   })
 })

@@ -122,9 +122,17 @@ export function targetsOf(s: State, seat: number): number[] {
   return inRound(s).filter((other) => other !== seat && s.shielded[other] !== true)
 }
 
-/** The ids of the cards the player in `seat` may play now: their whole hand on their turn, nothing otherwise. */
+/**
+ * The ids of the cards the player in `seat` may play now: nothing unless it is their turn, their whole hand on it, but for the Countess alone when the other card
+ * of the turn is the King or a Prince (rulebook, p. 9). She can still be played by choice with any other card. The rule is about the two cards of a turn: the
+ * Chancellor's three are free (p. 9), and nobody reads the other card when the Countess is played, so nobody can tell whether the play was forced.
+ */
 export function playableOf(s: State, seat: number): number[] {
-  return s.stage.kind === "play" && s.turn === seat ? [...handOf(s, seat)] : []
+  if (s.stage.kind !== "play" || s.turn !== seat) return []
+  const hand = handOf(s, seat)
+  const countess = hand.find((id) => keyOf(s, id) === "countess")
+  const forcing = hand.some((id) => keyOf(s, id) === "king" || keyOf(s, id) === "prince")
+  return countess !== undefined && forcing ? [countess] : [...hand]
 }
 
 // --- Tokens and the end

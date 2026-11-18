@@ -34,8 +34,8 @@ export function eliminate(ctx: Ctx, seat: number, cause: "guard" | "baron" | "pr
   const { s } = ctx
   const cards = handOf(s, seat).splice(0)
   areaOf(s, seat).push(...cards)
+  // Nobody out is protected: only a player on their turn is knocked out (by their own card, or by the Princess discarded), and their protection ended when it began
   s.out[seat] = true
-  s.shielded[seat] = false
   emit(ctx, { kind: "out", player: playerAt(s, seat), cards: facesOf(s, cards), cause })
 }
 
@@ -104,21 +104,30 @@ function prince(ctx: Ctx, { by, target }: Play): void {
   emit(ctx, { kind: "draw", by: player, card: faceOf(s, card) }, { to: [player], masked: { kind: "draw", by: player } })
 }
 
-/** The effect of each character. The Spy, the Handmaid, the Countess and the Princess pick nobody; the Chancellor keeps a choice for its player. */
+/** Handmaid (rulebook, p. 11): until the start of their next turn, the other players cannot pick the player of the Handmaid (`startTurn` ends the protection). */
+function handmaid(ctx: Ctx, { seat, by }: Play): void {
+  ctx.s.shielded[seat] = true
+  emit(ctx, { kind: "protect", by })
+}
+
+/** Princess (rulebook, p. 8): a player who plays her is out of the round. (Discarded by a Prince she does the same: `prince`.) */
+function princess(ctx: Ctx, { seat }: Play): void {
+  eliminate(ctx, seat, "princess")
+}
+
+/** The effect of each character. The Spy and the Countess do nothing when played; the Chancellor keeps a choice for its player. */
 export const EFFECTS: Record<CharacterKey, Effect> = {
   // No effect (rulebook, p. 13): its only part is the token it can earn at the end of the round
   spy: () => undefined,
   guard,
   priest,
   baron,
-  // Written with the characters that pick nobody
-  handmaid: () => undefined,
+  handmaid,
   prince,
   // Written with the Chancellor
   chancellor: () => undefined,
   king,
-  // No effect (rulebook, p. 9): its rule is about which card a player may play
+  // No effect (rulebook, p. 9): her rule is about which card a player may play (`playableOf`)
   countess: () => undefined,
-  // Written with the characters that pick nobody
-  princess: () => undefined,
+  princess,
 }

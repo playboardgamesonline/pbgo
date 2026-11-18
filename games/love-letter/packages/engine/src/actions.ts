@@ -1,7 +1,7 @@
 import { EngineError, cleanChoice } from "@pbgo/engine-kit"
 import { CARDS, type CharacterKey, GUESSES } from "./catalogue"
 import { EFFECTS } from "./effects"
-import { type Ctx, areaOf, close, emit, faceOf, handOf, keyOf, open, playerAt, refuse, removeFrom, seatOf, targetsOf, waitingFor } from "./machine"
+import { type Ctx, areaOf, close, emit, faceOf, handOf, keyOf, open, playableOf, playerAt, refuse, removeFrom, seatOf, targetsOf, waitingFor } from "./machine"
 import { endTurn, startRound } from "./round"
 import { type Action, CLIENT_ACTIONS, type LoveLetterStep, type State } from "./types"
 
@@ -41,6 +41,7 @@ export function play(ctx: Ctx, by: string, fields: { card?: unknown; target?: un
   const seat = seatOf(s, by)
   const hand = handOf(s, seat)
   if (!hand.includes(card)) throw new EngineError("UNKNOWN_CARD", "That card is not in your hand")
+  if (!playableOf(s, seat).includes(card)) throw new EngineError("MUST_PLAY_COUNTESS", "You must play the Countess when your other card is the King or a Prince")
   const key = keyOf(s, card)
   const target = chooseTarget(s, seat, key, fields.target)
   const guess = key === "guard" && target !== null ? cleanChoice(fields.guess, GUESSES) : null
