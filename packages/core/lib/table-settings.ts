@@ -29,10 +29,12 @@ export type TableSettings = {
   ranked?: boolean
   /** The tier of the member who opened a ranked table: the others sit at it while their tier is near it (`withinRankGap`). */
   anchor?: Tier
+  /** The table was opened for the group of its host, who leads it (PLT-141): private, set for the people of the group, and its members sit at it by themselves (`server/party.ts`). The group goes with the host's leaving it. */
+  party?: boolean
 }
 
 /** What the host sends to set a table: every setting at once, so that the server writes what the panel shows (a rank or a language that asks for nothing is `null`). */
-export type TableSettingsInput = { visibility: Visibility; minRank: Tier | null; language: PlatformLanguage | null; pace: Pace; seats: number }
+export type TableSettingsInput = { visibility: Visibility; minRank: Tier | null; language: PlatformLanguage | null; pace: Pace; seats: number; party?: boolean }
 
 /** The settings as the lobby shows them: what a table that never had any shows, with what it has put over it. */
 export type EffectiveSettings = { visibility: Visibility; minRank: Tier | null; language: PlatformLanguage | null; pace: Pace; seats: number }
@@ -55,6 +57,7 @@ export function parseTableSettings(raw: unknown): TableSettings {
   if (typeof raw.seats === "number" && Number.isInteger(raw.seats) && raw.seats >= 1 && raw.seats <= MAX_SEATS) settings.seats = raw.seats
   if (raw.ranked === true) settings.ranked = true
   if (typeof raw.anchor === "string" && (TIERS as readonly string[]).includes(raw.anchor)) settings.anchor = raw.anchor as Tier
+  if (raw.party === true) settings.party = true
   return settings
 }
 
@@ -66,6 +69,9 @@ export const modeOf = (settings: Pick<TableSettings, "ranked">): "normal" | "ran
 
 /** A ranked table is fixed: who may join, the speed, the seats and the options are not changed, and its host cannot start it before it is full. */
 export const isLocked = (settings: Pick<TableSettings, "ranked">): boolean => settings.ranked === true
+
+/** Whether the table was opened for its host's group (PLT-141): the group's members sit at it by themselves, and it goes when its host leaves it. */
+export const isParty = (settings: Pick<TableSettings, "party">): boolean => settings.party === true
 
 /** How many tiers apart a player may be from the one who opened a ranked table, when it has just opened, and how long the table waits before it takes one more. */
 export const RANK_GAP_BASE = 1
@@ -90,8 +96,11 @@ const refused = (code: "INVALID_REQUEST" | "INVALID_PLAYERS"): SettingsCheck => 
  */
 export function checkTableSettings(input: unknown, { min, max, seated }: SeatLimits): SettingsCheck {
   if (!isRecord(input)) return refused("INVALID_REQUEST")
-  const { visibility, minRank, language, pace, seats } = input
+  const { visibility, minRank, language, pace, seats, party } = input
   if (visibility !== "public" && visibility !== "private") return refused("INVALID_REQUEST")
+  // A table opened for a group is private, whatever else: strangers are not the people it was set for
+  if (party !== undefined && typeof party !== "boolean") return refused("INVALID_REQUEST")
+  if (party === true && visibility !== "private") return refused("INVALID_REQUEST")
   if (minRank !== null && minRank !== undefined && !(typeof minRank === "string" && (ASKABLE_TIERS as readonly string[]).includes(minRank))) return refused("INVALID_REQUEST")
   if (language !== null && language !== undefined && !isSpoken(language)) return refused("INVALID_REQUEST")
   if (typeof pace !== "string" || !(SPEEDS as readonly string[]).includes(pace)) return refused("INVALID_REQUEST")
@@ -105,6 +114,7 @@ export function checkTableSettings(input: unknown, { min, max, seated }: SeatLim
       ...(language ? { language: language as PlatformLanguage } : {}),
       pace: pace as Pace,
       seats,
+      ...(party === true ? { party: true } : {}),
     },
   }
 }
@@ -165,14 +175,15 @@ export const PRIVATE_TABLE: AccessChoice = { visibility: "private", minRank: nul
 /**
  * What the host chose before the table existed, as the create route takes it: who may join (the button at the top right of the space that opens a table), the speed and the number of players, each as the panel shows it. A rank that asks for nothing is `null`;
  * a language that is not one the lobby offers is left out (the server would refuse it); a speed the lobby does not offer is the usual one; the number of players that was not picked is the median of the game's players (`defaultSeats`), and one that is not between the game's least and most
- * is brought back to it. `range` is the game's: the table is checked against it all the same on the server (`checkTableSettings`).
+ * is brought back to it. `range` is the game's: the table is checked against it all the same on the server (`checkTableSettings`). `party` opens the table for the visitor's group (PLT-141): the leader's start from the home, which the server accepts from the leader of a group only.
  */
-export function creationSettings(access: AccessChoice, pace: Pace, seats: number | null, range: { min: number; max: number }): TableSettingsInput {
+export function creationSettings(access: AccessChoice, pace: Pace, seats: number | null, range: { min: number; max: number }, party = false): TableSettingsInput {
   return {
     visibility: access.visibility,
     minRank: access.minRank,
     language: isSpoken(access.language) ? access.language : null,
     pace: (SPEEDS as readonly string[]).includes(pace) ? pace : "normal",
     seats: Math.min(range.max, Math.max(range.min, seats ?? defaultSeats(range.min, range.max))),
+    ...(party ? { party: true } : {}),
   }
 }

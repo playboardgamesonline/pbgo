@@ -47,6 +47,19 @@ describe("leavePatch", () => {
     expect(leavePatch(row({ status: "lobby" }), "p1")).toEqual({ players: [bob, cy], host_id: "p2" })
   })
 
+  it("takes the whole table with the leader who opened it for a group: nobody is left to start it, so the lobby is emptied and the route deletes it (PLT-141)", () => {
+    expect(leavePatch(row({ status: "lobby" }), "p1", true)).toEqual({ players: [], host_id: "p1" })
+  })
+
+  it("lets a member of the group leave its table like any lobby: it goes on without them", () => {
+    expect(leavePatch(row({ status: "lobby" }), "p2", true)).toEqual({ players: [ann, cy], host_id: "p1" })
+  })
+
+  it("keeps the table of a group in its ready check as any: the one who leaves it is unseated and the check is over", () => {
+    const starting = row({ status: "starting", ready_at: {}, ready_deadline: "2026-11-10T10:01:00.000Z" })
+    expect(leavePatch(starting, "p1", true)).toMatchObject({ status: "lobby", players: [bob, cy], host_id: "p2" })
+  })
+
   it("keeps the host of a lobby that its last player leaves", () => {
     expect(leavePatch(row({ status: "lobby", players: [ann] }), "p1")).toEqual({ players: [], host_id: "p1" })
   })

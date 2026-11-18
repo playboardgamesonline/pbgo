@@ -10,6 +10,7 @@ import { withdrawPatch } from "./ready"
  * - A player who leaves a game in progress keeps their seat at the table, marked `left`: the state of the game has a seat for them, so it cannot go. The server plays it from then on (`settleLeavers`), so that the others can finish. A
  *   player who has left takes no part in the table any more: they are not a member of it for the routes, not present, and the table is no longer theirs (`isSeated`).
  * - A table in its ready check or in the lobby has nobody who left: a player who leaves one of those is unseated (`leavePatch`).
+ * - The table that a group's leader opened for the group (PLT-141) goes with its leader: a lobby that its host walks out of takes the seats of the group with it, since nobody is left to start it (`leavePatch`, `party`).
  * - A player who leaves a table that is over (the "Continue" of the end screen) has their seat marked `left` as well, so that the others' rematch no longer waits for their word: it is played by those who stayed.
  */
 
@@ -33,15 +34,17 @@ export type Departure = "starting" | "playing" | "over"
 
 /**
  * What a player's leaving writes, null when it changes nothing: they do not sit at the table, or already left it.
- *   - in the lobby they are unseated, and the table has another host if they were it;
+ *   - in the lobby they are unseated, and the table has another host if they were it; the table that its host opened for their group (`party`) has none, it is emptied when they leave it, and the route deletes it (`deleteEmptyTable`);
  *   - in its ready check they are unseated and the check is over, since the game was set up for the seats it had (`withdrawPatch`, PLT-107);
  *   - in a game in progress their seat is marked `left`, and stays;
  *   - at a table that is over their seat is marked `left` too: nothing is played, the others only stop waiting for them to vote for a rematch.
  */
-export function leavePatch(row: Leaving, playerId: string): Partial<GameRow> | null {
+export function leavePatch(row: Leaving, playerId: string, party = false): Partial<GameRow> | null {
   if (!isSeated(row, playerId)) return null
   switch (row.status) {
     case "lobby": {
+      // The group's table goes with the leader who opened it: the members' seats go with it, and they are told that it is gone when they look for it
+      if (party && row.host_id === playerId) return { players: [], host_id: row.host_id }
       const players = row.players.filter((player) => player.id !== playerId)
       return { players, host_id: row.host_id === playerId ? (players[0]?.id ?? row.host_id) : row.host_id }
     }

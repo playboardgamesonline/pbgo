@@ -8,7 +8,7 @@ import { cn } from "../utils"
 import { Button } from "./button"
 
 // What a visitor sees while they look for a table, the same wait in three places: the button that starts the search (the main one of a game's page and of the signed-in home), which becomes a counter with a cross that stops the search (`QueueButton`), the card at the top of the social panel
-// (`QueueCard`, which also says how full the nearest table is) and, while the panel is closed, a small pill in the bar of the dock (`QueuePill`). Each is drawn from what it is given, the time waited in whole seconds, and decides nothing: where the queue is kept and what
+// (`QueueCard`, which also says how full the nearest table is) and, while the panel is closed, a small pill in the bar of the dock (`QueuePill`). The wait of a group's leader for the people of the group, once the table is opened for them, is drawn the same way as the button's counter (`PartyWait`). Each is drawn from what it is given, the time waited in whole seconds, and decides nothing: where the queue is kept and what
 // stopping it does are the page's (`apps/web/src/lib/matchmaking.ts`). The counter is a `timer`, which a screen reader reads when asked and never announces each second; what is announced is that a search began or stopped.
 
 /** The time waited as a counter, in figures of one width so that the digits do not shift as they change. */
@@ -112,6 +112,47 @@ function QueueButton({ size = "xl", around, searching, seconds, onSearch, onCanc
   return around ? around(idle) : idle
 }
 
+/** What the wait of a group's leader changes of the box: its height and corner (the width is the text's), the cross inside it being the counter's. */
+const PARTY_BOXES = { "2xl": "h-16 rounded-2xl text-xl", xl: "h-12 text-base", lg: "h-10 text-sm" }
+
+type PartyWaitProps = Omit<React.ComponentProps<"div">, "children"> & {
+  /** `xl` (the default) or `2xl`, the one of the signed-in home's play zone: the size of the button it takes the place of. */
+  size?: keyof typeof PARTY_BOXES
+  /** Who is awaited, in a few words ("Waiting for the group"). */
+  label: string
+  /** How many of the seats are taken, as it is said ("2/3"). */
+  count: string
+  /** What the cross does: gives the table up. */
+  onCancel: () => void
+}
+
+/**
+ * What the button that opens a table for a group becomes once the table is open (PLT-141): in the same place and on the same fill as the counter of a search, a ring, who is awaited and how many of the seats are taken, with a cross that gives the table up. It decides nothing: the page
+ * keeps the table, and says what the cross does. The count is announced when it changes.
+ */
+function PartyWait({ size = "xl", label, count, onCancel, className, ...props }: PartyWaitProps) {
+  return (
+    <div data-slot="party-wait" role="group" aria-label={`${label}, ${count} seated`} className={cn("inline-flex items-center rounded-xl bg-primary text-primary-foreground", PARTY_BOXES[size], className)} {...props}>
+      <span className="flex flex-1 items-center justify-center gap-2.5 pr-3 pl-6 whitespace-nowrap">
+        <Searching />
+        <span>{label}</span>
+        <span aria-live="polite" className="tabular-nums text-primary-foreground/70">
+          {count}
+        </span>
+      </span>
+      <button
+        type="button"
+        aria-label="Cancel the game"
+        title="Cancel the game"
+        onClick={onCancel}
+        className={cn("flex shrink-0 items-center justify-center rounded-lg outline-none hover:bg-primary-foreground/10 focus-visible:ring-3 focus-visible:ring-primary-foreground/40", SEARCH_SIZES[size].stop)}
+      >
+        <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} aria-hidden="true" className="size-4" />
+      </button>
+    </div>
+  )
+}
+
 type QueueCardProps = Omit<React.ComponentProps<"div">, "children"> & {
   /** The games they look for, in a few words ("Courtisans", "Courtisans and Flip 7"). */
   game: string
@@ -169,5 +210,5 @@ function QueuePill({ game, mode, progress, seconds, onCancel, className, ...prop
   )
 }
 
-export { QueueButton, QueueCard, QueuePill }
-export type { QueueButtonProps, QueueCardProps, QueuePillProps }
+export { PartyWait, QueueButton, QueueCard, QueuePill }
+export type { PartyWaitProps, QueueButtonProps, QueueCardProps, QueuePillProps }
