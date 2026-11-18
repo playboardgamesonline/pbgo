@@ -31,12 +31,20 @@ One small pull request, named after the issue: in `GAMES`, `live: true` and `ind
 
 ## 5. Check production
 
-After the merge and the deployment, with requests that change nothing:
+After the merge and the deployment, one command, with requests that change nothing (GET and HEAD alone: no account, no cookie, no table):
 
-- `/<slug>` shows the hub page of the game with its play button, no longer "Coming soon".
-- `/sitemap.xml` lists `/game/<slug>`, and the page has no `noindex`.
+```bash
+pnpm check:production <slug>
+```
+
+It prints each check with what it found, and exits 0 when all of them pass (`docs/scripts.md` has the list):
+
+- `/<slug>` and `/game/<slug>` show the hub page of the game with its play button, no longer "Coming soon", and the page has no `noindex`.
+- `/sitemap.xml` lists `/game/<slug>`.
 - The game's API answers for the game (`/api/<slug>/games/…`) instead of `GAME_NOT_FOUND`.
-- The share image and the metadata of the page are the game's own.
+- The share image and the metadata of the page are the game's own, and the pictures of its Sanity project load.
+
+A deployment that is still going shows the game as it was: run the command again after a minute before looking for a cause, and give what it printed in the hand-over, the lines that fail first.
 
 **The owner plays the first table in production.** An agent does not create accounts or tables on the live service.
 
