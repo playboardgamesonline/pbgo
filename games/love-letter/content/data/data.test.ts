@@ -26,14 +26,6 @@ describe("the seed", () => {
     expect(DATASET).toBe("production")
   })
 
-  it("never marks the game live or indexable: that is the go-live stage", () => {
-    const registry = readFileSync(join(REPO_ROOT, "packages/games/src/registry.ts"), "utf8")
-    const entry = registry.slice(registry.indexOf(`slug: "${SLUG}"`))
-    const own = entry.slice(0, entry.indexOf("\n  },"))
-    expect(own).toMatch(/live: false/)
-    expect(own).toMatch(/indexable: false/)
-  })
-
   it("writes the ten characters, the game and the settings, each with an id of its own", () => {
     const docs = buildSeedDocs()
     expect(docs).toHaveLength(10 + 2)

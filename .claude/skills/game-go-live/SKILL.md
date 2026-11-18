@@ -9,7 +9,7 @@ Going live is two switches, `live` and `indexable`, in `packages/games/src/regis
 
 ## 1. Is it ready?
 
-`pnpm check:game <slug> --stage content` must exit 0: the entry and its Sanity project, an engine of its own, `GAME` exported, the binding's tests, a board that loads lazily, the Studio's guard of forms. Each failure names the skill that does the step (`engine-rules`, `engine-board`, `game-sanity-create`). Then the six gates of the repo from the root (`pnpm check:catalog`, `check:public`, `typecheck`, `lint`, `test`, `build`). From the game's Studio folder, `sanity documents validate --yes` shows no error and no warning: the seed adds the gaps and never removes a field, so a field that left the schema stays in a draft and shows there.
+`pnpm check:game <slug> --stage content` must exit 0: the entry and its Sanity project, an engine of its own, `GAME` exported, the binding's tests, a board that loads lazily, the Studio's guard of forms. Each failure names the skill that does the step (`engine-rules`, `engine-board`, `game-sanity-create`). Then the six gates of the repo from the root (`pnpm check:catalog`, `check:public`, `typecheck`, `lint`, `test`, `build`): they pass with the switches off and pass again once they are on, since no test of a game's seed holds `live` or `indexable` to a value (`registry.test.ts` keeps them out of `games/*/content`). From the game's Studio folder, `sanity documents validate --yes` shows no error and no warning: the seed adds the gaps and never removes a field, so a field that left the schema stays in a draft and shows there.
 
 ## 2. What only a person can say
 
@@ -27,7 +27,7 @@ Every pull request has a preview. On it, with two browsers (two private windows 
 
 ## 4. Flip the switches
 
-One small pull request, named after the issue: in `GAMES`, `live: true` and `indexable: true` for the game, and nothing else ([`live` and `indexable`](../../../docs/engine/04-build-a-game/05-wiring-it-in.md#live-and-indexable)). Only a live game can be indexable, and a live game needs a real Sanity project id: `registry.test.ts` keeps both. The owner reads it and merges it; nobody merges their own.
+One small pull request, named after the issue: in `GAMES`, `live: true` and `indexable: true` for the game, and nothing else ([`live` and `indexable`](../../../docs/engine/04-build-a-game/05-wiring-it-in.md#live-and-indexable)). Only a live game can be indexable, and a live game needs a real Sanity project id: `registry.test.ts` keeps both. A test that fails once the switches are on held one to a value (a seed test that says `live: false`): that test is what is wrong, so remove it in this same pull request, never the switch. The owner reads it and merges it; nobody merges their own.
 
 ## 5. Check production
 
