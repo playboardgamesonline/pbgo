@@ -27,7 +27,7 @@ describe("the sentence of each event", () => {
 
   it("says the column, the start, the last turn, the reshuffle, the count and the end", () => {
     expect(sentenceOf({ kind: "column", by: "ana", column: 1, value: 6, cards: [] }, context)).toContain("|6|")
-    expect(sentenceOf({ kind: "start", by: "ana", sum: 10 }, context)).toContain("|10|")
+    expect(sentenceOf({ kind: "start", by: "ana", sum: 10, how: "sum" }, context)).toContain("|10|")
     expect(sentenceOf({ kind: "last", by: "ana" }, context).startsWith("eventLast|")).toBe(true)
     expect(sentenceOf({ kind: "reshuffle" }, context).startsWith("eventReshuffle|")).toBe(true)
     expect(sentenceOf({ kind: "end", scores: [1, 2], ender: "ana", doubled: false }, context).startsWith("eventEnd|")).toBe(true)
@@ -45,7 +45,7 @@ describe("who an event is the doing of", () => {
   it("goes to the dealer for a round, to the author for a move, and to the author before for what the table does by itself", () => {
     const actors = actorsOf([
       { kind: "round", number: 1, dealer: "ana" },
-      { kind: "start", by: "bob", sum: 9 },
+      { kind: "start", by: "bob", sum: 9, how: "sum" },
       { kind: "draw", by: "bob" },
       { kind: "place", by: "bob", position: 0, card: face("card-3"), replaced: face("card-4"), replacedUp: false },
       { kind: "reshuffle" },

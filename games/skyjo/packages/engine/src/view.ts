@@ -7,7 +7,11 @@ function publicPhase(s: State, viewer: string | null): PublicPhase {
   const { stage } = s
   switch (stage.kind) {
     case "reveal":
-      return { kind: "reveal", waiting: openingSeats(s).map((seat) => playerAt(s, seat)) }
+      return {
+        kind: "reveal",
+        waiting: openingSeats(s).map((seat) => playerAt(s, seat)),
+        starter: stage.starter === null ? null : playerAt(s, stage.starter),
+      }
     case "choose":
       return { kind: "choose", player: playerAt(s, stage.seat) }
     case "place": {

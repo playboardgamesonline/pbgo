@@ -282,7 +282,8 @@ describe("between two rounds, and the end of the game (page 4)", () => {
   it("deals the next round from all 150 cards, shuffled again, and the players open it again", () => {
     const state = between([])
     const next = deal(state, "ana")
-    expect(next.stage).toEqual({ kind: "reveal" })
+    // ana ended the round that was just counted: she will begin this one (EN p.4)
+    expect(next.stage).toEqual({ kind: "reveal", starter: 0 })
     expect(next.deck).toHaveLength(150 - 24 - 1)
     expect(next.discard).toHaveLength(1)
     expect(next.ender).toBeNull()
