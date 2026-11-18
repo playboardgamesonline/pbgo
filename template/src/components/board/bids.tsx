@@ -4,7 +4,7 @@ import type { PlayerView } from "@template/engine"
 import { Card } from "@pbgo/table"
 import { useEffect, useState } from "react"
 import { GLOWS } from "./glows"
-import { backPose, bidPose, bidRowPose, DECK_POSE, type SeatSpot } from "./layout"
+import { bidPose, bidRowPose, DECK_POSE, heldFrom, type SeatSpot } from "./layout"
 import { bidBackTexture, bidFaceTexture, CARD_SIZE } from "./textures"
 
 /** How long the bid cards that were not chosen stay on the table once the bids are in, so that they are seen going */
@@ -83,7 +83,7 @@ export function Bids({ view, slots, canBid, onBid }: { view: PlayerView; slots: 
               key={`bid-of-${player.id}`}
               id={`bid-of-${player.id}`}
               target={bidPose(seat, player.bid !== null)}
-              from={backPose(seat, 0, Math.max(1, player.cardCount))}
+              from={heldFrom(seat, Math.max(1, player.cardCount))}
               front={bidFaceTexture(player.bid ?? 0)}
               back={back}
               size={CARD_SIZE}

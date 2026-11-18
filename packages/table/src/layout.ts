@@ -126,11 +126,6 @@ export function grid(n: number, { columns, gapX, gapZ, rows, y = RESTING_HEIGHT,
   return Array.from({ length: n }, (_, i) => onTable((i % columns - (columns - 1) / 2) * gapX, (Math.floor(i / columns) - (lines - 1) / 2) * gapZ, { y, face, yaw: turn, scale }))
 }
 
-/** The poses of a layout drawn smaller about the middle of its frame: a hand that has less room is the same hand, scaled. The heights stay, so the cards keep their lean and their rise */
-export function scalePoses(poses: readonly Pose[], by: number): Pose[] {
-  return by === 1 ? [...poses] : poses.map((pose) => ({ ...pose, position: new Vector3(pose.position.x * by, pose.position.y, pose.position.z * by), scale: pose.scale * by }))
-}
-
 export type SeatsOptions = {
   /** Half the width of the ring the seats stand on */
   radiusX: number

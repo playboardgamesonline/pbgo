@@ -11,7 +11,6 @@ A layout helper returns the poses of a zone: one `Pose` per card, in the order o
 | `pile(n, options)` | `Pose[]` | A stack at the origin, the bottom card first |
 | `grid(n, options)` | `Pose[]` | Lines in reading order: the first line is the farthest from the viewer, the first card on its left, and a last line that is not full stays on the left |
 | `inFrame(spot, pose)` | `Pose` | A pose drawn in the frame of a spot, put on the table: it turns first, then moves |
-| `scalePoses(poses, by)` | `Pose[]` | A layout made smaller or larger as a whole: the places of the slots and the scale of the cards are multiplied by `by`, and their heights are kept. For a hand that has to fit the room a window leaves it ([The hand in the corner](07-zones.md#the-hand-in-the-corner)) |
 
 A `Spot` is `{ x, z, yaw? }`. The options are `FanOptions`, `RowOptions`, `PileOptions` and `GridOptions`.
 
@@ -68,10 +67,10 @@ A layout says where each card lies; a box says what a set of cards covers of the
 - When no helper fits, write the layout by hand with `onTable`: the template's `trickPose` and `collectedPose` do.
 - The ring of players is `seats`, which returns spots rather than poses, each turned toward the middle of the table ([Seats](03-seats.md)); `boxOfPoses` and `frameBoxOfPoses` measure what a layout covers ([Boxes](#boxes)).
 
-From `template/src/components/board/layout.ts`, where an opponent's card flies from (`SeatSpot` is the template's name for `Required<Spot>`):
+From `template/src/components/board/layout.ts`, where a card an opponent plays flies from: the left end of their hand, as the viewer sees it (`SeatSpot` is the template's name for `Required<Spot>`):
 
 ```ts
-export function backPose(seat: SeatSpot, i: number, n: number): Pose {
-  return inFrame(heldFrame(seat), heldLayout(n)[i])
+export function heldFrom(seat: SeatSpot, count: number): Pose {
+  return heldLeftPose(heldFrame(seat), (n) => heldLayout(n, seat.yaw), count)
 }
 ```

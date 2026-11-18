@@ -1,4 +1,4 @@
-import { fan, frameBoxOfPoses, inFrame, joinBoxes, onTable, type Pose, RESTING_HEIGHT, scalePoses, seats as ringOf, shifted, type Spot, type TableBox } from "@pbgo/table"
+import { fan, frameBoxOfPoses, heldLeftPose, joinBoxes, onTable, type Pose, RESTING_HEIGHT, SCREEN_HAND_SETTINGS, seats as ringOf, shifted, type Spot, type TableBox } from "@pbgo/table"
 import { CAMERA } from "./camera"
 import { CARD_SIZE } from "./textures"
 
@@ -8,21 +8,20 @@ export type SeatSpot = Required<Spot>
 export const LAYOUT_SETTINGS = {
   radiusX: 7.4,
   radiusZ: 4.4,
-  /** The viewer's hand, drawn at the bottom left of the screen: how high it stands, how it leans, how far apart its cards are, how big, and how far a card under the pointer lifts */
-  handY: 1.1,
-  handTilt: 0.62,
-  handGap: 1.05,
-  handScale: 1.2,
-  hoverLift: 0.45,
-  /** An opponent's hand, held up in a fan facing the middle of the table: how far beyond its seat it stands (a share of the ring), how far apart its cards are, how big they are, how high they stand and how they lean */
+  /** An opponent's hand, held up in a fan that stands: how far beyond its seat it stands (a share of the ring), how far apart its cards are, how big they are, how high the middle of a card stands, how they are turned about their own axis, and how they lean (toward the middle of the table, from standing straight): the least for a seat the viewer sees from the front, the most for a seat at the side, which the viewer sees edge on */
   heldReach: 1.2,
-  heldGap: 0.34,
+  heldGap: 0.3,
   heldScale: 0.68,
-  heldY: 0.8,
-  heldTilt: -0.55,
+  heldY: 0.66,
+  heldRoll: 0.12,
+  heldTilt: -1.25,
+  heldSideTilt: -1.0,
   /** How far a card played to the middle lies toward the middle from its seat, as a share of the way */
   trickGap: 0.3,
 }
+
+/** The viewer's hand, held at the bottom left of the screen as Courtisans holds its own: its numbers, but for the room it may take, which stops short of the viewer's name in the middle of the front of the table, whatever the size of the hand */
+export const HAND_SETTINGS = { ...SCREEN_HAND_SETTINGS, room: 0.42 }
 
 /** The seat of each player: the viewer in front, the others around the far half in turn order, each turned toward the middle */
 export function seats(ids: string[], meId: string | null): Map<string, SeatSpot> {
@@ -38,34 +37,6 @@ export const HAND_MAX = 8
 /** Whether a seat is the viewer's: the ring keeps the viewer in front (z > 0) and every other seat on its far half */
 export const isViewerSeat = (seat: SeatSpot) => seat.z > 0
 
-/**
- * The slots of the viewer's hand of `n` cards, a fan, in the frame of the hand (its middle at the origin): the frame is put at the bottom left of the screen (`CornerHand` of the kit). The card at index `raised` (-1: none) lifts toward them
- */
-export function handLayout(n: number, raised: number): Pose[] {
-  const R = LAYOUT_SETTINGS
-  const slots = fan(n, { gap: R.handGap, y: R.handY, rise: 0.004, curve: 0.06, tilt: R.handTilt, roll: 0.05, scale: R.handScale })
-  return slots.map((slot, i) => (i === raised ? shifted(slot, { y: R.hoverLift, z: -0.25 }) : slot))
-}
-
-/**
- * What the hand of the viewer is drawn at before it is made to fit the room the screen leaves it: the width of a hand of the most cards, its depth, and how high the top edge of a card stands (a hand that stands up shows larger than the table under it, so the corner of
- * the screen is read at that height)
- */
-export const HAND_ROOM = {
-  most: (HAND_MAX - 1) * LAYOUT_SETTINGS.handGap + CARD_SIZE.width * LAYOUT_SETTINGS.handScale,
-  depth: 3.2,
-  height: LAYOUT_SETTINGS.handY + (CARD_SIZE.height / 2) * Math.sin(LAYOUT_SETTINGS.handTilt) * LAYOUT_SETTINGS.handScale,
-}
-
-/**
- * The box of the viewer's cards in the frame of their hand, which their plate stands above: what a hand of every size from one card to `HAND_MAX` covers together, as the camera sees it, drawn at `scale` (the share of `HAND_ROOM` that fits the screen). The plate stands where
- * a full hand would put it, so that it neither moves as the cards are played nor lies over a card that is dealt
- */
-export function handBox(scale: number): TableBox {
-  const frame = { x: 0, z: 0, yaw: 0 }
-  return joinBoxes(Array.from({ length: HAND_MAX }, (_, i) => frameBoxOfPoses(scalePoses(handLayout(i + 1, -1), scale), CARD_SIZE, frame, { tilt: CAMERA.tilt })))!
-}
-
 /** The frame of an opponent's hand: just beyond their seat on the ring, turned like it, so that the top of the frame is toward the middle of the table */
 export function heldFrame(seat: SeatSpot): SeatSpot {
   const R = LAYOUT_SETTINGS
@@ -73,24 +44,26 @@ export function heldFrame(seat: SeatSpot): SeatSpot {
 }
 
 /**
- * The cards of an opponent's hand of `n`, a fan in the frame of their seat (`heldFrame`): they are held up, leaning toward the middle of the table so that the others see the backs, and they open toward it. Their shadow, round, lies under them (`HELD_SHADOW`)
+ * The cards of an opponent's hand of `n`, a fan in the frame of their seat (`heldFrame`): they stand up, backs to the viewer, and open as a hand does. A seat the viewer sees from the front (across the table) has them nearly straight; a seat at the side, which the viewer sees edge on, has them lean
+ * toward the middle so that their backs show. Their round shadow lies under them (`HELD_SHADOW`)
  */
-export function heldLayout(n: number): Pose[] {
+export function heldLayout(n: number, yaw = 0): Pose[] {
   const R = LAYOUT_SETTINGS
-  return fan(n, { gap: R.heldGap, y: R.heldY, rise: 0.004, curve: 0.08, tilt: R.heldTilt, roll: 0.11, face: "down", scale: R.heldScale })
+  const tilt = R.heldTilt + (R.heldSideTilt - R.heldTilt) * Math.abs(Math.sin(yaw))
+  return fan(n, { gap: R.heldGap, y: R.heldY, rise: 0.004, curve: 0.08, tilt, roll: R.heldRoll, face: "down", scale: R.heldScale })
 }
 
-/** How far the round shadow under an opponent's hand reaches: a little past half the width of a hand of the most cards */
-export const HELD_SHADOW = { radius: ((HAND_MAX - 1) * LAYOUT_SETTINGS.heldGap + CARD_SIZE.width * LAYOUT_SETTINGS.heldScale) * 0.62, opacity: 0.42 }
+/** How far the round shadow under an opponent's hand of `n` reaches, and how dark it is: a small pool under the fan, which grows with the cards */
+export const HELD_SHADOW = { radius: (n: number) => 0.6 + 0.13 * Math.min(n, HAND_MAX), opacity: 0.55 }
 
-/** The box of an opponent's cards in the frame of their seat, which their plate stands above: a hand of every size from one card to `HAND_MAX` together, as the camera sees it */
+/** The box of an opponent's cards in the frame of their seat, which their plate stands beyond: a hand of every size from one card to `HAND_MAX` together, as the camera sees it */
 export function heldBox(seat: SeatSpot): TableBox {
-  return joinBoxes(Array.from({ length: HAND_MAX }, (_, i) => frameBoxOfPoses(heldLayout(i + 1), CARD_SIZE, heldFrame(seat), { tilt: CAMERA.tilt })))!
+  return joinBoxes(Array.from({ length: HAND_MAX }, (_, i) => frameBoxOfPoses(heldLayout(i + 1, seat.yaw), CARD_SIZE, heldFrame(seat), { tilt: CAMERA.tilt })))!
 }
 
-/** Where the back of card `i` of an opponent's `n` lies on the table: the card they play flies from there */
-export function backPose(seat: SeatSpot, i: number, n: number): Pose {
-  return inFrame(heldFrame(seat), heldLayout(n)[i])
+/** Where a card played from an opponent's hand of `count` flies from: the left end of the fan, as the viewer sees it (`heldLeftPose`), the hand still the size it was */
+export function heldFrom(seat: SeatSpot, count: number): Pose {
+  return heldLeftPose(heldFrame(seat), (n) => heldLayout(n, seat.yaw), count)
 }
 
 /** The turn of what a player has played to the middle: upright for the viewer, a little turned toward the seat it comes from */
@@ -114,7 +87,7 @@ export const CLOCK = { at: { x: 7.4, z: 2.4 }, size: 2 }
  * The bid cards. While the players bid, the viewer has a row of them across the middle of the table, one for each bid they may make (from none to one for each card of their hand): they are smaller than the cards of the hand, since a row of up to eleven
  * must fit. `toward` is how far along the line from a seat to the middle of the table a bid lies once it is made.
  */
-export const BID = { scale: 0.7, gap: 1.05, z: 0.9, hover: 0.3, toward: 0.7 }
+export const BID = { scale: 0.7, gap: 1.05, z: 0.9, hover: 0.3, toward: 0.64 }
 
 /** Where bid card `k` of `count` lies while it waits to be chosen: in the row across the middle, the lowest on the left. Raised, and nearer the viewer, when the pointer is over it */
 export function bidRowPose(k: number, count: number, raised = false): Pose {

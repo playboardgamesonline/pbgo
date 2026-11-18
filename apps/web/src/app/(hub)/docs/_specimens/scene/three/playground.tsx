@@ -13,8 +13,6 @@ import {
   centreOf,
   ChoiceField,
   circleShape,
-  CORNER_SCREEN,
-  CornerHand,
   Counter,
   Cup,
   defineGlows,
@@ -52,8 +50,9 @@ import {
   rectShape,
   RoadMap,
   row,
-  scalePoses,
-  ScreenSpot,
+  SCREEN_HAND_SETTINGS,
+  ScreenHand,
+  screenHandLayout,
   Seat,
   seats,
   Sheet,
@@ -68,7 +67,6 @@ import {
   Timer,
   Track,
   TrackMarker,
-  type Spot,
   type Touch,
   Zone,
 } from "@pbgo/table"
@@ -123,11 +121,7 @@ const GLOWS = defineGlows({
   all: { halo: {}, outline: {}, frame: {}, sparkle: {} },
 })
 
-/** The slots of the hand in its own frame, whose middle is (0, 0): the layout helpers of the package, at the scale the room allows. */
-function handSlots(layout: LayoutName, n: number, by = 1): Pose[] {
-  return scalePoses(slotsOf(layout, n), by)
-}
-
+/** The slots of the hand in its own frame, whose middle is (0, 0): the layout helpers of the package. */
 function slotsOf(layout: LayoutName, n: number): Pose[] {
   const count = Math.max(n, 1)
   switch (layout) {
@@ -151,14 +145,16 @@ function topOfDraw(count: number, draw: { x: number; z: number }): Pose {
 /** The most cards drawn at a seat: two when the ring is crowded. The plate of a seat stands above the room of that many, so it does not move as cards are dealt. */
 const heldLimit = (players: number) => (players > 5 ? 2 : 3)
 
-/** The cards held at a seat, a fan in the frame of the seat: held up and leaning toward the middle of the table so that the others see the backs, and opening toward it. */
-const heldFan = (n: number) => fan(n, { gap: 0.34, y: 0.8, rise: 0.004, curve: 0.08, tilt: -0.55, roll: 0.11, face: "down", scale: 0.68 })
-/** How far the round shadow under a hand reaches. */
-const HELD_SHADOW = 1.5
+/** The cards held at a seat, a fan in the frame of the seat: held up so that the others see the backs, nearly straight for a seat the viewer sees from the front and leaning toward the middle for one at the side, and opening as a hand does. */
+const heldFan = (n: number, yaw = Math.PI) => fan(n, { gap: 0.3, y: 0.66, rise: 0.004, curve: 0.08, tilt: -1.25 + 0.25 * Math.abs(Math.sin(yaw)), roll: 0.12, face: "down", scale: 0.68 })
+/** How far the small round shadow under a hand of `n` reaches. */
+const heldShadow = (n: number) => 0.6 + 0.13 * n
 
 /** Where the top of the stack is when it holds `count` pieces: where a piece that was just taken flies in from. */
-/** What the hand in the bottom left of the screen is drawn at: its width, its depth and how high the top edge of a card stands. Where the corner of the screen falls on the table is the camera's to say (`CornerHand` of the kit). */
-const CORNER_HAND = { most: 9.6, depth: 3.4, height: 1.1 + (CARD_SIZE.height / 2) * Math.sin(0.62) * 1.1 }
+/** The hand held at the bottom left of the screen, as Courtisans holds its own (`ScreenHand` of the kit): its numbers, with the room it may take stopped short of the middle of the picture. */
+const CORNER_HAND = { ...SCREEN_HAND_SETTINGS, room: 0.45 }
+/** Where the bin lies when the hand is held at the bottom left of the screen: in the bottom right of the table, the hand's counterpart. */
+const CORNER_BIN = { x: 6.8, z: 4.8 }
 
 /** The felt of the card scenes: Flip 7's table colour with the kit's grain, and the pool of light in the middle added to it (additive, so the grain shows through). One texture of each, made once and let go with the scene */
 const GRAIN_TILE = 2
@@ -225,11 +221,13 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
   const ring = seats(players, { ...ringLine, me: 0 })
   // Choosing a player: the cards of every seat glow while a card can be given, brighter under the pointer and while pressed, and the areas that take the press are invisible
   const [touches, setTouches] = useState<Partial<Record<number, Touch>>>({})
+  // The card of the hand held at the bottom left that the pointer is over: it advances over its neighbours
+  const [hovered, setHovered] = useState<number | null>(null)
   const giving = !state.floor.disabled && state.piles.drawn < PLAY_DECK.size
   const choosing = parts.floor && parts.seats && state.floor.zones
   const heldState = (seat: number) => (choosing ? (giving ? effectiveState("interactive", touches[seat] ?? NO_TOUCH) : "disabled") : undefined)
   // The room of a seat's cards in the frame of the seat, as the camera sees it, and the plate that stands above it on the side that faces the middle
-  const roomOf = (spot: { x: number; z: number; yaw: number }) => frameBoxOfPoses(heldFan(heldLimit(players)), CARD_SIZE, heldFrame(spot), { tilt: state.above ? 6 : state.tilt })!
+  const roomOf = (spot: { x: number; z: number; yaw: number }) => frameBoxOfPoses(heldFan(heldLimit(players), spot.yaw), CARD_SIZE, heldFrame(spot), { tilt: state.above ? 6 : state.tilt })!
   const fill = bagSize(BAG_START) === 0 ? 0 : bagSize(state.bag.counts) / bagSize(BAG_START)
   // A chequer for squares, three shades for hexagons so that no two neighbours match, a ring that alternates with its corners numbered; a cell with something on it takes the gold
   const cellLook = (cell: number): CellLook => {
@@ -272,13 +270,13 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
       <TableLabel text="Bin" x={at.x} z={at.z - BIN.radius - 0.5} height={0.4} tone="muted" />
     </>
   )
-  // The hand and the zone that takes the cards let go on it, framed where the layout says: along the near edge, or in the bottom left of the screen
-  const handView = (frame: { x: number; z: number; width: number; depth: number }, by: number) => (
+  // The hand along the near edge of the table, and the zone that takes the cards let go on it
+  const handView = (frame: { x: number; z: number; width: number; depth: number }) => (
     <>
       <DropZone id="hand" shape={rectShape(frame.x, frame.z, frame.width, frame.depth)} />
       <Zone
         frame={{ x: frame.x, z: frame.z }}
-        layout={handSlots(state.hand.layout, state.hand.cards.length, by)}
+        layout={slotsOf(state.hand.layout, state.hand.cards.length)}
         size={CARD_SIZE}
         cards={state.hand.cards.map((entry) => ({
           key: entry.id,
@@ -290,30 +288,32 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
           ...(entry.from !== undefined ? { from: topOfDraw(entry.from, draw) } : {}),
         }))}
       />
-      <TableLabel text="Hand" x={frame.x} z={frame.z + frame.depth / 2 + 0.5} height={0.45 * Math.max(by, 0.7)} tone="muted" />
+      <TableLabel text="Hand" x={frame.x} z={frame.z + frame.depth / 2 + 0.5} height={0.45} tone="muted" />
     </>
   )
 
-  // With the hand in the bottom left of the screen, the viewer's plate stands above it, as it does at every seat; with the hand along the near edge, or with no hand, it stays at the viewer's place on the ring
-  const cornerSeat = parts.hand && state.layout.hand === "corner"
-  const viewerSeat = (frame: Spot, by: number) => {
-    const origin: Spot = { x: 0, z: 0, yaw: 0 }
-    const room = joinBoxes(Array.from({ length: PLAY_DECK.hand }, (_, k) => frameBoxOfPoses(handSlots(state.hand.layout, k + 1, by), CARD_SIZE, origin, { tilt: state.above ? 6 : state.tilt })))!
-    const points = state.score.points[0] ?? 0
-    return (
-      <Seat
-        nickname={nameOf(0)}
-        color={seatColors[0]!}
-        theme={DEFAULT_SEAT_THEME}
-        frame={frame}
-        above={room}
-        active={state.turn === 0}
-        line={`${state.score.total[0] ?? 0} pts`}
-        trailing={leader(state) === 0 ? <TableText text="★" style={{ color: colors.text, weight: 700 }} height={0.4} position={[0.35, 0, 0]} /> : undefined}
-        status={state.seat === 0 ? "Picked" : parts.scoreboard && points > 0 ? `+${points} this round` : undefined}
-      />
-    )
-  }
+  // The hand held at the bottom left of the screen: a fan on the frame of the camera, Courtisans' own. Its cards are pressed, since a drag goes over the table and the hand is not on it: a press sends the card to the discard pile
+  const screenHand = () => (
+    <ScreenHand settings={CORNER_HAND}>
+      {(screen) => (
+        <Zone
+          layout={screenHandLayout(state.hand.cards.length, screen, CARD_SIZE, CORNER_HAND, state.hand.cards.findIndex((entry) => entry.id === hovered))}
+          size={CARD_SIZE}
+          cards={state.hand.cards.map((entry) => ({
+            key: entry.id,
+            id: `thing-${entry.id}`,
+            front: face(entry.card),
+            back: cardBack,
+            state: "interactive" as const,
+            ariaLabel: "Play the card to the discard pile",
+            onPress: () => actions.place(entry.id, "discard"),
+            onHover: (over: boolean) => setHovered((now) => (over ? entry.id : now === entry.id ? null : now)),
+            ...(entry.from !== undefined ? { from: screen.local(topOfDraw(entry.from, draw)) } : {}),
+          }))}
+        />
+      )}
+    </ScreenHand>
+  )
 
   return (
     <Stage id="scene-playground" camera={camera(state)} playIntro={false} surface={teal ? tealSurface : undefined}>
@@ -364,7 +364,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
           />
         )
       })}
-      {parts.hand && state.layout.hand === "corner" ? <ScreenSpot at={[0.8, CORNER_SCREEN.row]}>{binView}</ScreenSpot> : binView(BIN)}
+      {binView(parts.hand && state.layout.hand === "corner" ? CORNER_BIN : BIN)}
 
       {parts.board && (
         <>
@@ -480,19 +480,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
           <TableLabel text="Sketch" x={PLAY_SKETCH.x} z={PLAY_SKETCH.z + PLAY_SKETCH.height / 2 + 0.6} height={0.45} tone="muted" />
         </>
       )}
-      {parts.hand &&
-        (state.layout.hand === "corner" ? (
-          <CornerHand most={CORNER_HAND.most} depth={CORNER_HAND.depth} height={CORNER_HAND.height}>
-            {(frame) => (
-              <>
-                {handView(frame, frame.scale)}
-                {parts.seats && viewerSeat({ x: frame.x, z: frame.z, yaw: 0 }, frame.scale)}
-              </>
-            )}
-          </CornerHand>
-        ) : (
-          handView({ ...HAND_AT }, 1)
-        ))}
+      {parts.hand && (state.layout.hand === "corner" ? screenHand() : handView({ ...HAND_AT }))}
       {parts.piles && (
         <>
           <Pile frame={draw} count={PLAY_DECK.size - state.piles.drawn} size={CARD_SIZE} back={cardBack} {...PILE_LOOK} limit={state.layout.piles === "middle" ? 6 : PILE_LIMIT} top={{ id: "draw-top", state: "interactive", ariaLabel: "Deal a card", onPress: actions.deal }} />
@@ -583,27 +571,25 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
           const frame = heldFrame(spot)
           return (
             <group key={i}>
-              {!(i === 0 && cornerSeat) && (
-                <Seat
-                  nickname={nameOf(i)}
-                  color={seatColors[i % seatColors.length]!}
-                  theme={DEFAULT_SEAT_THEME}
-                  frame={i > 0 ? frame : undefined}
-                  above={i > 0 ? roomOf(spot) : undefined}
-                  spot={spot}
-                  viewer={i === 0}
-                  active={state.turn === i}
-                  line={`${state.score.total[i] ?? 0} pts`}
-                  trailing={mark ? <TableText text={mark} style={{ color: colors.text, weight: 700 }} height={0.4} position={[0.35, 0, 0]} /> : undefined}
-                  status={state.seat === i ? "Picked" : parts.scoreboard && points > 0 ? `+${points} this round` : undefined}
-                />
-              )}
+              <Seat
+                nickname={nameOf(i)}
+                color={seatColors[i % seatColors.length]!}
+                theme={DEFAULT_SEAT_THEME}
+                frame={i > 0 ? frame : undefined}
+                above={i > 0 ? roomOf(spot) : undefined}
+                spot={spot}
+                viewer={i === 0}
+                active={state.turn === i}
+                line={`${state.score.total[i] ?? 0} pts`}
+                trailing={mark ? <TableText text={mark} style={{ color: colors.text, weight: 700 }} height={0.4} position={[0.35, 0, 0]} /> : undefined}
+                status={state.seat === i ? "Picked" : parts.scoreboard && points > 0 ? `+${points} this round` : undefined}
+              />
               {i > 0 && heldHere.length > 0 && (
                 <>
-                  <HandShadow at={frame} radius={HELD_SHADOW} opacity={0.4} />
+                  <HandShadow at={frame} radius={heldShadow(heldHere.length)} opacity={0.4} />
                   <Zone
                     frame={frame}
-                    layout={heldFan(heldHere.length)}
+                    layout={heldFan(heldHere.length, spot.yaw)}
                     size={CARD_SIZE}
                     cards={heldHere.map((one) => ({
                       key: one.id,

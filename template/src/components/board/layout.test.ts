@@ -1,8 +1,8 @@
-import { aspectScale, CORNER_SCREEN, cornersOfBox, cornerFrame, frameBoxOfPoses, inFrame, onTableAt, placeCamera, plateAbove, plateBoxOf, pointInFrame, type Pose, scalePoses, SEAT_SETTINGS } from "@pbgo/table"
+import { aspectScale, inFrame, placeCamera, plateAbove, plateBoxOf, plateOf, type Pose, SEAT_SETTINGS, screenHandLayout, screenViewOf, cornersOfBox, frameBoxOfPoses, pointInFrame } from "@pbgo/table"
 import { PerspectiveCamera, Vector3 } from "three"
 import { describe, expect, it } from "vitest"
 import { CAMERA } from "./camera"
-import { BID, bidPose, bidRowPose, CLOCK, HAND_MAX, HAND_ROOM, handBox, handLayout, heldBox, heldFrame, HELD_SHADOW, heldLayout, seats, trickPose } from "./layout"
+import { BID, bidPose, bidRowPose, CLOCK, HAND_MAX, HAND_SETTINGS, heldBox, heldFrame, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_SETTINGS, seats, trickPose } from "./layout"
 import { CARD_SIZE } from "./textures"
 
 type Rect = { x: number; z: number; yaw: number; width: number; depth: number }
@@ -83,48 +83,11 @@ describe("the bid cards of the table", () => {
   })
 })
 
-/** A shape on the table: the corners of a convex polygon */
-type Polygon = { x: number; z: number }[]
+/** A shape on the screen: the corners of a convex polygon, in the picture's own units (-1 to 1 across and up), which is how the viewer sees the table: what must not run into what, the viewer's hand included, is judged there */
+type Polygon = { x: number; y: number }[]
 
-/**
- * The card a pose lays on the table, as the polygon it covers: its four corners, as the pose scales, turns and places it. A card that stands off the table is seen higher up the screen than where it lies, by its height times the tangent of the camera's tilt: with
- * `seen` the polygon is what the camera sees of it, which is what must not run into a plate or into what lies on the table
- */
-function cardPolygon(pose: Pose, seen = false): Polygon {
-  const slant = seen ? Math.tan((CAMERA.tilt * Math.PI) / 180) : 0
-  return [
-    [-1, -1],
-    [1, -1],
-    [1, 1],
-    [-1, 1],
-  ].map(([sx, sy]) => {
-    const corner = new Vector3((sx! * CARD_SIZE.width) / 2, (sy! * CARD_SIZE.height) / 2, 0).multiplyScalar(pose.scale).applyQuaternion(pose.quaternion).add(pose.position)
-    return { x: corner.x, z: corner.z - corner.y * slant }
-  })
-}
-
-/** Whether two convex polygons overlap, by the axes of their sides: they are apart when a gap shows on any of them */
-function polygonsOverlap(a: Polygon, b: Polygon): boolean {
-  const axes = [a, b].flatMap((polygon) => polygon.map((point, i) => ({ x: polygon[(i + 1) % polygon.length]!.z - point.z, z: point.x - polygon[(i + 1) % polygon.length]!.x })))
-  const span = (polygon: Polygon, axis: { x: number; z: number }) => {
-    const along = polygon.map((point) => point.x * axis.x + point.z * axis.z)
-    return [Math.min(...along), Math.max(...along)] as const
-  }
-  return axes.every((axis) => {
-    const [a0, a1] = span(a, axis)
-    const [b0, b1] = span(b, axis)
-    return a0 < b1 && b0 < a1
-  })
-}
-
-/** The corner of the screen where the viewer's hand lies, for a window of this aspect ratio: the frame the kit's `CornerHand` gives, from a camera placed as the table places it */
-function cornerOf(aspect: number) {
-  const camera = new PerspectiveCamera(CAMERA.fov, aspect, 0.1, 200)
-  placeCamera(camera, CAMERA, { distanceScale: aspectScale(aspect) })
-  camera.updateProjectionMatrix()
-  camera.updateMatrixWorld()
-  return cornerFrame(onTableAt(camera, CORNER_SCREEN.left, CORNER_SCREEN.row, HAND_ROOM.height), onTableAt(camera, CORNER_SCREEN.middle, CORNER_SCREEN.row, HAND_ROOM.height), HAND_ROOM)
-}
+/** The windows the board is seen in, wide and narrow: the aspect ratios of the picture */
+const ASPECTS = [1.33, 1.6, 1.78, 2.4]
 
 /** The camera as the table puts it for a window of this aspect ratio */
 function cameraOf(aspect: number) {
@@ -135,63 +98,101 @@ function cameraOf(aspect: number) {
   return camera
 }
 
-/** The windows the board is seen in, wide and narrow */
-const ASPECTS = [1.33, 1.6, 1.78, 2.4]
+const onScreen = (camera: PerspectiveCamera, point: Vector3): { x: number; y: number } => {
+  const shown = point.clone().project(camera)
+  return { x: shown.x, y: shown.y }
+}
 
-type Hand = { id: string; cards: Polygon[]; plate: Polygon; frame: { x: number; z: number; yaw: number } }
+const CORNERS = [
+  [-1, -1],
+  [1, -1],
+  [1, 1],
+  [-1, 1],
+] as const
 
-/** The hands of a table of `count` as the viewer `viewer` sees it (`null`: a spectator, who has no seat) in a window of this aspect ratio: for each player the polygons of their cards as the camera sees them, hands of every size, and the one of their plate, with the frame they are drawn in */
+/** The card a pose lays in the world, as the polygon it covers on the screen: its four corners, as the pose scales, turns and places it, seen through the camera */
+function cardOnScreen(camera: PerspectiveCamera, pose: Pose): Polygon {
+  return CORNERS.map(([sx, sy]) => onScreen(camera, new Vector3((sx * CARD_SIZE.width) / 2, (sy * CARD_SIZE.height) / 2, 0).multiplyScalar(pose.scale).applyQuaternion(pose.quaternion).add(pose.position)))
+}
+
+/** A card of the viewer's hand, whose pose is in the frame of the camera: put in the world, then seen */
+function handCardOnScreen(camera: PerspectiveCamera, pose: Pose): Polygon {
+  return CORNERS.map(([sx, sy]) => onScreen(camera, camera.localToWorld(new Vector3((sx * CARD_SIZE.width) / 2, (sy * CARD_SIZE.height) / 2, 0).multiplyScalar(pose.scale).applyQuaternion(pose.quaternion).add(pose.position))))
+}
+
+/** A rectangle lying on the table, as the polygon it covers on the screen: the plate of a seat, the foot of the hourglass */
+function flatOnScreen(camera: PerspectiveCamera, corners: { x: number; z: number }[]): Polygon {
+  return corners.map(({ x, z }) => onScreen(camera, new Vector3(x, 0.03, z)))
+}
+
+/** Whether two convex polygons overlap, by the axes of their sides: they are apart when a gap shows on any of them */
+function polygonsOverlap(a: Polygon, b: Polygon): boolean {
+  const axes = [a, b].flatMap((polygon) => polygon.map((point, i) => ({ x: polygon[(i + 1) % polygon.length]!.y - point.y, y: point.x - polygon[(i + 1) % polygon.length]!.x })))
+  const span = (polygon: Polygon, axis: { x: number; y: number }) => {
+    const along = polygon.map((point) => point.x * axis.x + point.y * axis.y)
+    return [Math.min(...along), Math.max(...along)] as const
+  }
+  return axes.every((axis) => {
+    const [a0, a1] = span(a, axis)
+    const [b0, b1] = span(b, axis)
+    return a0 < b1 && b0 < a1
+  })
+}
+
+type Hand = { id: string; cards: Polygon[]; plate: Polygon }
+
+/** The hands and the plates of a table of `count` as the viewer `viewer` sees it (`null`: a spectator, who has no seat) in a window of this aspect ratio: for each player the polygons of their cards on the screen, hands of every size, and the one of their plate. The viewer's hand is the screen hand, in the frame of the camera; their plate is at their seat */
 function hands(count: number, viewer: number | null, aspect: number): Hand[] {
   const players = ids(count)
   const me = viewer === null ? null : players[viewer]!
   const ring = seats(players, me)
+  const camera = cameraOf(aspect)
+  const view = screenViewOf({ m00: camera.projectionMatrix.elements[0]!, m11: camera.projectionMatrix.elements[5]! }, HAND_SETTINGS.distance)
   return players.map((id) => {
-    if (id === me) {
-      const corner = cornerOf(aspect)
-      const frame = { x: corner.x, z: corner.z, yaw: 0 }
-      const cards = Array.from({ length: HAND_MAX }, (_, i) => scalePoses(handLayout(i + 1, -1), corner.scale).map((pose) => cardPolygon(inFrame(frame, pose), true))).flat()
-      return { id, cards, plate: cornersOfBox(plateBoxOf(plateAbove(handBox(corner.scale))), frame), frame }
-    }
     const seat = ring.get(id)!
+    if (id === me) {
+      const cards = Array.from({ length: HAND_MAX }, (_, i) => screenHandLayout(i + 1, view, CARD_SIZE, HAND_SETTINGS).map((pose) => handCardOnScreen(camera, pose))).flat()
+      const plate = plateBoxOf(plateOf(seat, true))
+      return { id, cards, plate: flatOnScreen(camera, cornersOfBox(plate, { x: 0, z: 0, yaw: 0 })) }
+    }
     const frame = heldFrame(seat)
-    const cards = Array.from({ length: HAND_MAX }, (_, i) => heldLayout(i + 1).map((pose) => cardPolygon(inFrame(frame, pose), true))).flat()
-    return { id, cards, plate: cornersOfBox(plateBoxOf(plateAbove(heldBox(seat))), frame), frame }
+    const cards = Array.from({ length: HAND_MAX }, (_, i) => heldLayout(i + 1, seat.yaw).map((pose) => cardOnScreen(camera, inFrame(frame, pose)))).flat()
+    return { id, cards, plate: flatOnScreen(camera, cornersOfBox(plateBoxOf(plateAbove(heldBox(seat))), frame)) }
   })
 }
 
 /** What else lies on the table of `count` while the players bid and play: the bid each player has made, the card each has played to the middle, the row of bid cards the viewer chooses from (at its longest) and the clock */
-function middle(count: number, viewer: number | null) {
+function middle(count: number, viewer: number | null, aspect: number) {
   const players = ids(count)
   const ring = seats(players, viewer === null ? null : players[viewer]!)
+  const camera = cameraOf(aspect)
   const things = players.flatMap((id) => [
-    { what: `bid of ${id}`, shape: cardPolygon(bidPose(ring.get(id)!, true)) },
-    { what: `trick card of ${id}`, shape: cardPolygon(trickPose(ring.get(id)!, 0)) },
+    { what: `bid of ${id}`, shape: cardOnScreen(camera, bidPose(ring.get(id)!, true)) },
+    { what: `trick card of ${id}`, shape: cardOnScreen(camera, trickPose(ring.get(id)!, 0)) },
   ])
-  if (viewer !== null) for (let k = 0; k < 11; k++) things.push({ what: `bid card ${k}`, shape: cardPolygon(bidRowPose(k, 11)) })
+  if (viewer !== null) for (let k = 0; k < 11; k++) things.push({ what: `bid card ${k}`, shape: cardOnScreen(camera, bidRowPose(k, 11)) })
   const half = CLOCK.size / 2
   things.push({
     what: "the clock",
-    shape: [
+    shape: flatOnScreen(camera, [
       { x: CLOCK.at.x - half, z: CLOCK.at.z - half },
       { x: CLOCK.at.x + half, z: CLOCK.at.z - half },
       { x: CLOCK.at.x + half, z: CLOCK.at.z + half },
       { x: CLOCK.at.x - half, z: CLOCK.at.z + half },
-    ],
+    ]),
   })
   return things
 }
 
-/**
- * Every table of two to six players, whoever the viewer is, in every window, and a table seen by a spectator, who sits at none of the seats and has no hand in the corner: up to five players, since the far half of the ring that six spectators share is too crowded for
- * the plate of an outer seat to clear its neighbour's hand (the platform has no spectator: the board only has to draw one without failing)
- */
-const TABLES = Array.from({ length: 5 }, (_, i) => i + 2)
-  .flatMap((count) => [...Array.from({ length: count }, (_, viewer) => ({ count, viewer })), ...(count <= 5 ? [{ count, viewer: null }] : [])])
-  .flatMap((table) => ASPECTS.map((aspect) => ({ ...table, aspect })))
+/** Every table the board must hold: two to six players, seated at each place, and a spectator's view up to five, in every window */
+const TABLES = ASPECTS.flatMap((aspect) => [
+  ...[2, 3, 4, 5, 6].flatMap((count) => Array.from({ length: count }, (_, viewer) => ({ count, viewer: viewer as number | null, aspect }))),
+  ...[2, 3, 4, 5].map((count) => ({ count, viewer: null as number | null, aspect })),
+])
 
 describe("the hands of the table", () => {
-  it("face the middle: the top of the frame of an opponent's hand points at it, and the viewer's hand is in the bottom left of the screen", () => {
-    for (const count of [2, 3, 4, 5, 6]) {
+  it("face the middle: the top of the frame of an opponent's hand points at it", () => {
+    for (let count = 2; count <= 8; count++) {
       const ring = seats(ids(count), "p0")
       for (const [id, seat] of ring) {
         if (id === "p0") continue
@@ -201,72 +202,76 @@ describe("the hands of the table", () => {
         expect(top.x * toMiddle.x + top.z * toMiddle.z, `${id} of ${count}`).toBeCloseTo(1, 9)
       }
     }
-    for (const aspect of ASPECTS) {
-      const corner = cornerOf(aspect)
-      expect(corner.x).toBeLessThan(0)
-      expect(corner.z).toBeGreaterThan(0)
-      expect(corner.scale).toBeGreaterThan(0.5)
+  })
+
+  it("stand up: an opponent's cards are nearly straight where the viewer sees them from the front, and lean where they see them from the side", () => {
+    const standing = (yaw: number) => {
+      // How far the middle card of a hand of five is from lying flat, as the angle between its back and the table
+      const pose = heldLayout(5, yaw)[2]!
+      const back = new Vector3(0, 0, -1).applyQuaternion(pose.quaternion)
+      return Math.asin(Math.min(1, Math.abs(back.y)))
     }
+    expect(standing(Math.PI)).toBeLessThan(0.45)
+    expect(standing(Math.PI / 2)).toBeGreaterThan(standing(Math.PI))
   })
 
   it("stay where they are as a player's cards are played: the room holds a hand of every size", () => {
     const seat = seats(ids(4), "p0").get("p1")!
     const room = heldBox(seat)
     for (let n = 1; n <= HAND_MAX; n++) {
-      const hand = frameBoxOfPoses(heldLayout(n), CARD_SIZE, heldFrame(seat), { tilt: CAMERA.tilt })!
+      const hand = frameBoxOfPoses(heldLayout(n, seat.yaw), CARD_SIZE, heldFrame(seat), { tilt: CAMERA.tilt })!
       expect(hand.minX).toBeGreaterThanOrEqual(room.minX - 1e-9)
       expect(hand.maxX).toBeLessThanOrEqual(room.maxX + 1e-9)
       expect(hand.minZ).toBeGreaterThanOrEqual(room.minZ - 1e-9)
       expect(hand.maxZ).toBeLessThanOrEqual(room.maxZ + 1e-9)
     }
-    const hand = handBox(1)
-    for (let n = 1; n <= HAND_MAX; n++) {
-      const cards = frameBoxOfPoses(handLayout(n, -1), CARD_SIZE, { x: 0, z: 0, yaw: 0 }, { tilt: CAMERA.tilt })!
-      expect(cards.minZ).toBeGreaterThanOrEqual(hand.minZ - 1e-9)
-      expect(cards.maxZ).toBeLessThanOrEqual(hand.maxZ + 1e-9)
-    }
   })
 
-  it("stay inside the picture in every window: the viewer's hand, a hand that stands up and shows larger than the table under it, is whole in the bottom left", () => {
-    const corners = [
-      [-1, -1],
-      [1, -1],
-      [1, 1],
-      [-1, 1],
-    ] as const
+  it("have the viewer's hand whole in the bottom left of the picture in every window, from a portrait one to an ultra-wide one", () => {
     for (const aspect of [0.75, 1, ...ASPECTS]) {
       const camera = cameraOf(aspect)
-      const corner = cornerOf(aspect)
-      const frame = { x: corner.x, z: corner.z, yaw: 0 }
+      const view = screenViewOf({ m00: camera.projectionMatrix.elements[0]!, m11: camera.projectionMatrix.elements[5]! }, HAND_SETTINGS.distance)
       for (let n = 1; n <= HAND_MAX; n++) {
-        for (const given of scalePoses(handLayout(n, -1), corner.scale)) {
-          const pose = inFrame(frame, given)
-          for (const [sx, sy] of corners) {
-            const shown = new Vector3((sx * CARD_SIZE.width) / 2, (sy * CARD_SIZE.height) / 2, 0).multiplyScalar(pose.scale).applyQuaternion(pose.quaternion).add(pose.position).project(camera)
-            expect(shown.x, `a hand of ${n} at ${aspect}`).toBeGreaterThanOrEqual(-1)
-            expect(shown.x, `a hand of ${n} at ${aspect}`).toBeLessThan(CORNER_SCREEN.middle + 0.05)
-            expect(shown.y, `a hand of ${n} at ${aspect}`).toBeGreaterThanOrEqual(-1)
+        for (const pose of screenHandLayout(n, view, CARD_SIZE, HAND_SETTINGS)) {
+          for (const corner of handCardOnScreen(camera, pose)) {
+            // Flush with the left edge (a hair past it, as Courtisans' hand hangs), cut by the bottom edge, and no farther than the room the hand may take
+            expect(corner.x, `a hand of ${n} at ${aspect}`).toBeGreaterThanOrEqual(-1.1)
+            expect(corner.x, `a hand of ${n} at ${aspect}`).toBeLessThanOrEqual(-1 + HAND_SETTINGS.room * 2 + 0.12)
+            expect(corner.y, `a hand of ${n} at ${aspect}`).toBeLessThanOrEqual(-0.2)
           }
         }
       }
     }
   })
 
-  it("have the round shadow wide enough for the fan of the most cards", () => {
-    const widest = frameBoxOfPoses(heldLayout(HAND_MAX), CARD_SIZE, { x: 0, z: 0, yaw: 0 })!
-    expect(HELD_SHADOW.radius).toBeGreaterThan((widest.maxX - widest.minX) / 2 * 0.9)
+  it("have a round shadow that is the size of their fan: no smaller than its footprint and not much larger", () => {
+    for (let n = 1; n <= HAND_MAX; n++) {
+      const slots = heldLayout(n)
+      const half = ((n - 1) * LAYOUT_SETTINGS.heldGap + CARD_SIZE.width * LAYOUT_SETTINGS.heldScale) / 2
+      expect(slots).toHaveLength(n)
+      expect(HELD_SHADOW.radius(n) / half, `a hand of ${n}`).toBeGreaterThan(0.9)
+      expect(HELD_SHADOW.radius(n) / half, `a hand of ${n}`).toBeLessThan(1.75)
+    }
+  })
+
+  it("send the card that is played from the left end of the hand, as the viewer sees it", () => {
+    const ring = seats(ids(4), "p0")
+    for (const [id, seat] of ring) {
+      if (id === "p0") continue
+      const from = heldFrom(seat, 5)
+      const slots = heldLayout(5, seat.yaw).map((pose) => inFrame(heldFrame(seat), pose))
+      const xs = slots.map((pose) => pose.position.x)
+      // No card of the hand is farther to the left on the screen than the one it leaves from, but at a seat turned a quarter where they stand one behind the other
+      if (Math.abs(Math.cos(seat.yaw)) > 0.5) expect(from.position.x, id).toBeCloseTo(Math.min(...xs), 6)
+    }
   })
 })
 
 describe("the plates of the table", () => {
-  it("stand above the cards of their player, on the side that faces the middle, whoever sits where", () => {
+  it("stand on the side of the cards of their player that faces the middle, whoever sits where", () => {
     for (const seat of seats(ids(5), "p0").values()) {
       if (seat.z > 0) continue
       const box = heldBox(seat)
-      expect(plateBoxOf(plateAbove(box)).maxZ).toBeLessThanOrEqual(box.minZ - SEAT_SETTINGS.plateGap + 1e-9)
-    }
-    for (const aspect of ASPECTS) {
-      const box = handBox(cornerOf(aspect).scale)
       expect(plateBoxOf(plateAbove(box)).maxZ).toBeLessThanOrEqual(box.minZ - SEAT_SETTINGS.plateGap + 1e-9)
     }
   })
@@ -286,7 +291,7 @@ describe("the plates of the table", () => {
   it("never lie over what is played and bid in the middle, nor over the clock", () => {
     for (const { count, viewer, aspect } of TABLES) {
       for (const { id, plate } of hands(count, viewer, aspect)) {
-        for (const { what, shape } of middle(count, viewer)) expect(polygonsOverlap(plate, shape), `plate of ${id} and ${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBe(false)
+        for (const { what, shape } of middle(count, viewer, aspect)) expect(polygonsOverlap(plate, shape), `plate of ${id} and ${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBe(false)
       }
     }
   })
@@ -294,7 +299,7 @@ describe("the plates of the table", () => {
   it("leave the middle clear of every hand too: no card of a hand lies over what is played and bid", () => {
     for (const { count, viewer, aspect } of TABLES) {
       for (const { id, cards } of hands(count, viewer, aspect)) {
-        for (const { what, shape } of middle(count, viewer)) cards.forEach((card, i) => expect(polygonsOverlap(card, shape), `card ${i} of ${id} and ${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBe(false))
+        for (const { what, shape } of middle(count, viewer, aspect)) cards.forEach((card, i) => expect(polygonsOverlap(card, shape), `card ${i} of ${id} and ${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBe(false))
       }
     }
   })

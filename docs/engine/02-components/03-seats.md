@@ -37,7 +37,7 @@ export function seats(ids: string[], meId: string | null): Map<string, SeatSpot>
 
 ## The plate
 
-`Seat` draws one player's plate on the side of their cards that faces the middle, in the frame of their seat. Three seats of a table for five players: the viewer's, whose hand is at the bottom left of the screen, and the two opponents at the ends of the far half, each holding a fan of cards with its round shadow under it. Play with whose turn it is (the crown), the players expected together, a seat that is away, the score and a status, and choose a player by pressing their cards:
+`Seat` draws one player's plate on the side of their cards that faces the middle, in the frame of their seat. Three seats of a table for five players: the viewer's, whose name stands in the middle of the front of the table and whose hand is held big at the bottom left of the screen, and the two opponents at the ends of the far half, each holding a fan of cards that stands, with its small round shadow under it. Play with whose turn it is (the crown), the players expected together, a seat that is away, the score and a status, and choose a player by pressing their cards:
 
 ```specimen
 scene-seat
@@ -113,7 +113,7 @@ The nickname of a seat is on the side of the player's cards that faces the middl
 - A hand that leans toward its player, or stands up off the table, hides part of the table behind it as the camera sees it: its box must be what the camera sees, which reaches farther from the camera than where the cards lie. `frameBoxOfPoses` takes the camera's tilt (as `CameraSettings.tilt`) and gives that box, moved as the frame turns: the apparent shift of a card that stands `y` high is `y` times the tangent of the tilt, along the world's z, which is not along the frame's z for a seat that is turned. Cards that lie flat need no tilt.
 - A plate that moves as cards are dealt and played looks like a glitch. A board boxes the room of the biggest hand (`joinBoxes` of the boxes of the hands of every size, or of a nominal one), so the plate stands where it stood and clears every card that can be there. The template does it (`handBox` for the viewer, `heldBox` for the others).
 - The info line stands under the name, toward the cards, and the name `nameLift` toward the middle of the table from the centre of the plate; the avatar stands before the first letter and the crown on the avatar's upper-right corner, in the avatar's own frame.
-- A `Seat` given no `above` stands out of the ring from its `spot` (`plateOf`): an opponent's at `reachX` and `reachZ` times the spot, the viewer's level with it and a little in front. A board that draws the seat in a group of its own places it by the middle of the group.
+- A `Seat` given no `above` stands out of the ring from its `spot` (`plateOf`): an opponent's at `reachX` and `reachZ` times the spot, the viewer's level with it and a little in front (`viewer`), which is where the name of the viewer stands, in the middle of the front of the table, while their hand is on the screen. A board that draws the seat in a group of its own places it by the middle of the group.
 - A player who is away keeps `awayOpacity` of the plate: the name, the avatar and the info line fade, and the crown does not.
 - `plateBoxOf(plate)` is what a plate covers of the table, in the frame (`plateWidth`, the width of the avatar and `PLATE_LETTERS` letters, by the height from the top of the name to the foot of the info line), and `cornersOfBox(box, frame)` puts the corners of a box of a frame on the table: a board checks with a pure test, on the shapes and not on a screenshot, that no plate lies over a card, another plate, the piles or the clock, for every table of its players, seated and as a spectator (`template/src/components/board/layout.test.ts` is the model). The cards are compared as the camera sees them, standing hands included.
 
@@ -146,7 +146,7 @@ The crown on the avatar says which player has the turn, and it is all the table 
 | The cards held there | A `Zone` framed on the seat, a child of the `Seat` | [Zone](07-zones.md#zone) |
 
 - Each piece is exported on its own too.
-- The viewer's cards are their hand, which stands at the bottom left of the screen ([The hand in the corner](07-zones.md#the-hand-in-the-corner)); the cards of the others are held in a fan with a round shadow under it ([Held hands](07-zones.md#held-hands)).
+- The viewer's cards are their hand, held at the bottom left of the screen ([The hand on the screen](07-zones.md#the-hand-on-the-screen)), and their name stays at their seat, in the middle of the front of the table; the cards of the others are a `HeldHand`, a fan that stands with a small round shadow under it ([Held hands](07-zones.md#held-hands)).
 
 ## Long names
 

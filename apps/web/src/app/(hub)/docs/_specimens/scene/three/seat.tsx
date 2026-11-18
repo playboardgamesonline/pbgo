@@ -4,11 +4,10 @@ import { DEFAULT_SEAT_THEME } from "@pbgo/core/lib/ui-theme"
 import {
   type CameraSettings,
   centreOf,
-  CornerHand,
   effectiveState,
   fan,
   frameBoxOfPoses,
-  HandShadow,
+  HeldHand,
   Hotspot,
   joinBoxes,
   LightPool,
@@ -17,7 +16,9 @@ import {
   plateBoxOf,
   type Pose,
   pointInFrame,
-  scalePoses,
+  SCREEN_HAND_SETTINGS,
+  ScreenHand,
+  screenHandLayout,
   Seat,
   seats,
   seatStateOf,
@@ -27,27 +28,29 @@ import {
   Zone,
 } from "@pbgo/table"
 import { useState } from "react"
-import { back, CARD_SIZE, face, palette } from "./art"
+import { back, CARD_SIZE, DECK, face, mat, palette } from "./art"
 import { Stage } from "./parts"
 import type { SeatTurn } from "../defaults"
 
-// Three seats of a ring for five players, drawn by the `Seat` of the package itself: the viewer's, whose hand is in the bottom left of the screen, and the left-most and right-most opponents', each holding a fan of cards with its round shadow under it. Every hand and its plate are drawn
-// in the frame of their seat, which faces the middle of the table: the plate stands on the side of the cards that faces the middle, and turns with the seat. The crown follows whose turn it is and a seat that is away fades. With "choose a player" on, the cards of each player glow while
-// they can be chosen, brighter under the pointer, brightest while pressed: the area they lie in is invisible, and the plate lies in it without reacting.
+// Three seats of a ring for five players, drawn by the `Seat` of the package itself: the viewer's, whose name stands in the middle of the front of the table and whose hand is held big at the bottom left of the screen, and the left-most and right-most opponents', each holding a
+// fan of cards that stands, with its small round shadow under it. Every opponent's hand and plate are drawn in the frame of their seat, which faces the middle of the table: the plate stands on the side of the cards that faces the middle, and turns with the seat. The crown follows
+// whose turn it is and a seat that is away fades. With "choose a player" on, the cards of each opponent glow while they can be chosen, brighter under the pointer, brightest while pressed: the area they lie in is invisible, and the plate lies in it without reacting.
 
 const CAMERA: CameraSettings = { tilt: 44, yaw: 0, distance: 20, fov: 34, targetX: 0, targetZ: 0.9 }
 
 const RING = { radiusX: 7.4, radiusZ: 4.4 }
 
-/** The cards an opponent holds, a fan in the frame of their seat: held up and leaning toward the middle, so that the others see the backs, and opening toward it */
+/** The cards an opponent holds, a fan in the frame of their seat that stands, backs to the viewer: nearly straight for a seat the viewer sees from the front, leaning toward the middle for one at the side */
 const HELD = 5
-const FAN = fan(HELD, { gap: 0.34, y: 0.8, rise: 0.004, curve: 0.08, tilt: -0.55, roll: 0.11, face: "down", scale: 0.68 })
-/** How far beyond its seat on the ring an opponent's hand stands, and how far its round shadow reaches */
+const heldLayout = (n: number, yaw: number): Pose[] => {
+  const tilt = -1.25 + (-1.0 + 1.25) * Math.abs(Math.sin(yaw))
+  return fan(n, { gap: 0.3, y: 0.66, rise: 0.004, curve: 0.08, tilt, roll: 0.12, face: "down", scale: 0.68 })
+}
+/** How far beyond its seat on the ring an opponent's hand stands, and how far its small round shadow reaches */
 const REACH = 1.2
-const SHADOW = 1.7
-/** The viewer's hand, drawn at the size of a hand of the most cards and made to fit the corner of the screen */
-const YOURS = (n: number): Pose[] => fan(n, { gap: 1.05, y: 1.1, rise: 0.004, curve: 0.06, tilt: 0.62, roll: 0.05, scale: 1.2 })
-const YOUR_ROOM = { most: 7 * 1.05 + CARD_SIZE.width * 1.2, depth: 3.2, height: 1.1 + (CARD_SIZE.height / 2) * Math.sin(0.62) * 1.2 }
+const SHADOW = { radius: (n: number) => 0.6 + 0.13 * n, opacity: 0.55 }
+/** The viewer's hand: Courtisans' numbers, with the room it may take stopped short of the viewer's name in the middle */
+const HAND = { ...SCREEN_HAND_SETTINGS, room: 0.42 }
 /** The room around a player's cards and plate that a press counts in, in world units */
 const PADDING = 0.3
 
@@ -70,7 +73,7 @@ export type SeatSceneProps = {
   onPick: (seat: SeatId) => void
 }
 
-/** A hand and its plate, in the frame of a seat: the box of the cards, the box of the plate above it, and the area a press counts in, all in the frame */
+/** A hand and its plate, in the frame of a seat: the box of the cards, the box of the plate beyond it, and the area a press counts in, all in the frame */
 function boxesOf(layout: readonly Pose[], frame: Spot) {
   const cards: TableBox = frameBoxOfPoses(layout, CARD_SIZE, frame, { tilt: CAMERA.tilt })!
   const plate = plateBoxOf(plateAbove(cards))
@@ -106,15 +109,15 @@ export function SeatScene({ turn, together, away, stayed, choosing, empty, point
   }
   const opponent = (id: "left" | "right", spot: Required<Spot>, color: string) => {
     const frame: Spot = { x: spot.x * REACH, z: spot.z * REACH, yaw: spot.yaw }
-    const { cards, area } = boxesOf(FAN, frame)
+    const slots = heldLayout(HELD, spot.yaw)
+    const { cards, area } = boxesOf(slots, frame)
     const none = empty && id === "left"
     const { active, away: gone } = seatStateOf(table, id)
     const state = stateOf(id)
     return (
       <group key={id}>
-        <HandShadow at={frame} radius={SHADOW} opacity={0.4} />
         <Seat frame={frame} above={cards} nickname={NAMES[id]} color={color} theme={DEFAULT_SEAT_THEME} active={active} away={gone} line={`${points} pts`} status={stayed && id === "right" ? "Stayed" : undefined} />
-        <Zone frame={frame} layout={FAN} size={CARD_SIZE} cards={none ? [] : FAN.map((_, i) => ({ key: `${id}-${i}`, front: face(i + 3), back: cardBack, state }))} />
+        <HeldHand count={none ? 0 : HELD} frame={frame} layout={(n) => heldLayout(n, spot.yaw)} size={CARD_SIZE} back={cardBack} shadow={SHADOW} {...(choosing ? { state } : {})} />
         {none && choosing && (
           <LightPool
             size={{ width: CARD_SIZE.width * 0.68, height: CARD_SIZE.height * 0.68 }}
@@ -127,29 +130,17 @@ export function SeatScene({ turn, together, away, stayed, choosing, empty, point
       </group>
     )
   }
+  const { active, away: gone } = seatStateOf(table, "you")
+  const hand = [8, 11, 14, 17]
   return (
-    <Stage id="scene-seat" camera={CAMERA} playIntro={false}>
+    <Stage id="scene-seat" camera={CAMERA} playIntro={false} surface={mat()}>
       {opponent("left", ring[1]!, p.marks[2])}
       {opponent("right", ring[4]!, p.marks[0])}
-      {/* The hand of the viewer, in the bottom left of the screen whatever the window, with their plate above it, upright */}
-      <CornerHand most={YOUR_ROOM.most} depth={YOUR_ROOM.depth} height={YOUR_ROOM.height}>
-        {(corner) => {
-          const frame: Spot = { x: corner.x, z: corner.z, yaw: 0 }
-          const layout = scalePoses(YOURS(7), corner.scale)
-          const { cards, area } = boxesOf(layout, frame)
-          const { active, away: gone } = seatStateOf(table, "you")
-          const hand = scalePoses(YOURS(4), corner.scale)
-          const state = stateOf("you")
-          return (
-            <>
-              <Seat frame={frame} above={cards} nickname={NAMES.you} color={p.ivory} theme={DEFAULT_SEAT_THEME} active={active} away={gone} line={`${points} pts`} />
-              <Zone frame={frame} layout={hand} size={CARD_SIZE} cards={hand.map((_, i) => ({ key: `you-${i}`, front: face(i + 8), back: cardBack, state }))} />
-              {choosing && hotspot("you", frame, area)}
-            </>
-          )
-        }}
-      </CornerHand>
+      {/* The viewer's name stays at their seat, in the middle of the front of the table, and their hand is held at the bottom left of the screen */}
+      <Seat spot={ring[0]!} viewer nickname={NAMES.you} color={p.ivory} theme={DEFAULT_SEAT_THEME} active={active} away={gone} line={`${points} pts`} />
+      <ScreenHand settings={HAND}>
+        {(screen) => <Zone layout={screenHandLayout(hand.length, screen, CARD_SIZE, HAND)} size={CARD_SIZE} enter={screen.local(DECK)} cards={hand.map((n, i) => ({ key: `you-${i}`, front: face(n), back: cardBack }))} />}
+      </ScreenHand>
     </Stage>
   )
 }
-

@@ -1,8 +1,8 @@
 "use client"
 
 import type { Card, CardColor } from "@template/engine"
-import { type CardSize, paintFace } from "@pbgo/table"
-import { CanvasTexture, SRGBColorSpace, type Texture } from "three"
+import { type CardSize, latticeTexture, paintFace } from "@pbgo/table"
+import type { Texture } from "three"
 
 /** Width and height of a card in world units: the same for every card of the game */
 export const CARD_SIZE: CardSize = { width: 1.3, height: 1.9 }
@@ -19,13 +19,6 @@ const FONT = 'ui-rounded, "Avenir Next", "Nunito", system-ui, sans-serif'
 function rounded(ctx: CanvasRenderingContext2D, x: number, y: number, l: number, h: number, r: number) {
   ctx.beginPath()
   ctx.roundRect(x, y, l, h, r)
-}
-
-function finalize(c: HTMLCanvasElement) {
-  const t = new CanvasTexture(c)
-  t.colorSpace = SRGBColorSpace
-  t.anisotropy = 8
-  return t
 }
 
 export function faceTexture(card: Card): Texture {
@@ -115,24 +108,13 @@ export function bidFaceTexture(amount: number): Texture {
 export const bidBackTexture = (): Texture => backTexture("#e0613a", "#2b1d1a")
 
 /** The colour of the table: the average of its felt, which the table fades into with distance */
-export const MAT_COLOR = "#1f5a4a"
+/** The mat the table lies on: a very dark grey with a diamond lattice a hair lighter, as a printed playing mat has, with no grain; and a pool of light on its middle, so that it is lit there and falls away to black toward its edges, as the table of Courtisans does */
+export const MAT_COLOR = "#0c0c0e"
+export const MAT_LINE = "#17171b"
+export const MAT_LIGHT = { color: "#2c2c31", radius: 20 }
 
 let mat: Texture | null = null
 export function matTexture(): Texture {
-  if (mat) return mat
-  const c = document.createElement("canvas")
-  c.width = c.height = 256
-  const ctx = c.getContext("2d")!
-  ctx.fillStyle = MAT_COLOR
-  ctx.fillRect(0, 0, 256, 256)
-  const img = ctx.getImageData(0, 0, 256, 256)
-  for (let i = 0; i < img.data.length; i += 4) {
-    const n = (Math.random() - 0.5) * 18
-    img.data[i] = img.data[i]! + n
-    img.data[i + 1] = img.data[i + 1]! + n
-    img.data[i + 2] = img.data[i + 2]! + n
-  }
-  ctx.putImageData(img, 0, 0)
-  mat = finalize(c)
+  if (!mat) mat = latticeTexture({ base: MAT_COLOR, line: MAT_LINE, diamonds: 3, width: 2.5 })
   return mat
 }

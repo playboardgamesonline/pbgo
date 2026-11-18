@@ -46,8 +46,8 @@ export const CARD_STATE_SETTINGS = {
   disabledDim: 0.33,
   /** How far the bloom reaches past the card, as a share of its smaller side */
   bloomSpread: 0.28,
-  /** How bright the bloom is at a bloom of 1: it is a light added to the table, not a coat of paint */
-  bloomOpacity: 0.75,
+  /** How bright the bloom is at a bloom of 1: it is a light added to the table, not a coat of paint. Soft: it says that a card can be chosen and never shouts it */
+  bloomOpacity: 0.5,
   /** How far a card that can be chosen breathes, as a share of its bloom, and how fast */
   bloomPulse: 0.12,
   bloomSpeed: 1.6,

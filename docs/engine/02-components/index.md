@@ -6,7 +6,7 @@ Each component has two sides, what the engine keeps of it in the state and what 
 
 To see every component at once, open the [playground](/docs/playground): one table with all of them on it.
 
-The board of a game is a 3D scene drawn with react-three-fiber on one canvas, and none of it is DOM. `@pbgo/table` gives every game the same table: a canvas with its camera, an endless table, cards that glide, fly and bend, the helpers that say where cards go and the zones that place them. The plate of a player, with its name, its avatar and its crown, standing on the side of the player's cards that faces the middle of the table, is the shared `Seat`; the viewer's hand at the bottom left of the screen is the shared `CornerHand`. What depends on a game's look (its pictures, its layouts, its camera) is written per game in the `board/` folder of its binding, and `template/src/components/board/` is the reference.
+The board of a game is a 3D scene drawn with react-three-fiber on one canvas, and none of it is DOM. `@pbgo/table` gives every game the same table: a canvas with its camera, an endless table, cards that glide, fly and bend, the helpers that say where cards go and the zones that place them. The plate of a player, with its name, its avatar and its crown, standing on the side of the player's cards that faces the middle of the table, is the shared `Seat`; the viewer's hand, held at the bottom left of the screen as Courtisans holds its own, is the shared `ScreenHand`, and the cards the others hold are the shared `HeldHand`. What depends on a game's look (its pictures, its layouts, its camera) is written per game in the `board/` folder of its binding, and `template/src/components/board/` is the reference.
 
 The tools are in `packages/table/src` and `pnpm --filter @pbgo/table test` runs their tests. The exports of `packages/table/src/index.ts` are the whole API of the package; a file can hold more than it exports, and a page says so when a piece is internal.
 
@@ -24,7 +24,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 | --- | --- | --- | --- | --- |
 | Card | A 3D element with a face and a back. A game gives each card a value, a power, a picture: they are its data, in its engine and its Sanity project | An opaque id in the state, the deck helpers, a view that hides what a viewer may not see | `Card`, with its glows | Built: [Cards](04-cards.md) |
 | Pile and deck | Cards that are drawn from, counted or named | `deck`, `draw`, `deal`, `reshuffleDiscard` | `Pile`, or a `Zone` over a pile layout | Built: [Decks and piles](06-decks-and-piles.md) |
-| Zone and hand | A place where cards lie, in a layout; the viewer's hand at the bottom left of the screen, and the cards the others hold, in a fan with a round shadow | A list in the state | `Zone`, the layouts `fan`, `row`, `pile` and `grid`, `CornerHand`, `HandShadow` | Built: [Where cards are](07-zones.md), [Layout helpers](08-layout-helpers.md) |
+| Zone and hand | A place where cards lie, in a layout; the viewer's hand held at the bottom left of the screen, and the cards the others hold, a fan that stands with a small round shadow | A list in the state | `Zone`, the layouts `fan`, `row`, `pile` and `grid`, `ScreenHand`, `HeldHand`, `HandShadow` | Built: [Where cards are](07-zones.md), [Layout helpers](08-layout-helpers.md) |
 | Die | Some faces, a shape and a value on each face, rolled with physics | `rollDie`, `rollDice`, `rerollDice` | `Die`, `DiceTray`, `DieModel` | Built: [Dice](10-dice.md) |
 | Text field | A field on the table that opens a window to write in | `cleanText`, `INVALID_TEXT` | `TextField`, `askText` | Built: [Text field](11-text-field.md) |
 | Number field and choice field | A bet, a quantity, a face, an option: a field on the table that opens a window to choose, alone or with others (a bid) | `cleanNumber`, `cleanChoice`, `cleanChoices` | `NumberField`, `ChoiceField`, `ask`, `askNumber`, `askChoice` | Built: [Bets and choices](12-bets-and-choices.md) |
@@ -59,7 +59,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 - [Cards](04-cards.md): a card in the state and on the table, its faces, its kinds and its glows.
 - [Poses and motion](05-poses-and-motion.md): where a card lies, how it gets from one pose to another and where it starts from.
 - [Decks and piles](06-decks-and-piles.md): drawing, dealing and reshuffling in the engine, and the pile on the table.
-- [Where cards are](07-zones.md): the places of a card, the hand at the corner of the screen, the hands the others hold and the zones that lay cards out.
+- [Where cards are](07-zones.md): the places of a card, the hand on the screen, the hands the others hold and the zones that lay cards out.
 - [Layout helpers](08-layout-helpers.md): `fan`, `row`, `pile`, `grid` and `inFrame`, and the boxes that measure what a layout covers.
 - [Score](09-score.md): the points during a game, and the text that shows them.
 - [Dice](10-dice.md): a roll of the seeded stream in the engine, and a die of any shape and values that rolls with physics onto the number on the table.
