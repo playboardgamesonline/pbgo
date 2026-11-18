@@ -19,7 +19,7 @@ export const ROWS = 3
 export const COLUMNS = 4
 export const CELLS = ROWS * COLUMNS
 
-/** How many cards a player turns over before the round begins (rulebook, page 1). */
+/** How many cards a player turns over before the round begins (EN p.4, FR p.2). */
 export const OPENING_FLIPS = 2
 
 /** A cell of a grid: the card in it and whether it lies face up. `null`: the column was thrown away and the cell is empty. */

@@ -18,7 +18,7 @@ import { COLUMN_NUMBERS, columnCells, isTriple, roundScores } from "./scoring"
 
 /** How a round goes, from the deal to the count. */
 
-/** The top card of the draw pile. When it is empty the discard is shuffled into a new one under it, keeping the card on top (rulebook: the top card stays visible). `null` when no card is left anywhere. */
+/** The top card of the draw pile. When it is empty the discard is shuffled into a new one under it, keeping the card on top in view (neither booklet says what happens when the pile runs out: this is the usual table rule). `null` when no card is left anywhere. */
 export function drawCard(ctx: Ctx): number | null {
   const { s } = ctx
   if (s.deck.length === 0) {
@@ -81,7 +81,7 @@ export function afterOpening(ctx: Ctx): void {
   if (openingSeats(ctx.s).length === 0) beginTurns(ctx)
 }
 
-/** Three equal cards face up in a column go to the discard (rulebook, page 2). Gives whether the column left. */
+/** Three equal cards face up in a column go to the discard (EN p.5 Image II, FR p.3 fig. 2). Gives whether the column left. */
 export function dropColumn(ctx: Ctx, seat: number, column: number): boolean {
   const { s } = ctx
   const grid = gridOf(s, seat)
@@ -118,9 +118,9 @@ export function endTurn(ctx: Ctx, seat: number): void {
 }
 
 /**
- * The round is counted: the cards still face down are turned over, the columns of three equal cards that this makes go to the discard (rulebook,
- * page 2), every player scores the sum of their cards, the one who ended the round has theirs doubled unless it is strictly the lowest and
- * positive (page 3), and the deal passes to the left.
+ * The round is counted: the cards still face down are turned over, the columns of three equal cards that this makes go to the discard (EN p.5,
+ * FR p.3), every player scores the sum of their cards, the one who ended the round has theirs doubled unless it is strictly the lowest and
+ * positive (EN p.4-5, FR p.4), and the deal passes to the left.
  */
 export function endRound(ctx: Ctx): void {
   const { s } = ctx

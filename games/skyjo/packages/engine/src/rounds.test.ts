@@ -4,11 +4,31 @@ import { GAME } from "./game"
 import { deal, discard, draw, flip, gridUp, gridValues, kinds, layout, place, problems, refusal, take, up, values, viewOf, waiting } from "./test-utils"
 import type { State } from "./types"
 
-// Rulebook, pages 2 to 4: the column of three equal cards, the end of a round, its count, and the end of the game.
+// The column of three equal cards (EN p.5, FR p.3), the end of a round (EN p.4, FR p.3), its count (EN p.4-5, FR p.4) and the end of the game (EN p.4-5, FR p.2 and p.4).
 
-describe("three equal cards in a column (page 2)", () => {
+describe("three equal cards in a column (EN p.5, FR p.3)", () => {
   /** ana shows 6 and 6 in the first column and holds the way to a third; the discard shows `top`. */
   const withPair = (top: number) => layout({ players: 3, deck: [6, 3], discard: [top, 9], grids: { ana: [up(6), up(6), 11, up(2), 5, 5] } })
+
+  it("plays the booklets' own figure: a 9 taken from the discard over the -1 of a column of 9s throws the three 9s away, after the -1 (EN p.5 Image II, FR p.3 fig. 2)", () => {
+    // ana's grid in the first picture, column by column from the top: [back, 12, back] [9, 9, -1] [0, back, back] [4, back, 2]; a 9 lies on top of the discard
+    const grid = [undefined, up(12), undefined, up(9), up(9), up(-1), up(0), undefined, undefined, up(4), undefined, up(2)]
+    let state = layout({ players: 3, discard: [9], grids: { ana: grid } })
+    // first picture to second: she takes the 9 and swaps it with the -1, which goes on the discard
+    state = take(state, "ana")
+    const result = step(state, { type: "place", playerId: "ana", position: 5 })
+    state = result.state
+    // second picture to third: the column of three 9s goes, onto the discard after the -1, so that it ends under them
+    expect(values(state, state.discard)).toEqual([9, 9, 9, -1])
+    expect(kinds(result)).toEqual(["place", "column"])
+    expect(result.events[1]!.event).toMatchObject({ kind: "column", by: "ana", column: 1, value: 9 })
+    // the column is gone and the other cells are where the figure leaves them
+    const cells = gridValues(state, "ana")
+    expect(cells.slice(3, 6)).toEqual([null, null, null])
+    expect([cells[1], cells[6], cells[9], cells[11]]).toEqual([12, 0, 4, 2])
+    expect(gridUp(state, "ana").filter((faceUp) => faceUp === true)).toHaveLength(4)
+    expect(problems(state)).toEqual([])
+  })
 
   it("throws the column away when a card taken from the discard completes it: the three go on the discard after the card that was replaced", () => {
     let state = withPair(6)
@@ -105,7 +125,7 @@ describe("three equal cards in a column (page 2)", () => {
   })
 })
 
-describe("the end of a round (page 3)", () => {
+describe("the end of a round (EN p.4, FR p.3)", () => {
   /** ana has 11 cards face up and one down; she turns it over to end the round. */
   const nearEnd = () => {
     const faceUp = [up(1), up(2), up(3), up(4), up(5), up(6), up(7), up(8), up(9), up(10), up(11), 12]
@@ -191,7 +211,7 @@ describe("the end of a round (page 3)", () => {
   })
 })
 
-describe("a round's score, played from the state (page 3)", () => {
+describe("a round's score, played from the state (EN p.4-5, FR p.4)", () => {
   /** Every player has the cell `hidden` face down and the others face up; the first player turns theirs over and ends the round, the others each play one last turn. */
   function played(rows: Record<string, number[]>, hidden = 11): State {
     const names = Object.keys(rows)
@@ -226,9 +246,21 @@ describe("a round's score, played from the state (page 3)", () => {
     expect(state.stats[0]).toMatchObject({ ended: 1, doubled: 1 })
   })
 
-  it("doubles it on a tie for the lowest: the rulebook's example, 10 against 24 and 10 makes 20", () => {
+  it("doubles it on a tie for the lowest: the booklets' example, 10 against 24 and 10 makes 20", () => {
     const state = played({ ana: TEN_A, bob: TWENTY_FOUR_A, cleo: TEN_B })
     expect(state.rounds[0]).toEqual([20, 24, 10])
+  })
+
+  it("plays the booklets' own figure: A, B and C make 10, 24 and 10, and A, who ends the round, is doubled to 20 (EN p.5 Image I, FR p.4 fig. 3)", () => {
+    // the three grids of the figure, column by column from the top (no column of three equal cards in any of them)
+    const A = [0, 0, 5, 2, -2, 3, 1, 1, 0, -1, 3, -2]
+    const B = [1, -2, 1, 3, 0, 0, 7, -1, 12, 4, 0, -1]
+    const C = [2, 0, 2, -2, 0, -1, 5, 2, 0, 3, -1, 0]
+    expect([total(A), total(B), total(C)]).toEqual([10, 24, 10])
+    const state = played({ ana: A, bob: B, cleo: C })
+    expect(state.rounds[0]).toEqual([20, 24, 10])
+    expect(state.stats[0]).toMatchObject({ ended: 1, doubled: 1, columns: 0 })
+    expect(state.stats[1]).toMatchObject({ ended: 0, doubled: 0 })
   })
 
   it("does not double a count that is not positive: zero, tied or not, and below zero", () => {
@@ -256,7 +288,7 @@ describe("a round's score, played from the state (page 3)", () => {
   })
 })
 
-describe("between two rounds, and the end of the game (page 4)", () => {
+describe("between two rounds, and the end of the game (EN p.4-5, FR p.2 and p.4)", () => {
   const TEN = [-2, -1, 0, 6, 0, -1, 0, 5, 0, 4, 0, -1]
   const TWENTY_FOUR = [3, 2, 2, 3, 2, 2, 3, 2, 2, 2, 1, 0]
   function between(rounds: number[][], ender: number[] = TEN, others = TWENTY_FOUR): State {
@@ -328,7 +360,7 @@ describe("between two rounds, and the end of the game (page 4)", () => {
     expect(viewOf(state, "ana").results!.winners).toEqual(["bob"])
   })
 
-  it("shares the win when the lowest total is tied (the rulebook is silent: to validate)", () => {
+  it("shares the win when the lowest total is tied (the booklets are silent: validated)", () => {
     const tied = layout({ players: 3, rounds: [[100, 100, 100]], stage: { kind: "between" } })
     expect(GAME.isOver(tied)).toBe(true)
     expect(viewOf(tied, null).results!.winners).toEqual(["ana", "bob", "cleo"])
@@ -374,7 +406,7 @@ describe("the draw pile running out", () => {
     expect(step(full, { type: "draw", playerId: "ana" }).state).toEqual(step(full, { type: "draw", playerId: "ana" }).state)
   })
 
-  it("refuses a draw when no card is left anywhere but the top of the discard (it cannot happen with 8 players)", () => {
+  it("refuses a draw when no card is left anywhere but the top of the discard (it cannot happen: the grids hold 96 cards at most)", () => {
     const state = layout({ players: 2, deck: [], rest: "away", discard: [3] })
     const stripped: State = { ...state, deck: [] }
     expect(refusal(() => step(stripped, { type: "draw", playerId: "ana" }))).toBe("INVALID_PHASE")

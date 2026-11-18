@@ -3,7 +3,7 @@
  *
  * - `CARDS`: every face of the game, by key. The keys are a contract: they are the keys of the card types in the Sanity studio (name,
  *   artwork), what a `Face` says and what the art files are named after. Append only, never rename.
- * - `DECK`: the box, how many copies of each face: 150 cards (rulebook, page 1).
+ * - `DECK`: the box, how many copies of each face: 150 cards (EN p.24, FR p.2).
  * - `CATALOGUE`: every card of the box, one after the other, by face. A card is its index in it; it is never stored (lean state, PLT-45):
  *   the state holds the opaque id each index holds.
  *

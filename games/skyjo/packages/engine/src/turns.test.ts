@@ -7,9 +7,9 @@ import {
 } from "./test-utils"
 import type { State } from "./types"
 
-// Rulebook, pages 1 to 3: the opening, and a turn (the choices 1 and 2).
+// The opening (EN p.4, FR p.2), and a turn: the choices 1 and 2 (EN p.4, FR p.2-3).
 
-describe("the opening: everybody turns two cards over (page 1)", () => {
+describe("the opening: everybody turns two cards over (EN p.4, FR p.2)", () => {
   it("waits for every player at once, in seat order", () => {
     const state = newState(4)
     expect(waiting(state)).toEqual(["ana", "bob", "cleo", "dan"])
@@ -214,7 +214,7 @@ describe("who begins (EN p.4, FR p.2)", () => {
   })
 })
 
-describe("choice 1: take the discard (page 2)", () => {
+describe("choice 1: take the discard (EN p.4, FR p.2-3)", () => {
   const table = () => layout({ players: 3, discard: [3, 9], grids: { ana: [up(8), up(1), 5] } })
 
   it("takes the top card of the discard: the player must place it, and everybody saw it", () => {
@@ -257,7 +257,7 @@ describe("choice 1: take the discard (page 2)", () => {
   })
 })
 
-describe("choice 2: draw from the pile (page 2)", () => {
+describe("choice 2: draw from the pile (EN p.4, FR p.3)", () => {
   const table = () => layout({ players: 3, deck: [7, 2], discard: [3], grids: { ana: [up(8), up(1), 5] } })
 
   it("draws the top card: only the player sees it, and they may place it or throw it away", () => {
