@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { CARDS, CATALOGUE, DECK, MAX_VALUE, MIN_VALUE, bandOf, cardType, keyOfValue } from "./catalogue"
 
-// Rulebook, page 1: "150 cartes de jeu". The box (the count of each value) is the one of the real game: -2 x5, -1 x10, 0 x15, 1 to 12 x10.
+// The box, FR p.2 ("150 cartes de jeu") and EN p.24 ("150 Playing Cards"): the count of each value is the one of the real game: -2 x5, -1 x10, 0 x15, 1 to 12 x10.
 
 describe("the box", () => {
   it("holds 150 cards", () => {

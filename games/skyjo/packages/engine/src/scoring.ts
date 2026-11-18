@@ -3,7 +3,7 @@ import { CELLS, COLUMNS, ROWS } from "./types"
 /**
  * What the cards of a grid are worth. Pure: it reads values, never a state.
  *
- * Rulebook, page 3: a player's total for the round is the sum of their cards, negative cards included. The player who ended the round
+ * EN p.4-5, FR p.4: a player's total for the round is the sum of their cards, negative cards included. The player who ended the round
  * has that total doubled when it is not strictly the lowest of the round, but only when it is positive ("this rule only applies to positive points").
  */
 
@@ -25,7 +25,7 @@ export function isPosition(position: unknown): position is number {
 /** The columns of a grid, by number (for loops that read them). */
 export const COLUMN_NUMBERS: readonly number[] = Array.from({ length: COLUMNS }, (_, column) => column)
 
-/** Three cards that are all the same value: the column is thrown away (rulebook, page 2). */
+/** Three cards that are all the same value: the column is thrown away (EN p.5, FR p.3). */
 export function isTriple(values: readonly number[]): boolean {
   return values.length === ROWS && values.every((value) => value === values[0])
 }

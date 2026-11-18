@@ -6,7 +6,8 @@ import { startRound } from "./round"
 import type { SkyjoStep, State } from "./types"
 
 /**
- * The rulebook does not say how many play. Skyjo is sold for 2 to 8 players, and 8 grids of 12 cards and the discard (97 cards) leave 53 in the pile of the 150.
+ * 2 to 8 players (EN p.2: "Players: 2-8"; the Blackrock booklet gives no range). 8 grids of 12 cards and the discard (97 cards) leave 53 in the pile of the 150,
+ * which a round of 8 players empties nearly every time: the discard is then shuffled into a new pile (`drawCard` of round.ts).
  */
 export const MIN_PLAYERS = 2
 export const MAX_PLAYERS = 8
