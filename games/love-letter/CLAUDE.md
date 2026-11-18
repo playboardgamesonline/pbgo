@@ -8,7 +8,7 @@ Love Letter, served by `apps/web` at `/love-letter`. Not playable yet: without a
   - `src/index.ts` — the binding shared by the server and the client: site constants and the default look (logo, icon, share image and colors), replaced by what is set in `/gamemaster/love-letter`
   - `src/ui.tsx` — `Logo` · `src/runtime.tsx` — client runtime (styles, `BindingProvider`) · `src/server.ts` — server side (`SEO`)
 - `packages/engine` — `@love-letter/engine`, the engine to write (pure TypeScript, Vitest)
-- `apps/studio` — `love-letter-studio`, Sanity Studio of the project `fdbxac71` (https://love-letter.sanity.studio)
+- `apps/studio` — `love-letter-studio`, Sanity Studio of the project `8h6tuu2t` (https://love-letter.sanity.studio)
 
 ## Making it playable
 Follow `template/CLAUDE.md` ("Adapting to a new game"): write the engine, export it as `GAME` from `src/index.ts`, add the board (`Game` in `src/ui.tsx`, loaded lazily as in the template), then set `live` (and `indexable` once it is ready for search engines) in `packages/games/src/registry.ts`.
