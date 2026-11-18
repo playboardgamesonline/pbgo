@@ -1,4 +1,4 @@
-# Scripts: game-flow, game-rules, setup-env, check-game, check-board, check-scout, check-rules
+# Scripts: game-flow, game-rules, setup-env, check-game, check-board, check-scout, check-rules, pdf
 
 `pnpm game-flow`, `pnpm game-rules`, `pnpm setup-env`, `pnpm check:game`, `pnpm check:board`, `pnpm check:scout` and `pnpm check:rules` in full; the Commands section of the root `CLAUDE.md` gives one line for each.
 
@@ -74,3 +74,11 @@ Optional, plain JavaScript run by Node (it imports nothing of the game, whose bo
 - `ignoreConsole: [/\[missing/]` — patterns (RegExp, or text) of console messages that are not a failure here.
 
 The `table` the config receives: `ids` and `names` (by seat, the viewer 0), `state(seat)`, `act(seat, action)` (throws when the game refuses), `rig(command, seat)`, `play(seat)` (the bot's move, else `turn`), `waitedFor(state)` (the seat the game waits for, -1 for nobody), `advance({ until(state, who), bot, max, label })` (plays everyone, the viewer included, until `until`) and `request(seat, method, path, body)` for any other route of the game's API.
+
+## `scripts/pdf/` in full
+
+Two scripts for a machine that has no poppler (`pdftotext`, `pdftoppm`: the `Read` tool says "pdftoppm is not installed" for a PDF of more than ten pages). They run with the Swift, PDFKit and AppKit that macOS has, so nothing is installed and no dependency is added; they are no part of the six gates and no pnpm command.
+- `swift scripts/pdf/pdf-text.swift <file.pdf> [first] [last]` — the page count and the text of the pages (numbered from 1, both ends included, every page when none is given). The text is jumbled where it sits on a picture: a table, a card.
+- `swift scripts/pdf/pdf-pages.swift <file.pdf> <outDir> [scale]` — each page rendered to `<outDir>/page-NN.png`: the page's media box times the scale (1.5 by default; a small booklet page needs 4 to be readable). The pictures are a reading aid: `<outDir>` is outside the repo and no picture is ever an asset.
+
+Exit 0 when it did what it was asked, 1 when the PDF cannot be opened, 2 for a wrong command line. The skill `game-rules-spec` names them for a rulebook that `Read` cannot take whole, and `packages/games/src/rules-spec.test.ts` keeps it to scripts that exist.

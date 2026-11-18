@@ -19,7 +19,7 @@ This file is a map: structure, routes, commands, rules of work. The detail of ea
 - `packages/` — shared code (below)
 - `docs/` — the detail behind this map, one file per area (see Where to read more), `content-pipeline.md` (seeding a game's Sanity content) and `games/<slug>/` (the rules spec of each game `/add-game` adds: `rules.md` and its landing page, a doc of the site like `engine/`)
 - `supabase/migrations/` — schema of the single Supabase project
-- `scripts/` — `new-game.sh`, `go-live.sh`, `game-rules.sh`, `setup-env.sh` (helpers in `lib.sh`), `run.sh`, `check-catalog.mjs`, `check-game.mjs`, `check-board.mjs` (and `check-board/`, its parts)
+- `scripts/` — `new-game.sh`, `go-live.sh`, `game-rules.sh`, `setup-env.sh` (helpers in `lib.sh`), `run.sh`, `check-catalog.mjs`, `check-game.mjs`, `check-board.mjs` (and `check-board/`, its parts), `pdf/` (two Swift scripts that read a rulebook PDF without poppler)
 - `.claude/skills/` — the agents' skills by category (`game-`, `engine-`, `platform-`): the questions, rules and commands of a recurring job, written once. `README.md` lists them. `/add-game` is the one that runs the others, from a game's name to live
 
 ## Routes (`apps/web/src/app`)
