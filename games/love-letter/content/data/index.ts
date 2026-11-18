@@ -2,8 +2,9 @@ import type { SeedDoc } from "@pbgo/content-kit"
 import { buildCharacters } from "./characters.ts"
 import { buildGame } from "./game.ts"
 import { buildSettings } from "./settings.ts"
+import { buildTexts } from "./texts.ts"
 
 /** Every document the Love Letter seed manages, as fresh objects: a run clones and completes them. */
 export function buildSeedDocs(): SeedDoc[] {
-  return [...buildCharacters(), buildGame(), buildSettings()]
+  return [...buildCharacters(), buildGame(), buildSettings(), buildTexts()]
 }

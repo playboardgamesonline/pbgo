@@ -10,6 +10,7 @@ import { CHARACTER_LIST, buildCharacters, characterId } from "./characters.ts"
 import { buildSeedDocs } from "./index.ts"
 import { buildSettings } from "./settings.ts"
 import { seedDocs } from "./test-fixtures.ts"
+import { buildTexts, ENGINE_TEXTS, ERROR_MESSAGES } from "./texts.ts"
 
 /**
  * What a text may hold, from the owner's blank faces (see "Pictures" in this game's CLAUDE.md): the plate of four faces is shorter (the portrait runs lower) and holds three lines at the text size of the publisher's own sheet,
@@ -34,12 +35,12 @@ describe("the seed", () => {
     expect(own).toMatch(/indexable: false/)
   })
 
-  it("writes the ten characters, the game and the settings, each with an id of its own", () => {
+  it("writes the ten characters, the game, the settings and the texts, each with an id of its own", () => {
     const docs = buildSeedDocs()
-    expect(docs).toHaveLength(10 + 2)
+    expect(docs).toHaveLength(10 + 3)
     expect(new Set(docs.map((doc) => doc._id)).size).toBe(docs.length)
     for (const doc of docs) assertSeedId(doc._id)
-    expect(docs.map((doc) => doc._type).sort()).toEqual([...Array(10).fill("character"), "game", "settings"].sort())
+    expect(docs.map((doc) => doc._type).sort()).toEqual([...Array(10).fill("character"), "game", "settings", "texts"].sort())
   })
 
   it("gives fresh objects on every build, so a run that completes them changes nothing for the next", () => {
@@ -130,6 +131,61 @@ describe("the credits", () => {
     expect(settings.publisher).toBe("Z-Man Games")
     expect(settings.publisherUrl).toBe("https://www.zmangames.com")
     expect(settings).not.toHaveProperty("creditsIllustrators")
+  })
+})
+
+describe("the texts", () => {
+  const texts = () => buildTexts() as Doc
+  /** Every text of the document with where it sits and what it is, in French and English */
+  const all = () => [
+    ...ERROR_MESSAGES.map(({ code, ...said }) => ({ where: `errorMessages.${code}`, kind: "localeString", said })),
+    ...ENGINE_TEXTS.map(({ key, ...said }) => ({ where: `engineTexts.${key}`, kind: "localeText", said })),
+  ]
+
+  it("are the one `texts` document of the shared Studio, with the engine's words and the message of the game's own error code, and nothing else", () => {
+    expect(texts()._id).toBe("texts")
+    expect(Object.keys(texts()).sort()).toEqual(["_id", "_type", "engineTexts", "errorMessages"])
+  })
+
+  it("name the three lines of the score once each, and the one code the game refuses with", () => {
+    expect(ENGINE_TEXTS.map(({ key }) => key)).toEqual(["score.rounds", "score.won", "score.spy"])
+    expect(ERROR_MESSAGES.map(({ code }) => code)).toEqual(["MUST_PLAY_COUNTESS"])
+  })
+
+  it("are written in English and in French, and leave Spanish and German empty: nothing is translated that has no source, and the board shows the English", () => {
+    const objects = [...(texts().errorMessages as { message: object }[]).map((item) => item.message), ...(texts().engineTexts as { text: object }[]).map((item) => item.text)]
+    expect(objects).toHaveLength(4)
+    for (const value of objects) expect(Object.keys(value).sort()).toEqual(["_type", "en", "fr"])
+  })
+
+  it("follow the typography of the other texts: trimmed, one line, one space at a time, the typographic apostrophe, no marker", () => {
+    for (const { where, said } of all()) {
+      for (const [language, text] of Object.entries(said)) {
+        expect(text, `${where}.${language}`).toBe(text.trim())
+        expect(text.length, `${where}.${language}`).toBeGreaterThan(0)
+        expect(text, `${where}.${language}`).not.toMatch(/ {2}|\t|[\r\n]/)
+        expect(text, `${where}.${language}`).not.toContain("'")
+        expect(text, `${where}.${language}`).not.toMatch(/\bTODO\b|\b(tbd|fixme|lorem|ipsum|placeholder|xxx)\b|\?\?|<\/?[a-z]|https?:\/\/|[{}]/i)
+      }
+    }
+  })
+
+  it("are written in their own language: no text is the same in English and in French", () => {
+    for (const { where, said } of all()) expect(said.fr, where).not.toBe(said.en)
+  })
+
+  it("fit where they are shown: a line of the score is a chip of the end screen, a message is one sentence", () => {
+    for (const { where, kind, said } of all()) {
+      for (const [language, text] of Object.entries(said)) {
+        if (kind === "localeText") {
+          expect(text.length, `${where}.${language}`).toBeLessThanOrEqual(24)
+          expect(text.endsWith("."), `${where}.${language}`).toBe(false)
+        } else {
+          expect(text.length, `${where}.${language}`).toBeLessThanOrEqual(120)
+          expect(text.endsWith("."), `${where}.${language}`).toBe(true)
+        }
+      }
+    }
   })
 })
 

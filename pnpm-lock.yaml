@@ -1325,6 +1325,9 @@ importers:
 
   games/love-letter:
     dependencies:
+      '@love-letter/engine':
+        specifier: workspace:*
+        version: link:packages/engine
       '@pbgo/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -1335,12 +1338,12 @@ importers:
         specifier: 'catalog:'
         version: 0.0.1
     devDependencies:
-      '@love-letter/engine':
-        specifier: workspace:*
-        version: link:packages/engine
       '@pbgo/content-kit':
         specifier: workspace:*
         version: link:../../packages/content-kit
+      '@pbgo/engine-kit':
+        specifier: workspace:*
+        version: link:../../packages/engine-kit
       '@pbgo/studio-kit':
         specifier: workspace:*
         version: link:../../packages/studio-kit
