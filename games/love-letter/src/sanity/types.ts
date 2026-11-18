@@ -233,6 +233,19 @@ export type Texts = {
   out?: LocaleString;
   shielded?: LocaleString;
   roundWinner?: LocaleString;
+  pickCard?: LocaleString;
+  mustPlayCountess?: LocaleString;
+  chooseOther?: LocaleString;
+  chooseAny?: LocaleString;
+  nameCharacter?: LocaleString;
+  noTarget?: LocaleString;
+  keepOne?: LocaleString;
+  putBack?: LocaleString;
+  play?: LocaleString;
+  keep?: LocaleString;
+  deal?: LocaleString;
+  swap?: LocaleString;
+  targetPlayer?: LocaleString;
 };
 
 export type LocaleStringList = {
@@ -641,7 +654,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../../src/sanity/queries.ts
 // Variable: CATALOG_QUERY
-// Query: {  "game": *[_id == "game"][0]{ cardBack },  "texts": *[_id == "texts"][0]{ round, tokensToWin, start, out, shielded, roundWinner },  "characters": *[_type == "character"]{ key, name, text, image }}
+// Query: {  "game": *[_id == "game"][0]{ cardBack },  "texts": *[_id == "texts"][0]{ round, tokensToWin, start, out, shielded, roundWinner, pickCard, mustPlayCountess, chooseOther, chooseAny, nameCharacter, noTarget, keepOne, putBack, play, keep, deal, swap, targetPlayer },  "characters": *[_type == "character"]{ key, name, text, image }}
 export type CATALOG_QUERY_RESULT = {
   game:
     | {
@@ -665,6 +678,19 @@ export type CATALOG_QUERY_RESULT = {
         out: null;
         shielded: null;
         roundWinner: null;
+        pickCard: null;
+        mustPlayCountess: null;
+        chooseOther: null;
+        chooseAny: null;
+        nameCharacter: null;
+        noTarget: null;
+        keepOne: null;
+        putBack: null;
+        play: null;
+        keep: null;
+        deal: null;
+        swap: null;
+        targetPlayer: null;
       }
     | {
         round: LocaleString | null;
@@ -673,6 +699,19 @@ export type CATALOG_QUERY_RESULT = {
         out: LocaleString | null;
         shielded: LocaleString | null;
         roundWinner: LocaleString | null;
+        pickCard: LocaleString | null;
+        mustPlayCountess: LocaleString | null;
+        chooseOther: LocaleString | null;
+        chooseAny: LocaleString | null;
+        nameCharacter: LocaleString | null;
+        noTarget: LocaleString | null;
+        keepOne: LocaleString | null;
+        putBack: LocaleString | null;
+        play: LocaleString | null;
+        keep: LocaleString | null;
+        deal: LocaleString | null;
+        swap: LocaleString | null;
+        targetPlayer: LocaleString | null;
       }
     | null;
   characters: Array<{
@@ -703,7 +742,7 @@ export type CATALOG_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "game": *[_id == "game"][0]{ cardBack },\n  "texts": *[_id == "texts"][0]{ round, tokensToWin, start, out, shielded, roundWinner },\n  "characters": *[_type == "character"]{ key, name, text, image }\n}': CATALOG_QUERY_RESULT;
+    '{\n  "game": *[_id == "game"][0]{ cardBack },\n  "texts": *[_id == "texts"][0]{ round, tokensToWin, start, out, shielded, roundWinner, pickCard, mustPlayCountess, chooseOther, chooseAny, nameCharacter, noTarget, keepOne, putBack, play, keep, deal, swap, targetPlayer },\n  "characters": *[_type == "character"]{ key, name, text, image }\n}': CATALOG_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

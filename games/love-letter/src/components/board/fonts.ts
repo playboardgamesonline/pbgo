@@ -25,3 +25,14 @@ export function tableFonts({ bodyFont, displayFont, files }: FontSettings): Tabl
     body: body ? `"${body}", ${TABLE_FONT}` : undefined,
   }
 }
+
+/**
+ * A measure of the names on the plates: how wide a text is over the height of its lettering, in the display font at the weight of the table's lettering, as the browser sets it (a canvas, the font loaded: the faces wait for the fonts before the table draws).
+ * `plateFit` of the layout shrinks the plate of a long name by it.
+ */
+export function nameMeasure(font: string | undefined): (text: string) => number {
+  const g = document.createElement("canvas").getContext("2d")!
+  const size = 100
+  g.font = `${TABLE_WEIGHT} ${size}px ${font ?? PLATE_FONT}`
+  return (text) => g.measureText(text).width / size
+}

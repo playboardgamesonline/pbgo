@@ -14,16 +14,25 @@ import {
   faceUpPoses,
   fanPoses,
   fanSeen,
+  fitSentence,
+  guessPlaces,
+  guessPoses,
   handBox,
   handOf,
   LAYOUT_SETTINGS,
   middleBoxes,
+  nameWidth,
+  padPlace,
+  pairPlaces,
   PLATE_TRAILING,
   plateAt,
   plateBox,
+  plateFit,
   seatAngle,
   seatSpots,
   seenBoxes,
+  STRIP,
+  stripBox,
   tableBoxes,
   tableOf,
   tableQuads,
@@ -315,6 +324,36 @@ describe("the block of a seat: play area, hand, plate", () => {
     }
   })
 
+  it("draws the plate of a long name smaller, so that the avatar, the name and the tokens fit the room the layout keeps for them: a name of twelve capitals as wide as a W at a table of six, as every other", () => {
+    // `nameWidth` takes the width of a text over the height of its lettering: a W is about 0.9 of it in the display font in bold
+    const wide = nameWidth(12 * 0.9)
+    const short = nameWidth(4 * 0.9)
+    expect(plateFit(short)).toBe(1)
+    expect(plateFit(wide)).toBeLessThan(1)
+    expect(plateFit(nameWidth(6 * 0.62))).toBe(1)
+    for (const n of SIZES) {
+      const spots = seatSpots(ids(n), "p0")
+      const placed = areas(spots, "p0")
+      const boxes = [...tableBoxes(n)]
+      for (const [id, spot] of spots) {
+        const area = placed.get(id)!
+        const hand = handOf(area, id === "p0")
+        const fit = plateFit(wide)
+        const box = plateBox(spot, area, hand)
+        // what is drawn, as wide as the avatar, the name and the tokens are once the plate is fitted, centred where `plateAt` puts it: inside the box of the plate, whatever the name
+        const drawn = (0.18 + 0.56 + wide + PLATE_TRAILING) * fit * area.plate
+        expect(drawn, `${n} players: ${id}`).toBeLessThanOrEqual(box.halfWidth * 2 + 1e-9)
+        const along = { x: Math.cos(uprightYaw(spot.yaw)), z: -Math.sin(uprightYaw(spot.yaw)) }
+        const place = plateAt(spot, area, hand, fit)
+        // the centre of what is drawn (the place, half the room of the tokens to the right) is the middle of the box, along the plate's row
+        expect((box.x - place.x) * along.x + (box.z - place.z) * along.z, `${n} players: ${id}`).toBeCloseTo((PLATE_TRAILING * fit * area.plate) / 2)
+        // and the box of what is drawn meets no other box of the table but the plate's own
+        const content = { ...box, halfWidth: drawn / 2 }
+        for (const other of boxes) if (other.x !== box.x || other.z !== box.z) expect(boxesMeet(content, other), `${n} players: ${id}`).toBe(false)
+      }
+    }
+  })
+
   it("turns a plate to read upright, never upside down, for every seat of every table", () => {
     for (const n of SIZES) {
       const spots = seatSpots(ids(n), "p0")
@@ -333,12 +372,12 @@ describe("what lies on the table", () => {
   /** Every box of a table, named, in the order `tableBoxes` gives them: the plate, the area and the hand of each seat, then the middle */
   const named = (n: number, full: boolean, seated: boolean) => {
     const boxes = tableBoxes(n, full, seated)
-    const names = [...Array.from({ length: n }, (_, i) => [`plate ${i}`, `area ${i}`, `hand ${i}`]).flat(), ...middleBoxes(n === 2).map((_, i) => `middle ${i}`)]
+    const names = [...Array.from({ length: n }, (_, i) => [`plate ${i}`, `area ${i}`, `hand ${i}`]).flat(), ...middleBoxes(n === 2).map((_, i) => `middle ${i}`), "strip"]
     return boxes.map((box, i) => ({ name: names[i]!, box }))
   }
 
-  it("is one box for each plate, play area and hand of a seat, and for each of the deck, the card set aside and, at two players, the cards set aside face up", () => {
-    for (const n of SIZES) expect(tableBoxes(n)).toHaveLength(3 * n + (n === 2 ? 3 : 2))
+  it("is one box for each plate, play area and hand of a seat, and for each of the deck, the card set aside and, at two players, the cards set aside face up, and one for the strip of the controls", () => {
+    for (const n of SIZES) expect(tableBoxes(n)).toHaveLength(3 * n + (n === 2 ? 3 : 2) + 1)
   })
 
   it("never lays a plate, a play area, a hand or the middle over another, at every size of table, for a player and for a spectator, with the areas at the nominal size and at all the room they may take", () => {
@@ -381,7 +420,7 @@ describe("the zones that choose a player", () => {
           for (let j = i + 1; j < n; j++) expect(boxesMeet(boxes[i]!, boxes[j]!), `${n} players${seated ? "" : ", spectator"}: zones ${i} and ${j}`).toBe(false)
         }
         // the zones against the middle of the table
-        for (const zone of boxes) for (const middle of middleBoxes(n === 2)) expect(boxesMeet(zone, middle), `${n} players${seated ? "" : ", spectator"}: a zone and the middle`).toBe(false)
+        for (const zone of boxes) for (const middle of [...middleBoxes(n === 2), stripBox()]) expect(boxesMeet(zone, middle), `${n} players${seated ? "" : ", spectator"}: a zone and the middle`).toBe(false)
       }
     }
   })
@@ -411,6 +450,69 @@ describe("the zones that choose a player", () => {
 
   it("is at least as wide as a few cards, even for a play area with none in it", () => {
     for (const n of SIZES) for (const zone of zoneBoxes(n)) expect(zone.halfWidth * 2, `${n} players`).toBeGreaterThanOrEqual(2)
+  })
+})
+
+describe("the strip of the controls", () => {
+  const inside = (pad: { x: number; z: number; width: number; depth: number }, box = stripBox()) =>
+    Math.abs(pad.x) + pad.width / 2 <= box.halfWidth + 1e-9 && pad.z - pad.depth / 2 >= box.z - box.halfDepth - 1e-9 && pad.z + pad.depth / 2 <= box.z + box.halfDepth + 1e-9
+  const boxOf = (pad: { x: number; z: number; width: number; depth: number }): Box => ({ x: pad.x, z: pad.z, halfWidth: pad.width / 2, halfDepth: pad.depth / 2, yaw: 0 })
+
+  it("holds every pad it draws, whichever is drawn, and stays between the deck and the card set aside, with room to spare", () => {
+    for (const pad of [padPlace(), ...pairPlaces(), ...guessPlaces()]) expect(inside(pad)).toBe(true)
+    const deckEdge = LAYOUT_SETTINGS.deckX + (CARD.width * LAYOUT_SETTINGS.deckScale) / 2
+    const asideEdge = LAYOUT_SETTINGS.asideX - (CARD.width * LAYOUT_SETTINGS.asideScale) / 2
+    expect(stripBox().halfWidth).toBeLessThan(asideEdge)
+    expect(-stripBox().halfWidth).toBeGreaterThan(deckEdge)
+  })
+
+  it("lays the nine characters out as two rows of small faces, five then four, each row centred, that touch nothing, in the order of their value", () => {
+    const places = guessPlaces()
+    expect(places).toHaveLength(9)
+    expect(guessPoses()).toHaveLength(9)
+    for (let i = 0; i < 9; i++) for (let j = i + 1; j < 9; j++) expect(boxesMeet(boxOf(places[i]!), boxOf(places[j]!))).toBe(false)
+    // the first row has five, the second four, and each is centred on the middle of the table
+    expect(places.slice(0, 5).every((place) => place.z === places[0]!.z)).toBe(true)
+    expect(places.slice(5).every((place) => place.z === places[5]!.z)).toBe(true)
+    expect(places[5]!.z).toBeGreaterThan(places[0]!.z)
+    expect(places[0]!.x + places[4]!.x).toBeCloseTo(0)
+    expect(places[5]!.x + places[8]!.x).toBeCloseTo(0)
+    // left to right, by value
+    for (const row of [places.slice(0, 5), places.slice(5)]) for (let i = 1; i < row.length; i++) expect(row[i]!.x).toBeGreaterThan(row[i - 1]!.x)
+  })
+
+  it("makes each of the nine faces big enough to press, and to know by its picture: at least half of a card of the table", () => {
+    for (const place of guessPlaces()) expect(place.width).toBeGreaterThanOrEqual(CARD.width * 0.5)
+    expect(STRIP.guess.scale).toBeGreaterThanOrEqual(0.5)
+  })
+
+  it("puts Swap and Keep side by side, a gap apart, and the single pad in the middle", () => {
+    const [swap, keep] = pairPlaces()
+    expect(swap.x).toBeLessThan(0)
+    expect(keep.x).toBeGreaterThan(0)
+    expect(keep.x - swap.x - swap.width).toBeGreaterThan(0)
+    expect(padPlace().x).toBe(0)
+  })
+
+  it("keeps the sentence above the pads", () => {
+    for (const pad of [padPlace(), ...pairPlaces(), ...guessPlaces()]) expect(STRIP.sentence.z + STRIP.sentence.height / 2).toBeLessThanOrEqual(pad.z - pad.depth / 2 + 1e-9)
+  })
+
+  it("fits a sentence in its width: on one line when it is short, on two when it is long, smaller when two lines do not fit, and never more than the height it is given", () => {
+    const wide = STRIP.sentence.width
+    const one = fitSentence("Choose a card", wide, 0.42)
+    expect(one.lines).toEqual(["Choose a card"])
+    expect(one.height).toBeCloseTo(0.42)
+    const two = fitSentence("Choose a player, yourself included", wide, 0.42)
+    expect(two.lines).toHaveLength(2)
+    expect(two.lines.join(" ")).toBe("Choose a player, yourself included")
+    for (const line of two.lines) expect(Array.from(line).length * 0.58 * two.height).toBeLessThanOrEqual(wide + 1e-9)
+    const long = fitSentence("Nobody can be chosen: the card is played with no effect at all, whatever it is", wide, 0.42)
+    expect(long.lines).toHaveLength(2)
+    expect(long.height).toBeLessThan(0.42)
+    expect(long.height).toBeGreaterThanOrEqual(0.21)
+    expect(fitSentence("", wide, 0.42).lines).toEqual([])
+    expect(fitSentence("Unbroken", wide, 0.42).lines).toEqual(["Unbroken"])
   })
 })
 

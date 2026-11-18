@@ -35,8 +35,8 @@ export const ERROR_MESSAGES: (Said & { code: string })[] = [
 ]
 
 /**
- * The words of the board: the fields of the "Board" tab of `texts` (`WORD_FIELDS` of `src/lib/words.ts`, which `board-words.test.ts` keeps equal to this list and to the Studio). The `{placeholders}` are filled in by the board: `{number}` is the round and
- * `{count}` the favor tokens that win. English is the base every language falls back to; French follows the leaflet's terms (manche, pion Faveur) and the board speaks to a player as "tu", like the prompts of the other games. Both are written for the platform,
+ * The words of the board: the fields of the "Board" tab of `texts` (`WORD_FIELDS` of `src/lib/words.ts`, which `board-words.test.ts` keeps equal to this list and to the Studio). The `{placeholders}` are filled in by the board: `{number}` is the round,
+ * `{count}` the favor tokens that win and `{target}` the name of a player. English is the base every language falls back to; French follows the leaflet's terms (manche, pion Faveur) and the board speaks to a player as "tu", like the prompts of the other games. Both are written for the platform,
  * for the owner to read; Spanish and German have no source and stay empty.
  */
 export const BOARD_WORDS: (Said & { key: string })[] = [
@@ -46,6 +46,19 @@ export const BOARD_WORDS: (Said & { key: string })[] = [
   { key: "out", fr: "Hors manche", en: "Out" },
   { key: "shielded", fr: "Protégé", en: "Protected" },
   { key: "roundWinner", fr: "A gagné la manche", en: "Won the round" },
+  { key: "pickCard", fr: "Choisis une carte à jouer", en: "Choose a card to play" },
+  { key: "mustPlayCountess", fr: "Tu dois jouer la Comtesse", en: "You must play the Countess" },
+  { key: "chooseOther", fr: "Choisis un autre joueur", en: "Choose another player" },
+  { key: "chooseAny", fr: "Choisis un joueur, toi compris", en: "Choose a player, yourself included" },
+  { key: "nameCharacter", fr: "Nomme un personnage", en: "Name a character" },
+  { key: "noTarget", fr: "Personne n’est ciblable : la carte est sans effet", en: "Nobody can be chosen: the card has no effect" },
+  { key: "keepOne", fr: "Garde une carte", en: "Keep one card" },
+  { key: "putBack", fr: "Les autres vont sous la pioche, dans cet ordre", en: "The others go under the deck, in this order" },
+  { key: "play", fr: "Jouer", en: "Play" },
+  { key: "keep", fr: "Garder", en: "Keep" },
+  { key: "deal", fr: "Distribuer", en: "Deal" },
+  { key: "swap", fr: "Inverser", en: "Swap" },
+  { key: "targetPlayer", fr: "Choisir {target}", en: "Choose {target}" },
 ]
 
 /** A `localeString` and a `localeText` of the shared Studio schema with the languages that have a text. The content kit's builders refuse an empty language; here Spanish and German stay empty on purpose, as in the characters. */

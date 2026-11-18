@@ -109,6 +109,8 @@ function load(catalog: ClientCatalog, style: FaceStyle): Promise<Pictures> {
 export type Faces = {
   /** The texture of the face of a character, by its key in the engine's catalogue: its picture from Sanity with its name and its text drawn over it, or a stand-in that says `[missing: …]` */
   face: (key: CharacterKey) => Texture
+  /** The canvas a face is painted on, which the lens of the screen draws again at the size of the page: the same face, lettering and all */
+  source: (key: CharacterKey) => HTMLCanvasElement
   /** The back of every card: the picture of the `game` document, or a stand-in that says `[missing: card back]` */
   back: Texture
 }
@@ -119,8 +121,10 @@ export type Faces = {
  */
 export function useFaces(catalog: ClientCatalog, style: FaceStyle): Faces {
   const pictures = use(load(catalog, style))
+  const face = (key: CharacterKey) => pictures.faces[key] ?? standIn(key, CARD_SIZE, { label: missing(`characters.${key}.image`) })
   return {
-    face: (key) => pictures.faces[key] ?? standIn(key, CARD_SIZE, { label: missing(`characters.${key}.image`) }),
+    face,
+    source: (key) => face(key).image as HTMLCanvasElement,
     back: pictures.back ?? standIn("back", CARD_SIZE, { label: missing("card back") }),
   }
 }

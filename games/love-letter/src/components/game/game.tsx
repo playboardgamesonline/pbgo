@@ -2,7 +2,7 @@
 
 import type { PlayerView } from "@love-letter/engine"
 import dynamic from "next/dynamic"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useAnnouncementSettings } from "@pbgo/core/components/game/announcement"
 import { GameProvider, useGame } from "@pbgo/core/components/game/context"
@@ -18,6 +18,8 @@ import type { PublicGame } from "@pbgo/core/lib/game-types"
 import { seatsOf } from "@pbgo/core/lib/seat-avatar"
 import { type ClientCatalog, MISSING_CATALOG } from "../../lib/catalog"
 import { fill } from "../../lib/words"
+import type { ClientAction } from "../board/turn"
+import { Lens } from "./lens"
 
 const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
 
@@ -62,6 +64,7 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   const { words } = catalog
   const settings = useAnnouncementSettings()
   const { announce, element: announcement, current } = useAnnouncements(settings)
+  const [sending, setSending] = useState(false)
   const previous = useRef<{ round: number; turn: string | null; phase: string } | null>(null)
 
   const meId = view.me?.id ?? null
@@ -98,6 +101,19 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
       .catch((e: Error) => toast.error(e.message))
   }
 
+  /** What the viewer does: a card played, a card kept, the next round dealt. One move at a time: the pads wait for the answer, and a refusal is a toast */
+  async function send(action: ClientAction) {
+    if (sending) return
+    setSending(true)
+    try {
+      onUpdate(await api.action(game.code, action))
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setSending(false)
+    }
+  }
+
   // The commands of the game: a folder of the debug panel, written down here and drawn by the panel (`DebugSlot`) when it is there
   useDebugFolder(
     {
@@ -109,6 +125,25 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
         "NEXT TURN · auto play": button(() => runDebugCommand("turn")),
         "ROUND · play to its count": button(() => runDebugCommand("round")),
         "END · play to the end": button(() => runDebugCommand("over")),
+      }),
+    },
+    [game.code],
+  )
+  // The table rigged to reach a situation at once (the engine's own debug commands, which act on the turn that waits for a card): the Countess rule, a Princess, a Chancellor, the deck nearly out, every other player protected, a game nearly won
+  useDebugFolder(
+    {
+      folder: "Rig the table",
+      tab: "GAME",
+      order: 1,
+      closed: false,
+      schema: ({ button }) => ({
+        "Countess and King in hand": button(() => runDebugCommand("countessAndKing")),
+        "Princess in hand": button(() => runDebugCommand("princessInHand")),
+        "Chancellor in hand": button(() => runDebugCommand("chancellorInHand")),
+        "Deck down to two cards": button(() => runDebugCommand("twoCardsLeft")),
+        "Deck down to one card": button(() => runDebugCommand("oneCardLeft")),
+        "Every other player protected": button(() => runDebugCommand("allProtected")),
+        "One token short of winning": button(() => runDebugCommand("nearTarget")),
       }),
     },
     [game.code],
@@ -133,13 +168,14 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
       overlay={
         <>
           {announcement}
+          <Lens />
           <StalledTurn onUpdate={onUpdate} />
           {ended && !current && <GameOver onUpdate={onUpdate} history={[]} />}
           <DebugSlot />
         </>
       }
     >
-      <Scene view={view} catalog={catalog} held={held} onLoaded={onLoaded} />
+      <Scene view={view} catalog={catalog} onAction={(action) => void send(action)} busy={sending} held={held} onLoaded={onLoaded} />
     </GameHud>
   )
 }

@@ -1,17 +1,23 @@
 "use client"
 
-import type { Face, PlayerView, PublicSeat } from "@love-letter/engine"
+import { type Face, GUESSES, type PlayerView, type PublicSeat } from "@love-letter/engine"
+import { useGame } from "@pbgo/core/components/game/context"
+import { shortName } from "@pbgo/core/lib/short-name"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import { Counter, onTable, Pile, PlayerSeat, Stack, Table, TableText, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
-import { useDeferredValue, useMemo } from "react"
+import { useDeferredValue, useEffect, useMemo, useState } from "react"
 import { AdditiveBlending } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
+import { holdHovered, holdPicked, releaseHovered } from "../../lib/lens"
+import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { TABLE_WEIGHT, tableFonts } from "./fonts"
+import { OrderMarker, Strip, TargetZones, tonesOf } from "./controls"
+import { nameMeasure, TABLE_WEIGHT, tableFonts } from "./fonts"
 import { GLOWS, lightGlows } from "./glows"
-import { areaPoses, areas, backsPoses, CARD, fanPoses, faceUpPoses, handOf, LAYOUT_FIELDS, LAYOUT_SETTINGS, middlePlaces, PLATE_TRAILING, plateAt, revealedPoses, seatSpots } from "./layout"
+import { areaPoses, areas, backsPoses, CARD, fanPoses, faceUpPoses, guessPoses, handOf, LAYOUT_FIELDS, LAYOUT_SETTINGS, middlePlaces, nameWidth, PLATE_TRAILING, plateAt, plateFit, revealedPoses, seatSpots, zones } from "./layout"
 import { matTexture } from "./mat"
 import { CARD_SIZE, useFaces } from "./textures"
+import { type ClientAction, keepAction, NO_CHOICE, playAction, pressable, pressCard, pressTarget, stepOf, swapOrder, validChoice, type Choice } from "./turn"
 
 /** The pool of light of the mat: how far across it spreads, in world units. Past it the table is the plain colour it fades into. */
 const MAT_SIZE = 30
@@ -31,6 +37,10 @@ export type SceneProps = {
   view: PlayerView
   /** The faces, the names and the card texts of the characters, the back of the cards and the words of the board, from Sanity */
   catalog: ClientCatalog
+  /** What the viewer sends: a card played (with the player it picks and the character it names), the card kept after a Chancellor, the deal of the next round. The platform puts the player in */
+  onAction: (action: ClientAction) => void
+  /** A move is on its way to the server: the pads wait for the answer */
+  busy: boolean
   /** The start screen is up: the camera's entrance waits for it to go (`held` of the shared `Table`) */
   held?: boolean
   /** Called once when the table is drawn with everything it waited for (`onLoaded` of the shared `Table`) */
@@ -58,27 +68,57 @@ function Tokens({ id, count, target, color, ink }: { id: string; count: number; 
   )
 }
 
-function World({ view, catalog }: SceneProps) {
+function World({ view, catalog, onAction, busy }: SceneProps) {
   // The table's own folders (camera, cards, seats, glows, lights...) are made by the shared `Table`; the game binds the knobs of its layout
   useSettings("Layout", LAYOUT_SETTINGS, LAYOUT_FIELDS, { order: 1 })
   const { theme, bodyFont, displayFont, files } = useSiteSettings()
-  // The lettering on the table is drawn in the fonts of the game's settings (the display font for names, counts and plates, the body font for the card texts)
+  // The lettering on the table is drawn in the fonts of the game's settings (the display font for names, counts and plates, the body font for the card texts and the sentences)
   const fonts = tableFonts({ bodyFont, displayFont, files })
   lightGlows(theme.accent)
   const faces = useFaces(catalog, { nameFont: fonts.display, textFont: fonts.body, ink: theme.surfaceDark })
   const { words } = catalog
+  const { nickname } = useGame()
   const meId = view.me?.id ?? null
   const ids = view.players.map((player) => player.id)
   const key = ids.join("|")
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the ids
   const spots = useMemo(() => seatSpots(ids, meId), [key, meId])
   const placed = useMemo(() => areas(spots, meId), [spots, meId])
+  const pressZones = useMemo(() => zones(spots, placed, meId), [spots, placed, meId])
   const R = LAYOUT_SETTINGS
   const { deck, aside, faceUp } = middlePlaces()
   const ink = { color: theme.foreground, weight: TABLE_WEIGHT }
+  const tones = tonesOf(theme)
+  // the plate of a long name is drawn smaller, so that the avatar, the name and the tokens fit the room the layout keeps for them
+  const measure = useMemo(() => nameMeasure(fonts.display), [fonts.display])
 
-  /** A card of the view as the table draws it: its face, the back it lies on, and whether its player is out of the round */
-  const cardOf = (face: Face, out = false, glow: ZoneCard["glow"] = null): ZoneCard => ({ key: face.id, id: face.id, front: faces.face(face.type), back: faces.back, out, glow })
+  // What the viewer has picked this turn, and what the board offers for it (`turn.ts`): a pick that no longer fits the view (the card left the hand, the turn passed) is dropped
+  const [picked, setPicked] = useState<Choice>(NO_CHOICE)
+  const choice = validChoice(view, picked)
+  if (choice !== picked) setPicked(choice)
+  const step = stepOf(view, choice)
+  const [hovered, setHovered] = useState<number | null>(null)
+  const pickedFace = view.me?.hand.find((face) => face.id === choice.card)
+  // a screen that cannot hover holds up the card that is picked (`Lens` of the screen)
+  useEffect(() => {
+    holdPicked(pickedFace ? { id: pickedFace.id, type: pickedFace.type, source: faces.source(pickedFace.type) } : null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the faces are painted once for the page: the card picked is what changes
+  }, [pickedFace?.id])
+  useEffect(() => () => holdPicked(null), [])
+  const send = (action: ClientAction) => {
+    if (!busy) onAction(action)
+  }
+
+  /** A card of the view as the table draws it: its face, the back it lies on, whether its player is out of the round, and the lens that holds it up for reading while the pointer is on it */
+  const cardOf = (face: Face, out = false, glow: ZoneCard["glow"] = null): ZoneCard => ({
+    key: face.id,
+    id: face.id,
+    front: faces.face(face.type),
+    back: faces.back,
+    out,
+    glow,
+    onHover: (over) => (over ? holdHovered({ id: face.id, type: face.type, source: faces.source(face.type) }) : releaseHovered(face.id)),
+  })
 
   return (
     <>
@@ -86,17 +126,21 @@ function World({ view, catalog }: SceneProps) {
         const area = placed.get(player.id)!
         const viewer = player.id === meId
         const hand = handOf(area, viewer)
-        const plate = plateAt(spots.get(player.id)!, area, hand)
+        const fit = plateFit(nameWidth(measure(shortName(nickname(player.id)))))
+        const plate = plateAt(spots.get(player.id)!, area, hand, fit)
         const frame = { x: area.at.x, z: area.at.z, yaw: area.yaw }
         // the Handmaid that protects a player is the last one they played: protection ends when their next turn starts, and a player plays one card a turn (a Prince's discard comes after it, a Handmaid stays the last of its kind)
         const handmaid = player.shielded ? [...player.area].reverse().find((face) => face.type === "handmaid") : undefined
         // the hand: faces to its owner, and to everybody once a round that ended on a comparison laid them down; otherwise a few backs, only counted
         const held = viewer ? (view.me?.hand ?? []) : (player.hand ?? [])
         const flat = !viewer && player.hand !== null
+        // the viewer's hand: the card picked, or under the pointer, is held up toward them; a card the Countess rule forbids is grey and cannot be pressed
+        const raised = held.findIndex((face) => face.id === (choice.card ?? hovered))
+        const forbidden = (face: Face) => view.phase.kind === "turn" && view.phase.player === meId && !pressable(view, face)
         return (
           <group key={player.id}>
             {/* The plate stands beyond the cards, turned the way its text reads (never upside down): the seat is drawn in its own frame, with its centre at the plate's */}
-            <group position={[plate.x, 0, plate.z]} rotation-y={plate.yaw} scale={area.plate}>
+            <group position={[plate.x, 0, plate.z]} rotation-y={plate.yaw} scale={area.plate * fit}>
               <PlayerSeat
                 id={player.id}
                 spot={{ x: 0, z: 0, yaw: 0 }}
@@ -110,9 +154,34 @@ function World({ view, catalog }: SceneProps) {
             </group>
             {/* What lies in front of the player: every card they played or discarded this round, face up, oldest first, turned to face their player. A player who is out has them grey */}
             <Zone frame={frame} layout={areaPoses(player.area.length, area)} size={CARD_SIZE} cards={player.area.map((face) => cardOf(face, player.out, face.id === handmaid?.id ? GLOWS.shielded : null))} />
-            {/* The hand: the viewer's is a fan of faces that stands up toward them; an opponent's is a few small backs, or their face up cards once the round has laid them down */}
+            {/* The hand: the viewer's is a fan of faces that stands up toward them, whose cards they press; an opponent's is a few small backs, or their face up cards once the round has laid them down */}
             {viewer ? (
-              <Zone frame={{ x: hand.at.x, z: hand.at.z, yaw: 0 }} layout={fanPoses(held.length, hand)} size={CARD_SIZE} cards={held.map((face) => cardOf(face))} />
+              <Zone
+                frame={{ x: hand.at.x, z: hand.at.z, yaw: 0 }}
+                layout={fanPoses(held.length, hand, raised)}
+                size={CARD_SIZE}
+                cards={held.map((face) => {
+                  const can = pressable(view, face)
+                  const mark = step.kind === "order" ? step.others.findIndex((other) => other.id === face.id) : -1
+                  return {
+                    ...cardOf(face, forbidden(face), choice.card === face.id ? GLOWS.selection : null),
+                    gloss: can,
+                    onClick: can
+                      ? (event) => {
+                          event.stopPropagation()
+                          if (!busy) setPicked(pressCard(choice, face.id))
+                        }
+                      : undefined,
+                    onHover: (over) => {
+                      setHovered((current) => (over ? face.id : current === face.id ? null : current))
+                      if (over) holdHovered({ id: face.id, type: face.type, source: faces.source(face.type) })
+                      else releaseHovered(face.id)
+                    },
+                    // after a Chancellor, the cards put back wear the place they take under the deck
+                    children: mark >= 0 ? <OrderMarker place={mark + 1} color={theme.accent} ink={theme.surfaceDark} /> : undefined,
+                  }
+                })}
+              />
             ) : flat ? (
               <Zone frame={{ x: hand.at.x, z: hand.at.z, yaw: hand.yaw }} layout={revealedPoses(held.length, hand)} size={CARD_SIZE} cards={held.map((face) => cardOf(face))} />
             ) : (
@@ -134,6 +203,55 @@ function World({ view, catalog }: SceneProps) {
       {/* The card set aside face down, apart from the deck: which one it is, nobody knows. At two players three more are set aside face up, and everybody reads them */}
       {view.aside === 1 && <Zone frame={{ x: aside.x, z: aside.z }} layout={[onTable(0, 0, { face: "down", scale: R.asideScale, yaw: 0.14 })]} size={CARD_SIZE} cards={[{ key: "aside", front: faces.back, back: faces.back }]} />}
       {view.faceUp.length > 0 && <Zone frame={{ x: faceUp.x, z: faceUp.z }} layout={faceUpPoses(view.faceUp.length)} size={CARD_SIZE} cards={view.faceUp.map((face) => cardOf(face))} />}
+
+      {/* The players the picked card can choose: their zone lies lit, pressed anywhere. A Priest, a Baron, a King and a Prince play at once; a Guard names the player and goes on to the nine characters */}
+      {(step.kind === "target" || step.kind === "guess") && (
+        <TargetZones
+          ids={step.targets}
+          zones={pressZones}
+          chosen={step.kind === "guess" ? step.target : null}
+          tone={tones.zone}
+          labelOf={(id) => fill(words.targetPlayer, { target: nickname(id) })}
+          disabled={busy}
+          onPress={(id) => {
+            if (step.card.type === "guard") setPicked(pressTarget(choice, id))
+            else send(playAction(step.card, id))
+          }}
+        />
+      )}
+
+      {/* The strip in the middle: the sentence that says what to do and the pad of the moment */}
+      <Strip
+        step={step}
+        words={words}
+        tones={tones}
+        ink={theme.foreground}
+        accent={theme.accent}
+        fonts={fonts}
+        busy={busy}
+        onPlay={() => step.kind === "pad" && send(playAction(step.card))}
+        onKeep={() => step.kind === "order" && send(keepAction(step))}
+        onSwap={() => step.kind === "order" && setPicked(swapOrder(step, choice))}
+        onDeal={() => send({ type: "deal" })}
+      />
+      {/* A Guard's guess: the nine characters it can name, as small faces under the sentence. A press names one, and the Guard is played; the lens reads the one under the pointer */}
+      {step.kind === "guess" && (
+        <Zone
+          layout={guessPoses()}
+          size={CARD_SIZE}
+          cards={GUESSES.map((type, i) => ({
+            key: `guess-${type}`,
+            front: faces.face(type),
+            back: faces.back,
+            gloss: !busy,
+            onClick: (event) => {
+              event.stopPropagation()
+              send(playAction(step.card, step.target, type))
+            },
+            onHover: (over) => (over ? holdHovered({ id: -1 - i, type, source: faces.source(type) }) : releaseHovered(-1 - i)),
+          }))}
+        />
+      )}
     </>
   )
 }

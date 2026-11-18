@@ -1,5 +1,5 @@
 // Plays the viewer's side of a table with the mouse, the way a person does: whatever the game's config says is next (`presses.plan`), the board has to offer a control for (`presses.find`), at a pixel that a pointer reaches, and a press
-// of it has to move the table on (its version changes). The other seats play through the API. A press that does nothing is a control under the banner, the HUD or another card; the report says what is on top of it.
+// of it has to move the table on (its version changes), unless the plan says the press is `local`: it only changes what the board offers (a card picked before the control that sends it). The other seats play through the API. A press that does nothing is a control under the banner, the HUD or another card; the report says what is on top of it.
 import { writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { scanPressables } from "../probe.mjs"
@@ -82,9 +82,16 @@ export async function presses(ctx, seats) {
       const before = latest.version
       const pressedAt = Date.now()
       let moved = null
-      for (let attempt = 0; attempt < 2 && !moved; attempt++) {
+      if (plan.local) {
+        // a press that only changes what the board offers (a card picked, before the control that sends it): the table does not move, so there is nothing to wait for but the board
         await page.click(...pressable.pixel)
-        moved = await waitFor(async () => ((await table.state(0)).version !== before ? true : null), { timeoutMs: 6000, everyMs: 300 })
+        await sleep(plan.settleMs ?? 700)
+        moved = true
+      } else {
+        for (let attempt = 0; attempt < 2 && !moved; attempt++) {
+          await page.click(...pressable.pixel)
+          moved = await waitFor(async () => ((await table.state(0)).version !== before ? true : null), { timeoutMs: 6000, everyMs: 300 })
+        }
       }
       if (!moved) {
         await evidence(`${plan.label}-nothing`)

@@ -57,7 +57,7 @@ export const LAYOUT_SETTINGS = {
   asideX: 3.1,
   asideZ: 0.2,
   asideScale: 0.6,
-  faceUpX: 3.1,
+  faceUpX: 3.5,
   faceUpZ: 1.3,
   faceUpScale: 0.5,
 }
@@ -259,6 +259,20 @@ const PLATE_LETTER = 0.7 * SEAT_SETTINGS.nameHeight
 export const PLATE_LETTERS = 6
 export const PLATE_WIDTH = SEAT_SETTINGS.avatarGap + SEAT_SETTINGS.avatarSize + PLATE_LETTERS * PLATE_LETTER + PLATE_TRAILING
 
+/**
+ * The width of a name as the table draws it, in world units, at the size of a plate: `em` is the width of its text over the height of its lettering, as the browser measures it. The kit paints a lettering at 140 pixels over a canvas pixel of `height / 155`
+ * world units (`TableText`), and a name is `nameHeight` tall.
+ */
+export const nameWidth = (em: number) => (em * 140 * SEAT_SETTINGS.nameHeight) / 155
+
+/**
+ * How much smaller than its table says a plate is drawn so that what it shows, the avatar, a name `width` wide and the favor tokens, fits the box the layout keeps for it: 1 for a name that fits it, less for a longer one (the platform draws twelve letters
+ * at the most, in capitals as wide as a W). The name, the avatar and the tokens shrink together, about the same centre.
+ */
+export function plateFit(width: number): number {
+  return Math.min(1, PLATE_WIDTH / (SEAT_SETTINGS.avatarGap + SEAT_SETTINGS.avatarSize + width + PLATE_TRAILING))
+}
+
 /** What a plate occupies once it is drawn at the size of its table (`plateScale` of `tableOf`): how wide and deep it is, and the room of its tokens, in world units */
 const plateSize = ({ plate }: Pick<Area, "plate">) => ({ width: PLATE_WIDTH * plate, depth: PLATE_DEPTH * plate, trailing: PLATE_TRAILING * plate, middle: ((PLATE.drop - PLATE.lift) / 2) * plate })
 
@@ -349,12 +363,13 @@ function plateDistance(area: Area, hand: Hand): number {
  * Where the plate of a seat stands, and the yaw of its frame (the way its text reads: name, then the info line, going down the frame's +z). It stands beyond the cards, out from the middle of the table, clear of them by `blockGap`. The seat is drawn
  * with its avatar and its name centred on this place and the tokens hanging off the right of the name, so the place is half the room of the tokens (`PLATE_TRAILING`, at the size of the plate) left of the middle of the box (as read) and `middle` along the plate's own down from it: what is seen is centred in the box.
  */
-export function plateAt(spot: SeatSpot, area: Area, hand: Hand): Place & { yaw: number } {
+export function plateAt(spot: SeatSpot, area: Area, hand: Hand, fit = 1): Place & { yaw: number } {
   const yaw = uprightYaw(spot.yaw)
   const out = outwardOf(spot.yaw)
   const down = outwardOf(yaw)
   const along = alongOf(yaw)
-  const { middle, trailing } = plateSize(area)
+  // a plate drawn smaller for a long name (`plateFit`) keeps its centre in the middle of its box
+  const { middle, trailing } = plateSize({ plate: area.plate * fit })
   const distance = plateDistance(area, hand)
   return {
     x: area.at.x + out.x * distance - down.x * middle - (along.x * trailing) / 2,
@@ -414,14 +429,96 @@ export function middleBoxes(faceUp: boolean): Box[] {
   return boxes
 }
 
+/**
+ * The strip in the middle of the table, between the deck and the card set aside, where the viewer is told what to do and where the controls of the moment lie, one thing at a time: the sentence, then one pad (Play, Deal), two (Swap and Keep), or the nine
+ * characters a Guard can name. It lies well above the bottom band of the window that the banner of the cookie settings covers, and clear of everything else on the table: `layout.test.ts` and `camera.test.ts` hold both.
+ */
+export const STRIP = {
+  /** Half the width of the strip: the deck lies left of it and the card set aside right of it */
+  half: 2.4,
+  /** The sentence: where it is centred along z, how wide it may run and how tall its lettering is at most */
+  sentence: { z: -1.6, width: 4.7, height: 0.42 },
+  /** One pad, centred in the strip: Play, Deal */
+  pad: { z: 0.2, width: 2.8, depth: 1.1 },
+  /** Two pads side by side: Swap on the left, Keep on the right */
+  pair: { z: 0.2, width: 2.3, depth: 1.0, gap: 0.2 },
+  /** The nine characters a Guard can name, as small faces in two rows (five, then four, centred), in the order of their value: how big each is (a share of a card of the table), how many are in each row, the gap between two and where the first row lies along z */
+  guess: { scale: 0.62, rows: [5, 4] as readonly number[], gap: 0.1, z: -0.55 },
+}
+
+/** A pad on the table: where it lies and how big it is, in world units, along x and z */
+export type Pad = { x: number; z: number; width: number; depth: number }
+
+/** The pad of a single control: Play, Deal */
+export const padPlace = (): Pad => ({ x: 0, ...STRIP.pad })
+
+/** The two pads of a Chancellor's keep: Swap on the left, Keep on the right */
+export function pairPlaces(): [Pad, Pad] {
+  const { z, width, depth, gap } = STRIP.pair
+  const x = (width + gap) / 2
+  return [
+    { x: -x, z, width, depth },
+    { x, z, width, depth },
+  ]
+}
+
+/** Where the nine characters a Guard can name lie, row by row from the left (the order of `guessable`): each a small face, `width` by `depth` on the table */
+export function guessPlaces(count = 9): Pad[] {
+  const { scale, rows, gap, z } = STRIP.guess
+  const width = CARD.width * scale
+  const depth = CARD.height * scale
+  return rows
+    .flatMap((n, row) => Array.from({ length: n }, (_, i) => ({ x: (i - (n - 1) / 2) * (width + gap), z: z + row * (depth + gap), width, depth })))
+    .slice(0, count)
+}
+
+/** The slots of the nine small faces, in the frame of the table */
+export const guessPoses = (count = 9): Pose[] => guessPlaces(count).map((place) => onTable(place.x, place.z, { scale: STRIP.guess.scale }))
+
+/** The box that holds the sentence and every pad of the strip, whichever is drawn */
+export function stripBox(): Box {
+  const pads = [padPlace(), ...pairPlaces(), ...guessPlaces()]
+  const top = Math.min(STRIP.sentence.z - STRIP.sentence.height, ...pads.map((pad) => pad.z - pad.depth / 2))
+  const bottom = Math.max(...pads.map((pad) => pad.z + pad.depth / 2))
+  return { x: 0, z: (top + bottom) / 2, halfWidth: STRIP.half, halfDepth: (bottom - top) / 2, yaw: 0 }
+}
+
+/**
+ * A sentence laid on the table in a strip `width` wide: on one line when its lettering, at about `LETTER` of its height for each letter, fits at `height`; else broken at the space nearest the middle into two lines; else the largest size at which the longer of the two
+ * lines fits, never less than half of `height`.
+ */
+export function fitSentence(text: string, width: number, height: number): { lines: string[]; height: number } {
+  const parts = text.trim().split(/\s+/).filter(Boolean)
+  const whole = parts.join(" ")
+  const across = (line: string) => Array.from(line).length * SENTENCE_LETTER
+  if (parts.length <= 1 || across(whole) * height <= width) return { lines: whole === "" ? [] : [whole], height: Math.min(height, whole === "" ? height : width / across(whole)) }
+  // the break nearest the middle of the sentence, in letters
+  let best: string[] = [whole]
+  let gap = Infinity
+  for (let i = 1; i < parts.length; i++) {
+    const left = parts.slice(0, i).join(" ")
+    const right = parts.slice(i).join(" ")
+    const spread = Math.abs(Array.from(left).length - Array.from(right).length)
+    if (spread < gap) {
+      gap = spread
+      best = [left, right]
+    }
+  }
+  const longest = Math.max(...best.map(across))
+  return { lines: best, height: Math.max(height / 2, Math.min(height, width / longest)) }
+}
+
+/** How wide a letter of a sentence on the table is, as a share of its height: the body font in bold, wide enough for the capitals and the digits too */
+const SENTENCE_LETTER = 0.58
+
 /** How far a player's zone reaches past what it holds on every side when there is room, in world units: generous, so a click or a tap needs no aim. Each side stops short of whatever is there: another seat's plate, the deck. */
 export const ZONE_PADDING = 0.5
 
 /** The least a zone is wide, in world units: a play area with no card in it is still a place to press */
 export const ZONE_LEAST_WIDTH = 3
 
-/** What a zone must keep clear of besides other zones: the deck, the card set aside and the cards set aside face up */
-export const fixedBoxes = (faceUp: boolean): Box[] => middleBoxes(faceUp)
+/** What a zone must keep clear of besides other zones: the deck, the card set aside, the cards set aside face up and the strip of the controls */
+export const fixedBoxes = (faceUp: boolean): Box[] => [...middleBoxes(faceUp), stripBox()]
 
 /** A box grown by `by` on every side: what a zone keeps clear of, with a little room to spare */
 const clear = (box: Box, by = 0.02): Box => ({ ...box, halfWidth: box.halfWidth + by, halfDepth: box.halfDepth + by })
@@ -553,7 +650,7 @@ export function zoneBoxes(n: number, seated = true): Box[] {
 
 /**
  * Where things stand on a table of `n` players, as boxes: the plate of each seat, its play area (three cards, or all the room it may take when `full`) and its hand (two cards), and the deck with its count, the card set aside and, at two players, the three
- * cards set aside face up. The viewer is the first seat; a spectator (`seated` false) has none.
+ * cards set aside face up, and the strip of the controls. The viewer is the first seat; a spectator (`seated` false) has none.
  */
 export function tableBoxes(n: number, full = false, seated = true): Box[] {
   const ids = Array.from({ length: n }, (_, i) => String(i))
@@ -561,7 +658,7 @@ export function tableBoxes(n: number, full = false, seated = true): Box[] {
   const spots = seatSpots(ids, viewer)
   const placed = areas(spots, viewer)
   const all = blocks(spots, placed, viewer, { area: 3, hand: 2 }, full)
-  return [...[...all.values()].flatMap((block) => [block.plate, block.area, block.hand]), ...middleBoxes(n === 2)]
+  return [...[...all.values()].flatMap((block) => [block.plate, block.area, block.hand]), ...middleBoxes(n === 2), stripBox()]
 }
 
 /** A box on the other side of the table: the same distance from the middle line, turned the other way */
