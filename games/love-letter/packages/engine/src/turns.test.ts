@@ -24,9 +24,11 @@ describe("a turn", () => {
   })
 
   it("lets the player choose either of their two cards (p. 4)", () => {
-    const state = layout({ hands: { ana: ["spy", "king"] }, deck: ["baron"] })
-    expect(handNames(playCard(state, "ana", "king"), "ana")).toEqual(["spy"])
-    expect(areaNames(playCard(state, "ana", "king"), "ana")).toEqual(["king"])
+    const state = layout({ hands: { ana: ["spy", "countess"] }, deck: ["baron"] })
+    expect(handNames(playCard(state, "ana", "countess"), "ana")).toEqual(["spy"])
+    expect(areaNames(playCard(state, "ana", "countess"), "ana")).toEqual(["countess"])
+    expect(handNames(playCard(state, "ana", "spy"), "ana")).toEqual(["countess"])
+    expect(areaNames(playCard(state, "ana", "spy"), "ana")).toEqual(["spy"])
   })
 
   it("passes to the next player clockwise, who draws the top card of the deck (p. 4)", () => {

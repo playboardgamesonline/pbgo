@@ -109,6 +109,19 @@ export function nextInRound(s: State, from: number): number {
   throw new RangeError("Nobody is left in the round")
 }
 
+/** The only card of a seat's hand: what a player in the round holds between turns, or once they played the card of their turn. */
+export function soleCard(s: State, seat: number): number {
+  const hand = handOf(s, seat)
+  const [card] = hand
+  if (hand.length !== 1 || card === undefined) throw new RangeError(`Seat ${seat} holds ${hand.length} cards, one was expected`)
+  return card
+}
+
+/** The other players a card of `seat` can pick: still in the round and not protected by a Handmaid, in seat order (rulebook, pp. 5, 11). The player themselves is never in the list. */
+export function targetsOf(s: State, seat: number): number[] {
+  return inRound(s).filter((other) => other !== seat && s.shielded[other] !== true)
+}
+
 /** The ids of the cards the player in `seat` may play now: their whole hand on their turn, nothing otherwise. */
 export function playableOf(s: State, seat: number): number[] {
   return s.stage.kind === "play" && s.turn === seat ? [...handOf(s, seat)] : []

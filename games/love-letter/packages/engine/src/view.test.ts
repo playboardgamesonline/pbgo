@@ -107,11 +107,11 @@ describe("what a viewer is shown", () => {
     }
   })
 
-  it("says whose turn it is, and the number of tokens that win (p. 7)", () => {
+  it("says whose turn it is, the players a card can pick, and the number of tokens that win (p. 7)", () => {
     for (let n = 2; n <= 6; n++) {
       const state = newState(n, seedOf(n))
       const view = viewOf(state, null)
-      expect(view.phase).toEqual({ kind: "turn", player: state.seats[state.turn] })
+      expect(view.phase).toEqual({ kind: "turn", player: state.seats[state.turn], targets: state.seats.filter((_, seat) => seat !== state.turn) })
       expect(view.target).toBe([6, 5, 4, 3, 3][n - 2])
       expect(view.round).toBe(1)
     }

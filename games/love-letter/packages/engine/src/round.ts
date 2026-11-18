@@ -1,5 +1,5 @@
 import { deal, draw, shuffle } from "@pbgo/engine-kit"
-import { type Ctx, areaOf, emit, faceOf, facesOf, handOf, inRound, isOver, keyOf, nextInRound, playerAt, valueOf, winnersOf } from "./machine"
+import { type Ctx, areaOf, emit, faceOf, facesOf, handOf, inRound, isOver, keyOf, nextInRound, playerAt, soleCard, valueOf, winnersOf } from "./machine"
 
 /** How a round goes, from the deal to the count. */
 
@@ -59,14 +59,6 @@ export function endTurn(ctx: Ctx): void {
   else startTurn(ctx, nextInRound(s, s.turn))
 }
 
-/** The card of a seat that is in the round and between turns: it holds exactly one. */
-function heldBy(ctx: Ctx, seat: number): number {
-  const hand = handOf(ctx.s, seat)
-  const [card] = hand
-  if (hand.length !== 1 || card === undefined) throw new RangeError(`A player in the round holds one card at the end of a round, seat ${seat} holds ${hand.length}`)
-  return card
-}
-
 /**
  * The round is over (rulebook, p. 6). `last`: one player is left, they win and nothing is revealed. `deck`: the deck ran out, the players still in lay their hands
  * face up, the highest value wins and a tie gives every tied player the win. Each winner gains a favor token; the only player still in the round who played or
@@ -76,9 +68,9 @@ function heldBy(ctx: Ctx, seat: number): number {
 export function endRound(ctx: Ctx, how: "deck" | "last"): void {
   const { s } = ctx
   const left = inRound(s)
-  if (how === "deck") emit(ctx, { kind: "reveal", hands: left.map((seat) => ({ player: playerAt(s, seat), card: faceOf(s, heldBy(ctx, seat)) })) })
-  const best = how === "deck" ? Math.max(...left.map((seat) => valueOf(s, heldBy(ctx, seat)))) : null
-  const winners = best === null ? left : left.filter((seat) => valueOf(s, heldBy(ctx, seat)) === best)
+  if (how === "deck") emit(ctx, { kind: "reveal", hands: left.map((seat) => ({ player: playerAt(s, seat), card: faceOf(s, soleCard(s, seat)) })) })
+  const best = how === "deck" ? Math.max(...left.map((seat) => valueOf(s, soleCard(s, seat)))) : null
+  const winners = best === null ? left : left.filter((seat) => valueOf(s, soleCard(s, seat)) === best)
   const withSpy = left.filter((seat) => areaOf(s, seat).some((id) => keyOf(s, id) === "spy"))
   const spy = withSpy.length === 1 ? (withSpy[0] ?? null) : null
   for (const seat of winners) s.won[seat] = (s.won[seat] ?? 0) + 1

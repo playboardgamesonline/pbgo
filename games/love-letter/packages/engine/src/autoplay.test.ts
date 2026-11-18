@@ -91,6 +91,7 @@ describe("a game of absent players", () => {
     const state = layout({ hands: { ana: ["king", "priest"], bob: ["guard"] }, deck: ["baron", "spy"] })
     const stepped = autoPlayStep(state, "ana")
     expect(stepped.state).toEqual(autoPlayFor(state, "ana"))
-    expect(stepped.events.map(({ event }) => event.kind)).toEqual(["play", "draw"])
+    // the Priest it plays looks at the hand of the next player, who then draws
+    expect(stepped.events.map(({ event }) => event.kind)).toEqual(["play", "look", "draw"])
   })
 })

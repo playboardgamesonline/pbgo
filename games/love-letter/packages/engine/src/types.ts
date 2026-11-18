@@ -67,10 +67,11 @@ export type State = {
 
 /**
  * What a player can do.
- * - `play`: on your turn, play the card `card` (its id) of your hand.
+ * - `play`: on your turn, play the card `card` (its id) of your hand. `target` is the player it picks (the id of a player: another one for the Guard, Priest, Baron
+ *   and King, any one for the Prince), given when one can be chosen and never when none can. `guess` is the character a Guard names (any but the Guard).
  * - `deal`: between two rounds, the player who takes the first turn deals the next one.
  */
-export type Action = { type: "play"; playerId: string; card: number } | { type: "deal"; playerId: string }
+export type Action = { type: "play"; playerId: string; card: number; target?: string; guess?: CharacterKey } | { type: "deal"; playerId: string }
 
 /** One action, by its type: `ActionOf<"play">`. */
 export type ActionOf<T extends Action["type"]> = Extract<Action, { type: T }>
@@ -90,6 +91,8 @@ export const LOVE_LETTER_ERROR_CODES = [
   "INVALID_ACTION", // malformed
   "INVALID_PHASE", // an action of the game, but not one this step takes (dealing in the middle of a round, playing between two rounds)
   "UNKNOWN_CARD", // the card is not in the player's hand
+  "INVALID_TARGET", // the player the card picks is missing, is not at the table, or cannot be chosen: out of the round, protected by a Handmaid, or the player themselves where the card says another
+  "INVALID_CHOICE", // the character a Guard names is missing, or is not one of the nine other characters
 ] as const
 export type LoveLetterErrorCode = (typeof LOVE_LETTER_ERROR_CODES)[number]
 
@@ -121,13 +124,15 @@ export type Me = {
 
 /**
  * What a viewer sees of the round's decision.
- * - `turn`: `player` plays one of their two cards.
+ * - `turn`: `player` plays one of their two cards. `targets` are the other players a card can pick now (still in the round and not protected by a Handmaid), in
+ *   seat order: public, since who is out and who is protected is. A card that picks another player is played with no effect when there is none; the Prince can
+ *   always pick its own player.
  * - `between`: the round is over, `next` deals the next one and takes the first turn. `winners` won the round, `spy` earned the Spy's token (`null`
  *   when nobody did), `revealed` says that the players still in laid their hands face up.
  * - `over`: the game is over.
  */
 export type PublicPhase =
-  | { kind: "turn"; player: string }
+  | { kind: "turn"; player: string; targets: string[] }
   | { kind: "between"; next: string; winners: string[]; spy: string | null; revealed: boolean }
   | { kind: "over" }
 
@@ -159,6 +164,15 @@ export type PlayerView = {
  * - `round`: a round was dealt, `first` takes the first turn; `faceUp` are the three cards set aside face up (two players only).
  * - `draw`: `by` drew the top card of the deck. Only `by` reads which one: the others read the masked entry, with no `card`.
  * - `play`: `by` played `card`, which lies face up in front of them.
+ * - `guess`: a Guard of `by` named the character `guess` for `target`, who `hit` (holds it, and is out) or not. Public.
+ * - `look`: a Priest of `by` looked at the hand of `target`: only `by` reads which card.
+ * - `compare`: a Baron of `by` compared hands with `target`: the two read both cards, the others read that it happened.
+ * - `swap`: a King of `by` traded hands with `target`: the two read both cards, the others read that it happened. `cards.by` is what `by` held before, `cards.target`
+ *   what `target` held.
+ * - `discard`: a Prince of `by` made `player` (who can be `by`) discard `card`, now face up in front of them.
+ * - `out`: `player` is out of the round, `cause` says how (`guard`: named by a Guard, `baron`: the lower card, `princess`: she was played or discarded). `cards` are the
+ *   cards of their hand, laid face up in front of them (none when the Princess was the card a Prince made them discard).
+ * - `fizzled`: a card of `by` that picks another player was played with no effect, since every other player in the round is protected.
  * - `reveal`: the deck ran out and every player still in laid their hand face up.
  * - `end`: the round is over. `how` says how (`deck`: the highest card won, `last`: one player was left), `winners` won it, `spy` earned the Spy's token.
  * - `over`: the game is over, `winners` won it.
@@ -167,6 +181,13 @@ export type LoveLetterEvent =
   | { kind: "round"; number: number; first: string; faceUp: Face[] }
   | { kind: "draw"; by: string; card?: Face }
   | { kind: "play"; by: string; card: Face }
+  | { kind: "guess"; by: string; target: string; guess: CharacterKey; hit: boolean }
+  | { kind: "look"; by: string; target: string; card?: CharacterKey }
+  | { kind: "compare"; by: string; target: string; cards?: { by: CharacterKey; target: CharacterKey } }
+  | { kind: "swap"; by: string; target: string; cards?: { by: CharacterKey; target: CharacterKey } }
+  | { kind: "discard"; by: string; player: string; card: Face }
+  | { kind: "out"; player: string; cards: Face[]; cause: "guard" | "baron" | "princess" }
+  | { kind: "fizzled"; by: string }
   | { kind: "reveal"; hands: { player: string; card: Face }[] }
   | { kind: "end"; how: "deck" | "last"; winners: string[]; spy: string | null }
   | { kind: "over"; winners: string[] }

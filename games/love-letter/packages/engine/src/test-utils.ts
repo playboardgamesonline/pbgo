@@ -1,11 +1,11 @@
 import { type PlayerInfo, type Rng, createRng } from "@pbgo/engine-kit"
 import { step } from "./actions"
-import { CATALOGUE, type CharacterKey } from "./catalogue"
+import { CARDS, CATALOGUE, type CharacterKey, GUESSES } from "./catalogue"
 import { GAME } from "./game"
 import { keyOf } from "./machine"
 import { tokensToWin } from "./options"
 import { setupGame } from "./setup"
-import type { Action, LoveLetterLogEntry, Stage, State } from "./types"
+import type { Action, LoveLetterLogEntry, LoveLetterStep, Stage, State } from "./types"
 import { playerView } from "./view"
 
 /**
@@ -188,9 +188,14 @@ export function layout(spec: Layout = {}): State {
 
 // --- Playing
 
-/** The player plays the first card of `key` of their hand. */
-export function playCard(state: State, playerId: string, key: CharacterKey): State {
-  return step(state, { type: "play", playerId, card: cardIn(state, playerId, key) }).state
+/** The player plays the first card of `key` of their hand, picking the player `target` and naming the character `guess` when the card asks for them. */
+export function playCard(state: State, playerId: string, key: CharacterKey, extra: { target?: string; guess?: CharacterKey } = {}): State {
+  return playStep(state, playerId, key, extra).state
+}
+
+/** The same, with what the move said. */
+export function playStep(state: State, playerId: string, key: CharacterKey, extra: { target?: string; guess?: CharacterKey } = {}): LoveLetterStep {
+  return step(state, { type: "play", playerId, card: cardIn(state, playerId, key), ...extra })
 }
 
 export const deal = (state: State, playerId: string): State => step(state, { type: "deal", playerId }).state
@@ -237,7 +242,6 @@ export function problems(state: State, options: { rigged?: boolean } = {}): stri
   if (n < 2 || n > 6) found.push(`${n} seats are not a table of 2 to 6`)
   if (state.turn < 0 || state.turn >= n) found.push("the turn is not a seat")
   if (state.round < 1) found.push("the round is not counted")
-  if (state.aside === null) found.push("no card is set aside")
   if (state.faceUp.length !== (n === 2 ? 3 : 0)) found.push(`${state.faceUp.length} cards are set aside face up at ${n} players`)
   for (const [name, list] of Object.entries({ won: state.won, spies: state.spies })) {
     if (list.some((count) => !Number.isInteger(count) || count < 0)) found.push(`${name} holds something that is not a count`)
@@ -271,13 +275,23 @@ export function enough(state: State): boolean {
 
 // --- Random play
 
+/** The players a card of `playerId` can pick, written again here: the players still in the round who are not protected, the player themselves not counted. */
+export function pickable(state: State, playerId: string): string[] {
+  return state.seats.filter((id, seat) => id !== playerId && !state.out[seat] && !state.shielded[seat])
+}
+
 /** A legal move for the player the game waits for: the choices are the ones a table makes, at random. */
 export function randomAction(state: State, rng: Rng): Action {
   const [playerId] = waiting(state)
   if (playerId === undefined) throw new Error("The game waits for nobody")
   if (state.stage.kind === "between") return { type: "deal", playerId }
   const hand = state.hands[seatOf(state, playerId)]!
-  return { type: "play", playerId, card: hand[Math.floor(rng() * hand.length)]! }
+  const card = hand[Math.floor(rng() * hand.length)]!
+  const rule = CARDS[keyOf(state, card)].target
+  const allowed = rule === "any" ? [playerId, ...pickable(state, playerId)] : rule === "other" ? pickable(state, playerId) : []
+  const target = allowed[Math.floor(rng() * allowed.length)]
+  const guess = keyOf(state, card) === "guard" && target !== undefined ? GUESSES[Math.floor(rng() * GUESSES.length)] : undefined
+  return { type: "play", playerId, card, ...(target === undefined ? {} : { target }), ...(guess === undefined ? {} : { guess }) }
 }
 
 /** Plays at random, for the player the game waits for, until `stop` says so. Gives every state met, the first one included. */

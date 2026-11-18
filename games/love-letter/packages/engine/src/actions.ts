@@ -1,5 +1,7 @@
-import { EngineError } from "@pbgo/engine-kit"
-import { type Ctx, areaOf, close, emit, faceOf, handOf, open, playerAt, refuse, removeFrom, seatOf, waitingFor } from "./machine"
+import { EngineError, cleanChoice } from "@pbgo/engine-kit"
+import { CARDS, type CharacterKey, GUESSES } from "./catalogue"
+import { EFFECTS } from "./effects"
+import { type Ctx, areaOf, close, emit, faceOf, handOf, keyOf, open, playerAt, refuse, removeFrom, seatOf, targetsOf, waitingFor } from "./machine"
 import { endTurn, startRound } from "./round"
 import { type Action, CLIENT_ACTIONS, type LoveLetterStep, type State } from "./types"
 
@@ -8,17 +10,44 @@ import { type Action, CLIENT_ACTIONS, type LoveLetterStep, type State } from "./
  * `EngineError` (the codes are `LOVE_LETTER_ERROR_CODES`): `step` works on a copy, so a refusal leaves the state as it was.
  */
 
-/** `by` plays the card `card` of their hand (rulebook, p. 4): it goes face up to their play area, its effect is resolved, then the turn ends. */
-export function play(ctx: Ctx, by: string, card: unknown): void {
+/**
+ * The player a card picks, which must be one of the players it can pick (rulebook, pp. 5, 9-12): another player in the round who is not protected by a Handmaid for
+ * the Guard, Priest, Baron and King, any player, the one who plays it included, for the Prince. Gives the seat, or `null` for a card that picks nobody and for one that
+ * picks another player when there is none (p. 11: it is played with no effect, and no player may be named then).
+ */
+function chooseTarget(s: State, seat: number, key: CharacterKey, raw: unknown): number | null {
+  const rule = CARDS[key].target
+  if (rule === null) return null
+  const others = targetsOf(s, seat)
+  const allowed = rule === "any" ? [seat, ...others] : others
+  if (allowed.length === 0) {
+    if (raw !== undefined && raw !== null) throw new EngineError("INVALID_TARGET", "No player can be picked: the card is played with no effect")
+    return null
+  }
+  const chosen = typeof raw === "string" ? seatOf(s, raw) : -1
+  if (!allowed.includes(chosen)) throw new EngineError("INVALID_TARGET", "That player cannot be picked")
+  return chosen
+}
+
+/**
+ * `by` plays the card of their hand that `fields.card` names (rulebook, p. 4): it goes face up to their play area, its effect is resolved, then the turn ends.
+ * Everything is checked before anything changes: the card is in the hand, the player it picks can be picked and a Guard names one of the nine other characters.
+ */
+export function play(ctx: Ctx, by: string, fields: { card?: unknown; target?: unknown; guess?: unknown }): void {
   const { s } = ctx
   if (s.stage.kind !== "play") throw refuse("play a card")
+  const { card } = fields
   if (typeof card !== "number" || !Number.isInteger(card)) throw new EngineError("INVALID_ACTION", "A card is named by its id")
   const seat = seatOf(s, by)
   const hand = handOf(s, seat)
   if (!hand.includes(card)) throw new EngineError("UNKNOWN_CARD", "That card is not in your hand")
+  const key = keyOf(s, card)
+  const target = chooseTarget(s, seat, key, fields.target)
+  const guess = key === "guard" && target !== null ? cleanChoice(fields.guess, GUESSES) : null
   removeFrom(hand, card)
   areaOf(s, seat).push(card)
   emit(ctx, { kind: "play", by, card: faceOf(s, card) })
+  EFFECTS[key](ctx, { seat, by, target, guess })
   endTurn(ctx)
 }
 
@@ -47,7 +76,7 @@ export function perform(ctx: Ctx, input: unknown): void {
   if (!waitingFor(s).includes(by)) throw new EngineError("NOT_YOUR_TURN", "It is not your move")
   switch (type) {
     case "play":
-      return play(ctx, by, raw.card)
+      return play(ctx, by, raw)
     case "deal":
       return dealRound(ctx, by)
   }

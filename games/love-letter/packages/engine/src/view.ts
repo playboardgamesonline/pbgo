@@ -1,11 +1,11 @@
-import { areaOf, faceOf, facesOf, handOf, isOut, isOver, playableOf, playerAt, seatOf, tokensOf } from "./machine"
+import { areaOf, faceOf, facesOf, handOf, isOut, isOver, playableOf, playerAt, seatOf, targetsOf, tokensOf } from "./machine"
 import { tokensToWin } from "./options"
 import { results } from "./results"
 import type { Me, PlayerView, PublicPhase, PublicSeat, State } from "./types"
 
 function publicPhase(s: State): PublicPhase {
   const { stage } = s
-  if (stage.kind === "play") return { kind: "turn", player: playerAt(s, s.turn) }
+  if (stage.kind === "play") return { kind: "turn", player: playerAt(s, s.turn), targets: targetsOf(s, s.turn).map((seat) => playerAt(s, seat)) }
   if (isOver(s)) return { kind: "over" }
   return { kind: "between", next: playerAt(s, s.turn), winners: stage.winners.map((seat) => playerAt(s, seat)), spy: stage.spy === null ? null : playerAt(s, stage.spy), revealed: stage.revealed }
 }

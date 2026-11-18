@@ -3,6 +3,7 @@ import { createRng, isEngineError, playFor, waitingPlayers } from "@pbgo/engine-
 import { deepFreeze, reorderKeys } from "@pbgo/engine-kit/testing"
 import { describe, expect, it } from "vitest"
 import { step } from "./actions"
+import type { CharacterKey } from "./catalogue"
 import { GAME } from "./game"
 import { enough, names, newState, problems, randomAction, seedOf, tokens, viewOf } from "./test-utils"
 import { type Action, CLIENT_ACTIONS, LOVE_LETTER_ERROR_CODES, type LoveLetterEvent, type State } from "./types"
@@ -11,10 +12,10 @@ import { type Action, CLIENT_ACTIONS, LOVE_LETTER_ERROR_CODES, type LoveLetterEv
  * Whole games, played at random and checked after every move.
  *
  * Tables of 2 to 6 players play to the end. Some players are away a third of the time, so that the takeover plays for them in every step. After each accepted
- * move this file checks what must hold whatever the cards are: that no card is lost, that the turn goes to the right player, that only the player who plays
- * changes their cards, that the count of a round and the Spy's token are the ones the booklet gives (written again here, from the names of the cards, not read
- * from the engine), that the game ends when somebody holds the tokens that win and not before, that a stored copy of the state replays the move, and that no view
- * shows a hidden card.
+ * move this file checks what must hold whatever the cards are: that no card is lost, that the turn goes to the right player, that the move did what the booklet
+ * says (the effect of the card played is written again here, from the names of the cards, as a small model of the rules that is not the engine's), that the
+ * count of a round and the Spy's token are the booklet's, that the game ends when somebody holds the tokens that win and not before, that a stored copy of the
+ * state replays the move, and that no view shows a hidden card.
  */
 
 const found = new Map<string, { count: number; examples: string[] }>()
@@ -26,15 +27,73 @@ function flag(name: string, detail: string): void {
 }
 const report = (): string[] => [...found].map(([name, { count, examples }]) => `${name} ×${count}: ${examples.join(" | ")}`)
 
-// --- The booklet's count, written again from the names of the cards
+// --- The booklet, written again from the names of the cards
 
 const VALUE: Record<string, number> = { spy: 0, guard: 1, priest: 2, baron: 3, handmaid: 4, prince: 5, chancellor: 6, king: 7, countess: 8, princess: 9 }
 const TOKENS_TO_WIN: Record<number, number> = { 2: 6, 3: 5, 4: 4, 5: 3, 6: 3 }
 
+const nameOf = (state: State, id: number): CharacterKey => names(state, [id])[0]!
+const inRoundOf = (out: readonly boolean[]) => out.flatMap((isOut, seat) => (isOut ? [] : [seat]))
+
+/** What the booklet says of the cards after a card was played and its effect resolved, before the next player draws. */
+type Model = { hands: number[][]; areas: number[][]; out: boolean[]; shielded: boolean[]; deck: number[]; aside: number | null }
+
+function modelPlay(before: State, mover: number, card: number, target: number | null, guess: CharacterKey | null): Model {
+  const m: Model = {
+    hands: before.hands.map((hand) => [...hand]),
+    areas: before.areas.map((area) => [...area]),
+    out: [...before.out],
+    shielded: [...before.shielded],
+    deck: [...before.deck],
+    aside: before.aside,
+  }
+  m.hands[mover] = m.hands[mover]!.filter((id) => id !== card)
+  m.areas[mover]!.push(card)
+  /** A player is out: their hand lies face up in front of them. */
+  const knock = (seat: number) => {
+    m.areas[seat]!.push(...m.hands[seat]!)
+    m.hands[seat] = []
+    m.out[seat] = true
+    m.shielded[seat] = false
+  }
+  const held = (seat: number) => m.hands[seat]![0]!
+  switch (nameOf(before, card)) {
+    case "guard":
+      if (target !== null && nameOf(before, held(target)) === guess) knock(target)
+      break
+    case "baron":
+      if (target !== null) {
+        const [mine, theirs] = [VALUE[nameOf(before, held(mover))]!, VALUE[nameOf(before, held(target))]!]
+        if (mine < theirs) knock(mover)
+        else if (theirs < mine) knock(target)
+      }
+      break
+    case "king":
+      if (target !== null) [m.hands[mover], m.hands[target]] = [m.hands[target]!, m.hands[mover]!]
+      break
+    case "prince": {
+      if (target === null) break
+      const discarded = m.hands[target]!.splice(0)
+      m.areas[target]!.push(...discarded)
+      if (discarded.some((id) => nameOf(before, id) === "princess")) knock(target)
+      else if (m.deck.length > 0) m.hands[target]!.push(m.deck.shift()!)
+      else {
+        m.hands[target]!.push(m.aside!)
+        m.aside = null
+      }
+      break
+    }
+    default:
+      // priest, spy, handmaid, chancellor, countess, princess: nothing yet in this slice
+      break
+  }
+  return m
+}
+
 /** Who wins a round and who earns the Spy's token (pp. 6, 13), from the cards the state holds once the round is over. */
 function bookletRound(state: State): { how: "deck" | "last"; winners: number[]; spy: number | null } {
-  const inRound = state.seats.flatMap((_, seat) => (state.out[seat] ? [] : [seat]))
-  const held = (seat: number) => VALUE[names(state, state.hands[seat]!)[0]!]!
+  const inRound = inRoundOf(state.out)
+  const held = (seat: number) => VALUE[nameOf(state, state.hands[seat]![0]!)]!
   const how = inRound.length === 1 ? "last" : "deck"
   const best = Math.max(...inRound.map(held))
   const winners = how === "last" ? inRound : inRound.filter((seat) => held(seat) === best)
@@ -42,7 +101,25 @@ function bookletRound(state: State): { how: "deck" | "last"; winners: number[]; 
   return { how, winners, spy: withSpy.length === 1 ? withSpy[0]! : null }
 }
 
-const tally = { games: 0, moves: 0, rounds: 0, ties: 0, spyTokens: 0, overs: 0, sizes: new Set<number>(), stages: new Set<string>() }
+const tally = {
+  games: 0,
+  moves: 0,
+  rounds: 0,
+  ties: 0,
+  spyTokens: 0,
+  overs: 0,
+  lastOne: 0,
+  hits: 0,
+  misses: 0,
+  looks: 0,
+  baronOuts: 0,
+  baronTies: 0,
+  swaps: 0,
+  discards: 0,
+  fizzles: 0,
+  sizes: new Set<number>(),
+  stages: new Set<string>(),
+}
 
 type Move = { at: string; before: State; action: Action | null; after: State; events: LoveLetterEvent[] }
 
@@ -70,25 +147,58 @@ function checkMove({ at, before, action, after, events }: Move): void {
 
   if (before.stage.kind === "play") {
     const mover = before.turn
-    const card = (action as { card?: number } | null)?.card ?? undefined
-    ok("a player played a card that was not theirs", card === undefined || before.hands[mover]!.includes(card))
-    const played = after.areas[mover]!.at(-1)
-    ok("the card played is not the last of the play area", card === undefined || played === card)
-    ok("a play area lost a card", after.areas.every((area, seat) => area.length >= before.areas[seat]!.length))
+    const played = events.find((event): event is Extract<LoveLetterEvent, { kind: "play" }> => event.kind === "play")
     ok("the card played is not the first thing the log says", kinds[0] === "play")
-    // only the player who plays and the one who draws change their cards
-    const ended = kinds.includes("end")
-    const next = ended ? -1 : (mover + 1) % n
-    before.hands.forEach((hand, seat) => {
-      if (seat !== mover && seat !== next) ok("a hand changed while another player played", isDeepStrictEqual(hand, after.hands[seat]), () => before.seats[seat]!)
-    })
-    ok("the player who played does not hold one card", after.hands[mover]!.length === 1)
-    if (!ended) {
-      ok("the turn passed to the wrong seat", after.turn === next, () => `${mover} → ${after.turn}`)
-      ok("the next player did not draw the top card of the deck", isDeepStrictEqual(after.hands[next], [...before.hands[next]!, before.deck[0]]))
-      ok("the deck did not lose its top card", isDeepStrictEqual(after.deck, before.deck.slice(1)))
-      ok("the draw is not in the log, for the player who drew it", kinds.at(-1) === "draw")
+    if (played === undefined) return flag("a turn played no card", at)
+    const card = played.card.id
+    ok("a player played a card that was not theirs", before.hands[mover]!.includes(card))
+    ok("the log names another player than the one who played", played.by === before.seats[mover])
+
+    // the player the card picked, and the character a Guard named, as the move says them
+    const said = events.find((event) => event.kind === "guess" || event.kind === "look" || event.kind === "compare" || event.kind === "swap" || event.kind === "discard")
+    const targetId = action?.type === "play" ? action.target : said === undefined ? undefined : said.kind === "discard" ? said.player : "target" in said ? said.target : undefined
+    const target = targetId === undefined ? null : before.seats.indexOf(targetId)
+    const guess = action?.type === "play" ? (action.guess ?? null) : ((events.find((event) => event.kind === "guess") as { guess?: CharacterKey } | undefined)?.guess ?? null)
+    const model = modelPlay(before, mover, card, target, guess)
+
+    // the effect of the card, as the booklet says
+    const ended = inRoundOf(model.out).length === 1 || model.deck.length === 0
+    let next = -1
+    for (let i = 1; i <= n && !ended && next < 0; i++) if (!model.out[(mover + i) % n]) next = (mover + i) % n
+    const expectedHands = model.hands.map((hand, seat) => (seat === next ? [...hand, model.deck[0]!] : hand))
+    ok("the hands are not the booklet's after the move", isDeepStrictEqual(after.hands, ended ? model.hands : expectedHands), () => `${JSON.stringify(after.hands)} against ${JSON.stringify(ended ? model.hands : expectedHands)}`)
+    ok("the play areas are not the booklet's after the move", isDeepStrictEqual(after.areas, model.areas))
+    ok("the players out are not the booklet's after the move", isDeepStrictEqual(after.out, model.out))
+    ok("the protection is not the booklet's after the move", isDeepStrictEqual(after.shielded, model.shielded.map((shielded, seat) => (seat === next ? false : shielded))))
+    ok("the deck is not the booklet's after the move", isDeepStrictEqual(after.deck, ended ? model.deck : model.deck.slice(1)))
+    ok("the card set aside is not the booklet's after the move", after.aside === model.aside)
+    if (!ended) ok("the turn passed to the wrong seat", after.turn === next, () => `${mover} → ${after.turn}`)
+    if (!ended) ok("the draw is not in the log, for the player who drew it", kinds.at(-1) === "draw")
+
+    // what the log says of the effect
+    const key = nameOf(before, card)
+    if (key === "guard" || key === "priest" || key === "baron" || key === "king") {
+      const pickable = before.seats.flatMap((_, seat) => (seat !== mover && !before.out[seat] && !before.shielded[seat] ? [seat] : []))
+      if (pickable.length === 0) {
+        tally.fizzles++
+        ok("a card that picks a player had nobody to pick and was not played with no effect", kinds.includes("fizzled"))
+      } else ok("a card that picked a player was played with no effect", !kinds.includes("fizzled") && target !== null)
     }
+    if (key === "guard" && target !== null) {
+      const hit = nameOf(before, before.hands[target]![0]!) === guess
+      ok("the guess is not told as the booklet says", events.some((event) => event.kind === "guess" && event.hit === hit))
+      if (hit) tally.hits++
+      else tally.misses++
+    }
+    if (key === "priest" && target !== null) tally.looks++
+    if (key === "baron" && target !== null) {
+      const [a, b] = [VALUE[nameOf(before, before.hands[mover]!.find((id) => id !== card)!)]!, VALUE[nameOf(before, before.hands[target]![0]!)]!]
+      if (a === b) tally.baronTies++
+      else tally.baronOuts++
+      ok("a Baron's tie knocked somebody out", a !== b || !kinds.includes("out"))
+    }
+    if (key === "king" && target !== null) tally.swaps++
+    if (key === "prince") tally.discards++
   }
 
   if (kinds.includes("end")) {
@@ -96,6 +206,7 @@ function checkMove({ at, before, action, after, events }: Move): void {
     const end = events.find((event): event is Extract<LoveLetterEvent, { kind: "end" }> => event.kind === "end")!
     const expected = bookletRound(after)
     if (expected.winners.length > 1) tally.ties++
+    if (expected.how === "last") tally.lastOne++
     if (expected.spy !== null) tally.spyTokens++
     ok("the round did not end the way the booklet says", end.how === expected.how)
     ok("the winners of the round are not the booklet's", isDeepStrictEqual(after.stage.kind === "between" ? after.stage.winners : null, expected.winners), () => JSON.stringify(expected.winners))
@@ -108,6 +219,7 @@ function checkMove({ at, before, action, after, events }: Move): void {
     })
     ok("a round that ended on a comparison held the deck back", end.how === "last" || after.deck.length === 0)
     ok("a round ended on the deck without laying the hands face up", end.how === "last" || kinds.includes("reveal"))
+    ok("a round ended on one player left laid hands face up", end.how === "deck" || !kinds.includes("reveal"))
     ok("the first turn of the next round is not a winner's", expected.winners.includes(after.turn))
     ok("the hands were not laid face up", after.stage.kind === "between" && after.stage.revealed === (end.how === "deck"))
     if (GAME.isOver(after)) {
@@ -180,22 +292,26 @@ function play(n: number, seed: number, away: number): void {
   }
 }
 
+/** Games for each table size: as many with nobody away as with players away a third of the time. */
+const GAMES = 3
+
 describe("random games, checked after every move", () => {
   for (let n = 2; n <= 6; n++) {
-    it(`plays ${n} players to the end, twice, with players away a third of the time`, () => {
-      play(n, seedOf(100 + n), 0)
-      play(n, seedOf(200 + n), 0.33)
+    it(`plays ${n} players to the end, ${GAMES * 2} times, half of them with players away a third of the time`, () => {
+      for (let i = 0; i < GAMES; i++) {
+        play(n, seedOf(100 + n * 10 + i), 0)
+        play(n, seedOf(200 + n * 10 + i), 0.33)
+      }
       expect(report().filter((line) => line.includes(`${n}p`) || !line.includes("p seed"))).toEqual([])
-    }, 60_000)
+    }, 120_000)
   }
 
-  it("meets everything the rules of the skeleton can do, over those games", () => {
+  it("meets what the rules can do, over those games", () => {
     expect(report()).toEqual([])
     expect([...tally.sizes].sort()).toEqual([2, 3, 4, 5, 6])
-    expect(tally.rounds).toBeGreaterThanOrEqual(20)
     expect(tally.overs).toBe(tally.games)
-    expect(tally.ties).toBeGreaterThan(0)
-    expect(tally.spyTokens).toBeGreaterThan(0)
+    // a card played with nobody to pick needs a Handmaid: it is counted from the characters that pick nobody on
+    for (const [what, count] of Object.entries(tally)) if (typeof count === "number" && what !== "fizzles") expect(count, what).toBeGreaterThan(0)
     for (const stage of ["play", "between"]) expect(tally.stages, stage).toContain(stage)
   })
 })
@@ -208,6 +324,8 @@ describe("junk actions", () => {
     const junk = (): unknown[] => {
       const [who] = waitingPlayers(GAME, state)
       const types = [...CLIENT_ACTIONS, "fly", 7, null]
+      const card = state.hands[state.turn]?.[0]
+      const other = state.seats[(state.turn + 1) % 4]
       return [
         null, undefined, 3, "play", [], {},
         { type: types[Math.floor(rng() * types.length)], playerId: who },
@@ -217,6 +335,11 @@ describe("junk actions", () => {
         { type: "play", playerId: who, card: 0.5 },
         { type: "play", playerId: who, card: Number.NaN },
         { type: "play", playerId: who, card: state.deck[0] },
+        { type: "play", playerId: who, card, target: "zed" },
+        { type: "play", playerId: who, card, target: who },
+        { type: "play", playerId: who, card, target: 7 },
+        { type: "play", playerId: who, card, target: other, guess: "dragon" },
+        { type: "play", playerId: who, card, target: other, guess: "guard" },
         { type: "deal", playerId: who },
       ]
     }
