@@ -2,17 +2,20 @@
 // whether the stage passes, then what stops it and what wants a look, from the report the script prints (`scripts/check-game.mjs`: a header for each stage, a line for each check, `✓` ok, `•` look at it, `✗`
 // fail, then a summary). The exit code is the script's verdict; this only chooses what the owner reads.
 
-/** The stages of a game, in order, and the gate a step has: every check up to a stage, or the checks of that stage alone. */
+/**
+ * The stages of a game, in order, and the gate a step has: every check up to a stage, or the checks of that stage alone. `online` also asks Sanity whether the game's project is there (`--online`): the
+ * registry holds an id of the right shape for a project that may be gone, and only the game folder's gate cares.
+ */
 export const STAGES = ["scaffold", "engine", "binding", "board", "content", "live"] as const
 export type Stage = (typeof STAGES)[number]
-export type StageGate = { stage: Stage; only?: boolean }
+export type StageGate = { stage: Stage; only?: boolean; online?: boolean }
 
 const HEADER = /^(scaffold|engine|binding|board|content|live)( \((?:beyond the gate|not this gate)\))?$/
 const CHECK = /^ {2}([✓•✗]) (.+)$/
 const SUMMARY = /^\S+ has got as far as: .*\.$/
 
 /** The arguments that make the script a gate for this step. */
-export const gateArgs = (gate: StageGate): string[] => [gate.only ? "--only" : "--stage", gate.stage]
+export const gateArgs = (gate: StageGate): string[] => [gate.only ? "--only" : "--stage", gate.stage, ...(gate.online ? ["--online"] : [])]
 
 /**
  * The lines of a report that the owner reads at the gate: the summary first, then each check of the stages the gate counts that does not pass, `<stage>: <check>: <what it says>`, those that fail before those that want a look

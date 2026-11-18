@@ -16,6 +16,8 @@ export type BriefArgs = {
   /** the Linear issue of the step, and the game's parent issue (the branch and the pull request of a step name the first, never the second) */
   issue: string | null
   parent: string | null
+  /** what the game folder's check says is wrong when the folder is there already (the game's Sanity project is gone, or was never made): the step is then a repair of that, not a creation */
+  repair?: readonly string[]
 }
 
 /** What the machine will check, in words and as the command the sub-agent can run itself before it reports. */
@@ -33,16 +35,19 @@ export function checkWords(step: StepDefinition, game: Game): string {
     case "art":
       return `\`pnpm -C games/${game.slug} content:seed --dry-run --art-dir ${game.dir}\` exits 0 (the owner may leave slots empty)`
     case "stage":
-      return `\`pnpm check:game ${game.slug} ${check.gate.only ? "--only" : "--stage"} ${check.gate.stage}\` exits 0`
+      return `\`pnpm check:game ${game.slug} ${check.gate.only ? "--only" : "--stage"} ${check.gate.stage}${check.gate.online ? " --online" : ""}\` exits 0`
   }
 }
 
 export function briefOf(args: BriefArgs): string {
-  const { step, game, scratch, reportPath, has, round, issue, parent } = args
+  const { step, game, scratch, reportPath, has, round, issue, parent, repair } = args
   const index = STEPS.findIndex((each) => each.id === step.id) + 1
   const notes = step.notes(game)
   const todo = [`Run the skill \`${step.skill}\` with the Skill tool, with this argument: \`${step.args(game)}\`. When the Skill tool does not list that skill (skills are read when a session starts, and this one may be newer) or is not available to you, read \`${step.skillFile}\` and follow it exactly, with that argument.`, ...notes]
   if (round > 1) todo.push(`This is round ${round} of the step: it was interrupted or it failed. Look at what already exists (the files, the drafts, what is published) and carry on from there; never redo what is right.`)
+  if (repair !== undefined && repair.length > 0) {
+    todo.push(`The game's folder is in the repo already (\`games/${game.slug}\`) and the check of this step does not pass, so this round repairs it instead of creating it: ${repair.join(" | ")}. Do not run \`pnpm new-game\`. Follow the case of section 1 of the skill that matches (a Sanity project that is gone or was never made): everything it creates outside the repo waits for the explicit yes that the orchestrator relays to you, so stop with \`STATUS: questions\` first, with what it will make.`)
+  }
   return `# ${step.title[0]?.toUpperCase() ?? ""}${step.title.slice(1)} · step ${index} of ${STEPS.length} · ${game.name} (${game.slug})
 
 You carry out ONE step of adding the game "${game.name}" to Play Board Games Online, for the orchestrator that runs the skill \`/add-game\`. You are a sub-agent: the owner talks to the orchestrator, not to you, so you cannot ask the owner anything yourself.
