@@ -1,6 +1,7 @@
 import type { GameDefinition } from "@pbgo/engine-kit"
 import { step } from "./actions"
 import { autoPlayFor, autoPlayStep } from "./autoplay"
+import { debugCommands } from "./debug"
 import { isOver, progress, waitingFor } from "./machine"
 import { OPTIONS } from "./options"
 import { MAX_PLAYERS, MIN_PLAYERS, setupGame, setupStep } from "./setup"
@@ -32,4 +33,6 @@ export const GAME: GameDefinition<State, Action, PlayerView, undefined, LoveLett
   // Absent player: they play their whole turn, or deal the next round
   autoPlayFor,
   autoPlayStep,
+  // For development: play a turn, a round or the game out, and rig the table to reach a situation of the board at once
+  debug: debugCommands,
 }
