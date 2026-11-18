@@ -32,7 +32,7 @@ What a machine cannot see, the words of the rules, the look, a table played with
 | Command | What it creates |
 | --- | --- |
 | `pnpm new-game <slug> [--name "<Game Name>"]` | `games/<slug>` from `template/`, registered in `packages/games`, not live |
-| `pnpm go-live <slug>` | The game's Sanity project, its public dataset and CORS, a write token in `apps/web/.env.local`, the deployed Studio and the project id in the registry; it can be run again |
+| `pnpm go-live <slug> [--new-project]` | The game's Sanity project, its public dataset and CORS, a write token in `apps/web/.env.local`, the deployed Studio and the project id in the registry; it can be run again. It asks Sanity about an id that is already in the registry and stops on one that is no project of the login (nothing is made): `--new-project` then makes the project anew and writes its id over the old one |
 | `pnpm game-rules <slug> --rules [<lang>=]<file.pdf>` | The rulebook PDFs in the draft of the game's settings |
 | `pnpm setup-env` | The pending Supabase migrations, `apps/web/.env.local` and the Vercel variables |
 
