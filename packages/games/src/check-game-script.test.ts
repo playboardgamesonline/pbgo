@@ -55,6 +55,51 @@ describe("pnpm check:game --only", () => {
   })
 })
 
+describe("pnpm check:game --online", () => {
+  // The Sanity project of a game is asked on the public API of its production dataset; a stand-in for `fetch` answers with the status of SANITY_STATUS (or fails, for `offline`), so nothing leaves the machine.
+  const STUB = `globalThis.fetch = async () => { if (process.env.SANITY_STATUS === "offline") throw new Error("offline"); return new Response("{}", { status: Number(process.env.SANITY_STATUS) }) }`
+  const online = (slug: string, status: string, ...args: string[]) => {
+    const run = spawnSync(process.execPath, ["--import", `data:text/javascript,${encodeURIComponent(STUB)}`, "scripts/check-game.mjs", slug, ...args], { cwd: REPO, encoding: "utf8", timeout: 30_000, env: { ...process.env, SANITY_STATUS: status } })
+    return { status: run.status, out: run.stdout }
+  }
+
+  it("says, without the flag, that an id of the right shape is all it read", () => {
+    const run = check("--only", "scaffold")
+    expect(run.out).toContain("the shape of the id only: `--online` asks Sanity")
+  })
+
+  it("passes a project whose production dataset answers, public (200) or private (401, which asks for a token and still says the project is there)", () => {
+    for (const status of ["200", "401"]) {
+      const run = online("flip-7", status, "--only", "scaffold", "--online")
+      expect(run.status, status).toBe(0)
+      expect(run.out, status).toContain("its production dataset answers")
+    }
+  })
+
+  it("fails the scaffold stage on a project that is not found, and says how to make a new one", () => {
+    for (const gate of [["--only", "scaffold"], ["--stage", "scaffold"]]) {
+      const run = online("flip-7", "404", ...gate, "--online")
+      expect(run.status, gate.join(" ")).toBe(1)
+      expect(run.out, gate.join(" ")).toContain("Sanity project ky3exlhe is not found")
+      expect(run.out, gate.join(" ")).toContain("`pnpm go-live flip-7` says which under the Sanity login, and `--new-project` makes a new one")
+    }
+  })
+
+  it("only warns when Sanity does not answer, or answers with a server error: the id is judged by its shape then", () => {
+    for (const status of ["offline", "500", "429"]) {
+      const run = online("flip-7", status, "--only", "scaffold", "--online")
+      expect(run.status, status).toBe(0)
+      expect(run.out, status).toContain("Sanity did not answer, so only the shape of the id is checked")
+    }
+  })
+
+  it("never asks about the template, whose id is a stand-in", () => {
+    const run = online("template", "404", "--only", "scaffold", "--online")
+    expect(run.status).toBe(0)
+    expect(run.out).toContain("the shape of the id only")
+  })
+})
+
 describe("pnpm check:game for a game that is not in the repo yet", () => {
   const run = (assets: string, slug: string) => spawnSync(process.execPath, ["scripts/check-game.mjs", slug], { cwd: REPO, encoding: "utf8", timeout: 30_000, env: { ...process.env, PBGO_ASSETS_DIR: assets } })
 

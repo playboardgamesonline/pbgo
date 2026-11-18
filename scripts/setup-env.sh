@@ -66,9 +66,12 @@
 #               production Supabase project is neither read nor migrated
 #   --check     only checks the settings (no network, nothing written); the skill game-new runs it first
 # Sanity: a write token SANITY_API_WRITE_TOKEN_<SLUG> (editor) for each game of packages/games/src/registry.ts that has a
-# project id. An existing one is reused: the secrets file's, else .env.local's, else the Vercel project's (read one
-# variable at a time and written to .env.local only). A new one is created, with the `npx sanity login` session, only when
-# none exists. A token that is missing is a warning (the game's admin is read-only), not a failure.
+# project id. An existing one is reused when the project takes it (a query of its production dataset answers): the secrets
+# file's, else .env.local's, else the Vercel project's (read one variable at a time and written to .env.local only). One that
+# the project refuses, the token of an older project, is said and skipped. A new one is created, with the `npx sanity login`
+# session, only when none works. A project id that Sanity does not find under that login (the ids of the games that came with the
+# old standalone repositories) is said, with `pnpm go-live <slug> --new-project`, and gets no token. A token that is missing is a
+# warning (the game's admin is read-only), not a failure.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 source scripts/lib.sh
@@ -500,21 +503,54 @@ vercel_secret() {
 title "Sanity write tokens"
 STOKEN="$(sanity_token)"
 WHERE="$SECRETS and $ENV_FILE"; [ -z "$VID" ] || WHERE="$WHERE and the Vercel project"
+
+# first_working_token <KEY> <project id>: the token of KEY that the project takes, the first of the secrets file's, .env.local's and
+# the Vercel project's (read last, one variable at a time). Sets TOKEN_VAL ("" when none works), TOKEN_FROM (the note for the Vercel
+# project's, which is not pushed back) and STALE (where a token was found that the project refuses: the token of an older project,
+# which the seed answers "Unauthorized - Session not found"). A token that could not be tried (Sanity did not answer) counts as it
+# did before: it is reused. Status 1 when none works
+first_working_token() {
+  local key="$1" pid="$2" place val
+  TOKEN_VAL=""; TOKEN_FROM=""; STALE=""
+  for place in "$SECRETS" "$ENV_FILE" "the Vercel project"; do
+    case "$place" in
+      "$SECRETS") val="$(secret "$key")" ;;
+      "$ENV_FILE") val="$(envget "$ENV_FILE" "$key")" ;;
+      *)
+        val="$(vercel_secret "$key")"
+        # Not the ciphertext of the list (it starts with eyJ), and the shape of a token
+        if [ -n "$val" ] && { [[ "$val" == eyJ* ]] || ! safe "$val" || [ "${#val}" -lt 20 ]; }; then val=""; fi ;;
+    esac
+    [ -n "$val" ] || continue
+    if [ "$(sanity_token_status "$pid" "$val")" = 401 ]; then STALE="${STALE:+$STALE, }$place"; continue; fi
+    TOKEN_VAL="$val"
+    if [ "$place" = "the Vercel project" ]; then TOKEN_FROM=" (reused from the Vercel project)"; FROM_VERCEL="$FROM_VERCEL$key|"; fi
+    return 0
+  done
+  return 1
+}
+
 while read -r slug pid; do
   key="$(token_name "$slug")"
   if ! is_project_id "$pid"; then warn "$slug: no Sanity project yet (pnpm go-live $slug)"; continue; fi
-  # An existing token is reused: the secrets file's, else .env.local's, else the Vercel project's. A new one is created only
-  # when none exists, and the lack of one is a warning: that game's admin is read-only
-  val="$(setting "$key")"; from=""
-  if [ -z "$val" ]; then
-    val="$(vercel_secret "$key")"
-    # Not the ciphertext of the list (it starts with eyJ), and the shape of a token
-    if [ -n "$val" ] && [[ "$val" != eyJ* ]] && safe "$val" && [ "${#val}" -ge 20 ]; then from=" (reused from the Vercel project)"; FROM_VERCEL="$FROM_VERCEL$key|"
-    else val=""; fi
+  # An id of the right shape is not a project (the games that came with the old standalone repositories hold ids of projects that are not
+  # this login's): said once here, with the way out, and no token is looked for or made for it
+  if [ -n "$STOKEN" ]; then
+    case "$(sanity_project_status "$pid")" in
+      404|403) warn "$slug: the Sanity project $pid is not one of this login's (the id of an old repository, or a deleted project): pnpm go-live $slug --new-project makes one"; continue ;;
+    esac
   fi
-  if [ -n "$val" ]; then envset "$ENV_FILE" "$key" "$val"; ok "$key$from"
-  elif [ -z "$STOKEN" ]; then warn "$key missing, not in $WHERE: npx sanity login, then rerun to create it"
-  elif sanity_write_token "$pid" "$ENV_FILE" "$key"; then ok "$key created (editor)"
+  # An existing token is reused when the project takes it: the secrets file's, else .env.local's, else the Vercel project's. One it
+  # refuses is said and skipped, and a new one is created only when none works; the lack of one is a warning: that game's admin is read-only
+  if first_working_token "$key" "$pid"; then
+    envset "$ENV_FILE" "$key" "$TOKEN_VAL"; ok "$key$TOKEN_FROM"
+    [ -z "$STALE" ] || warn "$key is also in $STALE, where the project $pid does not take it (a token of an older project): remove it there, or it is tried and skipped at every run"
+  elif [ -z "$STOKEN" ]; then
+    if [ -n "$STALE" ]; then warn "$key: the project $pid does not take the one in $STALE (a token of an older project), and there is no Sanity login to make another: npx sanity login, then rerun"
+    else warn "$key missing, not in $WHERE: npx sanity login, then rerun to create it"; fi
+  elif sanity_write_token "$pid" "$ENV_FILE" "$key"; then
+    ok "$key created (editor)"
+    [ -z "$STALE" ] || warn "$key: the one in $STALE is not taken by the project $pid (a token of an older project): remove it there, or it is tried and skipped at every run"
   else warn "$key missing and not created (no access to the project $pid?)"; fi
 done < <(registry 'GAMES.map((g) => `${g.slug} ${g.sanityProjectId}`)')
 ok "Written: $ENV_FILE"

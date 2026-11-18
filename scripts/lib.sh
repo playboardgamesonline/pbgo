@@ -115,6 +115,20 @@ SANITY_API="https://api.sanity.io/v2021-06-07"
 sanity_token() { node -e 'try{console.log(require(require("os").homedir()+"/.config/sanity/config.json").authToken||"")}catch{console.log("")}'; }
 S() { curl -s -H "Authorization: Bearer $STOKEN" -H "Content-Type: application/json" "$@"; }
 
+# sanity_project_status <project id>: the HTTP status the management API gives for the project under the CLI login (needs
+# STOKEN). 200: the login has the project. 404 (403): it has not, the id belongs to no project of this account (the ids that
+# came with the old standalone repositories, or a deleted project). 401: the login is no longer good. 000: no answer. An id
+# of the right shape (is_project_id) proves nothing: this is the check
+sanity_project_status() { curl -s -m 30 -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $STOKEN" "$SANITY_API/projects/$1"; }
+
+# sanity_token_status <project id> <token>: the HTTP status the project's own API gives for that token (a query of its
+# production dataset). 200: the project takes it. 401: it does not (a token of another project, or one that was deleted: the
+# seed then says "Unauthorized - Session not found"). 404: the project or its dataset is not there. 000: no answer. The token
+# goes to curl through its stdin, never as an argument
+sanity_token_status() {
+  printf 'header = "Authorization: Bearer %s"\n' "$2" | curl -s -m 30 -K - -o /dev/null -w '%{http_code}' "https://$1.api.sanity.io/v2025-02-19/data/query/production?query=1"
+}
+
 # sanity_write_token <project id> <env file> <KEY>: creates an editor token in the project and writes it to KEY
 sanity_write_token() {
   local key

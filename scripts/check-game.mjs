@@ -6,8 +6,10 @@
 //        pnpm check:game <slug> --only content   a gate for one stage alone: exit 1 when a check of that stage fails, whatever the stages before it say (a step done out of order)
 //        pnpm check:game --all                   every game of the registry: the last stage it passed, and what stops it
 //        pnpm check:game <slug> --json           one line of JSON (slug, missing, reached, failing): what `pnpm game-flow` reads
+//        pnpm check:game <slug> --online         also asks Sanity whether the game's project is there (any other flag, and `--all`, as well)
 // A check is `ok`, `warn` (look at it: a convention or something only a person can judge) or `fail` (the stage is not done). What a machine cannot see, the words of the rules, the look of the board, a table played with two seats, is in the skills
-// (`.claude/skills/engine-rules`, `engine-board`, `game-go-live`); this script is the part of them that does not need a person. It reads files only: no network, no build.
+// (`.claude/skills/engine-rules`, `engine-board`, `game-go-live`); this script is the part of them that does not need a person. It reads files only: no network, no build, no secret. The one exception is `--online`:
+// an id of the right shape is no proof of a project (the games that came with the old standalone repositories hold ids of projects that are gone), so it asks the public API of that project's production dataset, with no token.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, join, relative } from "node:path"
@@ -53,10 +55,36 @@ const IMPURE = [
   [/from "(react|next|three)[/"]|from "@react-three/, "imports UI code"],
 ]
 
+/**
+ * Whether Sanity knows the project, from its production dataset on the public API (`pnpm go-live` makes the dataset public; a private one asks for a token, which still says the project is there). `gone`: the dataset is not found, the project
+ * is gone or belongs to no account of ours. `unknown`: no answer, or one that says nothing of it (a rate limit, a server error).
+ */
+async function probeProject(id) {
+  try {
+    const res = await fetch(`https://${id}.api.sanity.io/v2025-02-19/data/query/production?query=1`, { signal: AbortSignal.timeout(15_000) })
+    if (res.status === 404) return "gone"
+    return [200, 401, 403].includes(res.status) ? "alive" : "unknown"
+  } catch {
+    return "unknown"
+  }
+}
+
 /** The checks, in the order of the stages. Each gets the game and answers `[level, message]`. */
 const CHECKS = [
   ["scaffold", "registered", (g) => (g.entry ? ["ok", `registered (live ${g.entry.live}, indexable ${g.entry.indexable})`] : ["fail", "not in packages/games/src/registry.ts: run `pnpm new-game <slug>`"])],
-  ["scaffold", "sanity project", (g) => (!g.entry ? ["fail", "no entry, so no Sanity project"] : !g.entry.projectId || g.entry.projectId.startsWith("__") ? ["fail", "no Sanity project yet: `pnpm go-live <slug>` (`game-new` stopped half-way)"] : ["ok", `Sanity project ${g.entry.projectId}`])],
+  [
+    "scaffold",
+    "sanity project",
+    (g) => {
+      if (!g.entry) return ["fail", "no entry, so no Sanity project"]
+      const id = g.entry.projectId
+      if (!id || id.startsWith("__")) return ["fail", "no Sanity project yet: `pnpm go-live <slug>` (`game-new` stopped half-way)"]
+      if (g.project === null) return ["ok", `Sanity project ${id} (the shape of the id only: \`--online\` asks Sanity)`]
+      if (g.project === "alive") return ["ok", `Sanity project ${id} (its production dataset answers)`]
+      if (g.project === "gone") return ["fail", `Sanity project ${id} is not found (its production dataset answers 404): the id came with the game's old repository, or the project was deleted. \`pnpm go-live ${g.slug}\` says which under the Sanity login, and \`--new-project\` makes a new one`]
+      return ["warn", `Sanity project ${id}: Sanity did not answer, so only the shape of the id is checked`]
+    },
+  ],
   [
     "scaffold",
     "files",
@@ -204,11 +232,13 @@ const CHECKS = [
   ["live", "flags", (g) => (!g.entry ? ["fail", "not registered"] : g.entry.live && g.entry.indexable ? ["ok", "live and indexable"] : g.entry.live || g.entry.indexable ? ["warn", `live ${g.entry.live} but indexable ${g.entry.indexable}: set both when the game goes live`] : ["fail", "not live: `live` and `indexable` are false"])],
 ]
 
-function check(slug) {
+async function check(slug, { online = false } = {}) {
   const entry = registry().find((game) => game.slug === slug) ?? null
   const dir = slug === "template" ? join(ROOT, "template") : join(ROOT, "games", slug)
   if (!existsSync(dir)) return { slug, missing: true, results: [], reached: null }
-  const game = { slug, entry, dir }
+  // the template's id is a stand-in, and a placeholder is not asked about: neither is a project that could be gone
+  const asks = online && slug !== "template" && entry !== null && entry.projectId !== "" && !entry.projectId.startsWith("__")
+  const game = { slug, entry, dir, project: asks ? await probeProject(entry.projectId) : null }
   const results = CHECKS.map(([stage, name, run]) => ({ stage, name, ...(([level, message]) => ({ level, message }))(run(game)) }))
   // The last stage with no failure from the first stage on: the game has got that far
   let reached = null
@@ -246,6 +276,7 @@ function flowOf(slug) {
 
 const MARK = { ok: "✓", warn: "•", fail: "✗" }
 const args = process.argv.slice(2)
+const online = args.includes("--online")
 const stageAt = args.indexOf("--stage")
 const gate = stageAt >= 0 ? args[stageAt + 1] : null
 const onlyAt = args.indexOf("--only")
@@ -265,7 +296,7 @@ if (args.includes("--all")) {
   const slugs = ["template", ...registry().map((game) => game.slug).filter((slug) => slug !== "template")]
   const width = Math.max(...slugs.map((slug) => slug.length))
   for (const slug of slugs) {
-    const done = check(slug)
+    const done = await check(slug, { online })
     const next = done.results.find((result) => result.level === "fail")
     console.log(`${slug.padEnd(width)}  ${(done.reached ?? "nothing").padEnd(9)} ${next ? `next: ${next.stage}, ${next.name}: ${next.message}` : "every stage passes"}`)
   }
@@ -274,10 +305,10 @@ if (args.includes("--all")) {
 
 const slug = args.find((arg, index) => !arg.startsWith("--") && args[index - 1] !== "--stage" && args[index - 1] !== "--only")
 if (!slug) {
-  console.error("Usage: pnpm check:game <slug> [--stage <stage> | --only <stage>] | pnpm check:game --all")
+  console.error("Usage: pnpm check:game <slug> [--stage <stage> | --only <stage>] [--online] | pnpm check:game --all [--online]")
   process.exit(2)
 }
-const done = check(slug)
+const done = await check(slug, { online })
 if (args.includes("--json")) {
   // For the programs that ask (`pnpm game-flow`): where the game has got to, and the first check that stops it
   const stop = done.results.find((result) => result.level === "fail")
