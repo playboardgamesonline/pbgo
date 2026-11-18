@@ -1,6 +1,6 @@
 # Content pipeline
 
-How a game's Sanity content (cards, credits, rulebook links, art) is created from code instead of typed by hand. The generic part is one shared package, `@pbgo/content-kit` (`packages/content-kit`, see its README); a game keeps only its data and its config in `games/<slug>/content`. First built for Hanabi (GAM-11), shared with Exploding Kittens (GAM-12) and Flip 7; the next game starts from the same two pieces. Courtisans used it once, for its translations (GAM-20, GAM-22), and its seed was removed afterwards (GAM-23, see "Courtisans").
+How a game's Sanity content (cards, credits, rulebook links, art) is created from code instead of typed by hand. The generic part is one shared package, `@pbgo/content-kit` (`packages/content-kit`, see its README); a game keeps only its data and its config in `games/<slug>/content`. First built for Hanabi (GAM-11), shared with Exploding Kittens (GAM-12), Flip 7, Skyjo and Love Letter; the next game starts from the same two pieces. Courtisans used it once, for its translations (GAM-20, GAM-22), and its seed was removed afterwards (GAM-23, see "Courtisans").
 
 The content is described in versioned TypeScript. A seed script writes it to the game's Sanity project as **drafts**. Running it again is safe: it never replaces what someone edited in the Studio, and nothing is published until a human publishes it there.
 
@@ -70,6 +70,7 @@ games/<slug>/content/
     suits.ts cards.ts bonus-tiles.ts game.ts settings.ts                   Hanabi
     card-types.ts edition.ts game.ts settings.ts                           Exploding Kittens
     cards.ts game.ts settings.ts                                           Flip 7
+    characters.ts game.ts settings.ts                                      Love Letter
     art-manifest.ts    every image the content needs, and where it goes
     *.test.ts          the documents, against the Studio's types, through the runner
 ```
@@ -186,6 +187,36 @@ One picture per card of the Studio, not per card of the box: the 94 cards of the
 | `mat` (optional) | 1 | `game` › `mat` | any | 2400 |
 | `logo` | 1 | `settings` › `logo` | any | 1024 |
 
+### Love Letter slots (15)
+
+One picture per character of the Studio, not per card of the box: the 21 cards are 10 different faces, and every copy of a character looks alike. The files are the owner's: a face is 760 by 1060 (38:53, within 0.4 % of 5:7), and the names the owner's files already have (`CARD_SPY.png` to `CARD_PRINCESS.png`, `CARD_BACK.png`, `FAVOR_TOKEN_SYMBOL.svg`, `FAVOR_TOKEN_MASK.png`, `LOGO_LOVE_LETTER.png`) fill their slots as they are.
+
+| File name (without extension) | Count | Placed in | Proportions | Longest side |
+| --- | --- | --- | --- | --- |
+| `spy`, `guard`, `priest`, `baron`, `handmaid`, `prince`, `chancellor`, `king`, `countess`, `princess` (`card-<key>` also accepted) | 10 | `character-<key>` › `image` | 760:1060 | 1400 |
+| `card-back` (`back` also accepted) | 1 | `game` › `cardBack` | 760:1060 | 1400 |
+| `favor-token-symbol` (an SVG, kept as it is) | 1 | `game` › `favorTokenSymbol` | any | 2048 |
+| `favor-token-mask` | 1 | `game` › `favorTokenMask` | any | 2048 |
+| `mat` (optional) | 1 | `game` › `mat` | any | 2400 |
+| `logo` (`logo-love-letter` also accepted) | 1 | `settings` › `logo` | any | 1024 |
+
+The favor token's 3D model (`FAVOR_TOKEN.glb`) is a file, not an image: no slot places it, it is dropped on the "Favor token 3D model" field of `game` in the Studio. Nothing in the table kit loads a glTF today, so the field only keeps the file until the board decides to use it.
+
+What the board needs from the faces (read from the owner's pictures for the board step; the geometry is measured on the files, to confirm with a render):
+- The faces are **blank plates**: no name and no text is printed on them, so the board draws the Name and the Card text of the Studio (the language asked, else English: Spanish and German are empty). `paintFace` of the table kit wants a full rectangle and cuts the corners itself: the ten faces and the back are opaque from edge to edge.
+- The **value and the copies are printed**: the value in a burgundy medallion at the top left (about x 45 to 235, y 50 to 245; the Spy's is a pointed-oval glyph standing for 0) and the copies as dots on the left edge under it (a gold dot is a copy that the classic version removes). The board draws neither.
+- The plates, in pixels of the 760 by 1060 file (a clean core is the largest empty rectangle found on the file; the visible plate is a little larger):
+
+| Plate | Faces | Clean core | Notes |
+| --- | --- | --- | --- |
+| Name: the banner right of the medallion | all ten | x 307 to 583, y 72 to 149 (277 by 78) | centre (445, 110), that is (0.586, 0.104) of the card; the banner is visible about x 270 to 635, y 58 to 155 |
+| Text, layout A | spy, guard, baron, handmaid, prince, chancellor | x 91 to 668, y 810 to 977 (578 by 168) | centred on x = 380; visible box about x 50 to 712, y 800 to 995 |
+| Text, layout B | priest, king, countess, princess | x 91 to 668, y 846 to 976 (578 by 131) | the portrait runs lower; visible box about x 50 to 712, y 835 to 995 |
+
+- Budgets, kept by `data.test.ts` and not by the Studio: a card text of at most 130 characters (about three lines of 40 at the text size of the publisher's own sheet, and four fit layout A), at most 90 on layout B, and a name of at most 12 letters. The board may fit a text smaller.
+- Fonts, a **guess**: the owner's English sheet (`visuals/VISUEL_CARDS_SHEET_EN.webp`, a mock-up with the publisher's wording, read for layout only) sets the name centred in the banner in a bold display face and the text centred in a small old-style serif, and the library's `fonts/cabazon-regular.otf` (display) and `fonts/MinionPro-Regular.ttf` (serif) look like that pair: to confirm with the owner. Minion Pro is a commercial typeface (Adobe), so its web licence must be checked before step 7 uploads it; Cabazon's licence is not checked either. The fonts go in the Gamemaster (Visual) and the board reads them as Flip 7's does (`tableFonts`).
+- Not in this Studio: the box (placed in the catalog entry), the sprites sheet `visuals/VISUEL_SPRITES.webp` (one sheet of effect icons: a shield, a question bubble, a scales seal, a hooded figure and a crossed-out one, numeral discs; single files are wanted if the board draws any of them), and the reference card and the broken seal (the library has no picture of them).
+
 ## What Hanabi gets
 
 50 documents. Ids are plain published ids; the writer adds `drafts.`.
@@ -244,6 +275,18 @@ The seed holds the Original Edition only. Each of the others would be one more `
 
 The 22 cards come in three categories, the engine's kinds (79 number cards, 9 action cards and 6 modifiers in the box, 94 in all), and each category is a document type of its own, so the Studio lists them apart (Number cards, Action cards, Modifier cards) and an editor looks for a 7 among the 13 numbers. A card has no `kind` field: its category says it. Two of the documents are singletons: `game` and `settings`. There is no `rules` document: the rules are links to PDFs, set in `settings`.
 
+## What Love Letter gets
+
+12 documents, for the 2025 edition (Z-Man Games, 21 character cards).
+
+| Id | Type | Count | Holds |
+| --- | --- | --- | --- |
+| `character-<key>` | `character` | 10 | One per character, `character-spy` … `character-princess`, in the order of the values. The fields, in the order of the Studio form: the English game key (a dropdown of the ten keys, which the engine reads as they are), its printed value (0 to 9, read-only, which sorts the list), its name and its card text (French and English; Spanish and German empty), its quantity (2 Spies, 6 Guards, 2 each of the Priest, the Baron, the Handmaid, the Prince and the Chancellor, 1 each of the King, the Countess and the Princess: 21 cards) and, last, its visual, which the art fills. No Effect or Rule field: what a card does is the engine's. The card text is the one exception, a text to display on the card's plate, since the faces are blank plates |
+| `game` | `game` | 1 | Empty: pictures only, in three tabs (Board: the optional mat; Card backs: the back; Favor token: its symbol, its mask and its 3D model file) |
+| `settings` | `settings` | 1 | Credits: a game by Seiji Kanai, publisher Z-Man Games with its link. No illustrator line (`settings` has no field for one; the booklet names Andrew Bosley for the character art) and no description (the catalog's is English only). The draft that `pnpm game-rules` made, which holds the English rulebook, only gets its gaps filled |
+
+Two of them are singletons: `game` and `settings`. There is no category and no `rules` document: nothing on the table groups the ten characters, and the rules are the publisher's PDF. Nothing is added to `texts` or `audio`: the words of the options and the scores come after the engine, the words of the board with the board and the victory phrases at go-live, each a later pass of the skill `game-sanity-create`.
+
 ## Courtisans
 
 Courtisans predates the pipeline: its families, roles, missions, courtiers and settings were typed in the Studio, in French, while the game showed its English, Spanish and German from texts kept in the code. The seed wrote those texts into Sanity as drafts, for the owner to read and publish in the Studio (GAM-20, then GAM-22 for the board's words), and the code's copy is gone. The seed itself was removed in GAM-23 (`games/courtisans/content`, its tests and its package scripts): Sanity is the record now, edited in the Studio and in the gamemaster, and no text of the game stays in the code, a text Sanity does not have reads `[missing: <key>]`. A game whose documents already exist in the Studio and only need translations has no model left here: start from Exploding Kittens' seed and give each document its existing id.
@@ -275,6 +318,7 @@ The seeds write short texts of their own: names, effects, ratings, credits. They
 - Hanabi: the French text is the reference. EN, ES and DE are written by the content agent and are meant for a native read before the game goes live: terms of the game (clue, fuse, firework, avalanche…) are the first thing to check.
 - Exploding Kittens: the spec is in English, so the four languages were written side by side from it. FR, ES and DE are meant for a native read. The five cats keep their English names in every language; the other cards take the spec's glossary (a Defuse is a Kit de désamorçage, a Desactivación, an Entschärfung). One German word comes from that glossary and is worth a look: Pärchen for a pair, in the effect of the cats.
 - Courtisans: the game predates the pipeline, so its texts were not written by the content agent. They were copied word for word from what the code showed before they moved to Sanity, in the code's own wording, so the rules above do not apply to them (the straight apostrophes and the trailing `…` stay). The English, Spanish and German of `mission-dark-8`, `-9` and `-10` are the one exception: written from the Studio's French in GAM-23, as drafts for the owner's read. See "Courtisans".
+- Love Letter: the English names are the 2025 rulebook's (p. 2) and the French ones are the ten names printed on p. 2 of the publisher's French demo leaflet (© 2019 Z-Man Games, a document apart from the rulebook: names only, never rules). The ten English card texts were written from the rules spec (`docs/games/love-letter/rules.md`), in our own words and not the publisher's, to be displayed on blank card faces; the ten French card texts are drafts in our own wording, for the owner to read, with the leaflet's terms (manche, quitter la manche, en lice, pion Faveur). Spanish and German have no source and stay empty (40 gaps, which `schema.test.ts` states), and the board shows the English until someone fills them in the Studio. A card text only describes the card for a player: what it does is the engine's.
 - A text only describes the game as the spec defines it, variants and options included. What the engine does is a separate piece of work.
 
 ## Tests
@@ -297,6 +341,8 @@ In each game:
 - Exploding Kittens also has `content/parity/engine.test.ts`, which reads the engine's own `CARDS`, `DECKS` and `OPTIONS` (`@exploding-kittens/engine`, a dev dependency that only Vitest loads: the seed never imports the engine) and checks the seed against them: the card type keys and their order, the category each is filed in (the engine's `kind`, so the document type) and its place there, the categories the Studio lists (also at compile time, so a kind added to the engine's `CardKind` is a type error until the Studio has a category for it), the lines of each edition against the deck of the same key, and the five-different option on by default. The folder has its own `tsconfig.json` and the game's `typecheck` runs a third `tsc -p content/parity`: the engine loads `@pbgo/engine-kit`, whose `EngineError` has a parameter property, which the `erasableSyntaxOnly` of `content/` refuses. Another game can do the same once it has an engine.
 
 Flip 7 has the same files as the list above, without `edition` and `rules`: its `data.test.ts` checks the 22 cards (the three categories and their keys, order, copies, which add up to the 94 cards of the box, a name on the action cards alone, no effect or rule text), the credits and the 27 art slots (a card also answers to the figure printed on it), its `schema.test.ts` also keeps the forms of the cards (no Effect or Rule field, no description under a field, an English game key, a name on the action cards alone, the copies second to last and the visual last), its `parity/engine.test.ts` the categories, keys, copies and the titles of the figure cards against the engine's `CARDS` and `DECK`.
+
+Love Letter has the same files as Skyjo's, with cases of its own: its `data.test.ts` checks the ten characters (the keys and values in order, the quantities that add up to the 21 cards, the English names of the rulebook and the French names of the leaflet, no field but the identity, the two texts and the quantity), the card texts (English and French for each, the budgets of the plates, the typography) and the 15 art slots (the owner's file names fill them as they are); its `schema.test.ts` states the 40 Spanish and German gaps as an exact list and keeps the forms of the cards (no Effect or Rule field, the card text between the name and the quantity, the three tabs of `game`, the 3D model a file); its `run.test.ts` also checks that a language an editor adds later survives a new run.
 
 Each guarantee was checked by breaking it on purpose and watching a test fail.
 

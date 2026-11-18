@@ -1,3 +1,6 @@
 {
-  "extends": "@pbgo/tsconfig/sanity.json"
+  "extends": "@pbgo/tsconfig/sanity.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  }
 }
