@@ -13,7 +13,7 @@ import { TABLE_WEIGHT, tableFonts } from "../../lib/table-fonts"
 import { fill, type Vocabulary } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
 import { GLOWS } from "./glows"
-import { CARD, dealtFrom, fitPrompt, floorPlan, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, plateAt, seatSpots, stickerPlaces, zones } from "./layout"
+import { dealtFrom, fitPrompt, floorPlan, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, plateAt, seatSpots, stickerPlaces, zones } from "./layout"
 import { PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { Sticker } from "./stickers"
 import { CARD_SIZE, matTexture, useFaces } from "./textures"
@@ -119,7 +119,6 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
     })
   // The engine's discard is top first and a pile layout is bottom first
   const discarded = [...view.discard].reverse()
-  const ink = { color: theme.foreground, weight: TABLE_WEIGHT }
 
   return (
     <>
@@ -175,7 +174,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         )
       })}
 
-      {/* The draw pile: pressing its top card turns the next card over, on the viewer's turn. Only its size is known, so it is a count. Its top card is turned up with the back for its picture: the halo, the outline and the shine of a
+      {/* The draw pile: pressing its top card turns the next card over, on the viewer's turn. Only its size is known, so it is a count, which the pile writes under itself. Its top card is turned up with the back for its picture: the halo, the outline and the shine of a
           card lie on the side of its face, and a card lying face down shows none of them */}
       <Pile
         frame={{ x: deck.x, z: deck.z }}
@@ -196,7 +195,6 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
             : undefined,
         }}
       />
-      <TableText text={String(view.deck.size)} style={ink} height={0.5} position={[deck.x, 0.02, deck.z + (CARD.height * R.pileScale) / 2 + 0.55]} font={fonts.display} />
 
       {/* The discard: every card of it keeps its id, so the cards of a line fly there when the next round is dealt */}
       <Zone

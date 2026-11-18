@@ -4,7 +4,7 @@ import { type Face, GUESSES, type PlayerView, type PublicSeat } from "@love-lett
 import { useGame } from "@pbgo/core/components/game/context"
 import { shortName } from "@pbgo/core/lib/short-name"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { Counter, inFrame, onTable, Pile, type Pose, PlayerSeat, Stack, Table, TableText, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
+import { Counter, inFrame, onTable, Pile, type Pose, PlayerSeat, Stack, Table, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useEffect, useMemo, useState } from "react"
 import { AdditiveBlending } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
@@ -14,7 +14,7 @@ import { cameraFor, PHOTO } from "./camera"
 import { OrderMarker, Strip, TargetZones, tonesOf } from "./controls"
 import { nameMeasure, sentenceMeasure, TABLE_WEIGHT, tableFonts } from "./fonts"
 import { GLOWS, lightGlows } from "./glows"
-import { areaPoses, areas, backsPoses, CARD, dealtFrom, fanPoses, faceUpPoses, guessPoses, handOf, LAYOUT_FIELDS, LAYOUT_SETTINGS, middlePlaces, nameWidth, PLATE_TRAILING, plateAt, plateFit, revealedPoses, seatSpots, zones } from "./layout"
+import { areaPoses, areas, backsPoses, dealtFrom, fanPoses, faceUpPoses, guessPoses, handOf, LAYOUT_FIELDS, LAYOUT_SETTINGS, middlePlaces, nameWidth, PLATE_TRAILING, plateAt, plateFit, revealedPoses, seatSpots, zones } from "./layout"
 import { matTexture } from "./mat"
 import { type Arrival, PACE_FIELDS, PACE_SETTINGS, type Reveal } from "./pacing"
 import { RevealView, useReveal } from "./sequence"
@@ -99,7 +99,6 @@ function World({ view, catalog, onAction, busy, v, entrances, drawn, reveals, ca
   const pressZones = useMemo(() => zones(spots, placed, meId), [spots, placed, meId])
   const R = LAYOUT_SETTINGS
   const { deck, aside, faceUp } = middlePlaces()
-  const ink = { color: theme.foreground, weight: TABLE_WEIGHT }
   const tones = tonesOf(theme)
   // the plate of a long name is drawn smaller, so that the avatar, the name and the tokens fit the room the layout keeps for them
   const measure = useMemo(() => nameMeasure(fonts.display), [fonts.display])
@@ -244,9 +243,8 @@ function World({ view, catalog, onAction, busy, v, entrances, drawn, reveals, ca
         )
       })}
 
-      {/* The deck: only its size is known, so it is a count, face down, with its number under it */}
+      {/* The deck: only its size is known, so it is a count, face down, which the pile writes under itself */}
       <Pile frame={{ x: deck.x, z: deck.z }} count={view.deck.size} size={CARD_SIZE} back={faces.back} scale={R.deckScale} limit={14} />
-      <TableText text={String(view.deck.size)} style={ink} height={0.6} position={[deck.x, 0.02, deck.z + (CARD.height * R.deckScale) / 2 + 0.55]} font={fonts.display} />
 
       {/* The card set aside face down, apart from the deck: which one it is, nobody knows. At two players three more are set aside face up, and everybody reads them */}
       {view.aside === 1 && <Zone frame={{ x: aside.x, z: aside.z }} layout={[onTable(0, 0, { face: "down", scale: R.asideScale, yaw: 0.14 })]} size={CARD_SIZE} cards={[{ key: "aside", front: faces.back, back: faces.back }]} />}

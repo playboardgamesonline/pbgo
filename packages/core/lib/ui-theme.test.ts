@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { DEFAULT_ANNOUNCEMENT_THEME, DEFAULT_GAME_OVER_THEME, DEFAULT_SEAT_THEME, announcementTheme, gameOverStyle, gameOverTheme, seatTheme } from "./ui-theme"
+import { DEFAULT_ANNOUNCEMENT_THEME, DEFAULT_CARD_THEME, DEFAULT_GAME_OVER_THEME, DEFAULT_SEAT_THEME, announcementTheme, cardTheme, gameOverStyle, gameOverTheme, seatTheme } from "./ui-theme"
 
 describe("announcementTheme", () => {
   it("is the look the announcements had before games could tune them", () => {
@@ -114,5 +114,32 @@ describe("gameOverStyle", () => {
     expect(style.background).toBe("var(--surface)")
     expect(style["--go-accent"]).toBe("var(--accent-game)")
     expect(style.borderColor).toContain("var(--accent-game)")
+  })
+})
+
+describe("cardTheme", () => {
+  it("is the accent for a card that can be chosen and the text colour for one that is picked", () => {
+    expect(cardTheme()).toEqual(DEFAULT_CARD_THEME)
+    expect(cardTheme({})).toEqual(DEFAULT_CARD_THEME)
+    expect(DEFAULT_CARD_THEME.interactive.color).toBe("accent")
+    expect(DEFAULT_CARD_THEME.hover.color).toBe("accent")
+    expect(DEFAULT_CARD_THEME.selected.color).toBe("foreground")
+  })
+
+  it("lets a game tune one state and leaves the others alone", () => {
+    const theme = cardTheme({ selected: { color: "#ffd35c", strength: 1.4 } })
+    expect(theme.selected).toEqual({ color: "#ffd35c", strength: 1.4 })
+    expect(theme.interactive).toEqual(DEFAULT_CARD_THEME.interactive)
+    expect(theme.hover).toEqual(DEFAULT_CARD_THEME.hover)
+  })
+
+  it("keeps the default of a field set to undefined, state by state", () => {
+    expect(cardTheme({ hover: { color: undefined, strength: 0.5 } }).hover).toEqual({ color: "accent", strength: 0.5 })
+  })
+
+  it("never hands out the defaults themselves", () => {
+    const theme = cardTheme()
+    theme.interactive.strength = 9
+    expect(DEFAULT_CARD_THEME.interactive.strength).toBe(1)
   })
 })

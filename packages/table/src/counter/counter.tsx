@@ -4,6 +4,7 @@ import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { useFrame } from "@react-three/fiber"
 import { useEffect, useRef, useState } from "react"
 import type { Group } from "three"
+import { useLettering } from "../lettering"
 import { TableText, type TextStyle } from "../seat/table-text"
 import { changeText, type CountStep, countSteps } from "./count"
 import { COUNTER_SETTINGS } from "./settings"
@@ -19,6 +20,8 @@ export type CounterProps = {
   height?: number
   /** How the letters are dressed: the colour, an outline, a glow (`TextStyle` of `TableText`) */
   style?: TextStyle
+  /** The CSS font of the letters. Default: the display font of the table (`useLettering`), so that a count reads in the lettering of the plates */
+  font?: string
   /** How a number is written: "12", "12 / 20", "$12". The game's own words and symbols, in the visitor's language. Default: the number, with a true minus sign */
   format?: (value: number) => string
   /** The most seconds a change takes to count (default `COUNTER_SETTINGS.seconds`) */
@@ -50,8 +53,9 @@ type Floating = { text: string; color: string }
  * A number lying on the table that counts: when the state gives it a new value it runs up or down to it, number by number, slower and slower, swelling a little with each, and what changed floats up beside it for a moment ("+3"). The
  * first value is shown at once. The counter writes with `TableText`, so it is lit, turned and covered as the rest of the table is; a visitor who asks for less motion sees each new number at once. The number is the state's: the counter only draws it.
  */
-export function Counter({ value, at, y = 0.02, height = 0.9, style = LETTERS, format = plain, seconds, change = true, gain = GAIN, loss = LOSS, onTick, onSettle, onClick, onHover }: CounterProps) {
+export function Counter({ value, at, y = 0.02, height = 0.9, style = LETTERS, font, format = plain, seconds, change = true, gain = GAIN, loss = LOSS, onTick, onSettle, onClick, onHover }: CounterProps) {
   const reduced = usePrefersReducedMotion()
+  const lettering = useLettering()
   const [shown, setShown] = useState(value)
   const [floating, setFloating] = useState<Floating | null>(null)
   // How far the floating change has gone, from 0 when it appears to 1 when it has gone
@@ -127,7 +131,7 @@ export function Counter({ value, at, y = 0.02, height = 0.9, style = LETTERS, fo
   return (
     <group position={[at.x, y, at.z]} rotation-y={at.yaw ?? 0}>
       <group ref={swell}>
-        <TableText text={format(shown)} style={style} height={height} position={[0, 0, 0]} onClick={onClick} onHover={onHover} />
+        <TableText text={format(shown)} style={style} height={height} position={[0, 0, 0]} font={font ?? lettering.display} onClick={onClick} onHover={onHover} />
       </group>
       {floating && (
         <TableText
@@ -136,6 +140,7 @@ export function Counter({ value, at, y = 0.02, height = 0.9, style = LETTERS, fo
           height={height * 0.55}
           position={[0, FLOATING_HEIGHT, -(height * 0.85 + COUNTER_SETTINGS.floatRise * height * rise)]}
           opacity={Math.min(1, (1 - age) * 2.2)}
+          font={font ?? lettering.display}
           layer={1}
         />
       )}

@@ -2,12 +2,13 @@
 
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { useCursor } from "@react-three/drei"
-import { useFrame, useThree } from "@react-three/fiber"
+import { useFrame } from "@react-three/fiber"
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
-import { ExtrudeGeometry, type Group, type Mesh, type MeshBasicMaterial, Path, Shape, Vector3 } from "three"
+import { ExtrudeGeometry, type Group, type Mesh, type MeshBasicMaterial, Path, Shape } from "three"
 import { shadowTexture } from "../card/textures"
 import { TABLE_FONT, TableText, type TextStyle } from "../seat/table-text"
 import { fitLabel, floorColours, isHex, liftTarget, padRadius, rimThickness, stepLift } from "./lift"
+import { useStandIn } from "./stand-in"
 
 export type FloorButtonProps = {
   /** Where the pad's centre lies on the table, and the way it faces (`yaw`, radians about the vertical axis) */
@@ -54,15 +55,6 @@ const RIM_Y = 0.009
 const TEXT_Y = 0.03
 /** How far the label rises with the rim, a share of the rim's height, so that the lettering is not buried by the wall when it lifts */
 const LABEL_RISE = 0.6
-
-/** What makes the keyboard stand-in invisible and still focusable: one pixel, clipped, over the pad's place */
-const SR_ONLY: Partial<CSSStyleDeclaration> = { position: "absolute", width: "1px", height: "1px", margin: "-1px", padding: "0", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: "0", pointerEvents: "none" }
-const centre = new Vector3()
-
-/** The stand-ins are placed in their parent's own frame: make it one (it is the canvas's wrapper, which has no other positioning) */
-function positioned(parent: HTMLElement) {
-  if (getComputedStyle(parent).position === "static") parent.style.position = "relative"
-}
 
 /** A rounded rectangle of `w` by `d` as a path, its corners arcs of radius `r`; `clockwise` winds it the other way, for the hole of an outline */
 function roundedRect(path: Shape | Path, w: number, d: number, r: number, clockwise = false) {
@@ -115,8 +107,10 @@ export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55,
   const reduced = usePrefersReducedMotion()
   const pressable = !!onPress && !disabled
   const [hovered, setHovered] = useState(false)
-  const [focused, setFocused] = useState(false)
   const [pressed, setPressed] = useState(false)
+  const root = useRef<Group>(null)
+  // The keyboard stand-in: one real button in the page, over the pad. It takes Tab, shows the lift while it has the focus, says its name and presses with Enter or Space
+  const focused = useStandIn({ pressable, name: ariaLabel ?? label, onPress, anchor: root, onTable: true })
   useCursor(hovered && pressable)
   const colour = isHex(tone) ? tone : "#808080"
   const state = { hovered: pressable && hovered, focused: pressable && focused, pressed: pressable && pressed, disabled }
@@ -131,7 +125,6 @@ export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55,
   const lift = useRef(0)
   const wall = useRef<Mesh>(null)
   const raised = useRef<Group>(null)
-  const root = useRef<Group>(null)
   const top = useRef<MeshBasicMaterial>(null)
   const side = useRef<MeshBasicMaterial>(null)
   const fill = useRef<MeshBasicMaterial>(null)
@@ -159,42 +152,6 @@ export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55,
   // A change of colour, size or disabled state repaints at once, whatever the lift
   useEffect(() => paint(lift.current))
 
-  const name = ariaLabel ?? label
-  const standIn = useRef<HTMLButtonElement | null>(null)
-  const latest = useRef({ onPress })
-  useEffect(() => {
-    latest.current = { onPress }
-  })
-  const { gl } = useThree()
-  // The keyboard stand-in: one real button in the page, made by hand (a DOM node cannot be a child of the canvas's scene), visually hidden. It takes Tab, shows the lift while it has the focus, says its name and presses with Enter or Space
-  useEffect(() => {
-    const parent = gl.domElement.parentElement
-    if (!pressable || name === undefined || !parent) return
-    positioned(parent)
-    const el = document.createElement("button")
-    el.type = "button"
-    el.setAttribute("aria-label", name)
-    Object.assign(el.style, SR_ONLY)
-    el.addEventListener("focus", () => setFocused(el.matches(":focus-visible")))
-    el.addEventListener("blur", () => setFocused(false))
-    el.addEventListener("click", () => latest.current.onPress?.())
-    parent.appendChild(el)
-    standIn.current = el
-    return () => {
-      el.remove()
-      standIn.current = null
-    }
-  }, [gl, pressable, name])
-  // It stays over the pad, so that a screen reader's pointer and the browser's scrolling to the focus land where the pad is
-  useFrame(({ camera, size }) => {
-    const el = standIn.current
-    if (!el || !root.current) return
-    root.current.getWorldPosition(centre).setY(0).project(camera)
-    const left = `${Math.round(((centre.x + 1) / 2) * size.width)}px`
-    const top = `${Math.round(((1 - centre.y) / 2) * size.height)}px`
-    if (el.style.left !== left) el.style.left = left
-    if (el.style.top !== top) el.style.top = top
-  })
   const lettering: TextStyle = { color: floorColours(colour, 0, disabled).label, weight, shadow: "rgba(0,0,0,0.55)|10|3" }
   return (
     <group ref={root} position={[at.x, 0, at.z]} rotation-y={at.yaw ?? 0}>

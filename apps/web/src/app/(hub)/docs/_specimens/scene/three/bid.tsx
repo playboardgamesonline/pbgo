@@ -1,7 +1,7 @@
 "use client"
 
 import { DEFAULT_SEAT_THEME } from "@pbgo/core/lib/ui-theme"
-import { Card, type CameraSettings, defineGlows, onTable, Seat, seats, shifted } from "@pbgo/table"
+import { Card, type CameraSettings, onTable, Seat, seats } from "@pbgo/table"
 import { useEffect, useState } from "react"
 import { BID, type BidView } from "../defaults"
 import { bidBack, bidFace, CARD_SIZE, DECK, palette } from "./art"
@@ -13,7 +13,6 @@ import { Stage } from "./parts"
 
 const CAMERA: CameraSettings = { tilt: 44, yaw: 0, distance: 14.5, fov: 34, targetX: 0, targetZ: 0.7 }
 const RING = { radiusX: 5, radiusZ: 3.6 }
-const GLOWS = defineGlows({ selection: { frame: {} } })
 /** How long the cards that were not chosen stay once the bids are in, so that they are seen going. */
 const LEAVING_MS = 900
 
@@ -29,10 +28,7 @@ function useLinger(active: boolean, ms: number) {
   return active || state.lingering
 }
 
-const rowAt = (k: number, raised: boolean) => {
-  const pose = onTable((k - (BID.count - 1) / 2) * BID.gap, BID.z, { scale: BID.scale })
-  return raised ? shifted(pose, { y: 0.3, z: 0.2 }) : pose
-}
+const rowAt = (k: number) => onTable((k - (BID.count - 1) / 2) * BID.gap, BID.z, { scale: BID.scale })
 const bidAt = (spot: { x: number; z: number; yaw: number }, up: boolean) => onTable(spot.x * BID.toward, spot.z * BID.toward, { face: up ? "up" : "down", yaw: spot.yaw, scale: BID.scale })
 
 export function BidScene({ view, onBid }: { view: BidView; onBid: (amount: number) => void }) {
@@ -43,7 +39,6 @@ export function BidScene({ view, onBid }: { view: BidView; onBid: (amount: numbe
     { nickname: "Basile", color: p.marks[2], spot: ring[1]! },
     { nickname: "Camille", color: p.marks[0], spot: ring[2]! },
   ] as const
-  const [hovered, setHovered] = useState<number | null>(null)
   // Everybody has bid: the others' bids are known and turn over
   const revealed = view.mine !== null && view.others.every((other) => other.bid !== null)
   const rowShown = useLinger(!revealed, LEAVING_MS)
@@ -62,23 +57,15 @@ export function BidScene({ view, onBid }: { view: BidView; onBid: (amount: numbe
           <Card
             key={`bid-${k}`}
             id={`bid-${k}`}
-            target={placed ? bidAt(ring[0]!, true) : !revealed ? rowAt(k, pressable && hovered === k) : DECK}
+            target={placed ? bidAt(ring[0]!, true) : !revealed ? rowAt(k) : DECK}
             from={DECK}
             front={bidFace(k)}
             back={back}
             size={CARD_SIZE}
-            glow={(placed && !revealed) || (pressable && hovered === k) ? GLOWS.selection : null}
-            gloss={pressable && hovered === k}
-            onHover={pressable ? (over) => setHovered((current) => (over ? k : current === k ? null : current)) : undefined}
-            onClick={
-              pressable
-                ? (event) => {
-                    event.stopPropagation()
-                    setHovered(null)
-                    onBid(k)
-                  }
-                : undefined
-            }
+            // The bid placed at the seat stays lit until the bids are in; the others can be chosen, and the table lights and lifts the one under the pointer
+            state={placed && !revealed ? "selected" : pressable ? "interactive" : "base"}
+            ariaLabel={pressable ? `Bid ${k}` : undefined}
+            onPress={pressable ? () => onBid(k) : undefined}
           />
         )
       })}

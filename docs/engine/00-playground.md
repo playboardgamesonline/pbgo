@@ -24,7 +24,7 @@ Each part is the component of the package as the page of its own shows it, given
 
 | On the table | What to do with it | Page |
 | --- | --- | --- |
-| Cards | Add one, press it to pick it, drag it, turn it over, and give the picked one a glow | [Cards](02-components/04-cards.md), [Glows](02-components/04-cards.md#glows), [Dragging](02-components/19-dragging.md) |
+| Cards | Add one, press it to pick it (the table raises and lights it, `selected`), drag it, turn it over, and give the picked one a glow on top | [Cards](02-components/04-cards.md), [Glows](02-components/04-cards.md#glows), [Dragging](02-components/19-dragging.md) |
 | Pieces | Add a disc, a square, a hexagon, a cube, a sphere or a pawn, and drag it | [Pieces](02-components/13-pieces.md) |
 | Board | A grid of squares, a field of hexagons or a ring of spaces, in the middle or at the side: drop a card or a piece on a cell and it takes it (the cell turns gold); Move a piece walks a pawn to the next free cell | [Dragging](02-components/19-dragging.md#zones), [Boards](02-components/16-boards.md) |
 | Track | Move the marker along the spaces | [Tracks](02-components/15-tracks.md) |

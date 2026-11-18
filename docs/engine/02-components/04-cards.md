@@ -59,9 +59,11 @@ A game can hold cards of different kinds, and its board paints each kind its own
 | `gloss` | The shine that follows the pointer over the front: `true` for the usual strength, a number for its own |
 | `shadow` | Whether the card casts a drop shadow; on unless set to false |
 | `above` | Draws the card over everything else, the glows of other cards included |
-| `out` | The card can no longer play, its player being out of the round: a grey filter over its picture and its edge, on the card's own pixels (`uGrey` in the fold shader, `GREY_SHADE`: no colour, half the brightness). It costs no extra mesh or texture, and lifts when `out` turns false, so the next round has colour again. Flip 7 sets it on every card of a busted player |
+| `out` | The card can no longer play, its player being out of the round: a grey filter over its picture and its edge, on the card's own pixels (`uGrey` in the fold shader, `GREY_SHADE`: no colour, half the brightness). It costs no extra mesh or texture, and lifts when `out` turns false, so the next round has colour again. Flip 7 sets it on every card of a busted player. The state `out` does the same |
+| `state` | How the card stands for the player: `base`, `interactive`, `selected`, `disabled`, `out`, or `hover` and `pressed` to force them. The table draws the state itself ([States](#states)). Without one the card has none and the game lifts and lights it |
+| `onPress`, `ariaLabel` | The card was pressed (a click, a tap, or Enter or Space on its keyboard stand-in), and the name that stand-in says: the game's word and the card's name. A card that can be pressed must give both, or no key reaches it |
 | `speed` | About how many seconds the card takes to settle on a new `target`; smaller is snappier |
-| `onClick`, `onHover` | Pointer events. A card does not lift itself on hover: it reports the pointer, and the game moves the pose and sets `glow` or `gloss` ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)) |
+| `onClick`, `onHover` | Pointer events. A card with a `state` lifts and lights itself, and `onPress` is the way to press it. A card with none only reports the pointer, and the game moves the pose and sets `glow` or `gloss` ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)) |
 | `onArrive` | Called when a flight ends, for instance to remove a card that exists only for its flight |
 | `draggable` | The player can pick the card up with the pointer and let it go on the table: it follows the pointer, lifted, and goes back to its `target` when it is let go ([Dragging](19-dragging.md)) |
 | `dropOn`, `onDragStart`, `onDrop`, `onDragCancel` | The zones it may be let go on, and what it reports: `onDrop` is called with a `CardDrop`, the zone it was let go on or `null`, and where it lay ([Dragging](19-dragging.md#dragging-a-card-or-a-piece)) |
@@ -72,6 +74,32 @@ Press the card to change its `target` between `FACE_UP` and `FACE_DOWN`; the swi
 ```specimen
 scene-card
 ```
+
+### States
+
+A card stands in one of seven states, and a game says which: the table draws it, so no board wires hover, lift and light by hand. Shared: `packages/table/src/card/states.ts` (the states and what each does, pure) and `card.tsx` (the drawing).
+
+| State | Who says it | What the table draws |
+| --- | --- | --- |
+| `base` | The game | Nothing: the card lies as it is, and the pointer lets it by |
+| `interactive` | The game | A card that can be chosen now: a soft bloom of light round it that breathes a little. It lies on the table |
+| `hover` | The table, or the game | Under the pointer or the keyboard focus: the bloom brightens, the card lifts a little, grows a little and takes the shine. A game says it for a card whose whole zone the pointer is over |
+| `pressed` | The table, or the game | While the pointer is down on it: the brightest bloom, and the card goes back down and shrinks a little, as a button does |
+| `selected` | The game | Picked: a steady bloom in a colour of its own, the card raised and grown. Under the pointer it stays picked, and it dips while it is pressed |
+| `disabled` | The game | A card that cannot be chosen when others can: darker, with no bloom, no cursor and no press |
+| `out` | The game | Its player is out of the round: the card's own grey |
+
+```specimen
+scene-card-states
+```
+
+- The game says `base`, `interactive`, `selected`, `disabled` or `out`. The table raises an `interactive` card to `hover` and `pressed` from the pointer and the keyboard focus (`effectiveState`), so the game keeps no hovered id and moves no pose.
+- Only a card that can be pressed (`interactive`, `hover`, `pressed`, `selected`) takes a press, and it takes it: the click goes no farther, to the table behind it or a zone over it. A card in any other state lets the pointer by. `onPress` is the way to give a press; `onClick` stays for a card with no state.
+- **The keyboard.** A card that can be pressed and has an `onPress` and an `ariaLabel` puts one real, hidden button in the page, as a floor button does (`useStandIn`, [Floor buttons](25-floor-buttons.md)): Tab reaches it, Enter or Space presses it, and the focus the browser draws a ring on shows the `hover` look. A card with no `ariaLabel` has none, and a warning says so while the game is developed.
+- **The bloom** is a light added to the table, a halo behind the card (the same plane and texture as the halo of a glow), lit in the colour of the state. It lies on the side of the card that turns from the camera, so it reaches out round a card whichever way it faces: face up, standing up to the camera or face down, so a pile that can be pressed keeps its back up.
+- **The lift and the growth** are the state's and are put on the card without touching its place: the pose the game gives, the flight and the pose memory are as they were. The card rises along the vertical whatever way it faces.
+- **Reduced motion.** A visitor who asks for less motion gets each state at once and a steady bloom: it does not breathe.
+- **The look is the game's.** The bloom's colour and strength come from `UI_THEME.card` of the binding, a state at a time: a colour is a key of the game's theme (`accent` for a card that can be chosen, `foreground` for one that is picked, by default) or `#rrggbb`, and a strength multiplies the table's own (`cardBlooms`, `useCardBlooms`). `CARD_STATE_SETTINGS` holds what the table does for each state (how lit the bloom is, the lift and the growth, how dark a disabled card is, how far the bloom reaches and how fast it settles), which the Card states folder of the debug panel tunes while the game runs (`CARD_STATE_FIELDS`).
 
 ### Settings
 
@@ -103,7 +131,7 @@ A card shows two textures, and the package paints them. `paintFace` paints any f
 
 ## Glows
 
-A glow is what a card lights up with: a halo behind it, an outline, a ring around its front, a band of shine. A game names the glows of its cards once with `defineGlows`, which takes a record of specs and returns the glows under the same names, and a card wears one at a time through its `glow` prop. Shared: `packages/table/src/card/glows.ts`.
+A glow is what a game's own meaning lights a card with: a halo behind it, an outline, a ring around its front, a band of shine (a Handmaid's shield, a gold card). It is not how a card says that it can be chosen, is under the pointer or is picked: those are the card's [states](#states), which the table draws. A game names the glows of its cards once with `defineGlows`, which takes a record of specs and returns the glows under the same names, and a card wears one at a time through its `glow` prop. Shared: `packages/table/src/card/glows.ts`.
 
 | Part | Type | Where it is drawn | Fields |
 | --- | --- | --- | --- |
@@ -122,7 +150,7 @@ scene-glows
 - A card wears one glow at a time; a state that needs two looks at once is a glow of its own.
 - Colours, opacities and speeds are read on every frame, so the table's debug panel tunes them live in a folder for each glow (`Glow · name`); `spread` and `blend` are read when the card is drawn. Every glow gets its own part objects: tuning one never moves another. `definedGlows()` lists the glows made so far and `glowNameOf(glow)` tells the name one was defined under, which the panel and the card inspector use.
 - Name a glow for its meaning in the game (`selection`, `gold`), not for its look.
-- A glow is for a card that lies face up: the halo and the outline are behind the card and face its face, and the ring, the shine and the sparkle lie on the face, so a card lying face down shows none of them. A pile that glows to say that it can be pressed turns its top card up with the back for its picture (`top.front` of a [Pile](06-decks-and-piles.md#pile)).
+- A glow is for a card that lies face up: the halo and the outline are behind the card and face its face, and the ring, the shine and the sparkle lie on the face, so a card lying face down shows none of them. The bloom of a state has no such limit ([States](#states)): a pile that can be pressed says so with `state: "interactive"` on its top card and stays face down.
 
 ## From the view to the board
 

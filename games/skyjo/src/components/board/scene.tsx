@@ -281,6 +281,8 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
         back={faces.back}
         scale={R.pileScale}
         limit={14}
+        // the pads lie right under the pile, where its count would be: the count stays on the top card until the pads are gone
+        label={false}
         top={{
           front: faces.back,
           glow: viewerChooses ? GLOWS.pile : null,

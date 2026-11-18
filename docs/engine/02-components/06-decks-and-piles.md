@@ -42,11 +42,14 @@ const { hands, pile: deck } = deal(rest, count, HAND_SIZE)
 | `back` | The texture of the back of the cards |
 | `top` | The top card turned up, a `PileTop`: give it a `front`. Without one the whole pile lies face down |
 | `limit` | The most cards drawn; `LIMIT` in `pile.tsx` when not given |
+| `label` | Writes how many cards the pile holds under it (default true). Leave it out for a pile that a board counts another way |
 | `enter`, `stagger` | Where the cards come in from, and the seconds between two ([Zone](07-zones.md#zone)) |
 
-`PileTop` is the props of a [Card](04-cards.md#card), all optional, but `target`, `size` and `back`: its `front`, and whatever else a card takes, such as a `glow` or an `onClick`. A `glow` and a `gloss` show on a card that lies face up only ([Glows](04-cards.md#glows)): a deck that lights up on the viewer's turn gives its top card the back for its `front`.
+`PileTop` is the props of a [Card](04-cards.md#card), all optional, but `target`, `size` and `back`: its `front`, and whatever else a card takes, such as a `state` or an `onPress`. A pile that can be pressed, a deck to draw from, gives its top card `state: "interactive"`, an `onPress` and an `ariaLabel`: the table lights it and lifts it under the pointer, face down as it is ([States](04-cards.md#states)). A `glow` and a `gloss` show on a card that lies face up only ([Glows](04-cards.md#glows)).
 
-Turn the top card up, draw one, and push the count past the limit: a taller pile looks no different.
+- **The count.** The pile writes how many cards it holds under it, on the viewer's side, centred, in the lettering of the plates (the display font of the game and the weight of the table's lettering, `useLettering`): the number it holds, not the number it draws. Nothing is written while it holds none. A board writes no count of its own. Where it lies is `pileLabelAt`, which keeps clear of the pile whatever way its frame turns it.
+
+Turn the top card up, draw one, and push the count past the limit: a taller pile looks no different, and the number under it is the real one.
 
 ```specimen
 scene-pile

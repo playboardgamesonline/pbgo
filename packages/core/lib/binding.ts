@@ -61,6 +61,12 @@ export type SettingsDefaults = Partial<Omit<SiteSettings, "theme" | "logo" | "fa
  * defaults of `lib/ui-theme.ts`, the look the games had before they could tune it, drawn with the game's skin (`--surface`,
  * `--accent-game`, `--font-title`, `--font-accent`…).
  */
+/** The colour of a card's bloom of light: a key of the game's theme (`"accent"`, `"foreground"`…), which the settings can change in the gamemaster, or `#rrggbb` */
+export type CardColor = keyof ThemeColors | `#${string}`
+
+/** The bloom a card wears in one state: its colour, and a strength that multiplies the table's own for that state (default 1) */
+export type CardBloomTheme = { color?: CardColor; strength?: number }
+
 export type UiTheme = {
   /** "calm" (default): fades and short slides · "lively": also confetti, springs and the emoji burst. Reduced motion always wins. */
   motion?: "calm" | "lively"
@@ -91,6 +97,17 @@ export type UiTheme = {
     font?: string
     /** Colour of the nickname where the UI writes it: "seat" (default) is the seat colour, "ink" the text colour around it */
     name?: "seat" | "ink"
+  }
+  /** The cards on the table (`Card` of `@pbgo/table`): the bloom of light a card wears in each state that has one, so the look fits the game's own. Not set: the platform's accent, and the text colour for a picked card */
+  card?: {
+    /** Can be chosen now */
+    interactive?: CardBloomTheme
+    /** Under the pointer, or the keyboard focus */
+    hover?: CardBloomTheme
+    /** While the pointer is down on it */
+    pressed?: CardBloomTheme
+    /** Picked: it stays raised */
+    selected?: CardBloomTheme
   }
   /** The end-of-game card (the podium, how it ended, the buttons): its surface, line, corners and colours */
   gameOver?: {

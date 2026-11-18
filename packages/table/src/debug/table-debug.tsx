@@ -8,6 +8,7 @@ import { captureGamePhoto } from "@pbgo/core/lib/photo"
 import { definedGlows, type Glow } from "../card/glows"
 import { BAG_FIELDS, BAG_SETTINGS } from "../bag/settings"
 import { CARD_FIELDS, CARD_SETTINGS } from "../card/settings"
+import { CARD_STATE_FIELDS, CARD_STATE_SETTINGS } from "../card/states"
 import { COUNTER_FIELDS, COUNTER_SETTINGS } from "../counter/settings"
 import { CUP_FIELDS, CUP_SETTINGS } from "../cup/settings"
 import { DIE_DEBUG, DIE_FIELDS, DIE_SETTINGS } from "../die/settings"
@@ -190,6 +191,7 @@ function GlowFolder({ name, glow }: { name: string; glow: Glow }) {
 /** What the table owns and a frame reads: the cards, the dice, the pieces, the counters, the cups, the bags, the tracks, the steppers, the sliders, the sketches, the road maps, the sheets, the timers, the drag, the seats, and the glows the game defined (those with no part at all have nothing to tune) */
 function PieceFolders() {
   useSettings("Card", CARD_SETTINGS, CARD_FIELDS, { order: 2 })
+  useSettings("Card states", CARD_STATE_SETTINGS, CARD_STATE_FIELDS, { order: 2 })
   useDebugFolder({
     folder: "Die",
     tab: "SCENE",
