@@ -140,8 +140,8 @@ export const GAMES = [
     tagline: "The family card game, online.",
     players: { min: 2, max: 8 },
     sanityProjectId: "0kx7tx6t",
-    live: false,
-    indexable: false,
+    live: true,
+    indexable: true,
   },
   {
     slug: "time-bomb",

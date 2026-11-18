@@ -122,7 +122,7 @@ A change in `packages/` reaches every game on the next deployment. Detail: `docs
 
 ## Deployment
 - One Vercel project, `pbgo` (root directory `apps/web`), owns the domain `playboardgamesonline.app`. Push to `main` = production; every pull request gets a preview
-- A game reaches production when `live: true` in the registry; `indexable: true` lets search engines in. Courtisans and Flip 7 are live and indexable (`games/flip-7/CLAUDE.md` says what Flip 7 still lacks)
+- A game reaches production when `live: true` in the registry; `indexable: true` lets search engines in. Courtisans, Flip 7 and Skyjo are live and indexable (`games/flip-7/CLAUDE.md` and `games/skyjo/CLAUDE.md` say what each still lacks)
 - `robots.txt` disallows `/api/` (but opens `/api/catalog/`, the icons of the games and of their publishers and the old addresses of the games' pictures), `/ingest/`, `/gamemaster`, `/player/` (the public profiles of the members), `/*/preview`, `/*/game/`, `/game/*/` (the hub's page of a table); the sitemap lists the hub, its list of games and the indexable `/game/<slug>` pages (never the gamemaster, and no game's own address: `/<slug>` shows the same page as `/game/<slug>`, which is the one listed); non-indexable game pages carry `noindex`. The hub's `/game/<slug>` pages are not covered by `/*/game/` or `/game/*/`: each says itself whether it may be indexed (a live game follows its registry flag, a game to come needs a description in its game of the platform's Sanity project, `docs/catalog.md`). Every `/gamemaster/**` response also has `X-Robots-Tag: noindex, nofollow` (`next.config.ts`) and the `noindex, nofollow` meta
 
 ## Content and data at a glance
