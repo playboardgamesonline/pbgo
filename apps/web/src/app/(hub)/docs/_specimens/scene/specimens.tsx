@@ -271,15 +271,15 @@ const TURN_LABELS: Record<SeatTurn, string> = { none: "Nobody", you: "You", left
 
 export function SceneSeatSpecimen() {
   const [turn, setTurn] = useState<SeatTurn>("left")
-  const [expected, setExpected] = useState(false)
-  const [winner, setWinner] = useState(false)
+  const [together, setTogether] = useState(false)
   const [away, setAway] = useState(false)
   const [stayed, setStayed] = useState(false)
-  const [zones, setZones] = useState(false)
+  const [choosing, setChoosing] = useState(false)
+  const [empty, setEmpty] = useState(false)
   const [points, setPoints] = useState(12)
   return (
     <SceneFrame
-      label="Three seats of a table for five players, the viewer's in front and one on each side: each plate has its avatar at the left of its name in the seat colour, the score and a status under it, a crown on the avatar when it is the player's turn and an aura under it for the winners and the players expected together; a plate fades when its player is away; with the zones on, each plate lies inside a floor zone whose rim lifts under the pointer while the plate itself does not react"
+      label="Three seats of a table for five players, the viewer's in front and one on each side, each holding a few cards face down: each plate stands above its player's cards, upright, with its avatar at the left of its name in the seat colour, the score and a status under it and a crown on the avatar when it is the player's turn; a plate fades when its player is away; the line across the middle of the table says whose turn it is, or who the game waits for; with the choice on, the cards of every player glow while they can be chosen, brighter under the pointer and brightest while pressed, inside an invisible area that the plate lies in without reacting"
       controls={
         <>
           <Choice
@@ -288,16 +288,16 @@ export function SceneSeatSpecimen() {
             options={SEAT_TURNS.map((value) => ({ value, label: TURN_LABELS[value], description: value === "none" ? "Nobody's turn" : `${TURN_LABELS[value]} seat's turn` }))}
             onChange={setTurn}
           />
-          <Option label="Everybody expected" checked={expected} onChange={setExpected} />
-          <Option label="Winners" checked={winner} onChange={setWinner} />
+          <Option label="The other two expected together" checked={together} onChange={setTogether} />
           <Option label="Left is away" checked={away} onChange={setAway} />
           <Option label="Right has stayed" checked={stayed} onChange={setStayed} />
-          <Option label="Plates lie in zones that can be pressed" checked={zones} onChange={setZones} />
+          <Option label="Choose a player" checked={choosing} onChange={setChoosing} />
+          <Option label="Left holds no cards" checked={empty} onChange={setEmpty} />
           <Knob label="Score" value={points} min={0} max={30} step={1} onChange={setPoints} />
         </>
       }
     >
-      <SeatScene turn={turn} expected={expected} winner={winner} away={away} stayed={stayed} zones={zones} points={points} onPick={setTurn} />
+      <SeatScene turn={turn} together={together} away={away} stayed={stayed} choosing={choosing} empty={empty} points={points} onPick={setTurn} />
     </SceneFrame>
   )
 }

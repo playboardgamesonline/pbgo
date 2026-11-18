@@ -1,6 +1,6 @@
 # Turns
 
-The engine tells the server whose move it is with `waitingFor`, and how to play it for a player who left with `autoPlayFor`; core does the rest. The kit's turn helpers read both, and everything that needs to know whose turn it is goes through them, never through the hooks of the definition. The module is `packages/engine-kit/src/turns.ts`. The board follows the turn with a crown, an aura and an announcement.
+The engine tells the server whose move it is with `waitingFor`, and how to play it for a player who left with `autoPlayFor`; core does the rest. The kit's turn helpers read both, and everything that needs to know whose turn it is goes through them, never through the hooks of the definition. The module is `packages/engine-kit/src/turns.ts`. The board follows the turn with a crown, a line of text and an announcement.
 
 ## Kinds of game
 
@@ -187,31 +187,26 @@ The turn marker is a crown that stands on the upper-right corner of the avatar o
 - A `Seat` places it with the avatar, in the avatar's own frame (a child of the nickname's `TableText`, or its `trailing` for a right-hand seat), at the corner that `crownRight` and `crownBack` give it ([Where the plate stands](../02-components/03-seats.md#where-the-plate-stands)).
 - It is a plane that turns to face the camera about the vertical axis only, so it stays upright. While it is up it bobs and its gold pulses. It takes no pointer events ([Clicks and hover](05-actions.md#clicks-and-hover)).
 
-## Aura
+## The turn line
 
-An aura is the light that glows on the table under a seat. Shared: `Aura` in `packages/table/src/seat/aura.tsx`, a plane with a shader. It lies flat over the table and under the cards.
+The table says whose turn it is in one line of its own, written flat on the table in the platform's words: "It's your turn", "Ann's turn", "Waiting for Ann, Bob". Shared: `TurnLine` in `packages/table/src/seat/turn-line.tsx`, which reads what the table says (`waitingFor` and `meId` of `PublicGame`, through `whoseTurn` in `seat/turn.ts`) and the platform's texts (`yourTurn`, `turnOf`, `waitingFor`, the ones of the ticker). A game gives it a place and writes nothing: no sentence, no marker of its own to keep up. Its props, its rules and where it lies are on the page of the [seats](../02-components/03-seats.md#the-turn-line).
 
-| Prop | Role |
+| What the game waits for | What the line says |
 | --- | --- |
-| `width`, `depth` | The size of the lit area, in world units; the plane is a little larger so the glow can fade out |
-| `position`, `yaw` | Where it lies, just above the table, and its turn about the vertical axis |
-| `force` | The strength, a number or a function read on every frame; it eases in and out |
-| `color`, `light` | The colour of the edge, and the lighter colour of its glints |
-| `additive` | Additive blending, on by default, which brightens what lies under it |
-| `settings` | An `AuraSettings` object, read on every frame |
+| The viewer, alone or with others | "It's your turn" |
+| One other player | "Ann's turn" |
+| Several others at once, the viewer not among them | "Waiting for Ann, Bob" |
+| Nobody (before the game, between its steps, once it is over) | Nothing |
 
-`AuraSettings` holds `intensity`, which multiplies `force`, and `edge`, `halo`, `stars`, `density`, `size` and `speed`: the ring along the edge, the halo outside it, the glints and how fast the light moves. It is an object per use, so a debug panel can tune two uses apart: the file exports `ZONE_AURA_SETTINGS`, the default, and `WINNER_AURA_SETTINGS`, and `AURA_FIELDS` lists the knobs a debug folder can offer (not `intensity`).
-
-- `force` follows the state, whatever it is: set it, and the component eases there. Near zero the mesh is not drawn at all, so an unlit aura costs nothing.
-- It has no texture. It is transparent, writes no depth and takes no pointer events ([Clicks and hover](05-actions.md#clicks-and-hover)).
-- A `Seat` draws one under its plate, in the seat's colour, lit by the brightest of the forces that apply (`auraForce`): none for the player of the turn by default, since the crown says it, a soft one for a player the game expects with others, one under the pointer of a plate that can be picked and the full one for a winner. It uses `WINNER_AURA_SETTINGS` unless it is given another object. The colour of a seat comes from the skin's `playerColors`, through `PlayerSeat`.
+- There is no light under a seat, in any state: the crown on the avatar says which player has the turn, the line says who is waited for, and a player who is away fades. A player is chosen by pressing their cards, which glow ([Choosing a player](../02-components/25-floor-buttons.md#choosing-a-player)).
+- A player who is waited for with others on a simultaneous step is not marked on their plate: the line names them, and the list of the players at the top right of the screen lights the rows of those the game waits for ([Simultaneous steps](#simultaneous-steps)).
 
 ## Turn change
 
 There is no turn-transition component. A turn changes the way everything on a board does: the view changes, and each piece that depends on whose turn it is follows. Per game: the template's `board/scene.tsx` and `game/game.tsx` are the reference. The announcement and the ticker are the shared UI's.
 
 - The scene learns that the turn changed from the view (`activePlayerId` in the template's view), never from a timer or from its own click. A player can leave `waitingFor` without having acted, because somebody played for them: follow the view.
-- The crown grows on the avatar of the player whose turn it is and shrinks away from the one before. A step the game waits several players for has no single player of the turn: `PlayerSeat` shows no crown and lights a soft aura under each player expected, and the ticker's strip lists who is pending ([Seats](../02-components/03-seats.md#the-plate)).
+- The crown grows on the avatar of the player whose turn it is and shrinks away from the one before, and the turn line changes its sentence. A step the game waits several players for has no single player of the turn: `PlayerSeat` shows no crown, the line names the players expected, and the ticker's strip lists who is pending ([Seats](../02-components/03-seats.md#the-plate)).
 - The hand takes clicks and the hover glow only on the viewer's turn ([Clicks and hover](05-actions.md#clicks-and-hover)).
 - The cards played fly from where they were to the middle ([Pose memory](../02-components/05-poses-and-motion.md#pose-memory)); the trick won rests in the middle, then flies to its winner's side (`useCollect` in `scene.tsx`, `collectedPose` in `layout.ts`; [Zone](../02-components/07-zones.md#zone)).
 - When the viewer's turn begins, an effect of `game/game.tsx` calls `announce` with the kind `turn`, its sound and `replace: ["turn"]`, which drops a `turn` announcement that is still queued, so a quick succession shows the latest. `useAnnouncements` can also be `paused`, which holds the queue while something else, an opening for instance, has the screen ([Opening and ending](06-victory.md#opening-and-ending)).

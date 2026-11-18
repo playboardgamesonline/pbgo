@@ -83,7 +83,7 @@ A card stands in one of seven states, and a game says which: the table draws it,
 | --- | --- | --- |
 | `base` | The game | Nothing: the card lies as it is, and the pointer lets it by |
 | `interactive` | The game | A card that can be chosen now: a soft bloom of light round it that breathes a little. It lies on the table |
-| `hover` | The table, or the game | Under the pointer or the keyboard focus: the bloom brightens, the card lifts a little, grows a little and takes the shine. A game says it for a card whose whole zone the pointer is over |
+| `hover` | The table, or the game | Under the pointer or the keyboard focus: the bloom brightens, the card lifts a little, grows a little and takes the shine. A game says it for a card whose whole area the pointer is over: the [hotspot](25-floor-buttons.md#choosing-a-player) of a player tells the game, which lights their cards |
 | `pressed` | The table, or the game | While the pointer is down on it: the brightest bloom, and the card goes back down and shrinks a little, as a button does |
 | `selected` | The game | Picked: a steady bloom in a colour of its own, the card raised and grown. Under the pointer it stays picked, and it dips while it is pressed |
 | `disabled` | The game | A card that cannot be chosen when others can: darker, with no bloom, no cursor and no press |

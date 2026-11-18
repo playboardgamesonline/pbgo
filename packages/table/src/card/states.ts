@@ -10,6 +10,9 @@ export type CardState = (typeof CARD_STATES)[number]
 /** What the visitor does to a card now: the pointer is over it, the keyboard focus is on it, the pointer is down on it */
 export type Touch = { hovered: boolean; focused: boolean; pressed: boolean }
 
+/** Nothing: the pointer is elsewhere and the keyboard is not there */
+export const NO_TOUCH: Touch = { hovered: false, focused: false, pressed: false }
+
 /** The state a card is drawn in: what the game says, raised by what the visitor does to it. A card that is not chosen, or is disabled or out, ignores the visitor; a picked one stays picked under the pointer and only dips while it is pressed */
 export function effectiveState(state: CardState, touch: Touch): CardState {
   if (state === "base" || state === "disabled" || state === "out") return state

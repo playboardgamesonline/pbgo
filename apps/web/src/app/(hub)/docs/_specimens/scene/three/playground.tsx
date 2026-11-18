@@ -7,9 +7,11 @@ import {
   bagMouth,
   BAG_SIZE,
   Board,
+  boxOfPoses,
   type CameraSettings,
   Card,
   type CellLook,
+  centreOf,
   ChoiceField,
   circleShape,
   Counter,
@@ -19,15 +21,20 @@ import {
   Die,
   type Drop,
   DropZone,
+  effectiveState,
   fan,
   FloorButton,
   grainTexture,
   grid,
   gridCells,
   hexCells,
+  Hotspot,
   inFrame,
+  joinBoxes,
   lineSpaces,
+  LightPool,
   loopSpaces,
+  NO_TOUCH,
   NumberField,
   onTable,
   Paper,
@@ -35,6 +42,8 @@ import {
   pieceModel,
   pile,
   Pile,
+  plateAbove,
+  plateBoxOf,
   type Pose,
   rectShape,
   RoadMap,
@@ -53,6 +62,7 @@ import {
   Timer,
   Track,
   TrackMarker,
+  type Touch,
   Zone,
 } from "@pbgo/table"
 import { useFrame, useThree } from "@react-three/fiber"
@@ -136,6 +146,12 @@ function topOfDraw(count: number, draw: { x: number; z: number }): Pose {
   const n = Math.max(1, Math.min(count, PILE_LIMIT))
   return inFrame(draw, pile(n, { ...PILE_LOOK, face: "down" })[n - 1] as Pose)
 }
+
+/** The most cards drawn at a seat: two when the ring is crowded. The plate of a seat stands above the room of that many, so it does not move as cards are dealt. */
+const heldLimit = (players: number) => (players > 5 ? 2 : 3)
+
+/** The cards held at a seat, a row in the frame of the seat. */
+const heldRow = (n: number) => row(n, { gap: Math.min(0.62, 4.2 / Math.max(n, 1)), face: "down", rise: 0.012, scale: 0.62 })
 
 /** Where the top of the stack is when it holds `count` pieces: where a piece that was just taken flies in from. */
 /** The hand in the bottom left of the screen: the table is seen through a camera, so the place of a corner of the screen on the table is read from the camera on every frame, and the hand is laid there. It only asks for a render when the place moves, which it does when the window is resized or the view changes. */
@@ -236,6 +252,13 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
   const ringLine = ringOf(players)
   const line = useMemo(() => spacesIn(TRACK_AT, lineSpaces(PLAY_LIMITS.spaces, { gap: 1.1 })), [])
   const ring = seats(players, { ...ringLine, me: 0 })
+  // Choosing a player: the cards of every seat glow while a card can be given, brighter under the pointer and while pressed, and the areas that take the press are invisible
+  const [touches, setTouches] = useState<Partial<Record<number, Touch>>>({})
+  const giving = !state.floor.disabled && state.piles.drawn < PLAY_DECK.size
+  const choosing = parts.floor && parts.seats && state.floor.zones
+  const heldState = (seat: number) => (choosing ? (giving ? effectiveState("interactive", touches[seat] ?? NO_TOUCH) : "disabled") : undefined)
+  // The room of a seat's cards, and the plate that stands above it
+  const roomOf = (spot: { x: number; z: number; yaw: number }) => boxOfPoses(heldRow(heldLimit(players)), CARD_SIZE, { frame: heldFrame(spot) })!
   const fill = bagSize(BAG_START) === 0 ? 0 : bagSize(state.bag.counts) / bagSize(BAG_START)
   // A chequer for squares, three shades for hexagons so that no two neighbours match, a ring that alternates with its corners numbered; a cell with something on it takes the gold
   const cellLook = (cell: number): CellLook => {
@@ -559,10 +582,10 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
                 nickname={nameOf(i)}
                 color={seatColors[i % seatColors.length]!}
                 theme={DEFAULT_SEAT_THEME}
+                above={i > 0 ? roomOf(spot) : undefined}
                 spot={spot}
                 viewer={i === 0}
                 active={state.turn === i}
-                waiting={state.seat === i}
                 line={`${state.score.total[i] ?? 0} pts`}
                 trailing={mark ? <TableText text={mark} style={{ color: colors.text, weight: 700 }} height={0.4} position={[0.35, 0, 0]} /> : undefined}
                 status={state.seat === i ? "Picked" : parts.scoreboard && points > 0 ? `+${points} this round` : undefined}
@@ -570,10 +593,21 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
               {i > 0 && heldHere.length > 0 && (
                 <Zone
                   frame={heldFrame(spot)}
-                  layout={row(heldHere.length, { gap: Math.min(0.62, 4.2 / heldHere.length), face: "down", rise: 0.012, scale: 0.62 })}
+                  layout={heldRow(heldHere.length)}
                   size={CARD_SIZE}
-                  cards={heldHere.map((one) => ({ key: one.id, id: `thing-${one.id}`, front: face(one.card), back: cardBack, ...(one.from !== undefined ? { from: topOfDraw(one.from, draw) } : {}) }))}
+                  cards={heldHere.map((one) => ({
+                    key: one.id,
+                    id: `thing-${one.id}`,
+                    front: face(one.card),
+                    back: cardBack,
+                    ...(heldState(i) ? { state: heldState(i) } : {}),
+                    ...(one.from !== undefined ? { from: topOfDraw(one.from, draw) } : {}),
+                  }))}
                 />
+              )}
+              {/* A seat with no card in it still can be chosen: a pool of light where its cards would lie */}
+              {heldState(i) && (i === 0 || heldHere.length === 0) && (
+                <LightPool size={{ width: CARD_SIZE.width * 0.62, height: CARD_SIZE.height * 0.62 }} state={heldState(i)!} position={[heldFrame(spot).x, 0.012, heldFrame(spot).z]} />
               )}
             </group>
           )
@@ -594,23 +628,21 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
               </>
             )
           })()}
-          {state.floor.zones &&
-            parts.seats &&
+          {choosing &&
             ring.map((spot, i) => {
-              const at = heldFrame(spot, 0.93, 0.93)
-              const width = Math.min(3.2, 20 / players)
+              // Their cards and, for an opponent, their plate: a press anywhere in it chooses the player. Nothing is drawn on it
+              const room = roomOf(spot)
+              const area = i > 0 ? joinBoxes([room, plateBoxOf(plateAbove(room))])! : room
+              const middle = centreOf(area)
               return (
-                <FloorButton
+                <Hotspot
                   key={i}
-                  at={at}
-                  width={width}
-                  depth={3.4}
-                  tone={PLAY_FLOOR_TONES.target}
-                  tint={0.3}
-                  hitY={0.35}
+                  at={middle}
+                  width={area.maxX - area.minX + 0.6}
+                  depth={area.maxZ - area.minZ + 0.6}
                   ariaLabel={`Give a card to ${nameOf(i)}`}
-                  onPress={() => actions.give(i)}
-                  disabled={state.floor.disabled || state.piles.drawn >= PLAY_DECK.size}
+                  onPress={giving ? () => actions.give(i) : undefined}
+                  onTouch={(next) => setTouches((now) => ({ ...now, [i]: next }))}
                 />
               )
             })}

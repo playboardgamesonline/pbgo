@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo } from "react"
 import { BufferGeometry, DoubleSide, EdgesGeometry, PlaneGeometry, Vector3 } from "three"
+import type { TableBox } from "../box"
 import type { CardSize } from "../card/geometry"
 import { inFrame, type Spot } from "../layout"
 import type { Pose } from "../pose"
-import type { Plate } from "../seat/placement"
+import { type Plate, plateBoxOf } from "../seat/placement"
 
 /** The helpers the debug panel draws over the table: lines and marks, drawn over the cards (no depth test, a late render order), that take no click */
 
@@ -44,20 +45,47 @@ export function ZoneGizmo({ frame, layout, size }: { frame?: Spot; layout: reado
   )
 }
 
-/** Where a seat is: the spot the ring gives it (axes, turned the way it faces), the middle of its plate (a ring) and the line from one to the other */
-export function SeatGizmo({ spot, plate }: { spot: Spot; plate: Plate }) {
-  const link = useMemo(() => new BufferGeometry().setFromPoints([new Vector3(spot.x, LIFT, spot.z), new Vector3(plate.x, LIFT, plate.z)]), [spot.x, spot.z, plate.x, plate.z])
-  useEffect(() => () => link.dispose(), [link])
+/** The outline of a box lying on the table */
+export function BoxGizmo({ box, color }: { box: TableBox; color: string }) {
+  const outline = useMemo(
+    () =>
+      new BufferGeometry().setFromPoints([
+        new Vector3(box.minX, LIFT, box.minZ),
+        new Vector3(box.maxX, LIFT, box.minZ),
+        new Vector3(box.maxX, LIFT, box.maxZ),
+        new Vector3(box.minX, LIFT, box.maxZ),
+      ]),
+    [box.minX, box.maxX, box.minZ, box.maxZ],
+  )
+  useEffect(() => () => outline.dispose(), [outline])
+  return (
+    <lineLoop geometry={outline} renderOrder={ORDER} raycast={noClick}>
+      <lineBasicMaterial color={color} depthTest={false} transparent />
+    </lineLoop>
+  )
+}
+
+/**
+ * Where a seat is: the middle of its plate (a ring) and the box the plate covers; for a plate placed from the spot the ring gives it, the spot (axes, turned the way it faces) and the line from one to the other, and for a plate that stands above the cards of its player, the box of those
+ * cards
+ */
+export function SeatGizmo({ spot, plate, cards }: { spot?: Spot; plate: Plate; cards?: TableBox }) {
+  const link = useMemo(() => (spot ? new BufferGeometry().setFromPoints([new Vector3(spot.x, LIFT, spot.z), new Vector3(plate.x, LIFT, plate.z)]) : null), [spot, plate.x, plate.z])
+  useEffect(() => () => link?.dispose(), [link])
   return (
     <group renderOrder={ORDER}>
-      <axesHelper args={[0.6]} position={[spot.x, LIFT, spot.z]} rotation-y={spot.yaw ?? 0} raycast={noClick} />
+      {spot && <axesHelper args={[0.6]} position={[spot.x, LIFT, spot.z]} rotation-y={spot.yaw ?? 0} raycast={noClick} />}
       <mesh position={[plate.x, LIFT, plate.z]} rotation-x={-Math.PI / 2} raycast={noClick}>
         <ringGeometry args={[0.18, 0.24, 24]} />
         <meshBasicMaterial color={SEAT} depthTest={false} transparent side={DoubleSide} />
       </mesh>
-      <lineSegments geometry={link} raycast={noClick}>
-        <lineBasicMaterial color={SEAT} depthTest={false} transparent />
-      </lineSegments>
+      {link && (
+        <lineSegments geometry={link} raycast={noClick}>
+          <lineBasicMaterial color={SEAT} depthTest={false} transparent />
+        </lineSegments>
+      )}
+      <BoxGizmo box={plateBoxOf(plate)} color={SEAT} />
+      {cards && <BoxGizmo box={cards} color={ZONE} />}
     </group>
   )
 }

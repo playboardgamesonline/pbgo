@@ -14,10 +14,11 @@ GameHud                          DOM, shared: ticker, announcements, game over
         ├── SharePhoto           when a photo camera is given
         └── World                what lies on the table, the game's own
             ├── PlayerSeat       a Seat for each player, with its pieces
-            │   ├── Aura         lit softly for the players expected, fully for a winner
-            │   ├── TableText    the nickname, with SeatAvatarMesh and TurnCrown
+            │   ├── TableText    the nickname, with SeatAvatarMesh and TurnCrown, above the cards
             │   ├── TableText    the points, and a status under them
             │   └── Zone         the cards held there, face down, a child of the Seat
+            ├── TurnLine         whose turn it is, in one line, in the platform's words
+            ├── Hotspot          an invisible area that chooses a player, with the cards of the seat lit
             ├── Zone             the viewer's hand
             └── Zone             the middle of the table
                 └── Card …       a front, a back, a glow, a shadow
@@ -65,11 +66,13 @@ The code has no component for some of the words used for the parts of a table. T
 | game board, grid, square, hexagon, cell | `Board` (the cells, which can be pressed), `squareCells`, `hexCells`, a `Piece` or a `TrackMarker` on a cell; `squareBoard`, `hexBoard`, `reachable`, `shortestPath`, `regionOf`, `lineBetween`, `rayFrom` of the kit | Shared | [Boards](16-boards.md) |
 | territory, area, the art of a map | Nothing: the places and the roads are a `RoadMap`, and the picture under them and the areas are the game's own | Not built | [Not built yet](../03-not-built-yet.md) |
 | score | A number of the view, written by the game as the `line` of a `Seat`, a `TableText` under the nickname | The line is shared, the number is the game's | [Score](09-score.md) |
-| player zone | No component: a `Spot` from `seats`, used as the `frame` of a `Zone` and as the `spot` of a `Seat` whose children are what the player holds | Shared | [Seats](03-seats.md) |
+| player zone | No component: a `Spot` from `seats`, used as the `frame` of a `Zone`; the box of the cards it holds is what the `Seat` of the player stands above (`above`) | Shared | [Seats](03-seats.md) |
 | seat | A `Spot` from `seats`, and the `Seat` that draws the player who sits there | Shared | [Seats](03-seats.md) |
 | name plate | The name and the avatar of a `Seat`: `TableText` with `SeatAvatarMesh` | Shared | [Text on the table](09-score.md#text-on-the-table), [Seats](03-seats.md#the-avatar) |
-| aura | `Aura` | Shared | [Aura](../01-the-game/03-turns.md#aura) |
+| whose turn it is, who the game waits for | `TurnLine` (and `TurnText`, which draws a sentence it is given): the platform's words, written flat on the table; `whoseTurn` is the rule, `turnSentence` the words | Shared | [The turn line](03-seats.md#the-turn-line) |
+| choosing a player, target, press zone | `Hotspot` (an invisible area that takes the pointer and the keyboard and says how it is touched), the states of the `Card`s under it, a `LightPool` where there are none | Shared | [Choosing a player](25-floor-buttons.md#choosing-a-player) |
+| box of cards, what a layout covers | `TableBox`: `boxOfPoses`, `boxOfRect`, `joinBoxes` | Shared | [Boxes](08-layout-helpers.md#boxes) |
 | crown, turn marker | `TurnCrown` | Shared | [Crown and the turn marker](../01-the-game/03-turns.md#crown-and-the-turn-marker) |
-| away, out, expected, winner | The states of a `Seat` (`away`, `out`, `waiting`, `winner`, and `active` for the turn): `PlayerSeat` reads them from the table with `seatStateOf`, except `out`, which the game says | Shared | [The plate](03-seats.md#the-plate) |
+| away, out, expected, winner | `seatStateOf` reads `active`, `waiting`, `away` and `winner` from the table; a `Seat` shows `active` (the crown) and `away` (the plate fades), `waiting` and `winner` mark nothing on the plate (the turn line and the end screen say them), and `out` is the game's, shown on the cards (`state: "out"`) | Shared | [The plate](03-seats.md#the-plate) |
 | turn transition | No component: the crown moves, the hand becomes playable, the `turn` announcement plays | The scene is per game, the announcement is shared | [Turn change](../01-the-game/03-turns.md#turn-change) |
 | opening, ending | No component: only the camera's entrance is shared | Per game | [Opening and ending](../01-the-game/06-victory.md#opening-and-ending) |

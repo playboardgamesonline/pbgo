@@ -4,9 +4,9 @@ import type { PlayedCard, PlayerView } from "@template/engine"
 import { useEffect, useMemo, useState } from "react"
 import { Bids } from "./bids"
 import { CAMERA, PHOTO } from "./camera"
-import { PlayerSeat, Table, Timer, useSettings, Zone, type Pose, type ZoneCard } from "@pbgo/table"
+import { PlayerSeat, Table, Timer, TurnLine, useSettings, Zone, type Pose, type ZoneCard } from "@pbgo/table"
 import { GLOWS } from "./glows"
-import { CLOCK, DECK_POSE, backFrame, backLayout, backPose, collectedPose, handLayout, LAYOUT_SETTINGS, seats, trickPose } from "./layout"
+import { CLOCK, DECK_POSE, backFrame, backLayout, backPose, cardsBox, collectedPose, handLayout, LAYOUT_SETTINGS, seats, TURN_LINE, trickPose } from "./layout"
 import { CARD_SIZE, MAT_COLOR, backTexture, faceTexture, matTexture } from "./textures"
 
 function useCollect(view: PlayerView) {
@@ -77,8 +77,9 @@ function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: 
     <>
       {view.players.map((j) => {
         const s = slots.get(j.id)!
+        // The plate stands above the player's cards, the viewer's hand or the backs of an opponent's, whichever way they are turned
         return (
-          <PlayerSeat key={j.id} id={j.id} spot={s} viewer={j.id === meId} line={pointsText(j.points)}>
+          <PlayerSeat key={j.id} id={j.id} above={cardsBox(s, j.id === meId)} line={pointsText(j.points)}>
             {j.id !== meId && (
               <Zone
                 frame={backFrame(s)}
@@ -92,6 +93,8 @@ function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: 
         )
       })}
       <Zone layout={handLayout(hand.length, raised)} size={CARD_SIZE} enter={DECK_POSE} cards={handCards} />
+      {/* Whose turn it is, or who the game waits for: the platform's words, in one line across the middle of the table */}
+      <TurnLine at={TURN_LINE.at} height={TURN_LINE.height} maxWidth={TURN_LINE.width} />
       {/* The bids of the simultaneous step, asked and shown with cards of the game's own on the table */}
       <Bids view={view} slots={slots} canBid={canBid} onBid={onBid} />
       {/* The clock of the step, for a game with the option `turnSeconds`: the game says how long a step lasts (the view), the platform when it ends (`deadlineAt`) */}

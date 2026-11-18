@@ -1,12 +1,16 @@
 "use client"
 
-import { Card, type CameraIntro, type CameraSettings, onTable, type Pose, type SurfaceProps, Table } from "@pbgo/table"
+import { DEFAULT_SKIN, fill } from "@pbgo/core/lib/skin"
+import { Card, type CameraIntro, type CameraSettings, onTable, type Pose, type SurfaceProps, Table, type TurnWords } from "@pbgo/table"
 import { useFrame } from "@react-three/fiber"
 import { type ReactNode, useRef } from "react"
 import { useSceneReady } from "../frame"
 import { back, CARD_SIZE, face, felt, label, palette, type Palette } from "./art"
 
 // What the scenes have in common. A scene is always a `Stage` (one `Table`, with an id of its own because the default id is the same for all and ids are unique on a page) with some words and some cards on it.
+
+/** The platform's English words, as the turn line of a table reads them (`useText()` in a game): a scene outside a game words the line with them. */
+export const TURN_WORDS: TurnWords = (key, params) => fill(DEFAULT_SKIN.texts[key], params)
 
 /** Tells the frame, once, that the first frame is drawn. */
 function Ready() {

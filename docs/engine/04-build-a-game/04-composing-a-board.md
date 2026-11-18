@@ -13,7 +13,7 @@ src/components/board/
 ├── camera.ts                     CAMERA and PHOTO (the table's debug panel makes their knobs)
 ├── textures.ts                   CARD_SIZE, the faces, the back, the felt of the table
 ├── glows.ts                      the glows of the cards
-└── aura.tsx, crown.tsx, seat-avatar-mesh.tsx, table-text.tsx
+└── crown.tsx, seat-avatar-mesh.tsx, table-text.tsx, turn-line.tsx
                                   the pieces of a seat and the text on the table
 ```
 
@@ -26,7 +26,7 @@ src/components/board/
 | The size of a card, its faces and its back | `textures.ts`: `CARD_SIZE`, `faceTexture`, `backTexture` | [Faces and textures](../02-components/04-cards.md#faces-and-textures) |
 | The glows | `glows.ts` | [Glows](../02-components/04-cards.md#glows) |
 | Where cards and seats go | `layout.ts` | [Layout helpers](../02-components/08-layout-helpers.md), [Seats](../02-components/03-seats.md) |
-| The pieces of a seat | `aura.tsx`, `crown.tsx`, `seat-avatar-mesh.tsx`, `table-text.tsx` | [Seats](../02-components/03-seats.md) |
+| The pieces of a seat | `crown.tsx`, `seat-avatar-mesh.tsx`, `table-text.tsx`, `turn-line.tsx` | [Seats](../02-components/03-seats.md) |
 | The knobs of the layout | `LAYOUT_SETTINGS` in `layout.ts`, bound in `scene.tsx` with `useSettings` of `@pbgo/table` (the camera, the cards, the seats and the rest have theirs from the `Table`) | [Tuning](07-tuning.md) |
 | The action a click sends | `game.tsx`: the handler passed down as `onPlay` | [Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover) |
 | The hold of the start screen | `game.tsx`: `held` and `onLoaded`, handed to `Scene` and on to `Table` | [Table](../02-components/01-table.md), [Opening and ending](../01-the-game/06-victory.md#opening-and-ending) |

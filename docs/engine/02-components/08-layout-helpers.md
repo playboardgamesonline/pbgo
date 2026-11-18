@@ -40,6 +40,21 @@ scene-layouts
 | `lean`, `leanAmplitude` | `pile` | A key and the size of the lean: each card turns a hair by its own number ([Poses](05-poses-and-motion.md)) |
 | `scale` | all | The uniform scale of the cards |
 
+## Boxes
+
+A layout says where each card lies; a box says what a set of cards covers of the table. A `TableBox` is `{ minX, maxX, minZ, maxZ }` in world units, its sides along x and z: x to the right, z toward the viewer, so the top of the screen is the least z. It is what a board measures with, whichever way its cards are turned, and what the plate of a seat stands above ([Seats](03-seats.md#where-the-plate-stands)). Shared: `packages/table/src/box.ts`, tested in `box.test.ts`.
+
+| Helper | What it gives |
+| --- | --- |
+| `boxOfPoses(poses, size, { frame, tilt })` | The box of the cards laid in `poses`: the four corners of each, as its pose scales, turns and places it. The poses are in the world, or in the frame of `frame` (as a `Zone` takes its layout). With `tilt`, the camera's tilt as `CameraSettings.tilt`, the box of what the camera sees: a card that stands off the table hides the part behind it, so its box reaches farther up the screen by its height times the tangent of the tilt. `null` for no card |
+| `boxOfRect({ x, z, width, depth, yaw })` | The box of a rectangle `width` along its own x and `depth` along its own z, centred at (`x`, `z`) and turned `yaw` about the vertical |
+| `joinBoxes(boxes)` | The smallest box that holds them all; a `null` (a player with no cards) is skipped, and no box at all is `null` |
+| `centreOf(box)` | The middle of a box |
+| `boxesOverlap(a, b, by)` | Whether two boxes cover some of the table together, or come closer than `by` |
+
+- A box of rotated cards is the box of their corners, so it is larger than the cards: a row turned by a quarter turn is as wide as the cards are deep. Where the exact shape matters (a plate beside a turned row), a test uses the corners of each card and the separating axes of two convex shapes, as the layout tests of the template and of Flip 7 do; the box is for placing.
+- A box is what a board asks of its layout and not a layout itself: a player's cards are boxed at the room of the biggest hand, so the plate above them does not move as cards are played.
+
 ## Rules
 
 - Rows and fans are centred on x = 0, so the same layout fits any count; slot `i` is for card `i`.
@@ -47,7 +62,7 @@ scene-layouts
 - `turn` is within the frame: a frame that already turns the zone adds its own turn.
 - Every call returns new poses, and `inFrame` leaves its arguments alone.
 - When no helper fits, write the layout by hand with `onTable`: the template's `trickPose` and `collectedPose` do.
-- The ring of players is `seats`, which returns spots rather than poses ([Seats](03-seats.md)).
+- The ring of players is `seats`, which returns spots rather than poses ([Seats](03-seats.md)); `boxOfPoses` measures what a layout covers ([Boxes](#boxes)).
 
 From `template/src/components/board/layout.ts`, where an opponent's card flies from (`SeatSpot` is the template's name for `Required<Spot>`):
 
