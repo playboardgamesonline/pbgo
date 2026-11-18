@@ -41,6 +41,8 @@ describe("the gate of a stage", () => {
     expect(STAGES).toEqual(["scaffold", "engine", "binding", "board", "content", "live"])
     expect(gateArgs({ stage: "engine" })).toEqual(["--stage", "engine"])
     expect(gateArgs({ stage: "content", only: true })).toEqual(["--only", "content"])
+    // the game folder's gate also asks Sanity whether the game's project is there
+    expect(gateArgs({ stage: "scaffold", online: true })).toEqual(["--stage", "scaffold", "--online"])
   })
 
   it("says the summary first, then what fails and what wants a look, of the stages that count only", () => {

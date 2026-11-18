@@ -61,7 +61,7 @@ describe("the steps", () => {
       { kind: "published" },
       { kind: "rules" },
       { kind: "pictures" },
-      { kind: "stage", gate: { stage: "scaffold" } },
+      { kind: "stage", gate: { stage: "scaffold", online: true } },
       { kind: "stage", gate: { stage: "content", only: true } },
       { kind: "art" },
       { kind: "stage", gate: { stage: "engine" } },

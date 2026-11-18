@@ -87,7 +87,7 @@ describe("the brief of a sub-agent", () => {
   it("tells the machine's check in words, the command to run, for each kind", () => {
     expect(checkWords(SCOUT, game)).toBe("`pnpm check:scout /assets/love-letter/scout.json --online` exits 0")
     expect(checkWords(RULES_SPEC, game)).toBe('`pnpm check:rules love-letter --name "Love Letter"` exits 0')
-    expect(checkWords(GAME_NEW, game)).toBe("`pnpm check:game love-letter --stage scaffold` exits 0")
+    expect(checkWords(GAME_NEW, game)).toBe("`pnpm check:game love-letter --stage scaffold --online` exits 0")
     expect(checkWords(STEPS[5] ?? SCOUT, game)).toBe("`pnpm check:game love-letter --only content` exits 0")
     expect(checkWords(STEPS[6] ?? SCOUT, game)).toContain("content:seed --dry-run --art-dir /assets/love-letter")
     expect(checkWords(STEPS[3] ?? SCOUT, game)).toContain("pnpm catalog:pictures love-letter")

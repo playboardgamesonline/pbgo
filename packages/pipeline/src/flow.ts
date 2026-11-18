@@ -182,7 +182,7 @@ function nextOf(deps: FlowDeps, target: Target): Next {
   }
   if (s.status === "failed") return { step: open.id, action: "reopen", text: `${open.title} failed (${shorten(s.failure ?? "no reason given", 90)}): pnpm game-flow begin ${state.slug} ${open.id} opens a new round with a fresh sub-agent` }
   if (open.needsFolder && !folder) return { step: open.id, action: "wait-folder", text: `games/${state.slug} is not in this checkout, and ${open.title} works in it: switch to the branch or the worktree that has it, then ask for the status again` }
-  if (open.makesFolder && folder) return { step: open.id, action: "make-folder", text: `games/${state.slug} is already here, so ${open.title} has nothing to make: pnpm game-flow gate ${state.slug} ${open.id} (no sub-agent) runs its check, then validate` }
+  if (open.makesFolder && folder) return { step: open.id, action: "make-folder", text: `games/${state.slug} is already here, so ${open.title} has nothing to make: pnpm game-flow gate ${state.slug} ${open.id} (no sub-agent) runs its check, which asks Sanity whether the game's project is there, then validate. When that check fails on the project, pnpm game-flow begin ${state.slug} ${open.id} opens the step to repair it` }
   return { step: open.id, action: "begin", text: `pnpm game-flow begin ${state.slug} ${open.id} --scratch <your temp folder> opens ${open.title} and writes the brief of its sub-agent` }
 }
 
@@ -382,7 +382,13 @@ async function begin(deps: FlowDeps, parsed: Parsed): Promise<number> {
   }
   const folder = folderIn(deps, state.slug)
   if (step.needsFolder && !folder) throw new FlowError(`games/${state.slug} is not in this checkout, and ${step.title} works in it: switch to the branch or the worktree that has it (the pull request of the game folder, say)`)
-  if (step.makesFolder && folder && s.status === "pending") throw new FlowError(`games/${state.slug} is already here, so ${step.title} has nothing to make: pnpm game-flow gate ${state.slug} ${step.id} runs its check, then validate`)
+  // the folder is there already: the step has nothing to make, unless its check says what is missing (the game's Sanity project is gone, or was never made): then it is opened to repair that
+  let repair: string[] | undefined
+  if (step.makesFolder && folder && s.status === "pending") {
+    const verdict = await runCheck(step, { deps, game, state })
+    if (verdict.ok) throw new FlowError(`games/${state.slug} is already here and the check of ${step.title} passes, so it has nothing to make: pnpm game-flow gate ${state.slug} ${step.id} shows the check, then validate`)
+    repair = verdict.lines
+  }
   if (step.needsFolder || step.makesFolder) await requireCheckout(deps, target, step)
   const scratch = resolve(valueOf(parsed, "--scratch") ?? join(target.found.dir, ".flow"))
   const reopened = s.status !== "pending"
@@ -402,11 +408,12 @@ async function begin(deps: FlowDeps, parsed: Parsed): Promise<number> {
   mkdirSync(scratch, { recursive: true })
   const index = STEPS.findIndex((each) => each.id === step.id) + 1
   say(deps, `${step.title[0]?.toUpperCase() ?? ""}${step.title.slice(1)} · step ${index} of ${STEPS.length} · round ${s.rounds} · skill ${step.skill}`)
+  if (repair !== undefined) say(deps, `A repair, not a creation: games/${state.slug} is in the repo already and its check says:`, ...repair.map((line) => `  ${tildeAll(line)}`))
   if (step.id === "engine-rules" && !existsSync(specPathsOf(deps.gamesDocs, state.slug).rules)) {
     say(deps, `Note: there is no rules spec (docs/games/${state.slug}/rules.md), so the engine is planned from the rulebook alone and every case it leaves open goes in the sub-agent's questions.`)
   }
   // the brief is written for a change too: the sub-agent that did the step may be gone (another session), and a fresh one reads it, finds what exists and carries on
-  writeFileSync(briefPath, briefOf({ step, game, scratch, reportPath, has: { scout: existsSync(game.scoutFile), rulesPdf: existsSync(game.rulesPdf) }, round: reopened ? s.rounds : 1, issue: s.issue?.identifier || null, parent: state.linear.parent?.identifier || null }))
+  writeFileSync(briefPath, briefOf({ step, game, scratch, reportPath, has: { scout: existsSync(game.scoutFile), rulesPdf: existsSync(game.rulesPdf) }, round: reopened ? s.rounds : 1, issue: s.issue?.identifier || null, parent: state.linear.parent?.identifier || null, repair }))
   if (change) {
     say(deps, "A round for the change the owner asked for: send it to the sub-agent that did the step (SendMessage), and ask it to return its new report as its final message: you write it to the new file.", `  report  ${reportPath}`, `  brief   ${briefPath}  (for a fresh sub-agent when that one is gone: Read it and follow it, and give it the owner's words)`, `When it answers STATUS: done: pnpm game-flow gate ${state.slug} ${step.id}`)
     return EXIT.ok

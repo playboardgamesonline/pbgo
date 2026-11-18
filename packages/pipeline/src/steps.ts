@@ -150,7 +150,8 @@ export const GAME_NEW: StepDefinition = {
     "Everything that creates something outside the repo (a Sanity project, a token, the Studio, `pnpm setup-env`) waits for an explicit yes that the orchestrator relays: stop with `STATUS: questions` first, with the list of what leaves the machine.",
   ],
   makesFolder: true,
-  check: { kind: "stage", gate: { stage: "scaffold" } },
+  // `--online`: the registry holds an id of the right shape for a project that may be gone, which only Sanity can say; a machine that cannot reach it gets a warning, not a failure
+  check: { kind: "stage", gate: { stage: "scaffold", online: true } },
 }
 
 export const GAME_SANITY_CREATE: StepDefinition = {

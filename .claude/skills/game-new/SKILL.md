@@ -21,7 +21,7 @@ Look before asking.
 - `games/<slug>` exists and its entry in `packages/games/src/registry.ts` still says `sanityProjectId: "__SANITY_PROJECT_ID__"`: an earlier run stopped half-way, or only `pnpm new-game` was run. `pnpm new-game` refuses an existing slug, so never run it again: run what is left, in order (`pnpm go-live <slug>`, then `pnpm game-rules <slug> --rules <lang>=<file.pdf>` for each rulebook, then `pnpm setup-env`), then go to step 5.
 - A project id of the right shape is not a project: the ids of the games that came with the old standalone repositories are those of projects that are gone (their Studio says `Project with ID "<id>" not found`), and `pnpm go-live` stops on one. Ask Sanity first, it changes nothing: `pnpm check:game <slug> --only scaffold --online`.
   - It passes (the project's production dataset answers): the project is there. Go to step 5.
-  - It fails with "is not found": the project is gone and the game needs a new one. Steps 3 and 4 below apply to it as they are, with one change: `pnpm go-live <slug> --new-project` makes the project anew, with its dataset, CORS, token and Studio, and writes its id over the old one in the registry, the Studio's files and `content/config.ts` (the game's `CLAUDE.md` still names the old id: change it by hand), then `pnpm game-rules` and `pnpm setup-env`, then step 5. Without the flag `go-live` stops on a dead id and makes nothing.
+  - It fails with "is not found": the project is gone and the game needs a new one. Steps 3 and 4 below apply to it as they are, with one change: `pnpm go-live <slug> --new-project` makes the project anew, with its dataset, CORS, token and Studio, and writes its id over the old one in the registry, the Studio's files and `content/config.ts` (the game's `CLAUDE.md` still names the old id: change it by hand), then `pnpm game-rules` and `pnpm setup-env`, then step 5. Without the flag `go-live` stops on a dead id and makes nothing. In `/add-game` this is the step's repair round: `pnpm game-flow begin <slug> game-new` opens it for a game that has its folder when the gate's check (`check:game <slug> --stage scaffold --online`) fails, its brief says what fails and not to run `pnpm new-game`, and the step is validated by that same check once the project is made.
 
 ## 2. Ask first, create nothing
 
@@ -64,11 +64,10 @@ pnpm setup-env
 
 A step that fails stops what needs it: when `new-game` or `go-live` fails, stop and say why; when `game-rules` or `setup-env` fails, still run the other, then say what is left to fix and which command to run again once the cause is dealt with. Never run a step again that succeeded, except `go-live`.
 
-Then check that the Studio answers, with the address `go-live` printed (it is `https://<slug>.sanity.studio` unless `games/<slug>/apps/studio/sanity.cli.ts` names another host):
+Then check the result. `go-live` ends its Studio part with `✓ Studio: https://<host>.sanity.studio` when `sanity deploy` worked (the host is the slug unless `games/<slug>/apps/studio/sanity.cli.ts` names another). The Studio's address answers 404 to `curl` even when it is deployed, so a request to it proves nothing; the check is the gate of the step, which also asks Sanity whether the game's project is there:
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' https://<host>.sanity.studio
-pnpm check:game <slug> --stage scaffold
+pnpm check:game <slug> --stage scaffold --online
 ```
 
 What exists afterwards: `games/<slug>` from the template, registered with `live: false` and `indexable: false`; the Sanity project; its Studio with the shared singletons (Identity & Mechanics, Visual, Audio, Copy), the template's `game` document in tabs (Board, Card backs) and `studio-forms.test.ts`; the rules PDFs in the **draft** of Settings (Mechanics tab).
@@ -90,4 +89,4 @@ A rulebook added later: `pnpm game-rules <slug> --rules fr=regles.pdf` (`--dry-r
 
 ## Checks
 
-The pieces are tested, none of them by running the scripts for real: the slug and the name in `packages/games/src/slug.test.ts` and `registry.test.ts`, the rulebooks in `packages/content-kit/src/rulebook.test.ts` and `rulebook-cli.test.ts`. The gate of the step is `pnpm check:game <slug> --stage scaffold`; the guard of the fields is `game-sanity-create`'s (`studio-forms.test.ts`).
+The pieces are tested, none of them by running the scripts for real: the slug and the name in `packages/games/src/slug.test.ts` and `registry.test.ts`, the rulebooks in `packages/content-kit/src/rulebook.test.ts` and `rulebook-cli.test.ts`. The gate of the step is `pnpm check:game <slug> --stage scaffold --online`; the guard of the fields is `game-sanity-create`'s (`studio-forms.test.ts`).

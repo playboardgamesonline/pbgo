@@ -332,7 +332,7 @@ describe("gate", () => {
     const result = await w.run("gate", "skyjo", "game-new")
     expect(result.code).toBe(0)
     expect(result.out).toContain("(no report)")
-    expect(w.calls.at(-1)).toEqual({ file: process.execPath, args: [join(w.repo, "scripts", "check-game.mjs"), "skyjo", "--stage", "scaffold"] })
+    expect(w.calls.at(-1)).toEqual({ file: process.execPath, args: [join(w.repo, "scripts", "check-game.mjs"), "skyjo", "--stage", "scaffold", "--online"] })
     expect((await w.run("validate", "skyjo", "game-new")).code).toBe(0)
     expect(stepOf(stateOf("skyjo"), "game-new").status).toBe("validated")
   })
@@ -792,6 +792,71 @@ describe("taking a game on", () => {
     expect(refused.err).toContain("not taken on through game folder")
     expect(refused.err).toContain("pnpm check:game love-letter")
     expect(existsSync(join(w.assets, "love-letter"))).toBe(false)
+  })
+})
+
+describe("the game folder of a game that has its folder already", () => {
+  const GONE = { code: 1, stdout: "scaffold\n  ✗ sanity project: Sanity project 3hw190ly is not found (its production dataset answers 404)\n\nsky-team has got as far as: nothing. Not ready for after scaffold: 1 to fix.\n", stderr: "" }
+  const asksSanity = (_file: string, args: string[]) => (args.includes("--online") ? GONE : OK)
+
+  it("has nothing to make when its check passes, and the check asks Sanity", async () => {
+    await w.run("start", "Skyjo", "--adopt-through", "platform-assets")
+    makeGameFolder("skyjo")
+    const nothing = await w.run("begin", "skyjo", "game-new", "--scratch", w.scratch)
+    expect(nothing.code).toBe(1)
+    expect(nothing.err).toContain("games/skyjo is already here and the check of game folder passes, so it has nothing to make")
+    expect(w.calls.find((call) => call.args.includes("--online"))?.args).toEqual([join(w.repo, "scripts", "check-game.mjs"), "skyjo", "--stage", "scaffold", "--online"])
+    expect(stepOf(stateOf("skyjo"), "game-new").status).toBe("pending")
+  })
+
+  it("is opened as a repair when its check says that the project is gone: the command and the brief say so, and what to do", async () => {
+    await w.run("start", "Sky Team", "--adopt-through", "platform-assets")
+    makeGameFolder("sky-team")
+    w.exec = asksSanity
+    const begun = await w.run("begin", "sky-team", "game-new", "--scratch", w.scratch)
+    expect(begun.code).toBe(0)
+    expect(begun.out).toContain("A repair, not a creation: games/sky-team is in the repo already and its check says:")
+    expect(begun.out).toContain("Sanity project 3hw190ly is not found")
+    expect(stepOf(stateOf("sky-team"), "game-new")).toMatchObject({ status: "running", rounds: 1 })
+    const brief = readFileSync(join(w.scratch, "brief-sky-team-game-new.md"), "utf8")
+    expect(brief).toContain("this round repairs it instead of creating it")
+    expect(brief).toContain("Sanity project 3hw190ly is not found")
+    expect(brief).toContain("Do not run `pnpm new-game`")
+    expect(brief).toContain("explicit yes that the orchestrator relays to you")
+    expect(brief).toContain("`pnpm check:game sky-team --stage scaffold --online` exits 0")
+  })
+
+  it("says nothing of a repair when the game has no folder yet: that is a creation, and nothing asks Sanity", async () => {
+    w.exec = asksSanity
+    await w.run("start", "Coup", "--adopt-through", "platform-assets")
+    const created = await w.run("begin", "coup", "game-new", "--scratch", w.scratch)
+    expect(created.code).toBe(0)
+    expect(created.out).not.toContain("A repair")
+    expect(readFileSync(join(w.scratch, "brief-coup-game-new.md"), "utf8")).not.toContain("repairs it")
+    expect(w.calls.some((call) => call.args.includes("--online"))).toBe(false)
+  })
+
+  it("is gated by the same check: it fails while the project is gone and passes once it is made", async () => {
+    await w.run("start", "Sky Team", "--adopt-through", "platform-assets")
+    makeGameFolder("sky-team")
+    w.exec = asksSanity
+    await w.run("begin", "sky-team", "game-new", "--scratch", w.scratch)
+    const failed = await w.run("gate", "sky-team", "game-new", "--report", report("r.md", "STATUS: done"))
+    expect(failed.code).toBe(1)
+    expect(failed.out).toContain("Sanity project 3hw190ly is not found")
+    expect((await w.run("validate", "sky-team", "game-new")).code).toBe(1)
+    w.exec = () => ({ code: 0, stdout: "scaffold\n  ✓ sanity project: Sanity project newid001 (its production dataset answers)\nsky-team has got as far as: scaffold.\n", stderr: "" })
+    expect((await w.run("gate", "sky-team", "game-new", "--report", report("r2.md", "STATUS: done"))).code).toBe(0)
+    expect((await w.run("validate", "sky-team", "game-new")).code).toBe(0)
+    expect(stepOf(stateOf("sky-team"), "game-new").status).toBe("validated")
+  })
+
+  it("says in the status what the folder's gate asks, and what to do when it fails on the project", async () => {
+    await w.run("start", "Skyjo", "--adopt-through", "platform-assets")
+    makeGameFolder("skyjo")
+    const status = await w.run("status", "skyjo")
+    expect(status.out).toContain("which asks Sanity whether the game's project is there")
+    expect(status.out).toContain("When that check fails on the project, pnpm game-flow begin skyjo game-new opens the step to repair it")
   })
 })
 
