@@ -1,5 +1,5 @@
 import { localeString, localeText } from "@pbgo/content-kit"
-import type { SeedDoc } from "@pbgo/content-kit"
+import type { LanguageId, SeedDoc } from "@pbgo/content-kit"
 
 export const TEXTS_ID = "texts"
 
@@ -17,7 +17,7 @@ export const ENGINE_TEXTS = [
   { key: "score.rounds", fr: "Manches jouées", en: "Rounds played", es: "Rondas jugadas", de: "Gespielte Runden" },
   { key: "score.bestRound", fr: "Meilleure manche", en: "Best round", es: "Mejor ronda", de: "Beste Runde" },
   { key: "score.columns", fr: "Colonnes défaussées", en: "Columns thrown away", es: "Columnas descartadas", de: "Abgelegte Spalten" },
-  { key: "score.ended", fr: "Manches terminées", en: "Rounds ended", es: "Rondas terminadas", de: "Beendete Runden" },
+  { key: "score.ended", fr: "Manches terminées en premier", en: "Rounds finished first", es: "Rondas terminadas primero", de: "Als Erster beendete Runden" },
   { key: "score.doubled", fr: "Manches doublées", en: "Rounds doubled", es: "Rondas dobladas", de: "Verdoppelte Runden" },
 ]
 
@@ -139,7 +139,7 @@ export const BOARD_WORDS = [
     fr: "défausse une colonne de trois {value}",
     en: "throws away a column of three {value}s",
     es: "descarta una columna de tres {value}",
-    de: "legt eine Spalte aus drei {value} ab",
+    de: "legt eine Spalte aus drei gleichen Karten ({value}) ab",
   },
   { key: "eventStart", fr: "commence la manche ({sum})", en: "begins the round ({sum})", es: "empieza la ronda ({sum})", de: "beginnt die Runde ({sum})" },
   {
@@ -168,14 +168,27 @@ export const BOARD_WORDS = [
 ]
 
 /**
- * The part of the shared `texts` document that the seed fills: the engine's words, the messages of the game's own error codes (one keyed item each, the `_key` the Copy page writes) and the words of the board (one `localeString` each, under the name of
- * its field), so that the seed adds the ones Sanity lacks and keeps the ones edited in the Studio. Everything else of Copy (the interface labels, the victory phrases, the messages of the shared codes, which the platform words) is set in the Studio
- * and left alone.
+ * The sentence that crowns the winner of a table, read when a game ends: the shared `victoryPhrases` of `texts` (a `localeStringList`, the phrases of a language kept or filled together), one in each language, which is all the game needs: more can be
+ * added in the Studio. `{pseudo}` is the winner and `{points}` their total, the way the Copy page names them, and the sentence says both. The announcement of the end of the game shows what comes before `{pseudo}` and puts the winner and their points in its
+ * subtitle, so the sentence leads to the name. It says what the rules say, the lowest total wins, in the words of the booklet (le plus petit score, puntuación más baja, kleinste Punktzahl). French, English, Spanish and German are written for the game: the
+ * Spanish and the German are for the owner to read.
+ */
+export const VICTORY_PHRASES = {
+  fr: ["Le plus petit score gagne, et cette fois c’est {pseudo} ({points} pts)"],
+  en: ["Lowest score wins, and this time it’s {pseudo} ({points} pts)"],
+  es: ["Gana la puntuación más baja, y esta vez es {pseudo} ({points} pts)"],
+  de: ["Die kleinste Punktzahl gewinnt, und diesmal ist es {pseudo} ({points} Pkt.)"],
+} satisfies Record<LanguageId, string[]>
+
+/**
+ * The part of the shared `texts` document that the seed fills: the engine's words, the messages of the game's own error codes (one keyed item each, the `_key` the Copy page writes), the words of the board (one `localeString` each, under the name of its
+ * field) and the victory phrase, so that the seed adds the ones Sanity lacks and keeps the ones edited in the Studio. Everything else of Copy (the interface labels, the messages of the shared codes, which the platform words) is set in the Studio and left alone.
  */
 export function buildTexts(): SeedDoc {
   return {
     _id: TEXTS_ID,
     _type: "texts",
+    victoryPhrases: { _type: "localeStringList", fr: [...VICTORY_PHRASES.fr], en: [...VICTORY_PHRASES.en], es: [...VICTORY_PHRASES.es], de: [...VICTORY_PHRASES.de] },
     errorMessages: ERROR_MESSAGES.map(({ code, ...words }) => ({ _key: code, _type: "errorMessage", code, message: localeString(words) })),
     engineTexts: ENGINE_TEXTS.map(({ key, ...words }) => ({ _key: engineTextKey(key), _type: "engineText", key, text: localeText(words) })),
     ...Object.fromEntries(BOARD_WORDS.map(({ key, ...words }) => [key, localeString(words)])),
