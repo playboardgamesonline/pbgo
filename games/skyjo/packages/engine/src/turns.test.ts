@@ -63,12 +63,22 @@ describe("the opening: everybody turns two cards over (page 1)", () => {
   })
 })
 
-describe("who begins (page 2)", () => {
-  /** A rigged table at the end of the opening: ana, bob and cleo have turned their two cards over, the last click is dan's. */
-  const begin = (sums: Record<string, [number, number]>, dealer?: string) => {
+describe("who begins (EN p.4, FR p.2)", () => {
+  /**
+   * A rigged table at the end of the opening: every player has turned their two cards over (`sums`, the value of each), but the last player has one still to
+   * turn, and their click is the one that begins the round. `starter` is the player who ended the round before and so begins this one: none in the first round.
+   */
+  const begin = (sums: Record<string, [number, number]>, options: { dealer?: string; starter?: string; seed?: number } = {}) => {
     const names = Object.keys(sums)
     const grids = Object.fromEntries(names.map((id) => [id, [up(sums[id]![0]), undefined, undefined, up(sums[id]![1])]]))
-    const closing = layout({ players: names, grids, dealer, stage: { kind: "reveal" } })
+    const closing = layout({
+      players: names,
+      grids,
+      dealer: options.dealer,
+      seed: options.seed,
+      stage: { kind: "reveal", starter: options.starter ?? null },
+      rounds: options.starter === undefined ? [] : [names.map(() => 10)],
+    })
     // the last player still has a card to turn: undo one of theirs
     const lastId = names[names.length - 1]!
     const lastSeat = names.length - 1
@@ -76,36 +86,131 @@ describe("who begins (page 2)", () => {
     state.grids[lastSeat]![3]!.up = false
     return { state, lastId }
   }
+  /** What the click that ends the opening does: the state it gives and the `start` event, if it said one. */
+  const closeOpening = (table: { state: State; lastId: string }) => {
+    const result = step(table.state, { type: "reveal", playerId: table.lastId, position: 3 })
+    return { state: result.state, start: result.events.map(({ event }) => event).find((event) => event.kind === "start") }
+  }
+  /** Four players, three of them showing 10: the tie the booklets do not rule on. */
+  const TIE = { ana: [4, 6], bob: [5, 5], cleo: [10, 0], dan: [1, 1] } as Record<string, [number, number]>
 
-  it("is the player whose two cards add up highest: the rulebook's example (12 and -2 = 10 against 4 and 2 = 6)", () => {
-    const { state, lastId } = begin({ ana: [4, 2], bob: [12, -2] })
-    const done = reveal(state, lastId, 3)
-    expect(done.stage).toEqual({ kind: "choose", seat: 1 })
-    expect(waiting(done)).toEqual(["bob"])
+  describe("the first round: the highest sum of the two opening cards", () => {
+    it("is the player whose two cards add up highest: the booklets' example (12 and -2 = 10 against 4 and 2 = 6)", () => {
+      const done = closeOpening(begin({ ana: [4, 2], bob: [12, -2] }))
+      expect(done.state.stage).toEqual({ kind: "choose", seat: 1 })
+      expect(waiting(done.state)).toEqual(["bob"])
+      expect(done.start).toEqual({ kind: "start", by: "bob", sum: 10, how: "sum" })
+    })
+
+    it("counts negative cards", () => {
+      const { state, lastId } = begin({ ana: [-2, -1], bob: [0, 0] })
+      expect(reveal(state, lastId, 3).stage).toEqual({ kind: "choose", seat: 1 })
+    })
+
+    it("draws a tie from the seed among the tied players: never one who is not tied, and each of them about as often as the others (the booklets are silent)", () => {
+      const firsts = new Map<string, number>()
+      for (let i = 0; i < 300; i++) {
+        const { state } = closeOpening(begin(TIE, { seed: seedOf(i) }))
+        const first = waiting(state)[0]!
+        firsts.set(first, (firsts.get(first) ?? 0) + 1)
+      }
+      expect([...firsts.keys()].sort()).toEqual(["ana", "bob", "cleo"])
+      // 300 draws among 3 players: 100 each, give or take
+      for (const [id, count] of firsts) expect(count, id).toBeGreaterThan(60)
+      for (const [id, count] of firsts) expect(count, id).toBeLessThan(140)
+    })
+
+    it("does not favour a seat: two neighbours tied at an eight-seat table begin about equally often, whoever deals", () => {
+      const names = ["ana", "bob", "cleo", "dan", "eva", "fay", "gus", "hal"]
+      // ana and bob show 8 each, the others 5 (the box holds ten 4s, and the rigged cells use all of them)
+      const sums = Object.fromEntries(names.map((id) => [id, id === "ana" || id === "bob" ? [4, 4] : [1, 4]])) as Record<string, [number, number]>
+      const firsts = new Map<string, number>()
+      for (let i = 0; i < 400; i++) {
+        // whoever deals: the dealer plays no part in the draw
+        const { state } = closeOpening(begin(sums, { seed: seedOf(i), dealer: names[i % names.length] }))
+        const first = waiting(state)[0]!
+        firsts.set(first, (firsts.get(first) ?? 0) + 1)
+      }
+      expect([...firsts.keys()].sort()).toEqual(["ana", "bob"])
+      for (const [id, count] of firsts) expect(count, id).toBeGreaterThan(140)
+    })
+
+    it("draws from the stream only when players are tied, and gives the same player for the same state", () => {
+      const tie = begin(TIE)
+      expect(reveal(tie.state, tie.lastId, 3)).toEqual(reveal(tie.state, tie.lastId, 3))
+      expect(reveal(tie.state, tie.lastId, 3).rng).not.toBe(tie.state.rng)
+      const clear = begin({ ana: [4, 2], bob: [12, -2] })
+      expect(reveal(clear.state, clear.lastId, 3).rng).toBe(clear.state.rng)
+    })
+
+    it("is decided by a rigged table at every size, from 2 to 8, with the real deal", () => {
+      for (let n = 2; n <= 8; n++) {
+        const state = opened(newState(n, seedOf(n)))
+        expect(state.stage.kind).toBe("choose")
+        const first = (state.stage as { seat: number }).seat
+        const sums = state.seats.map((_, seat) => state.grids[seat]!.filter((cell) => cell?.up).reduce((total, cell) => total + values(state, [cell!.card])[0]!, 0))
+        expect(sums[first]).toBe(Math.max(...sums))
+      }
+    })
   })
 
-  it("counts negative cards", () => {
-    const { state, lastId } = begin({ ana: [-2, -1], bob: [0, 0] })
-    expect(reveal(state, lastId, 3).stage).toEqual({ kind: "choose", seat: 1 })
-  })
+  describe("every later round: the player who ended the round before, whatever the sums", () => {
+    it("begins, even when another player shows a higher sum (the sentence is in the ten languages of the publisher's booklet: EN p.4, DE p.6)", () => {
+      // cleo ended the last round and shows 1; bob shows 10
+      const done = closeOpening(begin({ ana: [4, 2], bob: [12, -2], cleo: [1, 0], dan: [3, 3] }, { starter: "cleo" }))
+      expect(done.state.stage).toEqual({ kind: "choose", seat: 2 })
+      expect(waiting(done.state)).toEqual(["cleo"])
+      expect(done.start).toEqual({ kind: "start", by: "cleo", sum: 1, how: "ender" })
+    })
 
-  it("goes, in a tie, to the first of the tied players clockwise from the dealer's left (the rulebook is silent)", () => {
-    // ana, bob and cleo all show 10; dan deals: the player on his left is ana
-    const a = begin({ ana: [4, 6], bob: [5, 5], cleo: [10, 0], dan: [1, 1] }, "dan")
-    expect(reveal(a.state, a.lastId, 3).stage).toEqual({ kind: "choose", seat: 0 })
-    // bob deals: the first tied player after him is cleo
-    const b = begin({ ana: [4, 6], bob: [5, 5], cleo: [10, 0], dan: [1, 1] }, "bob")
-    expect(reveal(b.state, b.lastId, 3).stage).toEqual({ kind: "choose", seat: 2 })
-  })
+    it("ignores a tie for the highest sum, and draws nothing from the stream", () => {
+      const table = begin(TIE, { starter: "dan" })
+      const done = closeOpening(table)
+      expect(done.state.stage).toEqual({ kind: "choose", seat: 3 })
+      expect(done.start).toMatchObject({ by: "dan", how: "ender" })
+      expect(done.state.rng).toBe(table.state.rng)
+    })
 
-  it("is decided by a rigged table at every size, from 2 to 8, with the real deal", () => {
-    for (let n = 2; n <= 8; n++) {
-      const state = opened(newState(n, seedOf(n)))
-      expect(state.stage.kind).toBe("choose")
-      const first = (state.stage as { seat: number }).seat
-      const sums = state.seats.map((_, seat) => state.grids[seat]!.filter((cell) => cell?.up).reduce((total, cell) => total + values(state, [cell!.card])[0]!, 0))
-      expect(sums[first]).toBe(Math.max(...sums))
-    }
+    it("is not the dealer: the dealer presses Deal and the player who ended the round begins", () => {
+      // three players; cleo turns the last card over and ends the round, ana and bob play their last turn; ana was dealing, so bob deals the next round.
+      // Three different values in each column (no column of three equal cards), small enough that nobody is near 100: ana's grid is worth 48, the others' 12
+      const grid = (base: number) => Array.from({ length: 12 }, (_, i) => (i === 11 ? base + (i % 3) : up(base + (i % 3))))
+      const grids = { ana: grid(3), bob: grid(0), cleo: grid(0) }
+      let state = layout({ players: ["ana", "bob", "cleo"], deck: [12, 12, 12], grids, dealer: "ana", stage: { kind: "choose", player: "cleo" } })
+      for (const id of ["cleo", "ana", "bob"]) state = flip(discard(draw(state, id), id), id, 11)
+      expect(state.stage.kind).toBe("between")
+      expect(state.ender).toBe(2)
+      expect(waiting(state)).toEqual(["bob"])
+      const next = deal(state, "bob")
+      expect(next.stage).toEqual({ kind: "reveal", starter: 2 })
+      expect(problems(next)).toEqual([])
+      const open = opened(next)
+      expect(open.stage).toEqual({ kind: "choose", seat: 2 })
+      expect(waiting(open)).toEqual(["cleo"])
+    })
+
+    it("holds through whole games played by the absent-player strategy: every round after the first is begun by the player who ended the one before", () => {
+      let rounds = 0
+      for (const n of [2, 3, 5, 8]) {
+        let state = newState(n, seedOf(40 + n))
+        let previousEnder: string | null = null
+        for (let i = 0; i < 20_000 && !GAME.isOver(state); i++) {
+          const [who] = waiting(state)
+          const result = GAME.autoPlayStep!(state, who!)
+          for (const { event } of result.events) {
+            if (event.kind === "end") previousEnder = event.ender
+            if (event.kind !== "start") continue
+            expect(event.how, `${n} players, round ${rounds + 1}`).toBe(previousEnder === null ? "sum" : "ender")
+            if (previousEnder !== null) {
+              expect(event.by, `${n} players, round ${rounds + 1}`).toBe(previousEnder)
+              rounds++
+            }
+          }
+          state = result.state
+        }
+      }
+      expect(rounds).toBeGreaterThan(3)
+    })
   })
 })
 

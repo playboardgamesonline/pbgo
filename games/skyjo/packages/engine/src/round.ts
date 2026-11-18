@@ -33,7 +33,8 @@ export function drawCard(ctx: Ctx): number | null {
 
 /**
  * A round is dealt: all 150 cards are shuffled together (the cards of the last round included), each player gets 12 face down in four columns
- * of three, the next card starts the discard, and the players turn two cards over.
+ * of three, the next card starts the discard, and the players turn two cards over. The player who ended the round before, still in `ender` until
+ * now, becomes the `starter` of the opening: they will begin this round (EN p.4). Nobody has ended a round before the first.
  */
 export function startRound(ctx: Ctx): void {
   const { s } = ctx
@@ -43,28 +44,36 @@ export function startRound(ctx: Ctx): void {
   const top = s.deck.shift()
   if (top === undefined) throw new RangeError("The box has no card to start the discard with")
   s.discard = [top]
-  s.stage = { kind: "reveal" }
+  s.stage = { kind: "reveal", starter: s.ender }
   s.ender = null
   s.last = []
   emit(ctx, { kind: "round", number: s.rounds.length + 1, dealer: playerAt(s, s.dealer) })
 }
 
 /**
- * Everybody has turned their two cards over: the player with the highest sum begins (rulebook, page 2). A tie goes to the first of the tied
- * players clockwise from the dealer's left (the rulebook is silent: to validate).
+ * Everybody has turned their two cards over: the round begins. The player who ended the round before begins it, whatever the sums (EN p.4; the same
+ * sentence is in the other nine languages of the publisher's booklet, DE p.6 being the original). The first round has no such player: the one whose
+ * two cards add up highest begins it (EN p.4, FR p.2). Neither booklet says what a tie for the highest sum does: it is drawn from the seed among the
+ * tied players, so that no seat is favoured (a reading of the engine, validated on 2026-11-18). The stream is only drawn from when there is a tie.
  */
 export function beginTurns(ctx: Ctx): void {
   const { s } = ctx
-  const n = s.seats.length
+  const { stage } = s
+  if (stage.kind !== "reveal") throw new RangeError("A round begins when its opening is over")
   const sums = s.seats.map((_, seat) => visibleScore(s, seat))
-  const best = Math.max(...sums)
-  let first = -1
-  for (let i = 1; i <= n && first < 0; i++) {
-    const seat = (s.dealer + i) % n
-    if (sums[seat] === best) first = seat
+  let first: number
+  let how: "sum" | "ender"
+  if (stage.starter !== null) {
+    first = stage.starter
+    how = "ender"
+  } else {
+    const best = Math.max(...sums)
+    const tied = sums.flatMap((value, seat) => (value === best ? [seat] : []))
+    first = tied.length === 1 ? tied[0]! : tied[Math.floor(ctx.rng() * tied.length)]!
+    how = "sum"
   }
   s.stage = { kind: "choose", seat: first }
-  emit(ctx, { kind: "start", by: playerAt(s, first), sum: best })
+  emit(ctx, { kind: "start", by: playerAt(s, first), sum: sums[first]!, how })
 }
 
 /** Called after a card turned over in the opening. Starts the round when everybody has turned theirs. */
