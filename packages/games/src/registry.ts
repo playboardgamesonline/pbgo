@@ -95,7 +95,7 @@ export const GAMES = [
     name: "Love Letter",
     tagline: "The princess deduction card game, online.",
     players: { min: 2, max: 6 },
-    sanityProjectId: "fdbxac71",
+    sanityProjectId: "8h6tuu2t",
     live: false,
     indexable: false,
   },
