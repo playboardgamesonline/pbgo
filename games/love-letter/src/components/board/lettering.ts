@@ -51,10 +51,27 @@ export function wrap(text: string, width: number, measure: (text: string) => num
   return lines
 }
 
+/**
+ * `text` broken again into as many lines as it has in `width`, at the narrowest width that still gives that many, so that the lines are about as long as each other and the last one is not a word left alone (a text of four lines never ends on "both."). The same number
+ * of lines at a narrower width never needs more room.
+ */
+export function balance(text: string, width: number, measure: (text: string) => number): string[] {
+  const lines = wrap(text, width, measure)
+  if (lines.length < 2) return lines
+  let low = 0
+  let high = Math.floor(width)
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2)
+    if (wrap(text, middle, measure).length <= lines.length) high = middle
+    else low = middle + 1
+  }
+  return wrap(text, high, measure)
+}
+
 /** How a text is set in a plate: the size and the lines. `fits` is false when even the least size overflows the plate */
 export type Setting = { size: number; lines: string[]; fits: boolean }
 
-/** The card text set in its plate: the largest size at which every line fits the width and all the lines fit the height */
+/** The card text set in its plate: the largest size at which every line fits the width and all the lines fit the height, the lines then balanced */
 export function setText(text: string, plate: Plate, measureAt: (size: number) => (text: string) => number): Setting {
   const attempt = (size: number) => {
     const measure = measureAt(size)
@@ -62,7 +79,8 @@ export function setText(text: string, plate: Plate, measureAt: (size: number) =>
     return { size, lines, fits: lines.length * size * LINE_HEIGHT <= plate.height && lines.every((line) => measure(line) <= plate.width) }
   }
   const size = largestFit(TEXT_SIZE.start, TEXT_SIZE.least, (candidate) => attempt(candidate).fits)
-  return attempt(size)
+  const set = attempt(size)
+  return set.fits ? { ...set, lines: balance(text, plate.width, measureAt(size)) } : set
 }
 
 /** The name set in its banner: the largest size at which it fits the width of the banner and its height */

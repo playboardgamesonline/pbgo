@@ -484,21 +484,21 @@ export function stripBox(): Box {
 }
 
 /**
- * A sentence laid on the table in a strip `width` wide: on one line when its lettering, at about `LETTER` of its height for each letter, fits at `height`; else broken at the space nearest the middle into two lines; else the largest size at which the longer of the two
- * lines fits, never less than half of `height`.
+ * A sentence laid on the table in a strip `width` wide: on one line when its lettering fits at `height`; else broken at the space that leaves the two lines most alike; else the largest size at which the longer of them fits, never less than half of `height`. `em` is how
+ * wide a text is over the height of its lettering, as the browser measures it in the font the sentence is drawn in (`sentenceMeasure`); without it a letter is taken to be `SENTENCE_LETTER` of the height wide.
  */
-export function fitSentence(text: string, width: number, height: number): { lines: string[]; height: number } {
+export function fitSentence(text: string, width: number, height: number, em?: (text: string) => number): { lines: string[]; height: number } {
   const parts = text.trim().split(/\s+/).filter(Boolean)
   const whole = parts.join(" ")
-  const across = (line: string) => Array.from(line).length * SENTENCE_LETTER
+  const across = em ?? ((line: string) => Array.from(line).length * SENTENCE_LETTER)
   if (parts.length <= 1 || across(whole) * height <= width) return { lines: whole === "" ? [] : [whole], height: Math.min(height, whole === "" ? height : width / across(whole)) }
-  // the break nearest the middle of the sentence, in letters
+  // the break that leaves the two lines most alike in width
   let best: string[] = [whole]
   let gap = Infinity
   for (let i = 1; i < parts.length; i++) {
     const left = parts.slice(0, i).join(" ")
     const right = parts.slice(i).join(" ")
-    const spread = Math.abs(Array.from(left).length - Array.from(right).length)
+    const spread = Math.abs(across(left) - across(right))
     if (spread < gap) {
       gap = spread
       best = [left, right]
@@ -508,7 +508,7 @@ export function fitSentence(text: string, width: number, height: number): { line
   return { lines: best, height: Math.max(height / 2, Math.min(height, width / longest)) }
 }
 
-/** How wide a letter of a sentence on the table is, as a share of its height: the body font in bold, wide enough for the capitals and the digits too */
+/** How wide a letter of a sentence on the table is taken to be, as a share of its height, when the font is not measured: wide enough for the capitals and the digits of a body font in bold */
 const SENTENCE_LETTER = 0.58
 
 /** How far a player's zone reaches past what it holds on every side when there is room, in world units: generous, so a click or a tap needs no aim. Each side stops short of whatever is there: another seat's plate, the deck. */

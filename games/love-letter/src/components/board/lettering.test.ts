@@ -1,8 +1,8 @@
 import { CHARACTER_KEYS } from "@love-letter/engine"
 import { describe, expect, it } from "vitest"
-import { FACE, largestFit, LINE_HEIGHT, NAME_PLATE, NAME_SIZE, setName, setText, TEXT_SIZE, textPlateOf, wrap } from "./lettering"
+import { balance, FACE, largestFit, LINE_HEIGHT, NAME_PLATE, NAME_SIZE, setName, setText, TEXT_SIZE, textPlateOf, wrap } from "./lettering"
 
-/** A measure for tests: a letter is `share` of its size wide, whatever the letter (a serif is about 0.45, a wide capital 0.7) */
+/** A measure for tests: a letter is `share` of its size wide, whatever the letter (Minion Pro, the text, is about 0.42; Cabazon, the names, 0.4 for a letter of a name and 0.9 for a capital W) */
 const measureAt = (share: number) => (size: number) => (text: string) => text.length * size * share
 
 describe("the plates of a face", () => {
@@ -54,6 +54,38 @@ describe("wrap", () => {
   })
 })
 
+describe("balance", () => {
+  const measure = (text: string) => text.length * 10
+  const text = "Compare hands in secret with another player: the weaker card's holder is knocked out of the round. A tie spares both."
+
+  it("breaks a text into as many lines as it had, as even as they can be, so that the last one is not a word left alone", () => {
+    const width = 380
+    const plain = wrap(text, width, measure)
+    const even = balance(text, width, measure)
+    expect(plain.at(-1)).toBe("both.")
+    expect(even.length).toBe(plain.length)
+    expect(even.join(" ")).toBe(plain.join(" "))
+    expect(even.at(-1)!.split(" ").length).toBeGreaterThan(1)
+    for (const line of even) expect(measure(line)).toBeLessThanOrEqual(width)
+    const lengths = even.map((line) => line.length)
+    expect(Math.min(...lengths)).toBeGreaterThan(Math.max(...lengths) / 2)
+  })
+
+  it("never gives more lines than the text had, at any width, nor a line wider than the width it was given", () => {
+    for (let width = 120; width <= 700; width += 37) {
+      const plain = wrap(text, width, measure)
+      const even = balance(text, width, measure)
+      expect(even.length, `${width}`).toBe(plain.length)
+      for (const line of even) expect(measure(line), `${width}`).toBeLessThanOrEqual(width)
+    }
+  })
+
+  it("leaves a text of one line, or of none, as it is", () => {
+    expect(balance("Does nothing.", 400, measure)).toEqual(["Does nothing."])
+    expect(balance("", 400, measure)).toEqual([])
+  })
+})
+
 describe("the card text in its plate", () => {
   // The budgets of the seed: 130 characters on the six taller plates, 90 on the four shorter ones (`content/data/data.test.ts`)
   const longest = (n: number) => Array.from({ length: n }, (_, i) => (i % 6 === 5 ? " " : "x")).join("").replace(/xxxxx /g, "word ").slice(0, n)
@@ -73,6 +105,15 @@ describe("the card text in its plate", () => {
     for (let i = 1; i < sizes.length; i++) expect(sizes[i]!).toBeLessThanOrEqual(sizes[i - 1]!)
     expect(Math.max(...sizes)).toBeLessThanOrEqual(TEXT_SIZE.start)
     expect(Math.min(...sizes)).toBeGreaterThanOrEqual(TEXT_SIZE.least)
+  })
+
+  it("sets the lines of a text about as long as each other, never ending on a word left alone", () => {
+    const text = "Compare hands in secret with another player: the weaker card's holder is knocked out of the round. A tie spares both."
+    const setting = setText(text, textPlateOf("baron"), measureAt(0.42))
+    expect(setting.fits).toBe(true)
+    expect(setting.lines.length).toBeGreaterThan(2)
+    expect(setting.lines.at(-1)!.split(" ").length).toBeGreaterThan(1)
+    expect(setting.lines.join(" ")).toBe(text)
   })
 
   it("says it does not fit when even the least size overflows, so the overflow is never silent", () => {

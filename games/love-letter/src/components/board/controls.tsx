@@ -54,6 +54,8 @@ export type StripProps = {
   ink: string
   accent: string
   fonts: Fonts
+  /** How wide a sentence is over the height of its lettering in the body font, as the browser measures it (`sentenceMeasure`): the sentence is set on one line when it fits */
+  measure?: (text: string) => number
   /** A move is on its way to the server: the pads wait for the answer */
   busy: boolean
   onPlay: () => void
@@ -66,8 +68,8 @@ export type StripProps = {
  * The strip in the middle of the table (`STRIP` of the layout): the sentence that says what to do, written flat on the table, and the pad of the moment, one thing at a time: Play, Swap and Keep after a Chancellor, Deal between two rounds. The nine characters of a Guard's
  * guess are small faces that the scene draws in the same strip, under the sentence. It lies in the middle band, never in the bottom of the window that the cookie banner covers.
  */
-export function Strip({ step, note = "", words, tones, ink, accent, fonts, busy, onPlay, onKeep, onSwap, onDeal }: StripProps) {
-  const { lines, height } = fitSentence(step.kind === "none" ? note : sentenceOf(step, words), STRIP.sentence.width, STRIP.sentence.height)
+export function Strip({ step, note = "", words, tones, ink, accent, fonts, measure, busy, onPlay, onKeep, onSwap, onDeal }: StripProps) {
+  const { lines, height } = fitSentence(step.kind === "none" ? note : sentenceOf(step, words), STRIP.sentence.width, STRIP.sentence.height, measure)
   const held = step.kind === "pick" && step.forced
   const [swap, keep] = pairPlaces()
   return (
@@ -82,13 +84,13 @@ export function Strip({ step, note = "", words, tones, ink, accent, fonts, busy,
           font={fonts.body}
         />
       ))}
-      {step.kind === "pad" && <PadButton pad={padPlace()} label={words.play} tone={tones.pad} font={fonts.body} disabled={busy} onPress={onPlay} />}
-      {step.kind === "deal" && <PadButton pad={padPlace()} label={words.deal} tone={tones.pad} font={fonts.body} disabled={busy} onPress={onDeal} />}
-      {step.kind === "order" && step.others.length === 1 && <PadButton pad={padPlace()} label={words.keep} tone={tones.pad} font={fonts.body} disabled={busy} onPress={onKeep} />}
+      {step.kind === "pad" && <PadButton pad={padPlace()} label={words.play} tone={tones.pad} font={fonts.display} disabled={busy} onPress={onPlay} />}
+      {step.kind === "deal" && <PadButton pad={padPlace()} label={words.deal} tone={tones.pad} font={fonts.display} disabled={busy} onPress={onDeal} />}
+      {step.kind === "order" && step.others.length === 1 && <PadButton pad={padPlace()} label={words.keep} tone={tones.pad} font={fonts.display} disabled={busy} onPress={onKeep} />}
       {step.kind === "order" && step.others.length > 1 && (
         <>
-          <PadButton pad={swap} label={words.swap} tone={tones.quiet} font={fonts.body} disabled={busy} onPress={onSwap} />
-          <PadButton pad={keep} label={words.keep} tone={tones.pad} font={fonts.body} disabled={busy} onPress={onKeep} />
+          <PadButton pad={swap} label={words.swap} tone={tones.quiet} font={fonts.display} disabled={busy} onPress={onSwap} />
+          <PadButton pad={keep} label={words.keep} tone={tones.pad} font={fonts.display} disabled={busy} onPress={onKeep} />
         </>
       )}
     </>
@@ -135,7 +137,7 @@ export function TargetZones({ ids, zones, chosen, tone, labelOf, disabled, onPre
 }
 
 /** The number of the place a card put back takes under the deck (1: the first to go in, 2: the last card of the deck), drawn on the face of the card in a disc of the accent, in the table's own font */
-export function OrderMarker({ place, color, ink }: { place: number; color: string; ink: string }) {
+export function OrderMarker({ place, color, ink, font }: { place: number; color: string; ink: string; font: string | undefined }) {
   return (
     <group position={[0, 0.12, 0.012]}>
       <mesh renderOrder={4}>
@@ -143,7 +145,7 @@ export function OrderMarker({ place, color, ink }: { place: number; color: strin
         <meshBasicMaterial color={color} transparent opacity={0.94} toneMapped={false} depthWrite={false} />
       </mesh>
       <group rotation-x={Math.PI / 2}>
-        <TableText text={String(place)} style={{ color: ink, weight: TABLE_WEIGHT }} height={0.4} position={[0, 0.012, 0]} layer={6} />
+        <TableText text={String(place)} style={{ color: ink, weight: TABLE_WEIGHT }} height={0.4} position={[0, 0.012, 0]} layer={6} font={font} />
       </group>
     </group>
   )

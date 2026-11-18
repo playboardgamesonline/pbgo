@@ -27,12 +27,18 @@ export function tableFonts({ bodyFont, displayFont, files }: FontSettings): Tabl
 }
 
 /**
- * A measure of the names on the plates: how wide a text is over the height of its lettering, in the display font at the weight of the table's lettering, as the browser sets it (a canvas, the font loaded: the faces wait for the fonts before the table draws).
- * `plateFit` of the layout shrinks the plate of a long name by it.
+ * A measure of lettering: how wide a text is over the height of its lettering, in `font` at the weight of the table's lettering, as the browser sets it (a canvas, the font loaded: the faces wait for the fonts before the table draws). `fallback` is the table's own font,
+ * the one a game that set no font keeps.
  */
-export function nameMeasure(font: string | undefined): (text: string) => number {
+function measureIn(font: string | undefined, fallback: string): (text: string) => number {
   const g = document.createElement("canvas").getContext("2d")!
   const size = 100
-  g.font = `${TABLE_WEIGHT} ${size}px ${font ?? PLATE_FONT}`
+  g.font = `${TABLE_WEIGHT} ${size}px ${font ?? fallback}`
   return (text) => g.measureText(text).width / size
 }
+
+/** The names on the plates, in the display font: `plateFit` of the layout shrinks the plate of a long name by it */
+export const nameMeasure = (font: string | undefined) => measureIn(font, PLATE_FONT)
+
+/** The sentences of the strip, in the body font: `fitSentence` of the layout sets them by it, on one line when they fit */
+export const sentenceMeasure = (font: string | undefined) => measureIn(font, TABLE_FONT)

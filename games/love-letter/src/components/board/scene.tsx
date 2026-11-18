@@ -12,7 +12,7 @@ import { holdHovered, holdPicked, releaseHovered, releaseHoveredUnless } from ".
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
 import { OrderMarker, Strip, TargetZones, tonesOf } from "./controls"
-import { nameMeasure, TABLE_WEIGHT, tableFonts } from "./fonts"
+import { nameMeasure, sentenceMeasure, TABLE_WEIGHT, tableFonts } from "./fonts"
 import { GLOWS, lightGlows } from "./glows"
 import { areaPoses, areas, backsPoses, CARD, dealtFrom, fanPoses, faceUpPoses, guessPoses, handOf, LAYOUT_FIELDS, LAYOUT_SETTINGS, middlePlaces, nameWidth, PLATE_TRAILING, plateAt, plateFit, revealedPoses, seatSpots, zones } from "./layout"
 import { matTexture } from "./mat"
@@ -103,6 +103,8 @@ function World({ view, catalog, onAction, busy, v, entrances, drawn, reveals, ca
   const tones = tonesOf(theme)
   // the plate of a long name is drawn smaller, so that the avatar, the name and the tokens fit the room the layout keeps for them
   const measure = useMemo(() => nameMeasure(fonts.display), [fonts.display])
+  // the sentences of the strip are set by the width of their letters in the body font: on one line when they fit
+  const sentenceEm = useMemo(() => sentenceMeasure(fonts.body), [fonts.body])
 
   // What the viewer has picked this turn, and what the board offers for it (`turn.ts`): a pick that no longer fits the view (the card left the hand, the turn passed) is dropped
   const [picked, setPicked] = useState<Choice>(NO_CHOICE)
@@ -216,7 +218,7 @@ function World({ view, catalog, onAction, busy, v, entrances, drawn, reveals, ca
                       else releaseHovered(face.id)
                     },
                     // after a Chancellor, the cards put back wear the place they take under the deck
-                    children: mark >= 0 ? <OrderMarker place={mark + 1} color={theme.accent} ink={theme.surfaceDark} /> : undefined,
+                    children: mark >= 0 ? <OrderMarker place={mark + 1} color={theme.accent} ink={theme.surfaceDark} font={fonts.display} /> : undefined,
                   }
                 })}
               />
@@ -244,7 +246,7 @@ function World({ view, catalog, onAction, busy, v, entrances, drawn, reveals, ca
 
       {/* The deck: only its size is known, so it is a count, face down, with its number under it */}
       <Pile frame={{ x: deck.x, z: deck.z }} count={view.deck.size} size={CARD_SIZE} back={faces.back} scale={R.deckScale} limit={14} />
-      <TableText text={String(view.deck.size)} style={ink} height={0.5} position={[deck.x, 0.02, deck.z + (CARD.height * R.deckScale) / 2 + 0.55]} />
+      <TableText text={String(view.deck.size)} style={ink} height={0.6} position={[deck.x, 0.02, deck.z + (CARD.height * R.deckScale) / 2 + 0.55]} font={fonts.display} />
 
       {/* The card set aside face down, apart from the deck: which one it is, nobody knows. At two players three more are set aside face up, and everybody reads them */}
       {view.aside === 1 && <Zone frame={{ x: aside.x, z: aside.z }} layout={[onTable(0, 0, { face: "down", scale: R.asideScale, yaw: 0.14 })]} size={CARD_SIZE} cards={[{ key: "aside", front: faces.back, back: faces.back }]} />}
@@ -275,6 +277,7 @@ function World({ view, catalog, onAction, busy, v, entrances, drawn, reveals, ca
         ink={theme.foreground}
         accent={theme.accent}
         fonts={fonts}
+        measure={sentenceEm}
         busy={busy}
         onPlay={() => step.kind === "pad" && send(playAction(step.card))}
         onKeep={() => step.kind === "order" && send(keepAction(step))}
@@ -289,6 +292,7 @@ function World({ view, catalog, onAction, busy, v, entrances, drawn, reveals, ca
           caption={caption(reveal)}
           ink={theme.foreground}
           font={fonts.body}
+          measure={sentenceEm}
           originOf={(id) => originOf(id)}
           onHover={(id, type, over) => (over && type ? holdHovered({ id, type, source: faces.source(type) }) : releaseHovered(id))}
         />

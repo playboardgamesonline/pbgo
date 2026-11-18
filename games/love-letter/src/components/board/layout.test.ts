@@ -325,12 +325,14 @@ describe("the block of a seat: play area, hand, plate", () => {
   })
 
   it("draws the plate of a long name smaller, so that the avatar, the name and the tokens fit the room the layout keeps for them: a name of twelve capitals as wide as a W at a table of six, as every other", () => {
-    // `nameWidth` takes the width of a text over the height of its lettering: a W is about 0.9 of it in the display font in bold
-    const wide = nameWidth(12 * 0.9)
-    const short = nameWidth(4 * 0.9)
+    // `nameWidth` takes the width of a text over the height of its lettering, as the browser measures it in the display font (Cabazon, at the weight of the table's lettering): a capital W is 0.893 of it and a letter of an ordinary name about 0.4 ("Alexandrina" is 4.3,
+    // "Maximilian-Joh" 5.7)
+    const wide = nameWidth(12 * 0.893)
+    const short = nameWidth(4 * 0.893)
     expect(plateFit(short)).toBe(1)
     expect(plateFit(wide)).toBeLessThan(1)
-    expect(plateFit(nameWidth(6 * 0.62))).toBe(1)
+    expect(plateFit(nameWidth(4.3))).toBe(1)
+    expect(plateFit(nameWidth(5.7))).toBeLessThan(1)
     for (const n of SIZES) {
       const spots = seatSpots(ids(n), "p0")
       const placed = areas(spots, "p0")
@@ -513,6 +515,23 @@ describe("the strip of the controls", () => {
     expect(long.height).toBeGreaterThanOrEqual(0.21)
     expect(fitSentence("", wide, 0.42).lines).toEqual([])
     expect(fitSentence("Unbroken", wide, 0.42).lines).toEqual(["Unbroken"])
+  })
+
+  it("sets a sentence by the width of the letters of its font when it is measured: a narrow font keeps on one line what a broad one breaks into two", () => {
+    const wide = STRIP.sentence.width
+    const narrow = (text: string) => Array.from(text).length * 0.42
+    const broad = (text: string) => Array.from(text).length * 0.7
+    const sentence = "Choose a card to play"
+    expect(fitSentence(sentence, wide, 0.42, narrow).lines).toEqual([sentence])
+    expect(fitSentence(sentence, wide, 0.42, narrow).height).toBeCloseTo(0.42)
+    const two = fitSentence(sentence, wide, 0.42, broad)
+    expect(two.lines).toHaveLength(2)
+    expect(two.lines.join(" ")).toBe(sentence)
+    for (const line of two.lines) expect(broad(line) * two.height).toBeLessThanOrEqual(wide + 1e-9)
+    // the break leaves the two lines most alike in width, not in letters
+    const uneven = (text: string) => Array.from(text).reduce((width, letter) => width + (letter === "W" ? 3 : 1), 0)
+    expect(fitSentence("WWWW a b c d e f g", 1, 1, uneven).lines).toEqual(["WWWW", "a b c d e f g"])
+    expect(fitSentence("WWWW a b c d e f g", 1, 1).lines).toEqual(["WWWW a b", "c d e f g"])
   })
 })
 

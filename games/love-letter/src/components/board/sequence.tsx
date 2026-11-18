@@ -37,6 +37,8 @@ export type RevealProps = {
   caption: string
   ink: string
   font: string | undefined
+  /** How wide a caption is over the height of its lettering in `font`, as the browser measures it (`sentenceMeasure`) */
+  measure?: (text: string) => number
   /** Where a card of a player's hand lies, for the faces that come out of a hand (the Priest's, the Baron's, the King's) */
   originOf: (playerId: string) => Pose
   /** The lens of the screen reads the face under the pointer: told which one, or that the pointer left it */
@@ -46,10 +48,10 @@ export type RevealProps = {
 /**
  * A reveal on the table: the faces it is about (a back for a card the viewer was not told) side by side in the middle, over everything, and under them what happened. A Priest's look and a Baron's comparison come out of the hands they are about.
  */
-export function RevealView({ reveal, faces, caption, ink, font, originOf, onHover }: RevealProps) {
+export function RevealView({ reveal, faces, caption, ink, font, measure, originOf, onHover }: RevealProps) {
   const { cards, owners } = reveal
   const x = (i: number) => (i - (cards.length - 1) / 2) * REVEAL.apart
-  const { lines, height } = fitSentence(caption, STRIP.sentence.width, STRIP.sentence.height)
+  const { lines, height } = fitSentence(caption, STRIP.sentence.width, STRIP.sentence.height, measure)
   return (
     <>
       <Zone
