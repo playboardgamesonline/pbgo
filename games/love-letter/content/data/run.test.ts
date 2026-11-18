@@ -18,9 +18,6 @@ const isDraft = (id: string) => id.startsWith("drafts.")
 /** A face of the owner's art is 760 by 1060. */
 const FACE = { width: 760, height: 1060 }
 
-/** A symbol as the owner's SVG is: an SVG document, kept as it is. */
-const SYMBOL = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#7a1e3a"/></svg>'
-
 const temp = new TempFolders()
 afterEach(() => temp.cleanUp())
 
@@ -101,12 +98,11 @@ describe("the Love Letter seed", () => {
   describe("with art", () => {
     it("places each file by its slot, aliases and the names of the owner's files, unknown files and the 3D model apart", async () => {
       const dir = await temp.create({
-        // the names of the owner's files (`CARD_SPY.png`, `CARD_BACK.png`, `FAVOR_TOKEN_SYMBOL.svg`, `LOGO_LOVE_LETTER.png`) fill the slots of their pictures as they are; case and `_` do not matter
+        // the names of the owner's files (`CARD_SPY.png`, `CARD_BACK.png`, `LOGO_LOVE_LETTER.png`) fill the slots of their pictures as they are; case and `_` do not matter
         "CARD_SPY.png": await imageOf("#e8c030", FACE),
         "Card_Guard.PNG": await imageOf("#1d2e7a", FACE),
         "princess.webp": await imageOf("#d8412f", FACE, "webp"),
         "CARD_BACK.png": await imageOf("#8c2a3a", FACE),
-        "FAVOR_TOKEN_SYMBOL.svg": SYMBOL,
         "LOGO_LOVE_LETTER.png": await imageOf("#eeeeee", { width: 64, height: 64 }),
         "typo-card.png": await imageOf("#778899"),
         // a 3D model is a file, not an image: the seed does not place it, and does not even list it
@@ -123,16 +119,15 @@ describe("the Love Letter seed", () => {
       isImage(draft(characterId("guard"))?.image)
       isImage(draft(characterId("princess"))?.image)
       isImage(draft(GAME_ID)?.cardBack)
-      isImage(draft(GAME_ID)?.favorTokenSymbol)
       isImage(draft(SETTINGS_ID)?.logo)
 
-      expect(result.art?.uploaded).toBe(6)
-      expect(store.uploads).toHaveLength(6)
+      expect(result.art?.uploaded).toBe(5)
+      expect(store.uploads).toHaveLength(5)
       expect(result.art?.loaded.scan.unmatched).toEqual(["typo-card.png"])
-      expect(result.art?.loaded.scan.missing).toHaveLength(ART_SLOTS.length - 6)
+      expect(result.art?.loaded.scan.missing).toHaveLength(ART_SLOTS.length - 5)
       // Unfilled slots leave the documents without an image: nothing is invented
       expect(draft(characterId("king"))?.image).toBeUndefined()
-      expect(draft(GAME_ID)?.favorTokenMask).toBeUndefined()
+      expect(draft(GAME_ID)?.mat).toBeUndefined()
       expect(draft(GAME_ID)?.favorTokenModel).toBeUndefined()
     })
 

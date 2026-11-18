@@ -262,9 +262,9 @@ describe("the victory phrase", () => {
 })
 
 describe("the art slots", () => {
-  it("are the ten faces, the back of the cards, the favor token's symbol and mask, the mat and the logo", () => {
-    expect(ART_SLOTS.map((slot) => slot.name)).toEqual([...CHARACTER_KEYS, "card-back", "favor-token-symbol", "favor-token-mask", "mat", "logo"])
-    expect(ART_SLOTS).toHaveLength(15)
+  it("are the ten faces, the back of the cards, the mat and the logo", () => {
+    expect(ART_SLOTS.map((slot) => slot.name)).toEqual([...CHARACTER_KEYS, "card-back", "mat", "logo"])
+    expect(ART_SLOTS).toHaveLength(13)
   })
 
   it("give the faces and the back the proportions of the owner's pictures, 760 by 1060", () => {
@@ -274,8 +274,8 @@ describe("the art slots", () => {
   })
 
   it("answer to the names of the owner's files, as they are", () => {
-    const files = [...CHARACTER_KEYS.map((key) => `CARD_${key.toUpperCase()}`), "CARD_BACK", "FAVOR_TOKEN_SYMBOL", "FAVOR_TOKEN_MASK", "LOGO_LOVE_LETTER"].map((name) => name.toLowerCase().replaceAll("_", "-"))
-    expect(files).toHaveLength(14)
+    const files = [...CHARACTER_KEYS.map((key) => `CARD_${key.toUpperCase()}`), "CARD_BACK", "LOGO_LOVE_LETTER"].map((name) => name.toLowerCase().replaceAll("_", "-"))
+    expect(files).toHaveLength(12)
     for (const name of files) expect(ART_SLOTS.filter((slot) => slot.name === name || slot.aliases?.includes(name)), name).toHaveLength(1)
   })
 

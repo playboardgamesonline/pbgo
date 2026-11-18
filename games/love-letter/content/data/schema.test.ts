@@ -148,7 +148,6 @@ describe("the seed documents", () => {
       ["a rule, which a character does not have either", "character-spy", (doc) => (doc.rule = "Nothing."), 'character-spy.rule is not a field of "character"'],
       ["a field the Studio does not have", "character-spy", (doc) => (doc.colour = "#ff0000"), 'character-spy.colour is not a field of "character"'],
       ["a card back that is not an image", "game", (doc) => (doc.cardBack = "back.webp"), "game.cardBack should be an image"],
-      ["a favor token symbol that is not an image", "game", (doc) => (doc.favorTokenSymbol = "symbol.svg"), "game.favorTokenSymbol should be an image"],
       ["a favor token model that is not a file", "game", (doc) => (doc.favorTokenModel = "token.glb"), "game.favorTokenModel should be a file"],
       ["a publisher link that is not an address", "settings", (doc) => (doc.publisherUrl = "zmangames"), "settings.publisherUrl should be a URL"],
     ])("%s", (_name, id, change, expected) => {
@@ -192,16 +191,13 @@ describe("the forms of the cards", () => {
     expect(fields.map((field) => [field.name, field.group])).toEqual([
       ["mat", "board"],
       ["cardBack", "backs"],
-      ["favorTokenSymbol", "token"],
-      ["favorTokenMask", "token"],
       ["favorTokenModel", "token"],
     ])
   })
 
-  it("gives the favor token its three files: a symbol and a mask as images, a 3D model as a file", () => {
-    expect(fieldOf("game", "favorTokenSymbol").type).toBe("image")
-    expect(fieldOf("game", "favorTokenMask").type).toBe("image")
+  it("gives the favor token its 3D model as a file and nothing else: the owner wants no symbol and no mask", () => {
     expect(fieldOf("game", "favorTokenModel").type).toBe("file")
+    expect(fieldNames("game")).toEqual(["mat", "cardBack", "favorTokenModel"])
   })
 
   it("ends a character with the visual, and the quantity comes right before it; the identity comes first, the card text after the name", () => {
@@ -248,10 +244,10 @@ describe("the art slots, against the Studio", () => {
     for (const field of SHARED_IMAGE_FIELDS) expect(imageFields(field.split(".")[0] as string, types), field).toContain(field)
   })
 
-  it("each fill a place of their own: ten faces, the back, the token's symbol and mask, the mat and the logo", () => {
+  it("each fill a place of their own: ten faces, the back, the mat and the logo", () => {
     const places = filled().flatMap((doc) => imagesOf(doc).map(({ path }) => `${doc._id}${path}`))
     expect(places).toHaveLength(ART_SLOTS.length)
-    expect(ART_SLOTS).toHaveLength(15)
+    expect(ART_SLOTS).toHaveLength(13)
     expect(new Set(places).size).toBe(ART_SLOTS.length)
   })
 

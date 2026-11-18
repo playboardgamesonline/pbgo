@@ -306,20 +306,6 @@ export type Game = {
     crop?: SanityImageCrop;
     _type: "image";
   };
-  favorTokenSymbol?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
-  favorTokenMask?: {
-    asset?: SanityImageAssetReference;
-    media?: unknown;
-    hotspot?: SanityImageHotspot;
-    crop?: SanityImageCrop;
-    _type: "image";
-  };
   favorTokenModel?: {
     asset?: SanityFileAssetReference;
     media?: unknown;
