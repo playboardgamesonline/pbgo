@@ -5,6 +5,7 @@ import type { Me, PlayerView, PublicPhase, PublicSeat, State } from "./types"
 
 function publicPhase(s: State): PublicPhase {
   const { stage } = s
+  if (stage.kind === "keep") return { kind: "keep", player: playerAt(s, s.turn) }
   if (stage.kind === "play") return { kind: "turn", player: playerAt(s, s.turn), targets: targetsOf(s, s.turn).map((seat) => playerAt(s, seat)) }
   if (isOver(s)) return { kind: "over" }
   return { kind: "between", next: playerAt(s, s.turn), winners: stage.winners.map((seat) => playerAt(s, seat)), spy: stage.spy === null ? null : playerAt(s, stage.spy), revealed: stage.revealed }

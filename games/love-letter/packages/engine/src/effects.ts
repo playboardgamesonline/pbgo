@@ -104,6 +104,20 @@ function prince(ctx: Ctx, { by, target }: Play): void {
   emit(ctx, { kind: "draw", by: player, card: faceOf(s, card) }, { to: [player], masked: { kind: "draw", by: player } })
 }
 
+/**
+ * Chancellor (rulebook, p. 10): draw two cards from the deck into the hand (one when the deck holds only one, and with none left the card is played with no
+ * effect), then keep one of the cards in hand and put the others under the deck face down, in any order. The turn waits for that choice: it is the stage `keep`
+ * (`keep` in `actions.ts`). Only its player sees the cards drawn.
+ */
+function chancellor(ctx: Ctx, { seat, by }: Play): void {
+  const { s } = ctx
+  const drawn = s.deck.splice(0, 2)
+  if (drawn.length === 0) return fizzle(ctx, by)
+  handOf(s, seat).push(...drawn)
+  s.stage = { kind: "keep" }
+  emit(ctx, { kind: "chancellor", by, drew: drawn.length, cards: facesOf(s, drawn) }, { to: [by], masked: { kind: "chancellor", by, drew: drawn.length } })
+}
+
 /** Handmaid (rulebook, p. 11): until the start of their next turn, the other players cannot pick the player of the Handmaid (`startTurn` ends the protection). */
 function handmaid(ctx: Ctx, { seat, by }: Play): void {
   ctx.s.shielded[seat] = true
@@ -115,7 +129,7 @@ function princess(ctx: Ctx, { seat }: Play): void {
   eliminate(ctx, seat, "princess")
 }
 
-/** The effect of each character. The Spy and the Countess do nothing when played; the Chancellor keeps a choice for its player. */
+/** The effect of each character. The Spy and the Countess do nothing when played; the Chancellor leaves a choice to its player. */
 export const EFFECTS: Record<CharacterKey, Effect> = {
   // No effect (rulebook, p. 13): its only part is the token it can earn at the end of the round
   spy: () => undefined,
@@ -124,8 +138,7 @@ export const EFFECTS: Record<CharacterKey, Effect> = {
   baron,
   handmaid,
   prince,
-  // Written with the Chancellor
-  chancellor: () => undefined,
+  chancellor,
   king,
   // No effect (rulebook, p. 9): her rule is about which card a player may play (`playableOf`)
   countess: () => undefined,

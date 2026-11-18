@@ -1,7 +1,7 @@
-import { EngineError, cleanChoice } from "@pbgo/engine-kit"
+import { EngineError, cleanChoice, reissueIds } from "@pbgo/engine-kit"
 import { CARDS, type CharacterKey, GUESSES } from "./catalogue"
 import { EFFECTS } from "./effects"
-import { type Ctx, areaOf, close, emit, faceOf, handOf, keyOf, open, playableOf, playerAt, refuse, removeFrom, seatOf, targetsOf, waitingFor } from "./machine"
+import { type Ctx, areaOf, close, emit, faceOf, facesOf, handOf, keyOf, open, playableOf, playerAt, refuse, removeFrom, seatOf, targetsOf, waitingFor } from "./machine"
 import { endTurn, startRound } from "./round"
 import { type Action, CLIENT_ACTIONS, type LoveLetterStep, type State } from "./types"
 
@@ -49,6 +49,36 @@ export function play(ctx: Ctx, by: string, fields: { card?: unknown; target?: un
   areaOf(s, seat).push(card)
   emit(ctx, { kind: "play", by, card: faceOf(s, card) })
   EFFECTS[key](ctx, { seat, by, target, guess })
+  // a Chancellor leaves the turn to its player, who keeps a card (`keep`)
+  if (s.stage.kind === "play") endTurn(ctx)
+}
+
+/**
+ * After a Chancellor, `by` keeps the card `fields.card` of their hand and puts the others under the deck, face down, in the order `fields.bottom` lists them
+ * (rulebook, p. 10): the first one is placed first, so the last is the last card of the deck. The cards put back were seen by their player and go back into hiding,
+ * so they hold new ids that nobody has seen (`reissueIds`). Only `by` reads which cards they were. The cards put back are neither played nor discarded (the
+ * reading validated for p. 10): a Princess among them knocks nobody out, a Spy among them does not count.
+ */
+export function keep(ctx: Ctx, by: string, fields: { card?: unknown; bottom?: unknown }): void {
+  const { s } = ctx
+  if (s.stage.kind !== "keep") throw refuse("keep a card")
+  const { card, bottom } = fields
+  if (typeof card !== "number" || !Number.isInteger(card)) throw new EngineError("INVALID_ACTION", "A card is named by its id")
+  if (!Array.isArray(bottom) || bottom.some((id) => typeof id !== "number" || !Number.isInteger(id))) throw new EngineError("INVALID_ACTION", "The cards to put back are named by their ids")
+  const seat = seatOf(s, by)
+  const hand = handOf(s, seat)
+  if (!hand.includes(card)) throw new EngineError("UNKNOWN_CARD", "That card is not in your hand")
+  const others = hand.filter((id) => id !== card)
+  const back = bottom as number[]
+  if (back.length !== others.length || new Set(back).size !== back.length || back.some((id) => !others.includes(id))) {
+    throw new EngineError("INVALID_CHOICE", "Put back the other cards of your hand, each once")
+  }
+  const returned = facesOf(s, back)
+  const { ids, fresh } = reissueIds(s.ids, back, ctx.idsRng)
+  s.ids = ids
+  s.hands[seat] = [card]
+  s.deck.push(...fresh)
+  emit(ctx, { kind: "bottom", by, count: back.length, kept: faceOf(s, card), cards: returned }, { to: [by], masked: { kind: "bottom", by, count: back.length } })
   endTurn(ctx)
 }
 
@@ -78,6 +108,8 @@ export function perform(ctx: Ctx, input: unknown): void {
   switch (type) {
     case "play":
       return play(ctx, by, raw)
+    case "keep":
+      return keep(ctx, by, raw)
     case "deal":
       return dealRound(ctx, by)
   }

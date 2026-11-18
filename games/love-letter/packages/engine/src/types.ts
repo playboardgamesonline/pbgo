@@ -19,11 +19,13 @@ export type Face = { id: number; type: CharacterKey }
  * What the round is busy with. Between two moves the state is settled: a player has to do something, or the round is over.
  *
  * - `play`: the player in `turn` holds two cards (the one they kept and the one they drew) and plays one of them.
+ * - `keep`: the player in `turn` played a Chancellor and holds the cards they drew for it, three of them (two when the deck held only one card): they keep one and
+ *   put the others under the deck.
  * - `between`: the round is over and counted; the player in `turn`, who takes the first turn of the next one, deals it. Nobody is waited for once the
  *   game is over. `revealed`: the round ended on a comparison, so the players still in laid their hands face up; `winners` and `spy` are seats:
  *   the winners of the round and the player who earned the Spy's token, if one did.
  */
-export type Stage = { kind: "play" } | { kind: "between"; revealed: boolean; winners: number[]; spy: number | null }
+export type Stage = { kind: "play" } | { kind: "keep" } | { kind: "between"; revealed: boolean; winners: number[]; spy: number | null }
 
 /**
  * The state holds ids and numbers only. Every order comes from an array (`seats`, the piles, the hands), never from the keys of an object: the
@@ -40,6 +42,8 @@ export type State = {
   ids: number[]
   /** Saved position of the stream of the shuffles. */
   rng: number
+  /** Saved position of the stream of the card ids (a side stream: drawing from it never moves the shuffles): the new ids of the cards a Chancellor puts back. */
+  idsRng: number
   /** The number of the round going on, or of the last one between two rounds. */
   round: number
   /** The seat that plays now or, between two rounds, the one that deals the next round and takes its first turn. */
@@ -51,7 +55,7 @@ export type State = {
   aside: number | null
   /** At two players, the three cards set aside face up. Public; empty at other tables. */
   faceUp: number[]
-  /** By seat: one card between turns, two on the turn, none once out of the round. */
+  /** By seat: one card between turns, two on the turn (three, or two, while a Chancellor is read), none once out of the round. */
   hands: number[][]
   /** By seat: the cards played or discarded in this round, oldest first. All face up. */
   areas: number[][]
@@ -69,15 +73,20 @@ export type State = {
  * What a player can do.
  * - `play`: on your turn, play the card `card` (its id) of your hand. `target` is the player it picks (the id of a player: another one for the Guard, Priest, Baron
  *   and King, any one for the Prince), given when one can be chosen and never when none can. `guess` is the character a Guard names (any but the Guard).
+ * - `keep`: after a Chancellor, keep the card `card` of your hand and put the others under the deck: `bottom` lists their ids in the order you place them, the first
+ *   one first, so the last of them is the last card of the deck.
  * - `deal`: between two rounds, the player who takes the first turn deals the next one.
  */
-export type Action = { type: "play"; playerId: string; card: number; target?: string; guess?: CharacterKey } | { type: "deal"; playerId: string }
+export type Action =
+  | { type: "play"; playerId: string; card: number; target?: string; guess?: CharacterKey }
+  | { type: "keep"; playerId: string; card: number; bottom: number[] }
+  | { type: "deal"; playerId: string }
 
 /** One action, by its type: `ActionOf<"play">`. */
 export type ActionOf<T extends Action["type"]> = Extract<Action, { type: T }>
 
 /** The actions a client may send. */
-export const CLIENT_ACTIONS = ["play", "deal"] as const satisfies readonly Action["type"][]
+export const CLIENT_ACTIONS = ["play", "keep", "deal"] as const satisfies readonly Action["type"][]
 
 /**
  * What the engine refuses with an `EngineError`, by code. The board turns them into messages (the game's own ones are listed in `ERROR_CODES` of the
@@ -92,7 +101,7 @@ export const LOVE_LETTER_ERROR_CODES = [
   "INVALID_PHASE", // an action of the game, but not one this step takes (dealing in the middle of a round, playing between two rounds)
   "UNKNOWN_CARD", // the card is not in the player's hand
   "INVALID_TARGET", // the player the card picks is missing, is not at the table, or cannot be chosen: out of the round, protected by a Handmaid, or the player themselves where the card says another
-  "INVALID_CHOICE", // the character a Guard names is missing, or is not one of the nine other characters
+  "INVALID_CHOICE", // the character a Guard names is missing, or is not one of the nine other characters; or the cards a Chancellor puts under the deck are not the other cards of the hand, each once
   "MUST_PLAY_COUNTESS", // the player holds the Countess and the King or a Prince: they must play her
 ] as const
 export type LoveLetterErrorCode = (typeof LOVE_LETTER_ERROR_CODES)[number]
@@ -125,6 +134,7 @@ export type Me = {
 
 /**
  * What a viewer sees of the round's decision.
+ * - `keep`: `player` played a Chancellor and keeps one of the cards of their hand, which they alone see, putting the others under the deck.
  * - `turn`: `player` plays one of their two cards. `targets` are the other players a card can pick now (still in the round and not protected by a Handmaid), in
  *   seat order: public, since who is out and who is protected is. A card that picks another player is played with no effect when there is none; the Prince can
  *   always pick its own player.
@@ -134,6 +144,7 @@ export type Me = {
  */
 export type PublicPhase =
   | { kind: "turn"; player: string; targets: string[] }
+  | { kind: "keep"; player: string }
   | { kind: "between"; next: string; winners: string[]; spy: string | null; revealed: boolean }
   | { kind: "over" }
 
@@ -174,7 +185,11 @@ export type PlayerView = {
  * - `discard`: a Prince of `by` made `player` (who can be `by`) discard `card`, now face up in front of them.
  * - `out`: `player` is out of the round, `cause` says how (`guard`: named by a Guard, `baron`: the lower card, `princess`: she was played or discarded). `cards` are the
  *   cards of their hand, laid face up in front of them (none when the Princess was the card a Prince made them discard).
- * - `fizzled`: a card of `by` that picks another player was played with no effect, since every other player in the round is protected.
+ * - `chancellor`: a Chancellor of `by` drew `drew` cards from the deck (two, or one when the deck held only one): only `by` reads which cards.
+ * - `bottom`: `by` kept one card and put `count` others under the deck: only `by` reads `kept` and the cards `cards` put back, under the ids they had in the hand
+ *   (the cards then hold new ids, that nobody has seen).
+ * - `fizzled`: a card of `by` was played with no effect: it picks another player and every other player in the round is protected, or it is a Chancellor and the
+ *   deck is empty.
  * - `reveal`: the deck ran out and every player still in laid their hand face up.
  * - `end`: the round is over. `how` says how (`deck`: the highest card won, `last`: one player was left), `winners` won it, `spy` earned the Spy's token.
  * - `over`: the game is over, `winners` won it.
@@ -190,6 +205,8 @@ export type LoveLetterEvent =
   | { kind: "protect"; by: string }
   | { kind: "discard"; by: string; player: string; card: Face }
   | { kind: "out"; player: string; cards: Face[]; cause: "guard" | "baron" | "princess" }
+  | { kind: "chancellor"; by: string; drew: number; cards?: Face[] }
+  | { kind: "bottom"; by: string; count: number; kept?: Face; cards?: Face[] }
   | { kind: "fizzled"; by: string }
   | { kind: "reveal"; hands: { player: string; card: Face }[] }
   | { kind: "end"; how: "deck" | "last"; winners: string[]; spy: string | null }

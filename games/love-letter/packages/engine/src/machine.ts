@@ -13,18 +13,21 @@ export type Ctx = {
   s: State
   /** Shuffles and the pick of a first player. */
   rng: SaveableRng
+  /** The ids of the cards (a side stream: drawing from it never moves `rng`). */
+  idsRng: SaveableRng
   events: LoveLetterStep["events"]
 }
 
-/** A step starts here: a copy of the state to mutate, with the stream picked up where the last step left it. */
+/** A step starts here: a copy of the state to mutate, with the streams picked up where the last step left them. */
 export function open(state: State): Ctx {
   const s = structuredClone(state)
-  return { s, rng: restoreRng(s.rng), events: [] }
+  return { s, rng: restoreRng(s.rng), idsRng: restoreRng(s.idsRng), events: [] }
 }
 
-/** A step ends here: the stream is saved back into the state, which comes out with what happened. */
+/** A step ends here: the streams are saved back into the state, which comes out with what happened. */
 export function close(ctx: Ctx): LoveLetterStep {
   ctx.s.rng = ctx.rng.save()
+  ctx.s.idsRng = ctx.idsRng.save()
   return { state: ctx.s, events: ctx.events }
 }
 

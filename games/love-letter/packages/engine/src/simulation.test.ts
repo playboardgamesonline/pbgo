@@ -35,8 +35,11 @@ const TOKENS_TO_WIN: Record<number, number> = { 2: 6, 3: 5, 4: 4, 5: 3, 6: 3 }
 const nameOf = (state: State, id: number): CharacterKey => names(state, [id])[0]!
 const inRoundOf = (out: readonly boolean[]) => out.flatMap((isOut, seat) => (isOut ? [] : [seat]))
 
-/** What the booklet says of the cards after a card was played and its effect resolved, before the next player draws. */
-type Model = { hands: number[][]; areas: number[][]; out: boolean[]; shielded: boolean[]; deck: number[]; aside: number | null }
+/**
+ * What the booklet says of the cards after a card was played and its effect resolved, before the next player draws. `pending`: a Chancellor drew cards, and its
+ * player has still to keep one: the turn is not over.
+ */
+type Model = { hands: number[][]; areas: number[][]; out: boolean[]; shielded: boolean[]; deck: number[]; aside: number | null; pending: boolean }
 
 function modelPlay(before: State, mover: number, card: number, target: number | null, guess: CharacterKey | null): Model {
   const m: Model = {
@@ -46,6 +49,7 @@ function modelPlay(before: State, mover: number, card: number, target: number | 
     shielded: [...before.shielded],
     deck: [...before.deck],
     aside: before.aside,
+    pending: false,
   }
   m.hands[mover] = m.hands[mover]!.filter((id) => id !== card)
   m.areas[mover]!.push(card)
@@ -82,6 +86,13 @@ function modelPlay(before: State, mover: number, card: number, target: number | 
       }
       break
     }
+    case "chancellor": {
+      // draws two cards, or the one that is left, or none (played with no effect)
+      const drawn = m.deck.splice(0, 2)
+      m.hands[mover]!.push(...drawn)
+      m.pending = drawn.length > 0
+      break
+    }
     case "handmaid":
       m.shielded[mover] = true
       break
@@ -89,7 +100,7 @@ function modelPlay(before: State, mover: number, card: number, target: number | 
       knock(mover)
       break
     default:
-      // priest, spy, countess: nothing changes in the hands, the areas or the protection; the Chancellor comes with its own stage
+      // priest, spy, countess: nothing changes in the hands, the areas or the protection
       break
   }
   return m
@@ -105,6 +116,9 @@ function bookletRound(state: State): { how: "deck" | "last"; winners: number[]; 
   const withSpy = inRound.filter((seat) => names(state, state.areas[seat]!).includes("spy"))
   return { how, winners, spy: withSpy.length === 1 ? withSpy[0]! : null }
 }
+
+/** What happens too rarely at random to be asked of these games: the rigged tests of the Chancellor hold them. */
+const rare = { chancellorOneCard: 0, chancellorNoCard: 0 }
 
 const tally = {
   games: 0,
@@ -126,6 +140,8 @@ const tally = {
   princesses: 0,
   forcedCountesses: 0,
   chosenCountesses: 0,
+  chancellors: 0,
+  keeps: 0,
   sizes: new Set<number>(),
   stages: new Set<string>(),
 }
@@ -142,7 +158,8 @@ function checkMove({ at, before, action, after, events }: Move): void {
   tally.stages.add(after.stage.kind)
 
   for (const problem of problems(after)) flag(`state · ${problem}`, at)
-  ok("ids changed", isDeepStrictEqual(before.ids, after.ids))
+  // the ids of the cards change only for the cards a Chancellor puts back (checked with the move that does it)
+  if (!kinds.includes("bottom")) ok("ids changed", isDeepStrictEqual(before.ids, after.ids))
   ok("the seats changed", isDeepStrictEqual(before.seats, after.seats))
 
   // who the game waits for
@@ -153,6 +170,32 @@ function checkMove({ at, before, action, after, events }: Move): void {
   ok("the game is over and nobody holds the tokens that win", GAME.isOver(after) === tokens(after).some((count) => count >= TOKENS_TO_WIN[n]!))
   ok("isOver and the tokens of the test do not agree", GAME.isOver(after) === enough(after))
   if (GAME.isOver(before)) flag("a move was played in a game that was over", at)
+
+  /**
+   * What a keep did (p. 10), whether the player pressed it after a Chancellor or the engine played it for them in the same step: the cards the player held then
+   * (`hands`, `deck`: the state before the keep), the card they kept, and the cards they put under the deck, named by the ids they had in their hand.
+   */
+  const verifyKeep = (mover: number, hands: number[][], deck: number[], kept: number, back: number[]) => {
+    tally.keeps++
+    ok("the player kept a card that was not theirs", hands[mover]!.includes(kept))
+    ok("a card was put back that was not the player's, or was kept too", back.every((id) => id !== kept && hands[mover]!.includes(id)) && back.length === hands[mover]!.length - 1)
+    // the ids are those of `before`: a play does not change them
+    const returned = back.map((id) => nameOf(before, id))
+    const deckNames = [...deck.map((id) => nameOf(before, id)), ...returned]
+    let next = -1
+    for (let i = 1; i <= n && next < 0; i++) if (!before.out[(mover + i) % n] && !after.out[(mover + i) % n]) next = (mover + i) % n
+    // the cards put back hold new ids, and nothing else changed its id (the kit's rule for a card that goes back into hiding, after a Chancellor)
+    const retired = new Set(back)
+    ok("an id changed that was not one of the cards put back", before.ids.every((id, i) => retired.has(id) !== (id === after.ids[i])))
+    ok("the cards put back kept their old ids", back.every((id) => !after.ids.includes(id)))
+    ok("the ids of the cards are not 21 different numbers", new Set(after.ids).size === 21)
+    ok("the player's hand is not the card they kept", isDeepStrictEqual(after.hands[mover], [kept]))
+    ok("the next player's hand is not the booklet's after a keep", isDeepStrictEqual(names(after, after.hands[next]!), [...hands[next]!.map((id) => nameOf(before, id)), deckNames[0]]))
+    ok("the deck is not the booklet's after a keep: the cards put back go under it, the first one first", isDeepStrictEqual(names(after, after.deck), deckNames.slice(1)))
+    ok("the cards that were already in the deck changed their ids", isDeepStrictEqual(after.deck.slice(0, Math.max(0, deck.length - 1)), deck.slice(1)))
+    ok("the turn passed to the wrong seat after a keep", after.turn === next && after.stage.kind === "play")
+    ok("the draw of the next player is not the last thing the log says", kinds.at(-1) === "draw" && kinds.includes("bottom"))
+  }
 
   if (before.stage.kind === "play") {
     const mover = before.turn
@@ -170,19 +213,33 @@ function checkMove({ at, before, action, after, events }: Move): void {
     const guess = action?.type === "play" ? (action.guess ?? null) : ((events.find((event) => event.kind === "guess") as { guess?: CharacterKey } | undefined)?.guess ?? null)
     const model = modelPlay(before, mover, card, target, guess)
 
-    // the effect of the card, as the booklet says
-    const ended = inRoundOf(model.out).length === 1 || model.deck.length === 0
+    // the effect of the card, as the booklet says. A player who is played for keeps their card in the same step: the Chancellor's second half is checked as a keep
+    const keptInTheSameStep = model.pending && action === null
+    const waitsForKeep = model.pending && action !== null
+    const ended = !model.pending && (inRoundOf(model.out).length === 1 || model.deck.length === 0)
     let next = -1
-    for (let i = 1; i <= n && !ended && next < 0; i++) if (!model.out[(mover + i) % n]) next = (mover + i) % n
-    const expectedHands = model.hands.map((hand, seat) => (seat === next ? [...hand, model.deck[0]!] : hand))
-    ok("the hands are not the booklet's after the move", isDeepStrictEqual(after.hands, ended ? model.hands : expectedHands), () => `${JSON.stringify(after.hands)} against ${JSON.stringify(ended ? model.hands : expectedHands)}`)
+    for (let i = 1; i <= n && !ended && !model.pending && next < 0; i++) if (!model.out[(mover + i) % n]) next = (mover + i) % n
     ok("the play areas are not the booklet's after the move", isDeepStrictEqual(after.areas, model.areas))
     ok("the players out are not the booklet's after the move", isDeepStrictEqual(after.out, model.out))
-    ok("the protection is not the booklet's after the move", isDeepStrictEqual(after.shielded, model.shielded.map((shielded, seat) => (seat === next ? false : shielded))))
-    ok("the deck is not the booklet's after the move", isDeepStrictEqual(after.deck, ended ? model.deck : model.deck.slice(1)))
     ok("the card set aside is not the booklet's after the move", after.aside === model.aside)
-    if (!ended) ok("the turn passed to the wrong seat", after.turn === next, () => `${mover} → ${after.turn}`)
-    if (!ended) ok("the draw is not in the log, for the player who drew it", kinds.at(-1) === "draw")
+    if (keptInTheSameStep) {
+      const said = events.find((event): event is Extract<LoveLetterEvent, { kind: "bottom" }> => event.kind === "bottom")
+      if (said?.kept === undefined) flag("a Chancellor played for a player kept no card", at)
+      else verifyKeep(mover, model.hands, model.deck, said.kept.id, (said.cards ?? []).map((face) => face.id))
+      ok("the protection is not the booklet's after the move", isDeepStrictEqual(after.shielded, model.shielded.map((shielded, seat) => (seat === after.turn ? false : shielded))))
+    } else {
+      const expectedHands = model.hands.map((hand, seat) => (seat === next ? [...hand, model.deck[0]!] : hand))
+      ok("the hands are not the booklet's after the move", isDeepStrictEqual(after.hands, expectedHands), () => `${JSON.stringify(after.hands)} against ${JSON.stringify(expectedHands)}`)
+      ok("the protection is not the booklet's after the move", isDeepStrictEqual(after.shielded, model.shielded.map((shielded, seat) => (seat === next ? false : shielded))))
+      ok("the deck is not the booklet's after the move", isDeepStrictEqual(after.deck, next >= 0 ? model.deck.slice(1) : model.deck))
+    }
+    if (waitsForKeep) {
+      ok("a Chancellor did not wait for its player to keep a card", after.stage.kind === "keep" && after.turn === mover)
+      ok("a Chancellor's cards are not in the log, for its player", kinds.at(-1) === "chancellor")
+    } else if (!ended && !keptInTheSameStep) {
+      ok("the turn passed to the wrong seat", after.turn === next, () => `${mover} → ${after.turn}`)
+      ok("the draw is not in the log, for the player who drew it", kinds.at(-1) === "draw")
+    }
 
     // what the log says of the effect
     const key = nameOf(before, card)
@@ -223,6 +280,31 @@ function checkMove({ at, before, action, after, events }: Move): void {
     }
     if (key === "king" && target !== null) tally.swaps++
     if (key === "prince") tally.discards++
+    if (key === "chancellor") {
+      if (before.deck.length === 0) {
+        rare.chancellorNoCard++
+        ok("a Chancellor with no card left in the deck was not played with no effect", kinds.includes("fizzled") && !model.pending)
+      } else {
+        tally.chancellors++
+        if (before.deck.length === 1) rare.chancellorOneCard++
+        const drew = events.find((event): event is Extract<LoveLetterEvent, { kind: "chancellor" }> => event.kind === "chancellor")
+        ok("a Chancellor did not say how many cards it drew", drew?.drew === Math.min(2, before.deck.length))
+      }
+    }
+  }
+
+  if (before.stage.kind === "keep") {
+    // the cards a Chancellor's player puts under the deck, in the order they were placed, and the one they keep (p. 10)
+    const mover = before.turn
+    const said = events.find((event): event is Extract<LoveLetterEvent, { kind: "bottom" }> => event.kind === "bottom")
+    const kept = action?.type === "keep" ? action.card : said?.kept?.id
+    const back = action?.type === "keep" ? action.bottom : (said?.cards ?? []).map((face) => face.id)
+    if (kept === undefined) return flag("a keep did not say which card was kept", at)
+    verifyKeep(mover, before.hands, before.deck, kept, back)
+    ok("the play areas changed with a keep", isDeepStrictEqual(after.areas, before.areas))
+    ok("the players out changed with a keep", isDeepStrictEqual(after.out, before.out))
+    ok("the card kept is not in the log", said?.kept?.id === kept)
+    ok("a keep did not start with its entry in the log", kinds[0] === "bottom")
   }
 
   if (kinds.includes("end")) {

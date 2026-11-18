@@ -45,7 +45,7 @@ describe("the game definition", () => {
   })
 
   it("accepts the actions of its clients", () => {
-    expect([...GAME.clientActions]).toEqual(["play", "deal"])
+    expect([...GAME.clientActions]).toEqual(["play", "keep", "deal"])
     expect(GAME.clientActions).toBe(CLIENT_ACTIONS)
   })
 

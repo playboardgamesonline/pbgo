@@ -93,8 +93,8 @@ export type Layout = {
   players?: number | readonly string[]
   /** Whose turn it is, or who deals between two rounds. The first player when missing. */
   turn?: string
-  /** What the round is doing: `play` (the turn of `turn`) or `between` (the round is over). `play` when missing. */
-  stage?: "play" | "between"
+  /** What the round is doing: `play` (the turn of `turn`), `keep` (`turn` played a Chancellor and keeps a card) or `between` (the round is over). `play` when missing. */
+  stage?: "play" | "keep" | "between"
   /** For `between`: how the round ended. */
   between?: { revealed?: boolean; winners?: readonly string[]; spy?: string | null }
   /** The hands, by the characters they hold. A player who is not named holds a Guard (two on their turn), or nothing when out. */
@@ -150,7 +150,10 @@ export function layout(spec: Layout = {}): State {
   }
   const turn = seat(spec.turn ?? seated[0]!)
   const out = new Set((spec.out ?? []).map(seat))
-  const stage: Stage = spec.stage === "between" ? { kind: "between", revealed: spec.between?.revealed ?? false, winners: (spec.between?.winners ?? []).map(seat), spy: spec.between?.spy == null ? null : seat(spec.between.spy) } : { kind: "play" }
+  const stage: Stage =
+    spec.stage === "between"
+      ? { kind: "between", revealed: spec.between?.revealed ?? false, winners: (spec.between?.winners ?? []).map(seat), spy: spec.between?.spy == null ? null : seat(spec.between.spy) }
+      : { kind: spec.stage ?? "play" }
 
   // what a test names first, so that what it does not name is filled from what is left
   const named = {
@@ -163,7 +166,8 @@ export function layout(spec: Layout = {}): State {
   const hands = named.hands.map((hand, i) => {
     if (hand !== undefined) return hand
     if (out.has(i)) return []
-    return i === turn && stage.kind === "play" ? [takeOneOf(INERT), takeOneOf(INERT)] : [takeOneOf(INERT)]
+    if (i !== turn || stage.kind === "between") return [takeOneOf(INERT)]
+    return stage.kind === "keep" ? [takeOneOf(INERT), takeOneOf(INERT), takeOneOf(INERT)] : [takeOneOf(INERT), takeOneOf(INERT)]
   })
   const aside = named.aside === undefined ? takeOneOf(LAST) : named.aside
   const faceUp = named.faceUp ?? (seated.length === 2 ? [takeOneOf(LAST), takeOneOf(LAST), takeOneOf(LAST)] : [])
@@ -191,6 +195,25 @@ export function layout(spec: Layout = {}): State {
 /** The player plays the first card of `key` of their hand, picking the player `target` and naming the character `guess` when the card asks for them. */
 export function playCard(state: State, playerId: string, key: CharacterKey, extra: { target?: string; guess?: CharacterKey } = {}): State {
   return playStep(state, playerId, key, extra).state
+}
+
+/** The player keeps the first card of `key` of their hand after a Chancellor and puts the other cards, named by their characters, under the deck in that order. */
+export function keepCards(state: State, playerId: string, key: CharacterKey, bottom: readonly CharacterKey[]): State {
+  return keepStep(state, playerId, key, bottom).state
+}
+
+export function keepStep(state: State, playerId: string, key: CharacterKey, bottom: readonly CharacterKey[]): LoveLetterStep {
+  const hand = state.hands[seatOf(state, playerId)]!
+  const kept = cardIn(state, playerId, key)
+  const rest = hand.filter((id) => id !== kept)
+  const used = new Set<number>()
+  const ids = bottom.map((name) => {
+    const id = rest.find((card) => keyOf(state, card) === name && !used.has(card))
+    if (id === undefined) throw new Error(`${playerId} has no ${name} to put back`)
+    used.add(id)
+    return id
+  })
+  return step(state, { type: "keep", playerId, card: kept, bottom: ids })
 }
 
 /** The same, with what the move said. */
@@ -254,11 +277,13 @@ export function problems(state: State, options: { rigged?: boolean } = {}): stri
       if (hand.length !== 0) found.push(`${id} is out and holds ${hand.length} cards`)
       if (state.shielded[seat]) found.push(`${id} is out and protected`)
     } else {
-      const expected = state.stage.kind === "play" && state.turn === seat ? 2 : 1
-      if (hand.length !== expected) found.push(`${id} holds ${hand.length} cards, ${expected} expected`)
+      const mover = state.stage.kind !== "between" && state.turn === seat
+      // a Chancellor's player holds three cards, or two when the deck held only one
+      const sizes = mover ? (state.stage.kind === "keep" ? [2, 3] : [2]) : [1]
+      if (!sizes.includes(hand.length)) found.push(`${id} holds ${hand.length} cards, ${sizes.join(" or ")} expected`)
     }
   })
-  if (state.stage.kind === "play" && state.out[state.turn]) found.push("a player who is out has the turn")
+  if (state.stage.kind !== "between" && state.out[state.turn]) found.push("a player who is out has the turn")
   if (state.stage.kind === "between") {
     if (state.stage.winners.length === 0) found.push("a round ended with no winner")
     if (!state.stage.winners.includes(state.turn)) found.push("the first turn of the next round is not a winner's")
@@ -293,6 +318,17 @@ export function randomAction(state: State, rng: Rng): Action {
   const [playerId] = waiting(state)
   if (playerId === undefined) throw new Error("The game waits for nobody")
   if (state.stage.kind === "between") return { type: "deal", playerId }
+  if (state.stage.kind === "keep") {
+    const hand = state.hands[seatOf(state, playerId)]!
+    const card = hand[Math.floor(rng() * hand.length)]!
+    const others = hand.filter((id) => id !== card)
+    // the order of the cards put back is the player's: a shuffle of them
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1))
+      ;[others[i], others[j]] = [others[j]!, others[i]!]
+    }
+    return { type: "keep", playerId, card, bottom: others }
+  }
   const choices = playableIds(state, playerId)
   const card = choices[Math.floor(rng() * choices.length)]!
   const rule = CARDS[keyOf(state, card)].target

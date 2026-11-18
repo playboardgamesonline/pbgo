@@ -28,12 +28,14 @@ export function setupStep(args: { players: readonly PlayerInfo[]; options?: unkn
   const idsRng = createSaveableRng(sideSeed(seed, IDS_STREAM))
   const first = Math.floor(rng() * n)
 
+  const ids = issueIds(CATALOGUE.length, idsRng)
   const state: State = {
     options,
     seats,
-    ids: issueIds(CATALOGUE.length, idsRng),
+    ids,
     // after the draw of the first player: the shuffles go on from here
     rng: rng.save(),
+    idsRng: idsRng.save(),
     round: 0,
     turn: first,
     stage: { kind: "between", revealed: false, winners: [], spy: null },
