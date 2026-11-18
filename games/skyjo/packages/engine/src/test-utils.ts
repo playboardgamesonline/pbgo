@@ -78,7 +78,8 @@ export type CellSpec = number | { up: number } | null | undefined
 export const up = (value: number): CellSpec => ({ up: value })
 
 export type StageSpec =
-  | { kind: "reveal" }
+  /** `starter`: the player who ended the round before and so begins this one (none in the first round, which the highest sum opens). */
+  | { kind: "reveal"; starter?: string | null }
   | { kind: "choose"; player: string }
   | { kind: "place"; player: string; card: number; from: "deck" | "discard" }
   | { kind: "flip"; player: string }
@@ -143,8 +144,9 @@ export function layout(spec: Layout = {}): State {
   const stage: Stage = (() => {
     switch (stageSpec.kind) {
       case "reveal":
+        return { kind: "reveal", starter: stageSpec.starter == null ? null : seat(stageSpec.starter) }
       case "between":
-        return { kind: stageSpec.kind }
+        return { kind: "between" }
       case "choose":
       case "flip":
         return { kind: stageSpec.kind, seat: seat(stageSpec.player) }
@@ -250,6 +252,12 @@ export function problems(state: State): string[] {
     if (new Set(state.last).size !== state.last.length) found.push("a last turn is counted twice")
     if (state.stage.kind === "choose" && state.last.includes(state.stage.seat)) found.push("a player plays their last turn twice")
   } else if (state.last.length > 0) found.push("last turns without an ender")
+  if (state.stage.kind === "reveal") {
+    // the player who ended the round before begins this one (EN p.4): the first round has nobody, every later one has a seat
+    const { starter } = state.stage
+    if ((state.rounds.length === 0) !== (starter === null)) found.push("the opening names a starter exactly when a round was played before")
+    if (starter !== null && (starter < 0 || starter >= n)) found.push("the starter is not at the table")
+  }
   if (state.stage.kind !== "between" && state.stage.kind !== "reveal") {
     // the first player with all their cards face up ends the round: nobody has them all up while the round is not ending
     state.grids.forEach((grid, seat) => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { step } from "./actions"
 import { GAME } from "./game"
-import { draw, layout, newState, opened, playRandomly, reveal, seedOf, take, up, viewOf } from "./test-utils"
+import { deal, draw, layout, newState, opened, playRandomly, reveal, seedOf, take, up, viewOf } from "./test-utils"
 import type { PlayerView, State } from "./types"
 
 // Hidden information: the cards face down (to everybody, their owner included), the draw pile, and the card just drawn from it.
@@ -128,7 +128,17 @@ describe("what the view says of the round", () => {
     expect(viewOf(state, "ana").players.map((seat) => seat.revealed)).toEqual([0, 0, 0])
     state = reveal(state, "bob", 0)
     expect(viewOf(state, "ana").players.map((seat) => seat.revealed)).toEqual([0, 1, 0])
-    expect(viewOf(state, "ana").phase).toEqual({ kind: "reveal", waiting: ["ana", "bob", "cleo"] })
+    expect(viewOf(state, "ana").phase).toEqual({ kind: "reveal", waiting: ["ana", "bob", "cleo"], starter: null })
+  })
+
+  it("names, while a later round opens, the player who will begin it, the one who ended the last round, and nobody for the first (EN p.4)", () => {
+    expect(viewOf(newState(3), "ana").phase).toMatchObject({ kind: "reveal", starter: null })
+    // cleo ended the round that was just counted and bob deals the next one: the dealer is not the one who begins
+    const next = deal(layout({ players: 3, stage: { kind: "between" }, rounds: [[12, 30, 7]], ender: "cleo", dealer: "bob" }), "bob")
+    for (const viewer of ["ana", "bob", "cleo", "stranger", null]) expect(viewOf(next, viewer).phase, `${viewer}`).toMatchObject({ kind: "reveal", starter: "cleo" })
+    // the last round's ender is nobody's in the new round until somebody turns all their cards over
+    expect(viewOf(next, "ana").ender).toBeNull()
+    expect(viewOf(next, "ana").players.map((seat) => seat.lastTurn)).toEqual([null, null, null])
   })
 
   it("says nothing of a last turn until somebody has turned all their cards over", () => {

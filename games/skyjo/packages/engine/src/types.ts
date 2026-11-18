@@ -28,14 +28,16 @@ export type Cell = { card: number; up: boolean } | null
 /**
  * What the round is busy with. Between two moves the state is settled: a player has to do something, or the round is over.
  *
- * - `reveal`: every player turns over two cards of their own grid, in any order (a simultaneous step); `reveal` actions. The last one starts the round.
+ * - `reveal`: every player turns over two cards of their own grid, in any order (a simultaneous step); `reveal` actions. The last one starts the round: `starter`, the
+ *   seat of the player who ended the round before, begins it (EN p.4: "The player who ended the current game round gets to start the next game round"). The first round
+ *   has none (`null`): the player whose two cards add up highest begins it (EN p.4, FR p.2).
  * - `choose`: `seat` takes the top card of the discard or draws the top card of the draw pile.
  * - `place`: `seat` holds `card`, drawn from the pile (`from: "deck"`: they may place it or throw it away) or taken from the discard (`"discard"`: they must place it).
  * - `flip`: `seat` threw away the card they drew and turns one of their face-down cards over.
  * - `between`: the round is over and counted; the dealer deals the next one. Between the last round and the end of the game, nobody is waited for.
  */
 export type Stage =
-  | { kind: "reveal" }
+  | { kind: "reveal"; starter: number | null }
   | { kind: "choose"; seat: number }
   | { kind: "place"; seat: number; card: number; from: "deck" | "discard" }
   | { kind: "flip"; seat: number }
@@ -63,12 +65,18 @@ export type State = {
   deck: number[]
   /** The discard, top first. Every card in it was face up. */
   discard: number[]
-  /** Seat of the dealer: who deals the round that is going on or, between two rounds, the next one. The dealer moves one seat clockwise after each round. */
+  /**
+   * Seat of the dealer: who deals the round that is going on or, between two rounds, the next one. The dealer moves one seat clockwise after each round.
+   * Neither booklet has a dealer: it is the player who presses Deal between two rounds, and it decides nothing else (who begins a round is `Stage.reveal.starter`).
+   */
   dealer: number
   /** By seat: the 12 cells of the grid, `column * 3 + row`. They stay as the round left them until the next deal sweeps them up. */
   grids: Cell[][]
   stage: Stage
-  /** The seat that was first to turn all its cards over in this round, once someone has: everyone else plays one last turn. */
+  /**
+   * The seat that was first to turn all its cards over in this round, once someone has: everyone else plays one last turn. It stays set once the round is
+   * counted, until the next deal hands it to the opening as its `starter`.
+   */
   ender: number | null
   /** Seats that have played their last turn, once `ender` is set (the ender itself included once its turn is over). */
   last: number[]
@@ -145,7 +153,8 @@ export type PublicSeat = {
 
 /**
  * What a viewer sees of the round's decision.
- * - `reveal`: `waiting` still have cards to turn over to begin the round.
+ * - `reveal`: `waiting` still have cards to turn over to begin the round; `starter` is the player who will begin it, the one who ended the round before
+ *   (`null` in the first round: the highest sum of the two cards decides).
  * - `choose`: `player` takes the discard or draws.
  * - `place`: `player` holds `card` (seen by the holder, and by everybody when it came from the discard; `null` for the others when it was drawn) and places it
  *   (`canDiscard`: the card came from the pile, so they may throw it away instead).
@@ -154,7 +163,7 @@ export type PublicSeat = {
  * - `over`: the game is over.
  */
 export type PublicPhase =
-  | { kind: "reveal"; waiting: string[] }
+  | { kind: "reveal"; waiting: string[]; starter: string | null }
   | { kind: "choose"; player: string }
   | { kind: "place"; player: string; from: "deck" | "discard"; card: Face | null; canDiscard: boolean }
   | { kind: "flip"; player: string }
@@ -195,6 +204,8 @@ export type PlayerView = {
  * - `place`: `by` put the card `card` in `position`; `replaced` is the card that was there, now on the discard (`replacedUp`: it was face up).
  * - `discard`: `by` threw the card they drew onto the discard.
  * - `column`: three equal cards in `column` of `by` were thrown away (`value` is what they were, `cards` the three, top of the column first).
+ * - `start`: `by` begins the round, and `how` says why. `"sum"`: the first round, which the highest sum of the two cards turned over opens (a tie between players is drawn
+ *   from the seed). `"ender"`: any later round, which the player who ended the one before opens, whatever the sums. `sum` is what the two cards of `by` add up to.
  * - `last`: `by` turned their last card over: everyone else plays one last turn.
  * - `reshuffle`: the draw pile ran out and the discard was shuffled into a new one.
  */
@@ -206,7 +217,7 @@ export type SkyjoEvent =
   | { kind: "place"; by: string; position: number; card: Face; replaced: Face; replacedUp: boolean }
   | { kind: "discard"; by: string; card: Face }
   | { kind: "column"; by: string; column: number; value: number; cards: Face[] }
-  | { kind: "start"; by: string; sum: number }
+  | { kind: "start"; by: string; sum: number; how: "sum" | "ender" }
   | { kind: "last"; by: string }
   | { kind: "reshuffle" }
   | { kind: "end"; scores: number[]; ender: string; doubled: boolean }

@@ -112,6 +112,11 @@ describe("what the game says happened", () => {
     const said = new Set(log.map(({ event }) => event.kind))
     for (const kind of ["reveal", "take", "draw", "place", "discard", "start", "last", "end"]) expect(said, kind).toContain(kind)
     expect(log.at(-1)?.event).toMatchObject({ kind: "over" })
+    // Who begins (EN p.4): the first round by the highest sum, every later one by the player who ended the one before
+    const beginnings = log.flatMap(({ event }) => (event.kind === "start" ? [event] : []))
+    const enders = log.flatMap(({ event }) => (event.kind === "end" ? [event.ender] : []))
+    expect(beginnings.map((event) => event.how)).toEqual(beginnings.map((_, round) => (round === 0 ? "sum" : "ender")))
+    expect(beginnings.slice(1).map((event) => event.by)).toEqual(enders.slice(0, beginnings.length - 1))
     // Plain data: it goes through jsonb and comes back the same, and it names ids, never the nicknames of the table
     expect(JSON.parse(JSON.stringify(log))).toEqual(log)
     expect(JSON.stringify(log)).not.toContain(seated[0]!.nickname)
