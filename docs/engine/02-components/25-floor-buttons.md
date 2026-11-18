@@ -79,7 +79,7 @@ scene-seat
 - **A seat with no card is chosen too.** A `LightPool` the size of a card, where the cards would lie, is lit in the same states, so an empty area and a full one read alike. It lies flat on the table, takes no pointer and breathes while it can be chosen.
 - **The keyboard** reaches the area as it reaches a card that can be pressed: one visually hidden button for each, saying `ariaLabel` (`useStandIn`), and the focus counts as a touch. Reduced motion makes the states instant.
 - **Colours** are the game's: `UI_THEME.card` gives each state's bloom its colour and strength, and the table has no colour of its own for a target. A board never types one.
-- **Geometry.** Tested with the boxes, not a screenshot: no area overlaps another area, another seat's plate, a pile or the buttons, and an area holds its player's cards and plate (`layout.test.ts` of Flip 7 for the floor zones it still has, and of the template for the plates).
+- **Geometry.** Tested with the boxes, not a screenshot: no area overlaps another area, another seat's plate, a pile or the buttons, and an area holds its player's cards and plate (the `layout.test.ts` of Flip 7 and of the template are the models).
 
 ## Decals
 

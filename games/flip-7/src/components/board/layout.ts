@@ -300,7 +300,7 @@ export function uprightYaw(yaw: number): number {
   return Math.abs(turn) <= Math.PI / 2 + 1e-9 ? turn : turn - Math.sign(turn) * Math.PI
 }
 
-/** What a plate occupies in its own frame (the aura's width, and from above the name to below the status), measured from its centre: along z, from -`lift` to `drop` */
+/** What a plate occupies in its own frame (its width, and from above the name to below the status), measured from its centre: along z, from -`lift` to `drop` */
 const PLATE = { lift: SEAT_SETTINGS.nameLift + 0.5, drop: SEAT_SETTINGS.lineDrop + 0.2 }
 
 /** How wide a plate is taken to be, the avatar and a name of `PLATE_LETTERS` letters (about half the lettering's height each) side by side, centred: what a zone must hold of it. A name of `NAME_LIMIT` letters is wider (by about a third of a card each side) and a crowded table has no room for that, so it sticks out of the zone's padding rather than into its neighbour */
@@ -322,7 +322,7 @@ export function plateAt(spot: SeatSpot, line: Line): Place & { yaw: number } {
   return { x: line.at.x + out.x * distance, z: line.at.z + out.z * distance, yaw }
 }
 
-/** The plate's box: the aura as wide as the plate, from above the name to below the status */
+/** The plate's box: as wide as the plate, from above the name to below the status */
 export function plateBox(spot: SeatSpot, line: Line): Box {
   const place = plateAt(spot, line)
   const middle = (PLATE.drop - PLATE.lift) / 2

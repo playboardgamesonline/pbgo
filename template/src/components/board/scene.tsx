@@ -93,7 +93,7 @@ function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: 
         )
       })}
       <Zone layout={handLayout(hand.length, raised)} size={CARD_SIZE} enter={DECK_POSE} cards={handCards} />
-      {/* Whose turn it is, or who the game waits for: the platform's words, in one line across the middle of the table */}
+      {/* Whose turn it is, or who the game waits for: the platform's words, in the band beside the viewer's plate */}
       <TurnLine at={TURN_LINE.at} height={TURN_LINE.height} maxWidth={TURN_LINE.width} />
       {/* The bids of the simultaneous step, asked and shown with cards of the game's own on the table */}
       <Bids view={view} slots={slots} canBid={canBid} onBid={onBid} />
