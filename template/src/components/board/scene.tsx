@@ -4,9 +4,9 @@ import type { PlayedCard, PlayerView } from "@template/engine"
 import { useEffect, useMemo, useState } from "react"
 import { Bids } from "./bids"
 import { CAMERA, PHOTO } from "./camera"
-import { PlayerSeat, Table, Timer, TurnLine, useSettings, Zone, type Pose, type ZoneCard } from "@pbgo/table"
+import { CornerHand, HandShadow, PlayerSeat, scalePoses, Table, Timer, useSettings, Zone, type Pose, type ZoneCard } from "@pbgo/table"
 import { GLOWS } from "./glows"
-import { CLOCK, DECK_POSE, backFrame, backLayout, backPose, cardsBox, collectedPose, handLayout, LAYOUT_SETTINGS, seats, TURN_LINE, trickPose } from "./layout"
+import { CLOCK, DECK_POSE, backPose, collectedPose, HAND_ROOM, handBox, handLayout, heldBox, heldFrame, heldLayout, HELD_SHADOW, LAYOUT_SETTINGS, seats, trickPose } from "./layout"
 import { CARD_SIZE, MAT_COLOR, backTexture, faceTexture, matTexture } from "./textures"
 
 function useCollect(view: PlayerView) {
@@ -26,12 +26,16 @@ function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: 
   useSettings("Layout", LAYOUT_SETTINGS, {
     radiusX: ["seat ring radius x", 3, 14, 0.1],
     radiusZ: ["seat ring radius z", 2, 10, 0.1],
-    handZ: ["hand z", 0, 10, 0.05],
     handY: ["hand height", 0, 4, 0.05],
     handTilt: ["hand tilt", 0, 1.5, 0.01],
     handGap: ["hand spacing", 0.5, 2, 0.01],
     handScale: ["hand scale", 0.5, 2, 0.01],
     hoverLift: ["hover lift", 0, 1.5, 0.01],
+    heldReach: ["opponent hand reach", 0.8, 1.6, 0.01],
+    heldGap: ["opponent hand spacing", 0.1, 0.8, 0.01],
+    heldScale: ["opponent hand scale", 0.3, 1, 0.01],
+    heldY: ["opponent hand height", 0, 2, 0.05],
+    heldTilt: ["opponent hand tilt", 0, 1.5, 0.01],
     trickGap: ["trick spread", 0, 1, 0.01],
   }, { order: 1 })
   const meId = view.me?.id ?? null
@@ -75,26 +79,40 @@ function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: 
 
   return (
     <>
-      {view.players.map((j) => {
-        const s = slots.get(j.id)!
-        // The plate stands above the player's cards, the viewer's hand or the backs of an opponent's, whichever way they are turned
-        return (
-          <PlayerSeat key={j.id} id={j.id} above={cardsBox(s, j.id === meId)} line={pointsText(j.points)}>
-            {j.id !== meId && (
+      {/* The hands of the others: held up in a fan that faces the middle of the table, a round shadow under it, and the plate of the player above it, on the side that faces the middle, turned with the seat */}
+      {view.players
+        .filter((j) => j.id !== meId)
+        .map((j) => {
+          const s = slots.get(j.id)!
+          const frame = heldFrame(s)
+          return (
+            <group key={j.id}>
+              <HandShadow at={frame} radius={HELD_SHADOW.radius} opacity={HELD_SHADOW.opacity} />
+              <PlayerSeat id={j.id} frame={frame} above={heldBox(s)} line={pointsText(j.points)} />
               <Zone
-                frame={backFrame(s)}
-                layout={backLayout(s, j.cardCount)}
+                frame={frame}
+                layout={heldLayout(j.cardCount)}
                 size={CARD_SIZE}
                 enter={DECK_POSE}
                 cards={Array.from({ length: j.cardCount }, (_, i) => ({ key: `back-${j.id}-${i}`, front: back, back }))}
               />
-            )}
-          </PlayerSeat>
-        )
-      })}
-      <Zone layout={handLayout(hand.length, raised)} size={CARD_SIZE} enter={DECK_POSE} cards={handCards} />
-      {/* Whose turn it is, or who the game waits for: the platform's words, in the band beside the viewer's plate */}
-      <TurnLine at={TURN_LINE.at} height={TURN_LINE.height} maxWidth={TURN_LINE.width} />
+            </group>
+          )
+        })}
+      {/* The hand of the viewer, in the bottom left of the screen, whatever the window, and their plate above it */}
+      {meId && (
+        <CornerHand most={HAND_ROOM.most} depth={HAND_ROOM.depth} height={HAND_ROOM.height}>
+          {(corner) => {
+            const frame = { x: corner.x, z: corner.z, yaw: 0 }
+            return (
+              <>
+                <PlayerSeat id={meId} frame={frame} above={handBox(corner.scale)} line={pointsText(view.players.find((j) => j.id === meId)?.points ?? 0)} />
+                <Zone frame={frame} layout={scalePoses(handLayout(hand.length, raised), corner.scale)} size={CARD_SIZE} enter={DECK_POSE} cards={handCards} />
+              </>
+            )
+          }}
+        </CornerHand>
+      )}
       {/* The bids of the simultaneous step, asked and shown with cards of the game's own on the table */}
       <Bids view={view} slots={slots} canBid={canBid} onBid={onBid} />
       {/* The clock of the step, for a game with the option `turnSeconds`: the game says how long a step lasts (the view), the platform when it ends (`deadlineAt`) */}

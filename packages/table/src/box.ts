@@ -70,6 +70,50 @@ export function boxOfPoses(poses: readonly Pose[], size: CardSize, { frame, tilt
   return box
 }
 
+/**
+ * The box of the cards laid in `poses`, in the frame of a seat: the poses are the ones a `Zone` takes with that `frame` (drawn in it, x to the right of the seat and the least z toward the middle of the table), and the box is in the frame too, so that the plate of a seat stands on the
+ * side of the cards that faces the middle of the table whichever way the seat is turned. With `tilt`, the camera's tilt as `CameraSettings.tilt`, it is the box of what the camera sees, as for `boxOfPoses`: the part a card that stands off the table hides is the way the screen
+ * shows it, which the frame turns with the seat. `null` for no card.
+ */
+export function frameBoxOfPoses(poses: readonly Pose[], size: CardSize, frame: Spot, { tilt }: { tilt?: number } = {}): TableBox | null {
+  const slant = tilt === undefined ? 0 : Math.tan((tilt * Math.PI) / 180)
+  const yaw = frame.yaw ?? 0
+  // The screen's way up, the least world z, in the frame: a card raised by `y` shows `y * slant` farther up the screen
+  const sin = Math.sin(yaw)
+  const cos = Math.cos(yaw)
+  let box: TableBox | null = null
+  for (const pose of poses) {
+    for (const [sx, sy] of CORNERS) {
+      corner
+        .set((sx * size.width) / 2, (sy * size.height) / 2, 0)
+        .multiplyScalar(pose.scale)
+        .applyQuaternion(pose.quaternion)
+        .add(pose.position)
+      const lift = corner.y * slant
+      const x = corner.x + lift * sin
+      const z = corner.z - lift * cos
+      box = box ? { minX: Math.min(box.minX, x), maxX: Math.max(box.maxX, x), minZ: Math.min(box.minZ, z), maxZ: Math.max(box.maxZ, z) } : { minX: x, maxX: x, minZ: z, maxZ: z }
+    }
+  }
+  return box
+}
+
+/** The world place of a point (`x`, `z`) drawn in the frame of a spot: it turns first, then moves, as `inFrame` does for a pose */
+export function pointInFrame(frame: Spot, { x, z }: { x: number; z: number }): { x: number; z: number } {
+  const yaw = frame.yaw ?? 0
+  return { x: frame.x + x * Math.cos(yaw) + z * Math.sin(yaw), z: frame.z - x * Math.sin(yaw) + z * Math.cos(yaw) }
+}
+
+/** The four corners of a box drawn in the frame of a spot, in the world, going round: what a plate or an area covers of the table when its seat is turned */
+export function cornersOfBox(box: TableBox, frame: Spot): { x: number; z: number }[] {
+  return [
+    { x: box.minX, z: box.minZ },
+    { x: box.maxX, z: box.minZ },
+    { x: box.maxX, z: box.maxZ },
+    { x: box.minX, z: box.maxZ },
+  ].map((point) => pointInFrame(frame, point))
+}
+
 /** The middle of a box */
 export const centreOf = (box: TableBox) => ({ x: (box.minX + box.maxX) / 2, z: (box.minZ + box.maxZ) / 2 })
 

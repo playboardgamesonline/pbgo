@@ -36,11 +36,16 @@ export type SeatProps = {
   /** How the game dresses its seat avatars (`UI_THEME.seat`, read with `useSeatTheme()`) */
   theme: SeatTheme
   /**
-   * The box of all of the player's cards on the table (`boxOfPoses`, `boxOfRect`, `joinBoxes` of the kit): the plate stands above it, centred on it, upright for the viewer, the viewer's seat and every other, whichever way the cards are turned. This is how a seat is placed
-   * unless the game places it itself
+   * The frame of the seat: where it is on the table and the way it faces (`yaw`, from `seats()`: the top of the frame, its least z, is toward the middle of the table, the way the player who sits there looks). The plate is drawn in it and turns with it, as the cards the
+   * game lays in the same frame do. Default: the world's own frame
+   */
+  frame?: Spot
+  /**
+   * The box of all of the player's cards in that frame (`frameBoxOfPoses` of the kit): the plate stands above it, on the side of the cards that faces the middle of the table, centred on them, the viewer's seat and every other, whichever way the seat is turned. This is how a
+   * seat is placed unless the game places it itself
    */
   above?: TableBox
-  /** Where the plate stands when it has no `above`: the seat's spot on the ring (`seats()`), from which it stands out by `SEAT_SETTINGS`. Default: the middle of the table, for a board that draws the seat in a group of its own */
+  /** Where the plate stands when it has no `above`: the seat's spot on the ring (`seats()`), from which it stands out by `SEAT_SETTINGS`. Default: the middle of the frame, for a board that draws the seat in a group of its own */
   spot?: Spot
   /** The viewer's own seat, whose plate stands level with its spot instead of beyond it (only for a plate placed from its `spot`) */
   viewer?: boolean
@@ -69,13 +74,14 @@ export type SeatProps = {
  * The plate of a player at the table, one block that turns as one: the avatar, then the name, on a first row (the avatar is always to the LEFT of the name, as the plate is read), the info line under the name (the score, then a status as plain text), and a `trailing` slot
  * to the right of the name. The turn crown stands on the avatar's corner. Nothing lies under the plate: no light, no tint, in any state. The plate never reacts to the pointer: choosing a player is the job of the `Hotspot` over their cards.
  *
- * It stands above the player's cards (`above`): the name is read over the cards, upright for the viewer, at every seat.
+ * It stands above the player's cards (`above`), in the frame of the seat: on the side of the cards that faces the middle of the table, turned with the seat, so that the name is read over the cards by the player who sits there, at every seat.
  */
 export function Seat({
   nickname,
   color,
   imageUrl,
   theme,
+  frame = ORIGIN,
   above,
   spot = ORIGIN,
   viewer = false,
@@ -101,12 +107,14 @@ export function Seat({
   const shift = -plate.avatarX / 2
   return (
     <group>
-      <TableText text={shortName(nickname)} style={name} height={S.nameHeight} position={[plate.x + shift, TEXT_Y, plate.nameZ]} font={font} opacity={opacity} trailing={trailing}>
-        <SeatAvatarMesh nickname={nickname} color={color} imageUrl={imageUrl} theme={theme} size={S.avatarSize} position={[plate.avatarX, 0, 0]} opacity={opacity} />
-        <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[plate.crownX, 0, plate.crownZ]} />
-      </TableText>
-      {info !== "" && <TableText text={info} style={{ color: "#f5f2ea", weight: PLATE_WEIGHT, ...lineStyle }} height={S.lineHeight} position={[plate.x, TEXT_Y, plate.lineZ]} font={font} opacity={opacity} />}
-      {DEBUG_VIEW.seats && <SeatGizmo spot={above ? undefined : spot} plate={plate} cards={above} />}
+      <group position={[frame.x, 0, frame.z]} rotation-y={frame.yaw ?? 0}>
+        <TableText text={shortName(nickname)} style={name} height={S.nameHeight} position={[plate.x + shift, TEXT_Y, plate.nameZ]} font={font} opacity={opacity} trailing={trailing}>
+          <SeatAvatarMesh nickname={nickname} color={color} imageUrl={imageUrl} theme={theme} size={S.avatarSize} position={[plate.avatarX, 0, 0]} opacity={opacity} />
+          <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[plate.crownX, 0, plate.crownZ]} />
+        </TableText>
+        {info !== "" && <TableText text={info} style={{ color: "#f5f2ea", weight: PLATE_WEIGHT, ...lineStyle }} height={S.lineHeight} position={[plate.x, TEXT_Y, plate.lineZ]} font={font} opacity={opacity} />}
+        {DEBUG_VIEW.seats && <SeatGizmo spot={above ? undefined : spot} plate={plate} cards={above} />}
+      </group>
       {children}
     </group>
   )

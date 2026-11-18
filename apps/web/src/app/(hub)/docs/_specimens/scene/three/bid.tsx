@@ -1,11 +1,11 @@
 "use client"
 
 import { DEFAULT_SEAT_THEME } from "@pbgo/core/lib/ui-theme"
-import { Card, type CameraSettings, onTable, Seat, seats, turnSentence, TurnText, whoseTurn } from "@pbgo/table"
+import { Card, type CameraSettings, onTable, Seat, seats } from "@pbgo/table"
 import { useEffect, useState } from "react"
 import { BID, type BidView } from "../defaults"
 import { bidBack, bidFace, CARD_SIZE, DECK, palette } from "./art"
-import { Stage, TURN_WORDS } from "./parts"
+import { Stage } from "./parts"
 
 // A bid made with cards, as a game with a simultaneous step shows it. The viewer has a row of bid cards across the middle of the table, one for each bid they may make: pressing one sends it to their seat, face up for them to read, and pressing another
 // takes its place. The others' bids lie face down at their seats as soon as they are made, and turn over together when the last has. The scene is given what the view gives a board: the viewer's own bid, who else has bid, and what they bid only once
@@ -13,8 +13,6 @@ import { Stage, TURN_WORDS } from "./parts"
 
 const CAMERA: CameraSettings = { tilt: 44, yaw: 0, distance: 14.5, fov: 34, targetX: 0, targetZ: 0.7 }
 const RING = { radiusX: 5, radiusZ: 3.6 }
-/** Where the line that says who the game waits for lies: between the row of bid cards and the viewer's plate. */
-const LINE = { x: 0, z: 2.5 }
 /** How long the cards that were not chosen stay once the bids are in, so that they are seen going. */
 const LEAVING_MS = 900
 
@@ -46,12 +44,9 @@ export function BidScene({ view, onBid }: { view: BidView; onBid: (amount: numbe
   const rowShown = useLinger(!revealed, LEAVING_MS)
   const back = bidBack()
   const cards = rowShown ? Array.from({ length: BID.count }, (_, k) => k) : view.mine !== null ? [view.mine] : []
-  // The players the game still waits for, all at once: a simultaneous step has no player of the turn, and the line across the table says who is expected
-  const pending = players.filter((_, i) => !revealed && (i === 0 ? view.mine === null : !view.others[i - 1]!.hasBid)).map((one) => one.nickname)
 
   return (
     <Stage id="scene-bid" camera={CAMERA} playIntro={false}>
-      <TurnText text={turnSentence(whoseTurn({ status: "playing", waitingFor: pending, meId: "Alix" }), TURN_WORDS, (id) => id)} at={LINE} />
       {players.map(({ nickname, color, spot }, i) => (
         <Seat key={nickname} nickname={nickname} color={color} theme={DEFAULT_SEAT_THEME} spot={spot} viewer={i === 0} line={i === 0 ? "You" : ""} />
       ))}

@@ -126,6 +126,11 @@ export function grid(n: number, { columns, gapX, gapZ, rows, y = RESTING_HEIGHT,
   return Array.from({ length: n }, (_, i) => onTable((i % columns - (columns - 1) / 2) * gapX, (Math.floor(i / columns) - (lines - 1) / 2) * gapZ, { y, face, yaw: turn, scale }))
 }
 
+/** The poses of a layout drawn smaller about the middle of its frame: a hand that has less room is the same hand, scaled. The heights stay, so the cards keep their lean and their rise */
+export function scalePoses(poses: readonly Pose[], by: number): Pose[] {
+  return by === 1 ? [...poses] : poses.map((pose) => ({ ...pose, position: new Vector3(pose.position.x * by, pose.position.y, pose.position.z * by), scale: pose.scale * by }))
+}
+
 export type SeatsOptions = {
   /** Half the width of the ring the seats stand on */
   radiusX: number
@@ -139,7 +144,8 @@ export type SeatsOptions = {
 
 /**
  * The seats of `count` players on an ellipse around the table, indexed like the players, the turn passing from the viewer to the left.
- * The viewer's seat is at the front with yaw 0, so what lies there reads upright. Every other seat has the yaw that sends the top edge of a face-up card away from the middle of the table
+ * The viewer's seat is at the front with yaw 0, so what lies there reads upright. Every other seat has the yaw that sends the top edge of a face-up card toward the middle of the table, the way the player who sits there reads it: a layout drawn in the frame of
+ * any seat has its far side, its top, toward the middle, and what stands on that side (a name, the cards played) faces the centre of the table
  */
 export function seats(count: number, { radiusX, radiusZ, me = null, margin = 0.35 }: SeatsOptions): Required<Spot>[] {
   const viewer = me !== null && me >= 0 && me < count ? me : null
@@ -151,6 +157,6 @@ export function seats(count: number, { radiusX, radiusZ, me = null, margin = 0.3
     const angle = others === 1 ? -Math.PI / 2 : Math.PI + margin + (k / (others - 1)) * (Math.PI - 2 * margin)
     const x = Math.cos(angle) * radiusX
     const z = Math.sin(angle) * radiusZ
-    return { x, z, yaw: Math.atan2(x, z) + Math.PI }
+    return { x, z, yaw: Math.atan2(x, z) }
   })
 }

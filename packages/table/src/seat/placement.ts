@@ -6,7 +6,7 @@ import type { Spot } from "../layout"
  * edits: the next render of a `Seat` follows it.
  */
 export const SEAT_SETTINGS = {
-  /** A plate placed from its spot (`plateOf`) stands at the spot times these factors for an opponent: just beyond the cards, out of the ring. A plate that stands above the cards of its player (`above`) does not read them */
+  /** A plate placed from its spot (`plateOf`) stands at the spot times these factors for an opponent: just beyond the cards, out of the ring. A plate that stands on the middle's side of the cards of its player (`above`) does not read them */
   reachX: 1.32,
   reachZ: 1.32,
   /** The same for the viewer's own plate: level with the spot, a little in front of it */
@@ -15,17 +15,17 @@ export const SEAT_SETTINGS = {
   /** The height of the name's lettering, and how far toward the middle of the table it stands from the plate's centre */
   nameHeight: 0.55,
   nameLift: 0.25,
-  /** The height of the info line's lettering (the score, then the status), and how far toward the viewer it stands from the plate's centre */
+  /** The height of the info line's lettering (the score, then the status), and how far toward the cards it stands from the plate's centre */
   lineHeight: 0.4,
   lineDrop: 0.4,
   /** The avatar's diameter and its gap to the first or the last letter */
   avatarSize: 0.56,
   avatarGap: 0.18,
-  /** The crown's size, and how far its foot stands from the avatar's centre: toward the right, and away from the viewer */
+  /** The crown's size, and how far its foot stands from the avatar's centre: toward the right, and toward the middle of the table */
   crownSize: 0.6,
   crownRight: 0.2,
   crownBack: 0.24,
-  /** The clear space between the top edge of a player's cards and the foot of their plate, the bottom of its info line: how far above the cards the plate stands */
+  /** The clear space between the edge of a player's cards that faces the middle and the foot of their plate, the bottom of its info line: how far beyond the cards the plate stands */
   plateGap: 0.25,
   /** How opaque the plate of a player who is away stays */
   awayOpacity: 0.4,
@@ -50,7 +50,7 @@ export const SEAT_FIELDS = {
   crownSize: ["crown size", 0.2, 1.4, 0.01],
   crownRight: ["crown right of the avatar", -0.6, 0.8, 0.01],
   crownBack: ["crown behind the avatar", -0.6, 0.8, 0.01],
-  plateGap: ["plate gap above the cards", 0, 1.5, 0.01],
+  plateGap: ["plate gap beyond the cards", 0, 1.5, 0.01],
   awayOpacity: ["away or out opacity", 0, 1, 0.01],
 } satisfies Record<keyof SeatSettings, Knob>
 
@@ -89,8 +89,8 @@ export function plateOf(spot: Spot, viewer: boolean, settings: SeatSettings = SE
 }
 
 /**
- * The plate that stands above `cards`, the box of all of a player's cards (their hand, their grid, their play area): centred on it, the foot of the plate (the bottom of its info line) `plateGap` above its top edge. The plate is upright for the viewer and
- * above the cards on the screen, the player's own seat and every other, whichever way the player's cards are turned: what is read of a box is its least z, which is the way up of the screen and not the way the cards face.
+ * The plate that stands on the middle's side of `cards`, the box of all of a player's cards (their hand, their grid, their play area) in the frame of their seat: centred on it, the foot of the plate (the bottom of its info line) `plateGap` beyond its edge of the least z.
+ * The frame of a seat has its top, its least z, toward the middle of the table (`seats`), so the plate is above the cards for the player who sits there, at the viewer's seat and at every other, and it is drawn in the same frame, turned with the seat.
  */
 export function plateAbove(cards: TableBox, settings: SeatSettings = SEAT_SETTINGS): Plate {
   const S = settings

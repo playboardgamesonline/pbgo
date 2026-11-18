@@ -26,7 +26,7 @@ export function SceneBoardSpecimen() {
   const first = hand[0]
   return (
     <SceneFrame
-      label="A small card table seen from above: the viewer's hand in front, the backs of the cards the other players hold along the far side, a draw pile, and the middle of the table where played cards lie"
+      label="A small card table: the viewer's hand at the bottom left of the screen, the cards the other players hold up in a fan with a round shadow under it, each name on the side of the cards that faces the middle of the table, a draw pile, and the middle of the table where played cards lie"
       controls={
         <>
           <Choice
@@ -279,7 +279,7 @@ export function SceneSeatSpecimen() {
   const [points, setPoints] = useState(12)
   return (
     <SceneFrame
-      label="Three seats of a table for five players, the viewer's in front and one on each side, each holding a few cards face down: each plate stands above its player's cards, upright, with its avatar at the left of its name in the seat colour, the score and a status under it and a crown on the avatar when it is the player's turn; a plate fades when its player is away; the line across the middle of the table says whose turn it is, or who the game waits for; with the choice on, the cards of every player glow while they can be chosen, brighter under the pointer and brightest while pressed, inside an invisible area that the plate lies in without reacting"
+      label="Three seats of a table for five players: the viewer's hand is in the bottom left of the screen with their plate above it, and an opponent holds a fan of cards on each side, with its round shadow under it; each plate stands on the side of its cards that faces the middle of the table and turns with the seat, with its avatar at the left of its name, the score and a status under it and a crown on the avatar when it is the player's turn; a plate fades when its player is away; with the choice on, the cards of every player glow while they can be chosen, brighter under the pointer and brightest while pressed, inside an invisible area that the plate lies in without reacting"
       controls={
         <>
           <Choice

@@ -68,14 +68,14 @@ scene-seat
 
 | Prop of a `Hotspot` | Role |
 | --- | --- |
-| `at`, `width`, `depth` | `{ x, z, yaw? }` and the size of the area in world units: the box of the player's cards and their plate, with a little room all round |
+| `at`, `width`, `depth` | `{ x, z, yaw? }` and the size of the area in world units: the middle of the box of the player's cards and their plate on the table, the yaw of their seat, and the size of that box with a little room all round. The box is in the frame of the seat, so `at` is `pointInFrame(frame, centreOf(box))` |
 | `ariaLabel` | What a screen reader says and what the keyboard focus lands on ("Give the turn to Alix"); the area has no label of its own |
 | `onPress` | A click, a tap, or Enter or Space on the focused area calls it. Without it the area takes no press and no pointer |
 | `onTouch` | Told what the visitor does to the area (`{ hovered, focused, pressed }`) every time it changes, and `NO_TOUCH` when the area goes: the game states the cards under it from it |
 | `hitY` | How high the invisible plane that takes the pointer lies (default `HOTSPOT_HIT_Y`, 0.35, a card's height): above the cards, so the whole area answers, cards included |
 
 - **The game says `interactive`, the table does the rest.** While a player can be chosen, the cards of that player are in the state `interactive`. The game keeps what the area says (`onTouch`) and gives its cards `effectiveState("interactive", touch)`: `hover` under the pointer or the keyboard focus, `pressed` while it is down. A card does not need a handler of its own: the cards lie under the area, which takes the pointer.
-- **One area per player: their cards, with the plate inside.** The area holds the player's cards (the room of the biggest hand) and the plate that stands above them, with a padding all round that stops short of the other seats, the piles and the buttons. A press anywhere in it, on a card, on the padding or on the name, chooses the player. The plate never reacts: the name and the avatar do not light up, tint or scale.
+- **One area per player: their cards, with the plate inside.** The area holds the player's cards (the room of the biggest hand) and the plate that stands beyond them, on the side that faces the middle, in the frame of the seat, so that it is turned as the seat is, with a padding all round that stops short of the other seats, the piles and the buttons. A press anywhere in it, on a card, on the padding or on the name, chooses the player. The plate never reacts: the name and the avatar do not light up, tint or scale.
 - **A seat with no card is chosen too.** A `LightPool` the size of a card, where the cards would lie, is lit in the same states, so an empty area and a full one read alike. It lies flat on the table, takes no pointer and breathes while it can be chosen.
 - **The keyboard** reaches the area as it reaches a card that can be pressed: one visually hidden button for each, saying `ariaLabel` (`useStandIn`), and the focus counts as a touch. Reduced motion makes the states instant.
 - **Colours** are the game's: `UI_THEME.card` gives each state's bloom its colour and strength, and the table has no colour of its own for a target. A board never types one.

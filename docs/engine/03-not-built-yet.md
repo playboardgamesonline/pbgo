@@ -53,7 +53,7 @@ What the framework does not provide, and what holds instead. The first table is 
 
 Also not in the package, with no ticket of its own:
 
-- A zone anchored to the camera, such as a hand that stays on the screen: a `Zone` lays cards on the table.
+- A zone fixed to the camera, a hand drawn in screen space in front of the lens: `CornerHand` lays the viewer's hand on the table at the bottom left of the screen by asking the camera where that is, so its cards lie on the table, in its light, and a camera that moves moves them.
 - A mat with a behaviour of its own, such as a shader that unrolls it: the table's surface is a colour and a repeating picture, nothing more, and a mat is a plane the game draws on it.
 - A table lit like a room, such as Courtisans' vignette: the surface is flat and unlit, so the game draws its own gradient, and that plane has an edge to hide.
 - A click on empty space: `Table` does not pass on the `onPointerMissed` of its canvas ([Clicks and hover](01-the-game/05-actions.md#clicks-and-hover)).

@@ -187,26 +187,26 @@ The turn marker is a crown that stands on the upper-right corner of the avatar o
 - A `Seat` places it with the avatar, in the avatar's own frame (a child of the nickname's `TableText`, or its `trailing` for a right-hand seat), at the corner that `crownRight` and `crownBack` give it ([Where the plate stands](../02-components/03-seats.md#where-the-plate-stands)).
 - It is a plane that turns to face the camera about the vertical axis only, so it stays upright. While it is up it bobs and its gold pulses. It takes no pointer events ([Clicks and hover](05-actions.md#clicks-and-hover)).
 
-## The turn line
+## Whose turn it is on the screen
 
-The table says whose turn it is in one line of its own, written flat on the table in the platform's words: "It's your turn", "Ann's turn", "Waiting for Ann, Bob". Shared: `TurnLine` in `packages/table/src/seat/turn-line.tsx`, which reads what the table says (`waitingFor` and `meId` of `PublicGame`, through `whoseTurn` in `seat/turn.ts`) and the platform's texts (`yourTurn`, `turnOf`, `waitingFor`, the ones of the ticker). A game gives it a place and writes nothing: no sentence, no marker of its own to keep up. Its props, its rules and where it lies are on the page of the [seats](../02-components/03-seats.md#the-turn-line).
+The table says whose turn it is with the crown on the avatar of the player, and nothing else: no line across the table, no light under a seat. The words are the screen's, around the table: the ticker at the top left says "It's your turn", "Ann's turn" or "Waiting for Ann, Bob", written by the platform in the visitor's language from what the table says (`waitingFor` and `meId` of `PublicGame`; `yourTurn`, `turnOf`, `waitingFor` of `UI_TEXTS`), and an announcement plays when the turn comes to the viewer ([Turn change](#turn-change)). A game writes no sentence and keeps no turn marker of its own.
 
-| What the game waits for | What the line says |
-| --- | --- |
-| The viewer, alone or with others | "It's your turn" |
-| One other player | "Ann's turn" |
-| Several others at once, the viewer not among them | "Waiting for Ann, Bob" |
-| Nobody (before the game, between its steps, once it is over) | Nothing |
+| What the game waits for | What the ticker says | The crown |
+| --- | --- | --- |
+| The viewer, alone or with others | "It's your turn" | On the viewer's avatar when they are alone |
+| One other player | "Ann's turn" | On their avatar |
+| Several others at once, the viewer not among them | "Waiting for Ann, Bob" | None |
+| Nobody (before the game, between its steps, once it is over) | Nothing | None |
 
-- There is no light under a seat, in any state: the crown on the avatar says which player has the turn, the line says who is waited for, and a player who is away fades. A player is chosen by pressing their cards, which glow ([Choosing a player](../02-components/25-floor-buttons.md#choosing-a-player)).
-- A player who is waited for with others on a simultaneous step is not marked on their plate: the line names them, and the list of the players at the top right of the screen lights the rows of those the game waits for ([Simultaneous steps](#simultaneous-steps)).
+- A player who is waited for with others on a simultaneous step is not marked on their plate: the ticker names them, and the list of the players at the top right of the screen lights the rows of those the game waits for ([Simultaneous steps](#simultaneous-steps)).
+- A player is chosen by pressing their cards, which glow ([Choosing a player](../02-components/25-floor-buttons.md#choosing-a-player)).
 
 ## Turn change
 
 There is no turn-transition component. A turn changes the way everything on a board does: the view changes, and each piece that depends on whose turn it is follows. Per game: the template's `board/scene.tsx` and `game/game.tsx` are the reference. The announcement and the ticker are the shared UI's.
 
 - The scene learns that the turn changed from the view (`activePlayerId` in the template's view), never from a timer or from its own click. A player can leave `waitingFor` without having acted, because somebody played for them: follow the view.
-- The crown grows on the avatar of the player whose turn it is and shrinks away from the one before, and the turn line changes its sentence. A step the game waits several players for has no single player of the turn: `PlayerSeat` shows no crown, the line names the players expected, and the ticker's strip lists who is pending ([Seats](../02-components/03-seats.md#the-plate)).
+- The crown grows on the avatar of the player whose turn it is and shrinks away from the one before, and the ticker changes its sentence. A step the game waits several players for has no single player of the turn: `PlayerSeat` shows no crown, the ticker names the players expected, and its strip lists who is pending ([Seats](../02-components/03-seats.md#the-plate)).
 - The hand takes clicks and the hover glow only on the viewer's turn ([Clicks and hover](05-actions.md#clicks-and-hover)).
 - The cards played fly from where they were to the middle ([Pose memory](../02-components/05-poses-and-motion.md#pose-memory)); the trick won rests in the middle, then flies to its winner's side (`useCollect` in `scene.tsx`, `collectedPose` in `layout.ts`; [Zone](../02-components/07-zones.md#zone)).
 - When the viewer's turn begins, an effect of `game/game.tsx` calls `announce` with the kind `turn`, its sound and `replace: ["turn"]`, which drops a `turn` announcement that is still queued, so a quick succession shows the latest. `useAnnouncements` can also be `paused`, which holds the queue while something else, an opening for instance, has the screen ([Opening and ending](06-victory.md#opening-and-ending)).

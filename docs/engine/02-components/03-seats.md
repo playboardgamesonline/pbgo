@@ -1,6 +1,6 @@
 # Seats
 
-A seat is a place at the table where a player sits. `seats` gives the places, and `Seat` draws the player who sits at one: the name with the avatar and the turn crown, and the score and a status under it, on a plate that stands above the player's cards. Nothing lies under the plate, and it never reacts to the pointer: the line across the table says whose turn it is ([The turn line](#the-turn-line)), and a player is chosen by pressing their cards ([Choosing a player](25-floor-buttons.md#choosing-a-player)). What else stands at a seat, such as the cards the player holds, is the game's, given to the `Seat` as its children. Shared: `seats` in `packages/table/src/layout.ts`, `Seat` and its pieces in `packages/table/src/seat/`.
+A seat is a place at the table where a player sits, and it faces the middle of the table. `seats` gives the places, each with the way it faces, and `Seat` draws the player who sits at one: the name with the avatar and the turn crown, and the score and a status under it, on a plate that stands on the side of the player's cards that faces the middle, turned as the seat is. Nothing lies under the plate, and it never reacts to the pointer: the crown says whose turn it is ([Whose turn it is](#whose-turn-it-is)), and a player is chosen by pressing their cards ([Choosing a player](25-floor-buttons.md#choosing-a-player)). What else stands at a seat, such as the cards the player holds, is the game's, laid in the frame of the seat. Shared: `seats` in `packages/table/src/layout.ts`, `Seat` and its pieces in `packages/table/src/seat/`.
 
 ## The ring
 
@@ -12,13 +12,13 @@ A seat is a place at the table where a player sits. `seats` gives the places, an
 | `me` | The index of the viewer's seat. Without it, or when it is not a seat (the -1 of an `indexOf`, an index past the players), nobody is the viewer |
 | `margin` | The angle kept free at each end of the far half, so the outer seats do not close in on the viewer's sides |
 
-- The viewer sits in front, on the +z side, with a yaw of zero, so what lies there reads upright.
+- The viewer sits in front, on the +z side, with a yaw of zero: their frame is the world's, and what lies there reads upright.
 - The others share the far half of the ring in turn order, starting with the player after the viewer, who sits at the viewer's left: the turn passes to the left. A single opponent sits straight across.
 - Without a viewer, as at a spectator's view, everyone sits on the far half in order.
-- Every other seat has the yaw that sends the top edge of a face-up card away from the middle of the table: the cards of a seat across from the viewer read upright for the viewer, and those of a seat at the side lie on their side.
+- Every seat faces the middle of the table: the top of its frame, its least z, points at the middle, so that whatever a game lays in the frame of a seat is laid as the player who sits there sees it. The cards of a seat across from the viewer lie upside down for the viewer and upright for that player, and those of a seat at the side lie on their side. The viewer's seat has the yaw of zero, and the others the yaw that turns the top of their frame toward the middle.
 - The ring is symmetric: the opponents mirror each other.
 
-The ring for two to eight players, with the viewer's seat in front or with none; the arrow is the way a layout drawn in the seat's frame points.
+The ring for two to eight players, with the viewer's seat in front or with none; the arrow is the top of the frame, the way a layout drawn in the seat's frame points: toward the middle of the table, at every seat.
 
 ```specimen
 scene-seats
@@ -37,7 +37,7 @@ export function seats(ids: string[], meId: string | null): Map<string, SeatSpot>
 
 ## The plate
 
-`Seat` draws one player's plate above the box of their cards. Three seats of a table for five players, each holding a few cards: play with whose turn it is (the crown and the line across the middle), the players expected together, a seat that is away, the score and a status, and choose a player by pressing their cards:
+`Seat` draws one player's plate on the side of their cards that faces the middle, in the frame of their seat. Three seats of a table for five players: the viewer's, whose hand is at the bottom left of the screen, and the two opponents at the ends of the far half, each holding a fan of cards with its round shadow under it. Play with whose turn it is (the crown), the players expected together, a seat that is away, the score and a status, and choose a player by pressing their cards:
 
 ```specimen
 scene-seat
@@ -50,7 +50,8 @@ The props are `SeatProps`:
 | `nickname`, `color` | The name, as typed (not in capitals), in Geist at weight 600, in the seat colour (cut to `NAME_LIMIT` characters, see [Long names](#long-names)), and the colour that the avatar is made of until a picture exists |
 | `imageUrl` | The player's picture; when it is null the avatar is generated |
 | `theme` | The game's `SeatTheme`, `UI_THEME.seat`, read with `useSeatTheme()` |
-| `above` | The box of all of the player's cards on the table, a `TableBox`: the plate stands above it, centred on it, upright for the viewer, the viewer's seat and every other, whichever way the cards are turned ([Where the plate stands](#where-the-plate-stands)) |
+| `frame` | The frame of the seat, a `Spot`: where it is on the table and the way it faces (the `yaw` of `seats`, which turns the top of the frame toward the middle). The plate is drawn in it and turns with it, as the cards the game lays in the same frame do. The world's own frame when not given |
+| `above` | The box of all of the player's cards in that frame, a `TableBox` (`frameBoxOfPoses`): the plate stands on its side that faces the middle, centred on it, at the viewer's seat and at every other, whichever way the seat is turned ([Where the plate stands](#where-the-plate-stands)) |
 | `spot`, `viewer` | Where the plate stands when it has no `above`: the seat's spot on the ring, from which it stands out. By default the middle of the table, for a board that draws the seat in a group of its own |
 | `active` | The player of the turn: the crown shows on the avatar |
 | `away` | The player is away: the plate fades |
@@ -60,29 +61,30 @@ The props are `SeatProps`:
 | `crownIcon` | The crown's icon, the skin's `hostIcon`; without one, a drawn crown |
 | `font` | The CSS font of the lettering; `PLATE_FONT` (Geist) by default. `PLATE_FONT` and `PLATE_WEIGHT` are exported: a game that uploaded its own display font to its Sanity project puts it in front (`"Site Title", ${PLATE_FONT}`, `tableFonts` of Flip 7) so that the plates, and the buttons and counts of the table, are drawn in it, and the kit's own is what the lettering reads in until it has loaded |
 | `nameStyle`, `lineStyle` | What is changed in the `TextStyle` of the name and of the info line |
-| `children` | What else stands at the seat, in the frame of the world: the cards held there |
+| `children` | What else stands at the seat, in the frame of the world: the cards held there, as a `Zone` given the same `frame` |
 
 - `PlayerSeat` is the `Seat` of a player of the table. Give it their `id` and it takes the nickname, the colour, the account picture, the seat theme, the crown icon and the font of the seat label from the platform (`useGame()`, `useSeatTheme()` and `useSkin()`), as `PlayerSeatLabel` does for the DOM ([Seat label](../../design/04-in-game/04-seat-label.md)), and what the table says of the player. The canvas of `Table` hands the contexts of the page on to the scene, so it works inside it.
 - A player is therefore named one way in the DOM and on the table: the same avatar, the same seat colour and the same account picture, with no copy to keep in step. `Seat` takes the same values as props, for a scene outside a game such as the example above.
-- The game does not say who has the turn: `seatStateOf` reads it from the table (a `SeatTable`: the status, who is waited for, who is present and the winners), from what every game already has in `PublicGame` (below), and gives a `SeatState`. `PlayerSeat` hands the plate `active` and `away`; a prop of the same name wins, for a game whose rules say otherwise. `waiting` and `winner` mark nothing on a plate: the turn line says who is waited for, and the end screen says who won.
+- The game does not say who has the turn: `seatStateOf` reads it from the table (a `SeatTable`: the status, who is waited for, who is present and the winners), from what every game already has in `PublicGame` (below), and gives a `SeatState`. `PlayerSeat` hands the plate `active` and `away`; a prop of the same name wins, for a game whose rules say otherwise. `waiting` and `winner` mark nothing on a plate: the ticker says who is waited for, and the end screen says who won.
 - The score is the game's. The `line` is a text of the visitor's language, which the template writes with `pointsShort` of the skin and never with a literal.
 
 | State | When | Read from |
 | --- | --- | --- |
 | `active` | The game waits for this player alone | `waitingFor` is this player's id only |
-| `waiting` | The game waits for several players at once, this one among them (the turn line says it) | `waitingFor` lists more than one id |
+| `waiting` | The game waits for several players at once, this one among them (the ticker says it) | `waitingFor` lists more than one id |
 | `away` | The game runs and the table has not seen the player lately | `status` is `playing` and `present` does not list the id |
 | `winner` | The game is over and the player won (the end screen says it) | `status` is `over` and `results.winners` lists the id |
 
-- A step several players answer together has no player of the turn: nobody has the crown, and the turn line says who the game waits for ([Simultaneous steps](../01-the-game/03-turns.md#simultaneous-steps)).
+- A step several players answer together has no player of the turn: nobody has the crown, and the ticker says who the game waits for ([Simultaneous steps](../01-the-game/03-turns.md#simultaneous-steps)).
 - A player who is away keeps the turn: the plate fades and the crown stays, so the others see that the game waits for someone who left ([Absent players](../01-the-game/03-turns.md#absent-players)).
 - Nobody fades once the game is over, whoever has left by then.
 - `status` is the game's to say, from its view: the `status` of a seat in Flip 7. The contract has no word for it ([Players who are out](../01-the-game/02-players.md#players-who-are-out)). A player who is out is shown on their cards, not on the plate: the name is never struck out, and `Card` takes `out` to grey its picture ([Cards](04-cards.md#props)).
 
-From `template/src/components/board/scene.tsx`, a seat of the template; the backs of an opponent's cards are its children, and `cardsBox` (`layout.ts`) is the box of the player's cards. It says nothing of the turn: the table does.
+From `template/src/components/board/scene.tsx`, the seat of an opponent of the template: `heldFrame` is the frame of the seat (the seat's spot, a little beyond the ring and turned as it is), `heldBox` the box of the player's cards in it, and the held cards a `Zone` in the same frame. It says nothing of the turn: the table does.
 
 ```tsx
-<PlayerSeat key={j.id} id={j.id} above={cardsBox(s, j.id === meId)} line={pointsText(j.points)}>
+<PlayerSeat key={j.id} id={j.id} frame={frame} above={heldBox(s)} line={pointsText(j.points)} />
+<Zone frame={frame} layout={heldLayout(j.cardCount)} size={CARD_SIZE} enter={DECK_POSE} cards={backs} />
 ```
 
 ### The layout of a plate
@@ -96,7 +98,7 @@ A plate is one block. A game fills the slots and does not place anything:
            info line: line · status
 ```
 
-- **The avatar is always to the left of the name**, as the plate is read, whatever way the seat is turned: the plate is read left to right, and a plate that would be turned more than a quarter turn from upright is turned back by half a turn as a whole, avatar and text together, so the avatar never goes above, below or to the right of the name. (The older rule that put the avatar after the name for a right-hand seat is gone: `rightFrom` and `Plate.after` with it.) The avatar and the name are centred as one block on the plate.
+- **The avatar is always to the left of the name**, as the plate is read in the frame of its seat: the plate reads left to right for the player who sits there, and it turns with the seat as a whole, avatar and text together, so the avatar never goes above, below or to the right of the name for them. For the viewer, the plate of the seat across lies upside down, as its player's cards do. (The older rule that put the avatar after the name for a right-hand seat is gone: `rightFrom` and `Plate.after` with it.) The avatar and the name are centred as one block on the plate.
 - **The name** is as typed, in Geist (`PLATE_FONT`, the platform's variable font from `@fontsource-variable/geist`, so the weight asked for is the weight drawn) at the platform's weight 600 (`PLATE_WEIGHT`), in the seat colour.
 - **The info line** stands under the name: the `line` (the score, "132 pts"), then the `status` (Stayed, Bust, Frozen) as plain text after a "·". It is one `TableText`, centred under the block.
 - **`trailing`** stands to the right of the name for whatever a game's players hold: Love Letter's affection tokens, a count, an icon. Give it three.js elements in the frame of the name's right edge. No game uses it yet.
@@ -104,48 +106,33 @@ A plate is one block. A game fills the slots and does not place anything:
 
 ## Where the plate stands
 
-The nickname of a seat is above the player's cards, for every seat, the viewer's included, whichever way the cards are turned: the plate is upright for the viewer, and what is read of the cards is the top edge of their box on the screen, not the way they face. A game gives the `Seat` the box of the player's cards and places nothing by hand.
+The nickname of a seat is on the side of the player's cards that faces the middle of the table, at every seat, the viewer's included, and it faces the way the seat does. A player sees their own name above their cards; the cards and the plate of a seat across from the viewer lie as that player sees them, which is upside down for the viewer; a side seat is turned a quarter. A game gives the `Seat` the frame of the seat and the box of the player's cards in it, and places nothing by hand.
 
-- `above` is the box of all of the player's cards on the table: their hand, their grid, their play area, in one `TableBox`. It is made from the layout of the cards with `boxOfPoses` (poses in the frame of a seat, as a `Zone` takes them), from a rectangle with `boxOfRect`, and joined with `joinBoxes` ([Boxes](08-layout-helpers.md#boxes)). `plateAbove(box)` is the plate it gives: centred on the box, the foot of the plate (the bottom of the info line) `plateGap` above its top edge.
-- A hand that leans toward its player, or stands raised off the table, hides part of the table behind it as the camera sees it: its box must be what the camera sees, which reaches farther up the screen than where the cards lie. `boxOfPoses(poses, size, { tilt })` takes the camera's tilt (as `CameraSettings.tilt`) and gives that box. Cards that lie flat need no tilt.
-- A plate that moves as cards are dealt and played looks like a glitch. A board boxes the room of the biggest hand (`joinBoxes` of the boxes of the hands of every size, or of a nominal one), so the plate stands where it stood and clears every card that can be there. The template does it (`cardsBox`).
-- The info line stands under the name and the name `nameLift` toward the middle of the table from the centre of the plate; the avatar stands before the first letter and the crown on the avatar's upper-right corner, in the avatar's own frame.
+- `frame` is the seat's frame, the `Spot` that `seats` gives (or a place near it: the template stands an opponent's hand a little beyond the ring). The cards of the seat are laid in it with a `Zone` given the same `frame`, so the plate and the cards turn together.
+- `above` is the box of all of the player's cards in that frame: their hand, their grid, their play area, in one `TableBox`. It is made from the layout of the cards with `frameBoxOfPoses(poses, size, frame, { tilt })` (the poses are in the frame, as a `Zone` takes them, and the box is in it too), from a rectangle with `boxOfRect`, and joined with `joinBoxes` ([Boxes](08-layout-helpers.md#boxes)). `plateAbove(box)` is the plate it gives: centred on the box, on its side of the least z, which is toward the middle of the table, the foot of the plate (the bottom of the info line) `plateGap` beyond its edge.
+- A hand that leans toward its player, or stands up off the table, hides part of the table behind it as the camera sees it: its box must be what the camera sees, which reaches farther from the camera than where the cards lie. `frameBoxOfPoses` takes the camera's tilt (as `CameraSettings.tilt`) and gives that box, moved as the frame turns: the apparent shift of a card that stands `y` high is `y` times the tangent of the tilt, along the world's z, which is not along the frame's z for a seat that is turned. Cards that lie flat need no tilt.
+- A plate that moves as cards are dealt and played looks like a glitch. A board boxes the room of the biggest hand (`joinBoxes` of the boxes of the hands of every size, or of a nominal one), so the plate stands where it stood and clears every card that can be there. The template does it (`handBox` for the viewer, `heldBox` for the others).
+- The info line stands under the name, toward the cards, and the name `nameLift` toward the middle of the table from the centre of the plate; the avatar stands before the first letter and the crown on the avatar's upper-right corner, in the avatar's own frame.
 - A `Seat` given no `above` stands out of the ring from its `spot` (`plateOf`): an opponent's at `reachX` and `reachZ` times the spot, the viewer's level with it and a little in front. A board that draws the seat in a group of its own places it by the middle of the group.
 - A player who is away keeps `awayOpacity` of the plate: the name, the avatar and the info line fade, and the crown does not.
-- `plateBoxOf(plate)` is what a plate covers of the table (`plateWidth`, the width of the avatar and `PLATE_LETTERS` letters, by the height from the top of the name to the foot of the info line): a board checks with a pure test, on the boxes and not on a screenshot, that no plate lies over a card, another plate, the piles, the clock or the line of the turn, for every table of its players, seated and as a spectator (`template/src/components/board/layout.test.ts` is the model).
+- `plateBoxOf(plate)` is what a plate covers of the table, in the frame (`plateWidth`, the width of the avatar and `PLATE_LETTERS` letters, by the height from the top of the name to the foot of the info line), and `cornersOfBox(box, frame)` puts the corners of a box of a frame on the table: a board checks with a pure test, on the shapes and not on a screenshot, that no plate lies over a card, another plate, the piles or the clock, for every table of its players, seated and as a spectator (`template/src/components/board/layout.test.ts` is the model). The cards are compared as the camera sees them, standing hands included.
 
 | Setting | Role |
 | --- | --- |
-| `plateGap` | The clear space between the top edge of a player's cards and the foot of their plate |
+| `plateGap` | The clear space between the edge of a player's cards that faces the middle and the foot of their plate |
 | `reachX`, `reachZ` | How far out of the ring an opponent's plate stands when it has no `above`, as factors of the spot |
 | `viewerReachX`, `viewerReachZ` | The same for the viewer's plate |
 | `nameHeight`, `nameLift` | The size of the name's letters, and how far toward the middle of the table it stands from the centre of the plate |
-| `lineHeight`, `lineDrop` | The same for the info line, which drops toward the viewer |
+| `lineHeight`, `lineDrop` | The same for the info line, which drops toward the cards |
 | `avatarSize`, `avatarGap` | The avatar's diameter and its gap to the first letter |
-| `crownSize`, `crownRight`, `crownBack` | The crown's size, and how far its foot stands from the avatar's centre: to the right and away from the viewer |
+| `crownSize`, `crownRight`, `crownBack` | The crown's size, and how far its foot stands from the avatar's centre: to the right and toward the middle of the table |
 | `awayOpacity` | How opaque the plate of a player who is away stays |
 
-`SEAT_SETTINGS` is a plain object (its type is `SeatSettings`) that the Seat folder of the table's debug panel edits (`SEAT_FIELDS` lists its knobs, and a `Seat` follows them as they move). With the panel's View folder on, every `Seat` also marks the middle of its plate, the box the plate covers and the box of the cards it stands above. `plateAbove`, `plateOf`, `plateBoxOf` and `seatStateOf` are the same numbers and rules as pure functions: `placement.test.ts` checks them (the plate is above the cards of every seat of every table of two to eight, whatever its yaw, and the places a plate placed from its spot has had since the template wrote them), and `state.test.ts` checks the states.
+`SEAT_SETTINGS` is a plain object (its type is `SeatSettings`) that the Seat folder of the table's debug panel edits (`SEAT_FIELDS` lists its knobs, and a `Seat` follows them as they move). With the panel's View folder on, every `Seat` also marks the middle of its plate, the box the plate covers and the box of the cards it stands beyond, in its frame. `plateAbove`, `plateOf`, `plateBoxOf` and `seatStateOf` are the same numbers and rules as pure functions: `placement.test.ts` checks them (the plate is on the middle's side of the cards, clear of them, and the places a plate placed from its spot has had since the template wrote them), and `state.test.ts` checks the states.
 
-## The turn line
+## Whose turn it is
 
-One line of the table says whose turn it is: "It's your turn" when the game waits for the viewer, "Ann's turn" when it waits for another player, "Waiting for Ann, Bob" when it waits for several others at once. It is the platform's words in the visitor's language (`yourTurn`, `turnOf`, `waitingFor` of `UI_TEXTS`, the ones of the ticker at the top left of the screen) and what the table says, so a game writes no sentence and keeps no turn marker of its own: it gives the line a place.
-
-```tsx
-<TurnLine at={{ x: 0, z: 3 }} height={0.5} maxWidth={5} />
-```
-
-| Prop | Role |
-| --- | --- |
-| `at` | Where the line is centred on the table. The only thing a board must give |
-| `height` | The size of the lettering, in world units (default `TURN_LINE_HEIGHT`, 0.7) |
-| `maxWidth` | The widest the line may be: a sentence that does not fit is broken in two lines, at the space that leaves them the most alike, in letters of the same height, and is set smaller only if two lines are not enough (`setLine`) |
-| `style`, `font` | What is changed in the style of the lettering, and its CSS font (the game's display font by default, `useLettering`) |
-
-- `whoseTurn({ status, waitingFor, meId })` is the rule, pure: the viewer when they are one of the players waited for, a classic turn (one player) else, the players waited for together when the viewer is not one of them, nobody before the game, after it and when the game waits for nobody. `turnSentence` words it with the platform's texts. The ticker's rule and this one are the same.
-- `TurnLine` reads the game (`useGame`) and the platform's words (`useText`) and draws a `TurnText`; a scene outside a game, such as the specimens of these docs, gives `TurnText` the sentence.
-- It is lettering laid flat on the table, in the game's lettering and the colour of its text, and it takes no pointer. When the sentence changes it settles in; a visitor who asks for less motion has it at once.
-- Where it lies is the board's: a place the cards, the plates and the piles never reach, and the camera shows (the template keeps it in the band above the viewer's hand, beside their plate).
+The crown on the avatar says which player has the turn, and it is all the table says of it. The words belong to the platform's screen around the table: the ticker at the top left says "It's your turn", "Ann's turn" or "Waiting for Ann, Bob" (`yourTurn`, `turnOf`, `waitingFor` of `UI_TEXTS`, from what the table says: `waitingFor` and `meId` of `PublicGame`), and an announcement plays when the turn comes to the viewer. A board writes no sentence on the table and keeps no turn marker of its own: there is no line across the table, and no light under a seat. A player who is away fades, and a player is chosen by pressing their cards, which glow ([Choosing a player](25-floor-buttons.md#choosing-a-player)). More on the turn in [Turns](../01-the-game/03-turns.md).
 
 ## What stands on a plate
 
@@ -159,7 +146,7 @@ One line of the table says whose turn it is: "It's your turn" when the game wait
 | The cards held there | A `Zone` framed on the seat, a child of the `Seat` | [Zone](07-zones.md#zone) |
 
 - Each piece is exported on its own too.
-- The viewer's `Seat` has no zone of backs: their cards are the hand, in front of them and outside the ring ([Zone](07-zones.md#zone)).
+- The viewer's cards are their hand, which stands at the bottom left of the screen ([The hand in the corner](07-zones.md#the-hand-in-the-corner)); the cards of the others are held in a fan with a round shadow under it ([Held hands](07-zones.md#held-hands)).
 
 ## Long names
 

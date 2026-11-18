@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { boxesOverlap, boxOfPoses, boxOfRect, centreOf, joinBoxes, type TableBox } from "./box"
-import { fan, row } from "./layout"
+import { boxesOverlap, boxOfPoses, boxOfRect, centreOf, cornersOfBox, frameBoxOfPoses, joinBoxes, pointInFrame, type TableBox } from "./box"
+import { fan, inFrame, row } from "./layout"
 import { onTable } from "./pose"
 
 const SIZE = { width: 1.2, height: 1.8 }
@@ -116,5 +116,74 @@ describe("boxesOverlap", () => {
     expect(boxesOverlap(a, touching)).toBe(false)
     expect(boxesOverlap(a, touching, 0.1)).toBe(true)
     expect(boxesOverlap(a, { minX: 2.2, maxX: 4, minZ: 0, maxZ: 2 }, 0.1)).toBe(false)
+  })
+})
+
+describe("pointInFrame", () => {
+  it("turns a point first, then moves it, as inFrame does for a pose", () => {
+    const placed = pointInFrame({ x: 4, z: -3, yaw: Math.PI / 2 }, { x: 2, z: 0 })
+    expect(placed.x).toBeCloseTo(4)
+    expect(placed.z).toBeCloseTo(-5)
+    const half = pointInFrame({ x: 0, z: 0, yaw: Math.PI }, { x: 1, z: 2 })
+    expect(half.x).toBeCloseTo(-1)
+    expect(half.z).toBeCloseTo(-2)
+    expect(pointInFrame({ x: 1, z: 1 }, { x: 2, z: 3 })).toEqual({ x: 3, z: 4 })
+  })
+
+  it("lands where inFrame puts a card laid there", () => {
+    const frame = { x: 5, z: 2, yaw: 0.7 }
+    const place = inFrame(frame, onTable(1.5, -2))
+    const point = pointInFrame(frame, { x: 1.5, z: -2 })
+    expect(point.x).toBeCloseTo(place.position.x)
+    expect(point.z).toBeCloseTo(place.position.z)
+  })
+})
+
+describe("frameBoxOfPoses", () => {
+  it("is the box of the layout as it is drawn, whatever the frame: the frame only says where it lies", () => {
+    for (const yaw of [0, 1, Math.PI, -2]) {
+      const box = frameBoxOfPoses(row(3, { gap: 2 }), SIZE, { x: 7, z: -3, yaw })!
+      expect(box.maxX - box.minX).toBeCloseTo(4 + 1.2)
+      expect(box.maxZ - box.minZ).toBeCloseTo(1.8)
+      expect(centreOf(box).x).toBeCloseTo(0)
+      expect(centreOf(box).z).toBeCloseTo(0)
+    }
+  })
+
+  it("lies where the world box of the same cards lies, once its corners are put in the world", () => {
+    const frame = { x: 4, z: -3, yaw: 0.9 }
+    const local = frameBoxOfPoses(row(4, { gap: 1.5 }), SIZE, frame)!
+    const world = boxOfPoses(row(4, { gap: 1.5 }), SIZE, { frame })!
+    const corners = cornersOfBox(local, frame)
+    // the corners of the cards' box are as far out as the cards' own corners, which the world box holds
+    for (const corner of corners) {
+      expect(corner.x).toBeGreaterThanOrEqual(world.minX - 1e-9)
+      expect(corner.x).toBeLessThanOrEqual(world.maxX + 1e-9)
+      expect(corner.z).toBeGreaterThanOrEqual(world.minZ - 1e-9)
+      expect(corner.z).toBeLessThanOrEqual(world.maxZ + 1e-9)
+    }
+  })
+
+  it("moves the part that a card standing off the table hides toward the screen's way up, which the frame turns with the seat", () => {
+    const hand = fan(3, { gap: 1.2, y: 1.1, z: 0, tilt: 0.6 })
+    const lying = frameBoxOfPoses(hand, SIZE, { x: 0, z: 0, yaw: 0 })!
+    const seen = frameBoxOfPoses(hand, SIZE, { x: 0, z: 0, yaw: 0 }, { tilt: 42 })!
+    // not turned: the screen's way up is the least z of the frame
+    expect(seen.minZ).toBeLessThan(lying.minZ)
+    // turned half a turn, the screen's way up is the most z of the frame: the hidden part is on the player's side, away from the middle
+    const turned = frameBoxOfPoses(hand, SIZE, { x: 0, z: 0, yaw: Math.PI }, { tilt: 42 })!
+    const turnedLying = frameBoxOfPoses(hand, SIZE, { x: 0, z: 0, yaw: Math.PI })!
+    expect(turned.maxZ).toBeGreaterThan(turnedLying.maxZ)
+    // no corner moves toward the middle of the table: the part hidden is only ever added on the player's side
+    expect(turned.minZ).toBeGreaterThanOrEqual(turnedLying.minZ - 1e-9)
+    // a quarter turn: the screen's way up is the frame's x
+    const sideways = frameBoxOfPoses(hand, SIZE, { x: 0, z: 0, yaw: Math.PI / 2 }, { tilt: 42 })!
+    const sidewaysLying = frameBoxOfPoses(hand, SIZE, { x: 0, z: 0, yaw: Math.PI / 2 })!
+    expect(sideways.maxX).toBeGreaterThan(sidewaysLying.maxX)
+    expect(sideways.minZ).toBeCloseTo(sidewaysLying.minZ)
+  })
+
+  it("has no box for no card", () => {
+    expect(frameBoxOfPoses([], SIZE, { x: 0, z: 0, yaw: 0 })).toBeNull()
   })
 })
