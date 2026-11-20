@@ -130,6 +130,22 @@ describe("fan", () => {
     expect(topOf(cards[2]).x).toBeCloseTo(Math.sin(0.1), 12)
   })
 
+  it("turns about the feet of the cards when it is given the height of a card: the feet stay where gap, y and z put them, whatever the roll and the lean", () => {
+    const options = { gap: 0.2, y: 0.03, rise: 0.004, z: 1, curve: 0.05, tilt: -1.3, roll: 0.1, face: "down" as const, scale: 0.68, foot: 1.9 }
+    const cards = fan(5, options)
+    cards.forEach((card, i) => {
+      const off = i - 2
+      const foot = card.position.clone().sub(topOf(card).multiplyScalar((1.9 * 0.68) / 2))
+      expectAt({ ...card, position: foot }, off * 0.2, 0.03 + i * 0.004, 1 + Math.abs(off) * 0.05)
+    })
+  })
+
+  it("turns about the middle of the cards without the height of a card, as it always did", () => {
+    const withFoot = fan(3, { gap: 1, tilt: 0.3, roll: 0.1 })
+    const plain = fan(3, { gap: 1, tilt: 0.3, roll: 0.1, foot: undefined })
+    withFoot.forEach((card, i) => expectAt(plain[i]!, card.position.x, card.position.y, card.position.z))
+  })
+
   it("turns the cards the same way about the vertical axis whichever face is up", () => {
     const up = fan(5, { gap: 1, roll: 0.1, face: "up" })
     const down = fan(5, { gap: 1, roll: 0.1, face: "down" })
@@ -343,7 +359,8 @@ describe("seats", () => {
     const [, seat] = seats(2, { ...ring, me: 0 })
     expect(seat.x).toBeCloseTo(0, 12)
     expect(seat.z).toBeCloseTo(-4.4, 12)
-    expect(Math.cos(seat.yaw)).toBeCloseTo(1, 12)
+    // turned half a turn: what lies there faces the viewer's side, the middle of the table
+    expect(Math.cos(seat.yaw)).toBeCloseTo(-1, 12)
     expect(Math.sin(seat.yaw)).toBeCloseTo(0, 12)
   })
 
@@ -360,15 +377,25 @@ describe("seats", () => {
     }
   })
 
-  it("sends the top edge of a face-up card away from the middle of the table, but for the viewer's own cards", () => {
-    // A seat at the far left (no margin): the top edge points further left
+  it("sends the top edge of a face-up card toward the middle of the table at every seat, the viewer's own included", () => {
+    // A seat at the far left (no margin): the top edge points to the right, to the middle
     const [, left] = seats(3, { ...ring, me: 0, margin: 0 })
     expect(left.x).toBeCloseTo(-7.4, 12)
-    expect(topOf(inFrame(left, onTable(0, 0))).x).toBeCloseTo(-1, 12)
+    expect(topOf(inFrame(left, onTable(0, 0))).x).toBeCloseTo(1, 12)
+    // The seat across: the top edge points toward the viewer
     const [, far] = seats(2, { ...ring, me: 0 })
-    expect(topOf(inFrame(far, onTable(0, 0))).z).toBeCloseTo(-1, 12)
-    // The viewer's own cards read upright: their top edge points to the middle of the table
+    expect(topOf(inFrame(far, onTable(0, 0))).z).toBeCloseTo(1, 12)
+    // The viewer's own cards read upright: their top edge points away from them, to the middle of the table
     expect(topOf(inFrame(seats(2, { ...ring, me: 0 })[0], onTable(0, 0))).z).toBeCloseTo(-1, 12)
+    // Whichever the seat, the top edge is along the line to the middle of the table
+    for (const count of [3, 5, 8]) {
+      for (const seat of seats(count, { ...ring, me: 0 })) {
+        const top = topOf(inFrame(seat, onTable(0, 0)))
+        const length = Math.hypot(seat.x, seat.z)
+        expect(top.x).toBeCloseTo(-seat.x / length, 9)
+        expect(top.z).toBeCloseTo(-seat.z / length, 9)
+      }
+    }
   })
 
   it("keeps the margin free at each end of the far half", () => {
@@ -394,18 +421,16 @@ describe("seats", () => {
     expect(seats(3, { ...ring, me: 3 })).toEqual(all)
   })
 
-  it("draws the ring the template used to: its radii, its margin and its yaws", () => {
+  it("draws the ring the template used to: its radii and its margin", () => {
     const three = seats(3, { ...ring, me: 0 })
     expect(three[0]).toEqual({ x: 0, z: 4.4, yaw: 0 })
     expect(three[1].x).toBeCloseTo(-6.951358075070604, 12)
     expect(three[1].z).toBeCloseTo(-1.508750352803986, 12)
-    expect(three[1].yaw).toBeCloseTo(1.3570673276448366, 12)
     expect(three[2].x).toBeCloseTo(6.951358075070605, 12)
     expect(three[2].z).toBeCloseTo(-1.5087503528039856, 12)
-    expect(three[2].yaw).toBeCloseTo(4.92611797953475, 12)
     const four = seats(4, { ...ring, me: 0 })
     expect(four[2].x).toBeCloseTo(0, 12)
     expect(four[2].z).toBeCloseTo(-4.4, 12)
-    expect(Math.cos(four[2].yaw)).toBeCloseTo(1, 12)
+    expect(Math.cos(four[2].yaw)).toBeCloseTo(-1, 12)
   })
 })

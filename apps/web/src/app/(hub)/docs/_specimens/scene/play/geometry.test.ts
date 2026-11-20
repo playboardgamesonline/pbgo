@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { BOARD_PLACES, cellAt, cellCentres, cornerFrame, floorPads, LOOP_CELLS, neighboursOf, planOf } from "./geometry"
+import { BOARD_PLACES, cellAt, cellCentres, floorPads, LOOP_CELLS, neighboursOf, planOf } from "./geometry"
 
 describe("cellCentres", () => {
   it("lays a grid of 6 by 6 centred on the board, a cell of the size apart, the first row the farthest", () => {
@@ -47,18 +47,5 @@ describe("floorPads", () => {
     expect(hit.x - hit.width / 2).toBeGreaterThan(0)
     expect(deal.z - deal.depth / 2).toBeGreaterThan(hit.z + hit.depth / 2)
     expect(deal.x).toBeCloseTo((hit.x + stay.x) / 2)
-  })
-})
-
-describe("cornerFrame", () => {
-  it("is as wide as the room at the bottom left, never wider than the most, and scales with it", () => {
-    const wide = cornerFrame({ x: -12, z: 8 }, { x: 0, z: 8 }, { most: 9, depth: 3.4 })
-    expect(wide.width).toBe(9)
-    expect(wide.scale).toBe(1)
-    expect(wide.x).toBe(-12 + 4.5)
-    const narrow = cornerFrame({ x: -6, z: 8 }, { x: 0, z: 8 }, { most: 9, depth: 3.4 })
-    expect(narrow.width).toBe(6)
-    expect(narrow.scale).toBeCloseTo(6 / 9)
-    expect(narrow.depth).toBeCloseTo(3.4 * (6 / 9))
   })
 })

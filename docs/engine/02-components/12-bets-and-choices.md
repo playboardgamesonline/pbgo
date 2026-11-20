@@ -72,8 +72,8 @@ scene-bid
 The engine keeps the bids in a `Submissions<number>` and the view says who has bid, never what, until everybody has ([Simultaneous steps](../01-the-game/03-turns.md#simultaneous-steps)). That is all the board needs, and it draws three things from it:
 
 - **The row.** A card for each bid the viewer may make, from none to one for each card of their hand, laid out with `onTable` and lifted under the pointer. The `bid` action is posted by the click, as any action is, and the engine refuses the bid that is not legal.
-- **The viewer's bid.** The card they chose, face up at their seat on the line to the middle of the table, turned as the seat is. It keeps the `id` it had in the row, so that it flies from the row to the seat and flies back when the viewer chooses another ([Poses and motion](05-poses-and-motion.md)).
-- **The others' bids.** A card for each player who has bid (`hasBid`), face down at their seat, with a stand-in numeral that nobody can read: the view has not told it. When the view gives the bids, the card is turned face up with the real one, which is a change of the `face` of its pose.
+- **The viewer's bid.** The card they chose, face up in their play area: on the axis of their seat, between their name and their hand, turned as the seat is (`boxAbove` of the hand, [Seats](03-seats.md#where-the-plate-stands)). It keeps the `id` it had in the row, so that it flies from the row to the seat and flies back when the viewer chooses another ([Poses and motion](05-poses-and-motion.md)).
+- **The others' bids.** A card for each player who has bid (`hasBid`), face down in their play area, with a stand-in numeral that nobody can read: the view has not told it. When the view gives the bids, the card is turned face up with the real one, which is a change of the `face` of its pose.
 
 ```tsx
 // The row of the viewer (`rowShown`: while the players bid, and for a moment after), then the bids at the seats

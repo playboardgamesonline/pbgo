@@ -44,7 +44,7 @@ Text lies flat on the table as a texture painted on a canvas: nicknames, points,
 | `children` | What sits before the text, in a frame whose origin is the text's left edge and whose x grows to the right, so a negative x is just left of the first letter |
 | `trailing` | What sits after the text, in a frame whose origin is its right edge |
 
-- A `Seat` does not turn its plate toward each player: it reads upright from the viewer's side. A game that wants a text to follow its seat passes `yaw` to `TableText`.
+- A `Seat` draws its plate in the frame of its seat, so the plate turns with the seat: it reads as the player who sits there reads it. A text that is not on a plate and should follow a seat passes `yaw` to `TableText`.
 - A label painted on the table is still the game's text: it comes from the view, the skin or Sanity, never a literal in the scene.
 
 ### Style

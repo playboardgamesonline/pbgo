@@ -38,20 +38,25 @@ export type FanOptions = {
   /** Default: up */
   face?: "up" | "down"
   scale?: number
+  /**
+   * The height of a card at scale 1, to turn the fan about the feet of its cards instead of their middles, as a hand held in the fingers turns: `y` is then the height of the feet, `gap` the distance between the feet, and each card turns about its own foot, so a hand that stands
+   * up opens at its top while its feet stay together. Without it each card turns about its middle
+   */
+  foot?: number
 }
 
 /** `n` cards held in a fan, centred on x = 0, the first on the left */
-export function fan(n: number, { gap, y = RESTING_HEIGHT, rise = 0, z = 0, curve = 0, tilt = 0, roll = 0, face = "up", scale = 1 }: FanOptions): Pose[] {
+export function fan(n: number, { gap, y = RESTING_HEIGHT, rise = 0, z = 0, curve = 0, tilt = 0, roll = 0, face = "up", scale = 1, foot }: FanOptions): Pose[] {
   const base = face === "up" ? -Math.PI / 2 : Math.PI / 2
   // A face-down card turns the other way about its own axis to turn the same way about the vertical one
   const turn = face === "up" ? -roll : roll
   return Array.from({ length: n }, (_, i) => {
     const off = i - (n - 1) / 2
-    return {
-      position: new Vector3(off * gap, y + i * rise, z + Math.abs(off) * curve),
-      quaternion: new Quaternion().setFromEuler(new Euler(base + tilt, 0, off * turn)),
-      scale,
-    }
+    const position = new Vector3(off * gap, y + i * rise, z + Math.abs(off) * curve)
+    const quaternion = new Quaternion().setFromEuler(new Euler(base + tilt, 0, off * turn))
+    // The foot of a card is half its height below its middle, along the card's own up: its middle is that far above the foot, whichever way the card is turned
+    if (foot !== undefined) position.add(new Vector3(0, (foot * scale) / 2, 0).applyQuaternion(quaternion))
+    return { position, quaternion, scale }
   })
 }
 
@@ -139,7 +144,8 @@ export type SeatsOptions = {
 
 /**
  * The seats of `count` players on an ellipse around the table, indexed like the players, the turn passing from the viewer to the left.
- * The viewer's seat is at the front with yaw 0, so what lies there reads upright. Every other seat has the yaw that sends the top edge of a face-up card away from the middle of the table
+ * The viewer's seat is at the front with yaw 0, so what lies there reads upright. Every other seat has the yaw that sends the top edge of a face-up card toward the middle of the table, the way the player who sits there reads it: a layout drawn in the frame of
+ * any seat has its far side, its top, toward the middle, and what stands on that side (a name, the cards played) faces the centre of the table
  */
 export function seats(count: number, { radiusX, radiusZ, me = null, margin = 0.35 }: SeatsOptions): Required<Spot>[] {
   const viewer = me !== null && me >= 0 && me < count ? me : null
@@ -151,6 +157,6 @@ export function seats(count: number, { radiusX, radiusZ, me = null, margin = 0.3
     const angle = others === 1 ? -Math.PI / 2 : Math.PI + margin + (k / (others - 1)) * (Math.PI - 2 * margin)
     const x = Math.cos(angle) * radiusX
     const z = Math.sin(angle) * radiusZ
-    return { x, z, yaw: Math.atan2(x, z) + Math.PI }
+    return { x, z, yaw: Math.atan2(x, z) }
   })
 }

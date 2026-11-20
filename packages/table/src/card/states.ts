@@ -10,6 +10,9 @@ export type CardState = (typeof CARD_STATES)[number]
 /** What the visitor does to a card now: the pointer is over it, the keyboard focus is on it, the pointer is down on it */
 export type Touch = { hovered: boolean; focused: boolean; pressed: boolean }
 
+/** Nothing: the pointer is elsewhere and the keyboard is not there */
+export const NO_TOUCH: Touch = { hovered: false, focused: false, pressed: false }
+
 /** The state a card is drawn in: what the game says, raised by what the visitor does to it. A card that is not chosen, or is disabled or out, ignores the visitor; a picked one stays picked under the pointer and only dips while it is pressed */
 export function effectiveState(state: CardState, touch: Touch): CardState {
   if (state === "base" || state === "disabled" || state === "out") return state
@@ -41,10 +44,10 @@ export const CARD_STATE_SETTINGS = {
   selectedScale: 1.1,
   /** How dark a card that cannot be chosen is, 0 to 1 */
   disabledDim: 0.33,
-  /** How far the bloom reaches past the card, as a share of its smaller side */
-  bloomSpread: 0.28,
-  /** How bright the bloom is at a bloom of 1: it is a light added to the table, not a coat of paint */
-  bloomOpacity: 0.75,
+  /** How far the bloom reaches past the card, as a share of its smaller side: a glow that hugs the card, never a halo round it */
+  bloomSpread: 0.1,
+  /** How bright the bloom is at a bloom of 1: it is a light added to the table, not a coat of paint. Soft: it says that a card can be chosen and never shouts it */
+  bloomOpacity: 0.5,
   /** How far a card that can be chosen breathes, as a share of its bloom, and how fast */
   bloomPulse: 0.12,
   bloomSpeed: 1.6,

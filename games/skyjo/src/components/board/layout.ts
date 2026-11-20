@@ -228,8 +228,11 @@ export function uprightYaw(yaw: number): number {
   return Math.abs(turn) <= Math.PI / 2 + 1e-9 ? turn : turn - Math.sign(turn) * Math.PI
 }
 
-/** What a plate occupies in its own frame (the aura's width, and from above the name to below the info line), measured from its centre: along z, from -`lift` to `drop` */
+/** What a plate occupies in its own frame (from above the name to below the info line), measured from its centre: along z, from -`lift` to `drop` */
 const PLATE = { lift: SEAT_SETTINGS.nameLift + 0.45, drop: SEAT_SETTINGS.lineDrop + 0.3 }
+
+/** How wide a plate is taken to be, in world units: the width of the light that used to lie under it, which the zones and the camera have been made around */
+const PLATE_WIDTH = 3.2
 
 /** Where the plate of a seat stands, and the yaw of its frame (the way its text reads: name, then the info line (score and status), going down the frame's +z). It stands beyond the grid, out from the middle of the table, clear of it by `plateGap`. */
 export function plateAt(spot: SeatSpot, grid: Grid): Place & { yaw: number } {
@@ -247,12 +250,12 @@ export function plateAt(spot: SeatSpot, grid: Grid): Place & { yaw: number } {
   return { x: grid.at.x + out.x * distance, z: grid.at.z + out.z * distance, yaw }
 }
 
-/** The plate's box: the aura as wide as the plate, from above the name to below the status */
+/** The plate's box: as wide as the plate is taken to be, from above the name to below the status */
 export function plateBox(spot: SeatSpot, grid: Grid): Box {
   const place = plateAt(spot, grid)
   const middle = (PLATE.drop - PLATE.lift) / 2
   const down = outwardOf(place.yaw)
-  return { x: place.x + down.x * middle, z: place.z + down.z * middle, halfWidth: SEAT_SETTINGS.auraWidth / 2, halfDepth: (PLATE.drop + PLATE.lift) / 2, yaw: place.yaw }
+  return { x: place.x + down.x * middle, z: place.z + down.z * middle, halfWidth: PLATE_WIDTH / 2, halfDepth: (PLATE.drop + PLATE.lift) / 2, yaw: place.yaw }
 }
 
 /** Whether two turned rectangles overlap, by the separating axis test: they only touch when they share an edge */

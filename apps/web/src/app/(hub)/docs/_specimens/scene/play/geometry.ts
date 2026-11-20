@@ -87,13 +87,5 @@ export const ringOf = (players: number) => (players > 6 ? { radiusX: 9.8, radius
 /** How far back the camera stands for a ring of this many players */
 export const ringZoom = (players: number) => (players > 6 ? 28 : players > 4 ? 24 : 21)
 
-/** A seat's cards held face down lie between its plate and the middle of the table; the zone of the floor lies there too */
-export const heldFrame = (spot: Place & { yaw: number }, fx = 0.85, fz = 0.7): Place & { yaw: number } => ({ x: spot.x * fx, z: spot.z * fz, yaw: spot.yaw })
-
-/** The frame of a hand put in the bottom left of the screen, from two places of the table that the screen shows at its bottom left: where the left edge of the picture meets the row the hand lies on, and where its middle does. The hand is as wide as the room between them, never wider than `most`, and its depth follows */
-export function cornerFrame(left: Place, middle: Place, { most, depth }: { most: number; depth: number }): { x: number; z: number; width: number; depth: number; scale: number } {
-  const room = Math.max(0.1, Math.abs(middle.x - left.x))
-  const width = Math.min(room, most)
-  const scale = width / most
-  return { x: left.x + width / 2, z: left.z, width, depth: depth * scale, scale }
-}
+/** The frame of a seat, on the ring just beyond it and turned to face the middle of the table, so that its top is toward the middle. The hand held up in a fan and the plate on the side of the hand that faces the middle are both drawn in it, turned alike, and the zone of the floor lies over both */
+export const heldFrame = (spot: Place & { yaw: number }, fx = 1.1, fz = 1.1): Place & { yaw: number } => ({ x: spot.x * fx, z: spot.z * fz, yaw: spot.yaw })

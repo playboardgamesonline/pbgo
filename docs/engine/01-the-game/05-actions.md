@@ -95,7 +95,7 @@ The scene takes the pointer through react-three-fiber events on meshes. `Card` i
 | `TableText` | `onClick` and `onHover`, only when one is given | A pointer while hovered, when it has an `onClick` |
 | A click target the game adds | Its own handlers, on a mesh it draws | `useCursor` of drei |
 
-- Everything that decorates takes no events. The picture of the table, the parts of a glow, the shadow and the shine of a card, `Aura`, `SeatAvatarMesh` and `TurnCrown` all set `raycast={() => null}`. A decoration a game adds does the same, or it steals the click from what lies under it.
+- Everything that decorates takes no events. The picture of the table, the parts of a glow, the shadow and the shine of a card, `LightPool`, `SeatAvatarMesh` and `TurnCrown` all set `raycast={() => null}`. A decoration a game adds does the same, or it steals the click from what lies under it.
 - A hovered card stops the event, so only the front-most card is hovered. A click handler stops it too, so the click does not also reach what lies behind: the template's does.
 - A card in a `state` is lit and lifted by the table under the pointer: the game says `interactive` while the viewer may choose it and `base` while not, and gives an `onPress`. It keeps no hovered id and moves no pose ([Cards](../02-components/04-cards.md#states)). A card with no state only reports the pointer: the game moves the pose (`shifted`) and sets `glow` or `gloss`, as the template's hand does.
 - A card the viewer may not press is not `interactive` (or has no `onPress`), and its cursor stays an arrow.

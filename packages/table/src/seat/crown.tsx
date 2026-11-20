@@ -33,9 +33,10 @@ function drawnCrown() {
 
 /**
  * Crown of the player whose turn it is, set left of their nickname (it does not travel around the table).
- * `icon`: URL of the game's icon (the skin's `hostIcon`); without one, a drawn crown.
+ * `icon`: URL of the game's icon (the skin's `hostIcon`); without one, a drawn crown. `yaw`: how far the frame it stands in is turned about the vertical (the frame of a seat): the crown takes it back, so that it faces the camera
+ * whichever way the seat is turned. A billboard that locks two axes only turns about its own vertical, and a parent that is turned would leave it slanted (a thin line at a seat on a side).
  */
-export function TurnCrown({ show, position, icon, size = 0.9 }: { show: boolean; position: [number, number, number]; icon?: string | null; size?: number }) {
+export function TurnCrown({ show, position, icon, size = 0.9, yaw = 0 }: { show: boolean; position: [number, number, number]; icon?: string | null; size?: number; yaw?: number }) {
   const ref = useRef<Group>(null)
   const material = useRef<MeshBasicMaterial>(null)
   const texture = useMemo<Texture>(() => (icon ? new TextureLoader().load(icon) : drawnCrown()), [icon])
@@ -49,7 +50,7 @@ export function TurnCrown({ show, position, icon, size = 0.9 }: { show: boolean;
     g.visible = g.scale.x > 0.02
   })
   return (
-    <group position={position}>
+    <group position={position} rotation-y={-yaw}>
       <group ref={ref} scale={0.0001} visible={false}>
         <Billboard lockX lockZ>
           <mesh raycast={() => null}>

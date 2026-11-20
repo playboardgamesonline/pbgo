@@ -13,12 +13,14 @@ GameHud                          DOM, shared: ticker, announcements, game over
         ├── Lights               when asked for
         ├── SharePhoto           when a photo camera is given
         └── World                what lies on the table, the game's own
-            ├── PlayerSeat       a Seat for each player, with its pieces
-            │   ├── Aura         lit softly for the players expected, fully for a winner
-            │   ├── TableText    the nickname, with SeatAvatarMesh and TurnCrown
-            │   ├── TableText    the points, and a status under them
-            │   └── Zone         the cards held there, face down, a child of the Seat
-            ├── Zone             the viewer's hand
+            ├── PlayerSeat       a Seat for each player, in the frame of its seat, with its pieces
+            │   ├── TableText    the nickname, with SeatAvatarMesh and TurnCrown, on the middle's side of the cards
+            │   └── TableText    the points, and a status under them
+            ├── HeldHand         the cards an opponent holds: a small fan of backs that stands, in the frame of the seat, over a small round shadow (HandShadow)
+            ├── Hotspot          an invisible area that chooses a player, with the cards of the seat lit
+            ├── PlayerSeat       the viewer's own plate, in the middle of the front of the table, above their play area
+            ├── ScreenHand       a frame that follows the camera: the viewer's hand, held at the bottom left of the screen
+            │   └── Zone         the viewer's hand
             └── Zone             the middle of the table
                 └── Card …       a front, a back, a glow, a shadow
 ```
@@ -65,11 +67,15 @@ The code has no component for some of the words used for the parts of a table. T
 | game board, grid, square, hexagon, cell | `Board` (the cells, which can be pressed), `squareCells`, `hexCells`, a `Piece` or a `TrackMarker` on a cell; `squareBoard`, `hexBoard`, `reachable`, `shortestPath`, `regionOf`, `lineBetween`, `rayFrom` of the kit | Shared | [Boards](16-boards.md) |
 | territory, area, the art of a map | Nothing: the places and the roads are a `RoadMap`, and the picture under them and the areas are the game's own | Not built | [Not built yet](../03-not-built-yet.md) |
 | score | A number of the view, written by the game as the `line` of a `Seat`, a `TableText` under the nickname | The line is shared, the number is the game's | [Score](09-score.md) |
-| player zone | No component: a `Spot` from `seats`, used as the `frame` of a `Zone` and as the `spot` of a `Seat` whose children are what the player holds | Shared | [Seats](03-seats.md) |
-| seat | A `Spot` from `seats`, and the `Seat` that draws the player who sits there | Shared | [Seats](03-seats.md) |
+| player zone, the line of a seat | No component: a `Spot` from `seats`, used as the `frame` of a `Zone`; the play area and the hand of the player stand in it on its axis, and the box of both, in that frame, is what the `Seat` of the player stands beyond (`above`): the plate, the play area, the hand, from the middle of the table outward | Shared | [Seats](03-seats.md) |
+| seat | A `Spot` from `seats`, turned toward the middle of the table, and the `Seat` that draws the player who sits there | Shared | [Seats](03-seats.md) |
 | name plate | The name and the avatar of a `Seat`: `TableText` with `SeatAvatarMesh` | Shared | [Text on the table](09-score.md#text-on-the-table), [Seats](03-seats.md#the-avatar) |
-| aura | `Aura` | Shared | [Aura](../01-the-game/03-turns.md#aura) |
+| the viewer's hand, the hand at the corner of the screen, the hand that stays on the screen | `ScreenHand`: a frame that follows the camera, with `screenHandLayout` for the slots, Courtisans' own hand: big, flush with the left edge and cut by the bottom edge | Shared | [The hand on the screen](07-zones.md#the-hand-on-the-screen) |
+| the hand of another player, the cards they hold, a round shadow | `HeldHand`: a small fan of backs that stands, in the frame of the seat like the name, overlapping from the left (the deepest) to the right (the nearest), with a `HandShadow` under it; a card played leaves from its left end and a card drawn comes in at its right | Shared | [Held hands](07-zones.md#held-hands) |
+| whose turn it is, who the game waits for | Not on the table: the crown on the avatar (`TurnCrown`), and the ticker at the top left of the screen, in the platform's words | Shared | [Whose turn it is](03-seats.md#whose-turn-it-is) |
+| choosing a player, target, press zone | `Hotspot` (an invisible area that takes the pointer and the keyboard and says how it is touched), the states of the `Card`s under it, a `LightPool` where there are none | Shared | [Choosing a player](25-floor-buttons.md#choosing-a-player) |
+| box of cards, what a layout covers | `TableBox`: `boxOfPoses`, `frameBoxOfPoses`, `boxOfRect`, `joinBoxes`, `boxAbove` (the play area above a hand), `onAxis` | Shared | [Boxes](08-layout-helpers.md#boxes) |
 | crown, turn marker | `TurnCrown` | Shared | [Crown and the turn marker](../01-the-game/03-turns.md#crown-and-the-turn-marker) |
-| away, out, expected, winner | The states of a `Seat` (`away`, `out`, `waiting`, `winner`, and `active` for the turn): `PlayerSeat` reads them from the table with `seatStateOf`, except `out`, which the game says | Shared | [The plate](03-seats.md#the-plate) |
+| away, out, expected, winner | `seatStateOf` reads `active`, `waiting`, `away` and `winner` from the table; a `Seat` shows `active` (the crown) and `away` (the plate fades), `waiting` and `winner` mark nothing on the plate (the ticker and the end screen say them), and `out` is the game's, shown on the cards (`state: "out"`) | Shared | [The plate](03-seats.md#the-plate) |
 | turn transition | No component: the crown moves, the hand becomes playable, the `turn` announcement plays | The scene is per game, the announcement is shared | [Turn change](../01-the-game/03-turns.md#turn-change) |
 | opening, ending | No component: only the camera's entrance is shared | Per game | [Opening and ending](../01-the-game/06-victory.md#opening-and-ending) |

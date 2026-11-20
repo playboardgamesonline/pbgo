@@ -1,36 +1,32 @@
+import type { TableBox } from "../box"
 import type { Spot } from "../layout"
 
 /**
- * How a seat's plate (its aura, its name with the avatar and the crown, its lines) stands out from the spot the ring gives it. Every number is in
- * world units but the factors of `reach`, the forces and the opacity. A plain object that a debug panel edits: the next render of a `Seat` follows it.
+ * How a seat's plate (its name with the avatar and the crown, its info line) stands: out from the spot the ring gives it, or above the cards of the player. Every number is in world units but the factors of `reach` and the opacity. A plain object that a debug panel
+ * edits: the next render of a `Seat` follows it.
  */
 export const SEAT_SETTINGS = {
-  /** An opponent's plate stands at the spot times these factors: just beyond the cards, out of the ring */
+  /** A plate placed from its spot (`plateOf`) stands at the spot times these factors for an opponent: just beyond the cards, out of the ring. A plate that stands on the middle's side of the cards of its player (`above`) does not read them */
   reachX: 1.32,
   reachZ: 1.32,
-  /** The viewer's own plate: level with the spot, a little in front of it */
+  /** The same for the viewer's own plate: level with the spot, a little in front of it */
   viewerReachX: 1,
   viewerReachZ: 1.18,
   /** The height of the name's lettering, and how far toward the middle of the table it stands from the plate's centre */
   nameHeight: 0.55,
   nameLift: 0.25,
-  /** The height of the info line's lettering (the score, then the status), and how far toward the viewer it stands from the plate's centre */
+  /** The height of the info line's lettering (the score, then the status), and how far toward the cards it stands from the plate's centre */
   lineHeight: 0.4,
   lineDrop: 0.4,
   /** The avatar's diameter and its gap to the first or the last letter */
   avatarSize: 0.56,
   avatarGap: 0.18,
-  /** The crown's size, and how far its foot stands from the avatar's centre: toward the right, and away from the viewer */
+  /** The crown's size, and how far its foot stands from the avatar's centre: toward the right, and toward the middle of the table */
   crownSize: 0.6,
   crownRight: 0.2,
   crownBack: 0.24,
-  /** The aura's size */
-  auraWidth: 3.2,
-  auraDepth: 1.6,
-  /** How bright the aura is for the player of the turn (none: the crown says it), for a player the game expects with others, and for a winner */
-  turnForce: 0,
-  waitingForce: 0.5,
-  winnerForce: 1,
+  /** The clear space between the edge of a player's cards that faces the middle and the foot of their plate, the bottom of its info line: how far beyond the cards the plate stands */
+  plateGap: 0.25,
   /** How opaque the plate of a player who is away stays */
   awayOpacity: 0.4,
 }
@@ -41,10 +37,10 @@ type Knob = [label: string, min: number, max: number, step: number]
 
 /** The knobs a debug panel can offer for `SEAT_SETTINGS`, one for each of its fields */
 export const SEAT_FIELDS = {
-  reachX: ["plate reach x", 1, 2, 0.01],
-  reachZ: ["plate reach z", 1, 2, 0.01],
-  viewerReachX: ["viewer plate reach x", 0.5, 2, 0.01],
-  viewerReachZ: ["viewer plate reach z", 0.5, 2, 0.01],
+  reachX: ["plate reach x (from the spot)", 1, 2, 0.01],
+  reachZ: ["plate reach z (from the spot)", 1, 2, 0.01],
+  viewerReachX: ["viewer plate reach x (from the spot)", 0.5, 2, 0.01],
+  viewerReachZ: ["viewer plate reach z (from the spot)", 0.5, 2, 0.01],
   nameHeight: ["name size", 0.2, 1.2, 0.01],
   nameLift: ["name lift", 0, 1, 0.01],
   lineHeight: ["info line size", 0.2, 1, 0.01],
@@ -54,11 +50,7 @@ export const SEAT_FIELDS = {
   crownSize: ["crown size", 0.2, 1.4, 0.01],
   crownRight: ["crown right of the avatar", -0.6, 0.8, 0.01],
   crownBack: ["crown behind the avatar", -0.6, 0.8, 0.01],
-  auraWidth: ["aura width", 1, 8, 0.1],
-  auraDepth: ["aura depth", 0.5, 5, 0.1],
-  turnForce: ["aura force on the turn", 0, 1.5, 0.01],
-  waitingForce: ["aura force when expected", 0, 1.5, 0.01],
-  winnerForce: ["aura force on a winner", 0, 1.5, 0.01],
+  plateGap: ["plate gap beyond the cards", 0, 1.5, 0.01],
   awayOpacity: ["away or out opacity", 0, 1, 0.01],
 } satisfies Record<keyof SeatSettings, Knob>
 
@@ -76,11 +68,8 @@ export type Plate = {
   crownZ: number
 }
 
-/** The plate of the seat at `spot`; `viewer` is the viewer's own seat. */
-export function plateOf(spot: Spot, viewer: boolean, settings: SeatSettings = SEAT_SETTINGS): Plate {
-  const S = settings
-  const x = spot.x * (viewer ? S.viewerReachX : S.reachX)
-  const z = spot.z * (viewer ? S.viewerReachZ : S.reachZ)
+/** The pieces of the plate whose centre stands at (`x`, `z`), each where the settings put it from the centre */
+function plateAround(x: number, z: number, S: SeatSettings): Plate {
   const avatarX = -(S.avatarGap + S.avatarSize / 2)
   return {
     x,
@@ -93,10 +82,29 @@ export function plateOf(spot: Spot, viewer: boolean, settings: SeatSettings = SE
   }
 }
 
-/** What lights a seat's aura. */
-export type SeatMood = { active?: boolean; waiting?: boolean; winner?: boolean }
+/** The plate of the seat at `spot`, out of the ring; `viewer` is the viewer's own seat. A plate that stands above its player's cards is `plateAbove` */
+export function plateOf(spot: Spot, viewer: boolean, settings: SeatSettings = SEAT_SETTINGS): Plate {
+  const S = settings
+  return plateAround(spot.x * (viewer ? S.viewerReachX : S.reachX), spot.z * (viewer ? S.viewerReachZ : S.reachZ), S)
+}
 
-/** How bright a seat's aura is: the brightest of the lights that apply, none when none does. */
-export function auraForce({ active, waiting, winner }: SeatMood, settings: SeatSettings = SEAT_SETTINGS): number {
-  return Math.max(active ? settings.turnForce : 0, waiting ? settings.waitingForce : 0, winner ? settings.winnerForce : 0)
+/**
+ * The plate that stands on the middle's side of `cards`, the box of all of a player's cards (their hand, their grid, their play area) in the frame of their seat: centred on it, the foot of the plate (the bottom of its info line) `plateGap` beyond its edge of the least z.
+ * The frame of a seat has its top, its least z, toward the middle of the table (`seats`), so the plate is above the cards for the player who sits there, at the viewer's seat and at every other, and it is drawn in the same frame, turned with the seat.
+ */
+export function plateAbove(cards: TableBox, settings: SeatSettings = SEAT_SETTINGS): Plate {
+  const S = settings
+  return plateAround((cards.minX + cards.maxX) / 2, cards.minZ - S.plateGap - S.lineDrop - S.lineHeight / 2, S)
+}
+
+/** How many letters of a name a plate is taken to hold when a layout leaves room for it; a name is cut to 12 and a crowded table has no room for that, so a longer one sticks out of the room rather than into its neighbour's */
+export const PLATE_LETTERS = 6
+
+/** How wide a plate is taken to be: the avatar and a name of `PLATE_LETTERS` letters (about half the lettering's height each), side by side. What a layout leaves for it; the real width depends on the name */
+export const plateWidth = (settings: SeatSettings = SEAT_SETTINGS) => settings.avatarGap + settings.avatarSize + PLATE_LETTERS * 0.5 * settings.nameHeight
+
+/** What a plate covers of the table: its width, from the top of the name or the avatar to the foot of the info line. The crown stands up from the table and is not in it */
+export function plateBoxOf(plate: Plate, settings: SeatSettings = SEAT_SETTINGS, width: number = plateWidth(settings)): TableBox {
+  const S = settings
+  return { minX: plate.x - width / 2, maxX: plate.x + width / 2, minZ: plate.nameZ - Math.max(S.nameHeight, S.avatarSize) / 2, maxZ: plate.lineZ + S.lineHeight / 2 }
 }

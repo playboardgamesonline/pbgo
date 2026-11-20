@@ -48,7 +48,7 @@ export function BidScene({ view, onBid }: { view: BidView; onBid: (amount: numbe
   return (
     <Stage id="scene-bid" camera={CAMERA} playIntro={false}>
       {players.map(({ nickname, color, spot }, i) => (
-        <Seat key={nickname} nickname={nickname} color={color} theme={DEFAULT_SEAT_THEME} spot={spot} viewer={i === 0} waiting={!revealed && (i === 0 ? view.mine === null : !view.others[i - 1]!.hasBid)} line={i === 0 ? "You" : ""} />
+        <Seat key={nickname} nickname={nickname} color={color} theme={DEFAULT_SEAT_THEME} spot={spot} viewer={i === 0} line={i === 0 ? "You" : ""} />
       ))}
       {cards.map((k) => {
         const placed = view.mine === k

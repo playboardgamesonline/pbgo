@@ -240,7 +240,7 @@ export function areaPoses(n: number, area: Pick<Area, "scale" | "width">): Pose[
   return row(n, { gap: areaGap(n, area), rise: 0.012, scale: area.scale })
 }
 
-/** What a plate occupies in its own frame (the aura's width, and from above the name to below the status), measured from its centre: along z, from -`lift` to `drop` */
+/** What a plate occupies in its own frame (its width, and from above the name to below the status), measured from its centre: along z, from -`lift` to `drop` */
 const PLATE = { lift: SEAT_SETTINGS.nameLift + 0.55, drop: SEAT_SETTINGS.lineDrop + 0.2 }
 
 /** How deep a plate is, from above the name to below the status, at full size */
@@ -378,7 +378,7 @@ export function plateAt(spot: SeatSpot, area: Area, hand: Hand, fit = 1): Place 
   }
 }
 
-/** The plate's box: the aura as wide as the plate, from above the name to below the status */
+/** The plate's box: as wide as the plate, from above the name to below the status */
 export function plateBox(spot: SeatSpot, area: Area, hand: Hand): Box {
   const out = outwardOf(spot.yaw)
   const distance = plateDistance(area, hand)

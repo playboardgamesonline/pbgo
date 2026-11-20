@@ -69,7 +69,7 @@ Closing the panel takes the folders away, and puts the view and the time back to
 - A folder that needs more than knobs, such as the template's "Phases" buttons, asks for itself: `useDebugFolder({ folder, tab, schema: ({ button }) => ({ ... }) }, deps)` from `@pbgo/core/components/game/debug-folders`. The `schema` is called when the panel is there, with leva in hand; like leva's own `deps`, it is made again when one of them changes.
 
 ```tsx
-useSettings("Layout", LAYOUT_SETTINGS, { handZ: ["hand z", 0, 10, 0.05], handScale: ["hand scale", 0.5, 2, 0.01] }, { order: 1 })
+useSettings("Layout", LAYOUT_SETTINGS, { handY: ["hand height", 0, 3, 0.05], handScale: ["hand scale", 0.5, 2, 0.01] }, { order: 1 })
 ```
 
 ## Rules

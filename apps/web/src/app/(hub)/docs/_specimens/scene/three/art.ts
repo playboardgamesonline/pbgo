@@ -2,7 +2,7 @@
 // the pieces of the table (`--piece-*`) for the cards, the success and card tokens for the felt, so that a change of the tokens changes the scenes with them. The textures are made once and kept (`paintFace` keeps the cards' by key).
 // This is the heavy half of the specimens: only the files of this folder import three.js and `@pbgo/table`, and they are reached through `next/dynamic` only.
 
-import { type CardSize, onTable, paintFace } from "@pbgo/table"
+import { type CardSize, latticeTexture, onTable, paintFace, type SurfaceProps } from "@pbgo/table"
 import { CanvasTexture, SRGBColorSpace, type Texture } from "three"
 import { cssColor, pageFont } from "../color"
 
@@ -276,6 +276,14 @@ export function felt(): Texture {
   cloth.colorSpace = SRGBColorSpace
   cloth.anisotropy = 8
   return cloth
+}
+
+let darkMat: SurfaceProps | undefined
+
+/** The dark mat of the boards that are made as Courtisans'. A very dark grey with a diamond lattice a hair lighter, no grain, and a pool of light on its middle, so that it is lit there and falls away to black at its edges. */
+export function mat(): SurfaceProps {
+  darkMat ??= { color: "#0c0c0e", map: latticeTexture({ base: "#0c0c0e", line: "#17171b", diamonds: 3, width: 2.5 }), light: { color: "#2c2c31", radius: 20 } }
+  return darkMat
 }
 
 export type Label = { texture: Texture; aspect: number }
