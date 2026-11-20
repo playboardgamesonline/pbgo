@@ -18,6 +18,20 @@ export function boxOfRect({ x, z, width, depth, yaw = 0 }: { x: number; z: numbe
   return { minX: x - halfX, maxX: x + halfX, minZ: z - halfZ, maxZ: z + halfZ }
 }
 
+/**
+ * The box of an area `width` by `depth` that stands on the middle's side of `box`, in the frame of a seat (toward its least z, which is toward the middle of the table), `gap` clear of it, centred on `x` (default: the middle of `box`). It is how the things of a seat are lined up on its
+ * axis, in this order from the middle of the table: the plate (the name, the info line under it), the play area (a bid, a grid, a row of cards) and the hand. The play area is `boxAbove` the hand, the plate stands above the two joined (`above` of a `Seat`).
+ */
+export function boxAbove(box: TableBox, { width, depth }: { width: number; depth: number }, gap = 0, x = (box.minX + box.maxX) / 2): TableBox {
+  return { minX: x - width / 2, maxX: x + width / 2, minZ: box.minZ - gap - depth, maxZ: box.minZ - gap }
+}
+
+/** A box brought onto the axis of a seat's frame (x = 0): as far to the left of it as to the right. What is placed from it, the plate of a seat above all, is then centred on the line of the seat, however the slant of the camera shifted the box of the cards that stand */
+export function onAxis(box: TableBox): TableBox {
+  const half = Math.max(-box.minX, box.maxX)
+  return { ...box, minX: -half, maxX: half }
+}
+
 /** The smallest box that holds all of `boxes`, and `null` when there is none (a player with no cards has no box) */
 export function joinBoxes(boxes: readonly (TableBox | null)[]): TableBox | null {
   let joined: TableBox | null = null

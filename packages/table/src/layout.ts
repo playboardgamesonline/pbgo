@@ -20,15 +20,6 @@ export function inFrame(spot: Spot, pose: Pose): Pose {
   return placed
 }
 
-/** A pose of the table put in the frame of a spot: the inverse of `inFrame`, for what lies on the table and is wanted in the frame of a seat (the box of a hand that is laid in another frame than the seat's) */
-export function outOfFrame(spot: Spot, pose: Pose): Pose {
-  const turn = new Quaternion().setFromAxisAngle(Y, -(spot.yaw ?? 0))
-  const position = new Vector3(pose.position.x - spot.x, pose.position.y, pose.position.z - spot.z).applyQuaternion(turn)
-  const placed: Pose = { position, quaternion: turn.multiply(pose.quaternion), scale: pose.scale }
-  if (pose.delay !== undefined) placed.delay = pose.delay
-  return placed
-}
-
 export type FanOptions = {
   /** Distance along x between two neighbouring cards */
   gap: number

@@ -1,6 +1,6 @@
 import { Euler, Quaternion, Vector3 } from "three"
 import { describe, expect, it } from "vitest"
-import { fan, grid, inFrame, outOfFrame, pile, row, seats } from "./layout"
+import { fan, grid, inFrame, pile, row, seats } from "./layout"
 import { FACE_DOWN, FACE_UP, type Pose, RESTING_HEIGHT, onTable } from "./pose"
 
 const AXES = [new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1)]
@@ -60,28 +60,6 @@ describe("inFrame", () => {
     expectSameRotation(pose.quaternion, FACE_UP)
     expect(spot).toEqual({ x: 1, z: 1, yaw: 0.3 })
     expect("delay" in inFrame(spot, pose)).toBe(false)
-  })
-})
-
-describe("outOfFrame", () => {
-  it("is the inverse of inFrame: a pose put in a frame and taken out of it is the pose it was", () => {
-    const pose = onTable(1.5, -2, { y: 0.4, face: "down", yaw: 0.3, scale: 0.7, delay: 0.1 })
-    for (const spot of [{ x: 0, z: 0 }, { x: 3, z: -4, yaw: 0.8 }, { x: -7, z: 2, yaw: -2.4 }, { x: 5, z: 5, yaw: Math.PI }]) {
-      const back = outOfFrame(spot, inFrame(spot, pose))
-      expectAt(back, pose.position.x, pose.position.y, pose.position.z)
-      expectSameRotation(back.quaternion, pose.quaternion)
-      expect(back.scale).toBe(0.7)
-      expect(back.delay).toBe(0.1)
-    }
-  })
-
-  it("says where something on the table is in the frame of a seat: a place beyond the seat toward the middle is at the least z of its frame", () => {
-    const seat = { x: -8, z: 0, yaw: -Math.PI / 2 }
-    const middle = onTable(0, 0)
-    // the middle of the table, from a seat on the left that faces it: straight ahead, which is -z of the seat's frame
-    const inSeat = outOfFrame(seat, middle)
-    expect(inSeat.position.x).toBeCloseTo(0, 9)
-    expect(inSeat.position.z).toBeCloseTo(-8, 9)
   })
 })
 

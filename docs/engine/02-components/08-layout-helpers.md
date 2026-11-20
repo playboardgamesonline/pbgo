@@ -11,7 +11,6 @@ A layout helper returns the poses of a zone: one `Pose` per card, in the order o
 | `pile(n, options)` | `Pose[]` | A stack at the origin, the bottom card first |
 | `grid(n, options)` | `Pose[]` | Lines in reading order: the first line is the farthest from the viewer, the first card on its left, and a last line that is not full stays on the left |
 | `inFrame(spot, pose)` | `Pose` | A pose drawn in the frame of a spot, put on the table: it turns first, then moves |
-| `outOfFrame(spot, pose)` | `Pose` | The inverse of `inFrame`: a pose of the table put in the frame of a spot, for what lies in one frame and is wanted in another (the box of a hand turned toward the viewer, in the frame of its seat) |
 
 A `Spot` is `{ x, z, yaw? }`. The options are `FanOptions`, `RowOptions`, `PileOptions` and `GridOptions`.
 
@@ -54,6 +53,8 @@ A layout says where each card lies; a box says what a set of cards covers of the
 | `cornersOfBox(box, frame)` | The four corners of a box of a frame, on the table, going round: what a plate or an area covers when its seat is turned. For a test that compares exact shapes |
 | `boxOfRect({ x, z, width, depth, yaw })` | The box of a rectangle `width` along its own x and `depth` along its own z, centred at (`x`, `z`) and turned `yaw` about the vertical |
 | `joinBoxes(boxes)` | The smallest box that holds them all; a `null` (a player with no cards) is skipped, and no box at all is `null` |
+| `boxAbove(box, { width, depth }, gap, x)` | The box of an area that stands on the middle's side of `box` in the frame of a seat (toward its least z), `gap` clear of it, centred on `x` (the middle of `box` by default): the play area of a player, above their hand. The line of a seat from the middle of the table outward is the plate, the play area, the hand ([Seats](03-seats.md#where-the-plate-stands)) |
+| `onAxis(box)` | The box brought onto the axis of a seat's frame, as far to the left of x = 0 as to the right, so that the plate placed from it is centred on the line of the seat, however the slant of the camera shifted the box of the cards that stand |
 | `centreOf(box)` | The middle of a box (in the frame the box is in) |
 | `boxesOverlap(a, b, by)` | Whether two boxes cover some of the table together, or come closer than `by` |
 
@@ -73,6 +74,6 @@ From `template/src/components/board/layout.ts`, where a card an opponent plays f
 
 ```ts
 export function heldFrom(seat: SeatSpot, count: number): Pose {
-  return heldLeftPose(heldFrame(seat), (n) => heldLayout(n, seat), count)
+  return heldLeftPose(seatFrame(seat), (n) => heldLayout(n, seat), count)
 }
 ```

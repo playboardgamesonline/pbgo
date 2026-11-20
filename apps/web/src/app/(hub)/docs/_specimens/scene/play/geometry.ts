@@ -87,5 +87,5 @@ export const ringOf = (players: number) => (players > 6 ? { radiusX: 9.8, radius
 /** How far back the camera stands for a ring of this many players */
 export const ringZoom = (players: number) => (players > 6 ? 28 : players > 4 ? 24 : 21)
 
-/** A seat's hand, held up in a fan, lies on the ring beyond its seat, turned to face the middle of the table: its plate stands on the side of the hand that faces the middle, and the zone of the floor lies over both */
+/** The frame of a seat, on the ring just beyond it and turned to face the middle of the table, so that its top is toward the middle. The hand held up in a fan and the plate on the side of the hand that faces the middle are both drawn in it, turned alike, and the zone of the floor lies over both */
 export const heldFrame = (spot: Place & { yaw: number }, fx = 1.1, fz = 1.1): Place & { yaw: number } => ({ x: spot.x * fx, z: spot.z * fz, yaw: spot.yaw })

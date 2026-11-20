@@ -110,7 +110,7 @@ export function Seat({
       <group position={[frame.x, 0, frame.z]} rotation-y={frame.yaw ?? 0}>
         <TableText text={shortName(nickname)} style={name} height={S.nameHeight} position={[plate.x + shift, TEXT_Y, plate.nameZ]} font={font} opacity={opacity} trailing={trailing}>
           <SeatAvatarMesh nickname={nickname} color={color} imageUrl={imageUrl} theme={theme} size={S.avatarSize} position={[plate.avatarX, 0, 0]} opacity={opacity} />
-          <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[plate.crownX, 0, plate.crownZ]} />
+          <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[plate.crownX, 0, plate.crownZ]} yaw={frame.yaw ?? 0} />
         </TableText>
         {info !== "" && <TableText text={info} style={{ color: "#f5f2ea", weight: PLATE_WEIGHT, ...lineStyle }} height={S.lineHeight} position={[plate.x, TEXT_Y, plate.lineZ]} font={font} opacity={opacity} />}
         {DEBUG_VIEW.seats && <SeatGizmo spot={above ? undefined : spot} plate={plate} cards={above} />}

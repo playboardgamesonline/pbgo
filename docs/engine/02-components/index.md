@@ -6,7 +6,7 @@ Each component has two sides, what the engine keeps of it in the state and what 
 
 To see every component at once, open the [playground](/docs/playground): one table with all of them on it.
 
-The board of a game is a 3D scene drawn with react-three-fiber on one canvas, and none of it is DOM. `@pbgo/table` gives every game the same table: a canvas with its camera, an endless table, cards that glide, fly and bend, the helpers that say where cards go and the zones that place them. The plate of a player, with its name, its avatar and its crown, standing on the side of the player's cards that faces the middle of the table, is the shared `Seat`; the viewer's hand, held at the bottom left of the screen as Courtisans holds its own, is the shared `ScreenHand`, and the cards the others hold are the shared `HeldHand`, a small fan of backs turned toward the viewer. What depends on a game's look (its pictures, its layouts, its camera) is written per game in the `board/` folder of its binding, and `template/src/components/board/` is the reference.
+The board of a game is a 3D scene drawn with react-three-fiber on one canvas, and none of it is DOM. `@pbgo/table` gives every game the same table: a canvas with its camera, an endless table, cards that glide, fly and bend, the helpers that say where cards go and the zones that place them. The plate of a player, with its name, its avatar and its crown, standing on the side of the player's cards that faces the middle of the table, is the shared `Seat`; the viewer's hand, held at the bottom left of the screen as Courtisans holds its own, is the shared `ScreenHand`, and the cards the others hold are the shared `HeldHand`, a small fan of backs in the frame of the seat like the name, each player a line from the middle of the table outward: the plate, the play area, the hand. What depends on a game's look (its pictures, its layouts, its camera) is written per game in the `board/` folder of its binding, and `template/src/components/board/` is the reference.
 
 The tools are in `packages/table/src` and `pnpm --filter @pbgo/table test` runs their tests. The exports of `packages/table/src/index.ts` are the whole API of the package; a file can hold more than it exports, and a page says so when a piece is internal.
 
@@ -34,7 +34,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 | Paper | A piece of paper on the table with a few words that can be pressed: what the fields are drawn as, and a button on the table | | `Paper` | Built: [Bets and choices](12-bets-and-choices.md#fields-that-open-a-window) |
 | Floor button | A button drawn flat on the table: a tinted pad with an outline whose borders lift under the pointer or the keyboard focus. Hit and Stay | `onPress`, the `disabled` state | `FloorButton` | Built: [Floor buttons](25-floor-buttons.md) |
 | Hotspot | An invisible area of the table that chooses a player: it takes the pointer and the keyboard, and the cards under it glow | `onPress` | `Hotspot`, `LightPool`, the states of a `Card` | Built: [Floor buttons](25-floor-buttons.md#choosing-a-player) |
-| Seat | A player's place, facing the middle of the table, and their plate on the middle's side of their cards, turned with the seat | The players, `waitingFor` | `Seat`, `PlayerSeat` | Built: [Seats](03-seats.md) |
+| Seat | A player's place, facing the middle of the table, and their line along its axis, turned with the seat: the plate (name, info line), the play area and the hand | The players, `waitingFor` | `Seat`, `PlayerSeat` | Built: [Seats](03-seats.md) |
 | Text on the table | Words and numbers written flat | A number or a word in the view | `TableText` | Built: [Score](09-score.md) |
 | Table and camera | The surface everything lies on, and the way it is seen | | `Table` | Built: [Table](01-table.md), [Camera](02-camera.md) |
 | Piece and stack | A token, coin, tile, cube, pawn or meeple: a shape, a colour, pictures and a place that changes; pieces of one kind in a pile | A place in the state, a count | `Piece`, `Stack`, `PieceModel` | Built: [Pieces](13-pieces.md) |
@@ -55,7 +55,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 - [Words and names](00-words-and-names.md): what sits in what on a board, and the word each part goes by.
 - [Table](01-table.md): the canvas, the lights, the endless surface, the share photo and the coordinates.
 - [Camera](02-camera.md): the settings, the entrance, the rig.
-- [Seats](03-seats.md): the ring of seats around the table, each facing the middle, the plate of the player who sits at one (name, avatar, crown, score), standing on the side of their cards that faces the middle, and the picture beside a nickname.
+- [Seats](03-seats.md): the ring of seats around the table, each facing the middle, the plate of the player who sits at one (name, avatar, crown, score), standing above their play area and their hand on one line along the axis of the seat, and the picture beside a nickname.
 - [Cards](04-cards.md): a card in the state and on the table, its faces, its kinds and its glows.
 - [Poses and motion](05-poses-and-motion.md): where a card lies, how it gets from one pose to another and where it starts from.
 - [Decks and piles](06-decks-and-piles.md): drawing, dealing and reshuffling in the engine, and the pile on the table.

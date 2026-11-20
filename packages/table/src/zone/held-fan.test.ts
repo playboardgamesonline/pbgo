@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import type { CardSize } from "../card/geometry"
 import { inFrame, seats } from "../layout"
 import { aspectScale, type CameraSettings, placeCamera } from "../table/camera"
-import { HELD_FAN_SETTINGS, heldFan, heldShadow, heldYaw } from "./held-fan"
+import { HELD_FAN_SETTINGS, heldFan, heldShadow } from "./held-fan"
 import { leftEndIsFirst } from "./held-hand-keys"
 
 const CARD: CardSize = { width: 1.3, height: 1.9 }
@@ -35,15 +35,25 @@ describe("a hand another player holds", () => {
     }
   })
 
-  it("shows the backs to the viewer: across the table the card's back looks toward the middle and a little up", () => {
-    const frame = { x: 0, z: -5, yaw: Math.PI }
-    for (const pose of heldFan(5, Math.PI, CARD)) {
-      const placed = inFrame(frame, pose)
-      const back = new Vector3(0, 0, -1).applyQuaternion(placed.quaternion)
-      // the viewer is toward +z and above
-      expect(back.z).toBeGreaterThan(0.7)
-      expect(back.y).toBeGreaterThan(0)
+  it("shows the backs to the middle of the table, and a little up, at every seat: the cards face the way the seat does", () => {
+    const ring = seats(5, { radiusX: 7.4, radiusZ: 4.4, me: 0 })
+    for (const seat of ring.slice(1)) {
+      const frame = { x: seat.x * 1.2, z: seat.z * 1.2, yaw: seat.yaw }
+      const toMiddle = { x: -frame.x / Math.hypot(frame.x, frame.z), z: -frame.z / Math.hypot(frame.x, frame.z) }
+      for (const pose of heldFan(5, frame.yaw, CARD)) {
+        const back = new Vector3(0, 0, -1).applyQuaternion(inFrame(frame, pose).quaternion)
+        expect(back.x * toMiddle.x + back.z * toMiddle.z, `seat at ${seat.x.toFixed(1)}`).toBeGreaterThan(0.8)
+        expect(back.y).toBeGreaterThan(0)
+      }
     }
+  })
+
+  it("leans back more at a seat at the side, which the viewer sees edge on, than across the table", () => {
+    const lean = (yaw: number) => {
+      const pose = heldFan(3, yaw, CARD)[1]!
+      return Math.abs(new Vector3(0, 1, 0).applyQuaternion(pose.quaternion).z)
+    }
+    expect(lean(Math.PI / 2)).toBeGreaterThan(lean(Math.PI) + 0.2)
   })
 
   it("keeps the cards close: about as wide as a card and a little more, however many there are, so that an edge of each shows", () => {
@@ -58,25 +68,18 @@ describe("a hand another player holds", () => {
     const camera = new PerspectiveCamera(CAMERA.fov, 1.6, 0.1, 200)
     placeCamera(camera, CAMERA, { distanceScale: aspectScale(1.6) })
     camera.updateMatrixWorld()
-    const ring = seats(5, { radiusX: 7.4, radiusZ: 4.4, me: 0 })
-    for (const seat of ring.slice(1)) {
-      const yaw = heldYaw(seat.yaw)
-      const frame = { x: seat.x * 1.2, z: seat.z * 1.2, yaw }
+    // The seat the viewer faces, or nearly: across the table, and a little to the side of it. At a seat that is turned more the fan runs along the depth of the picture and the depth is the table's own: the card nearest the camera is in front
+    for (const yaw of [Math.PI, Math.PI - 0.1, -Math.PI + 0.1]) {
+      const frame = { x: 1.5, z: -5.3, yaw }
       const cards = heldFan(6, yaw, CARD).map((pose) => inFrame(frame, pose))
       const byScreen = cards.map((pose) => ({ x: pose.position.x, near: -camera.worldToLocal(pose.position.clone()).z })).sort((a, b) => a.x - b.x)
       // from the left of the picture to its right, each card is nearer the camera than the one before
-      for (let i = 1; i < byScreen.length; i++) expect(byScreen[i]!.near, `seat at ${seat.x.toFixed(1)}, card ${i}`).toBeLessThan(byScreen[i - 1]!.near)
+      for (let i = 1; i < byScreen.length; i++) expect(byScreen[i]!.near, `yaw ${yaw.toFixed(2)}, card ${i}`).toBeLessThan(byScreen[i - 1]!.near)
     }
   })
 
-  it("faces the viewer: the hand is turned half a turn at any seat, and as far as `facing` says", () => {
-    for (const yaw of [Math.PI, 2.5, 1.78, -1.78, -2.5, -Math.PI]) expect(Math.cos(heldYaw(yaw)), `${yaw}`).toBeCloseTo(-1, 9)
-    expect(heldYaw(1.78, { ...HELD_FAN_SETTINGS, facing: 0 })).toBeCloseTo(1.78, 9)
-    expect(heldYaw(-1.78, { ...HELD_FAN_SETTINGS, facing: 0.5 })).toBeCloseTo((-1.78 - Math.PI) / 2, 9)
-  })
-
   it("has a first card on the left of the picture at the seats where the layout puts it there, as the rule of the animation says", () => {
-    for (const yaw of [heldYaw(-Math.PI / 2), heldYaw(Math.PI / 2), Math.PI, heldYaw(-Math.PI / 2, { ...HELD_FAN_SETTINGS, facing: 0 }), heldYaw(Math.PI / 2, { ...HELD_FAN_SETTINGS, facing: 0 })]) {
+    for (const yaw of [-Math.PI / 2, Math.PI / 2, Math.PI, -Math.PI, 2.4, -2.4]) {
       const frame = { x: 0, z: -5, yaw }
       const cards = heldFan(5, yaw, CARD).map((pose) => inFrame(frame, pose))
       const first = cards[0]!.position.x

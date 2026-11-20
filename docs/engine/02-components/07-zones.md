@@ -115,48 +115,48 @@ From `template/src/components/board/scene.tsx`, the hand of the viewer; `raised`
 - The first card is flush with the left edge, a hair past it, and the hand grows to the right, so the cards already in it stay where they are as others come.
 - The cards are in the states of [Cards](04-cards.md#states): `interactive` on the viewer's turn, so the table draws their bloom, lifts the one under the pointer and gives it its shine; the game gives each card `onHover` only to say which one to bring forward.
 - A hand is pressed, not dragged: a drag goes over the table and the hand is not on it. A game that wants a drag from the hand keeps it along the near edge of the table.
-- The viewer's name does not follow the hand: it stays at their seat, in the middle of the front of the table (the `spot` and `viewer` of a `Seat`), as the name of a player stands at their own place in Courtisans.
+- The viewer's name does not follow the hand: it stays at their seat, in the middle of the front of the table, on the line of the seat like the name of every player: above their play area, which is above the foot of their line, where their hand would be (`seatBox` of the template gives `Seat` the box to stand above).
 - The corner belongs to the hand: a board keeps its other things out of it. The template keeps the room of the hand (`room`) short of the viewer's name, puts its clock at the other end of the viewer's row and its bid cards across the middle, and tests the shapes as the viewer sees them, on the screen, for every window shape (`layout.test.ts`).
 - The hand is tested as the camera sees it: every corner of every card of a hand of every size is projected through the camera, and must be inside the picture on the left and cut by the bottom edge, within `room`, from a portrait window to an ultra-wide one.
 
 ## Held hands
 
-The cards of the other players are held as a hand, so that the viewer can tell how many cards a player has and nothing more: a small fan of backs, close together, that stands on the table and faces the viewer, with a small round shadow under it. `HeldHand` draws it. Shared: `packages/table/src/zone/held-hand.tsx`, with the layout in `held-fan.ts` (tested in `held-fan.test.ts`), the rules of the cards' names in `held-hand-keys.ts` (tested in `held-hand-keys.test.ts`) and the shadow in `hand-shadow.tsx`.
+The cards of the other players are held as a hand, so that the viewer can tell how many cards a player has and nothing more: a small fan of backs, close together, that stands on the table, with a small round shadow under it. `HeldHand` draws it. Shared: `packages/table/src/zone/held-hand.tsx`, with the layout in `held-fan.ts` (tested in `held-fan.test.ts`), the rules of the cards' names in `held-hand-keys.ts` (tested in `held-hand-keys.test.ts`) and the shadow in `hand-shadow.tsx`.
 
 | Prop of `HeldHand` | Role |
 | --- | --- |
 | `count` | How many cards the player holds: all that the view knows of a hand nobody but its owner sees |
-| `frame` | The frame of the hand: at the seat, turned toward the viewer (`heldYaw`) |
+| `frame` | The frame of the seat, the one the plate of the player is drawn in: the hand has no turn of its own, it is turned as the name is |
 | `layout` | The slots of a hand of `n` cards, in the frame: `heldFan(n, frame.yaw, cardSize)` |
 | `size`, `back` | The size of a card, and the picture on the back of every card |
 | `enter` | Where the cards come in from, on the table (a `Zone`'s `enter`) |
 | `shadow` | `{ radius(n), opacity }`: how far the small round shadow reaches for a hand of `n` cards, and how dark it is: `heldShadow()` |
 | `state` | The state of every card (`Card`'s `state`): `interactive` while the player can be chosen, raised to `hover` and `pressed` by the game from what a `Hotspot` over the hand tells it |
 
-`heldFan(count, yaw, card, settings)` lays the cards as a hand is held in the fingers: `fan` turned about the **feet** of the cards (its `foot` option), so the feet stay close together and the tops open, the cards leaning back a little toward their owner. The numbers are `HELD_FAN_SETTINGS`, a plain object that the debug panel edits (`HELD_FAN_FIELDS` lists its knobs):
+`heldFan(count, yaw, card, settings)` lays the cards as a hand is held in the fingers: `fan` turned about the **feet** of the cards (its `foot` option), so the feet stay close together and the tops open, the cards leaning a little toward their owner, with their backs to the middle of the table. The numbers are `HELD_FAN_SETTINGS`, a plain object that the debug panel edits (`HELD_FAN_FIELDS` lists its knobs):
 
 | Setting | Role |
 | --- | --- |
 | `gap` | The distance between the feet of two neighbouring cards: small, so that the cards overlap and an edge of each shows, which is how a hand is counted |
-| `scale`, `lean` | The scale of a card, and how far it leans from standing straight, toward its owner, in radians |
+| `scale` | The scale of a card |
+| `lean`, `sideLean` | How far a card leans from standing straight, toward its owner, in radians: `lean` at a seat that faces the viewer or has its back to them, `sideLean` at a seat on a side, where the cards are seen from a quarter turn and lean a little more so that each shows |
 | `roll` | How much each card turns about its own foot per card from the middle: the tops open, the feet do not |
-| `stack` | How far each card lies nearer the viewer than the one on its left, so that the cards overlap from the left, the deepest, to the right, the nearest |
-| `facing` | How far the hand is turned toward the viewer, from facing the middle of the table (0) to facing the viewer square (1, the default), whatever its seat |
+| `stack` | How far each card lies nearer the viewer than the one on its left, so that the cards overlap from the left, the deepest, to the right, the nearest, at the seats that face the viewer (it fades to nothing at a seat turned a quarter, where the depth of the picture is the depth of the hand and orders the cards itself) |
 | `shadowBase`, `shadowPerCard`, `shadowOpacity` | The small round shadow: how far it reaches for no card, how much more for each, and how dark it is |
 
-- **The cards overlap from left to right, as in a normal hand:** the card on the viewer's left is the deepest and the one on their right the nearest to them, and the card in the middle is never in front of the others. The step is `stack` along the depth of the hand and follows the way the frame is turned, so it holds at every seat the hand faces the viewer at.
-- **The hand faces the viewer, and the plate faces the middle.** A hand that faces the middle exactly is seen edge on from the side of the table, its cards one behind another, and cannot be counted: `heldYaw` turns it toward the viewer (half a turn, which is the yaw of the seat across the table). The plate does not turn with it: it stays in the frame of the seat, which faces the middle, and its box is made from the cards put in that frame first (`outOfFrame`), as the box of a hand laid in the seat's own frame is. A board gives `PlayerSeat` the frame of the seat and `HeldHand` the frame of the hand.
-- **A card played leaves from the left end of the fan, as the viewer sees it, and a card drawn comes in at its right end.** The view says how many cards there are and no more, so the cards are named by a rule (`heldKeysFor`): the cards that stay keep their names and glide to their new slots, the one that leaves is the one at the left end, and each new one is a new name at the right end. The left end is the first slot for a frame that faces the viewer's way and the last for the one turned half a turn, where the fan runs the other way on the picture (`leftEndIsFirst`).
+- **The hand is turned as the name is.** A player is a line along the axis of their seat, drawn in the one frame of the seat (its top toward the middle of the table, [Seats](03-seats.md)): the plate, the play area, the hand, each turned with the seat and none of them turned on its own. A board gives `PlayerSeat` and `HeldHand` the same `frame`; the box that the plate stands above is made from the cards in that frame (`frameBoxOfPoses`), with nothing to put in another frame first.
+- **The cards overlap from left to right, as in a normal hand:** at the seats that face the viewer, the card on the viewer's left is the deepest and the one on their right the nearest to them, and the card in the middle is never in front of the others. The step is `stack` along the depth of the hand and follows the way the frame is turned. At a seat on a side the picture's depth does the ordering, and a hand of the numbers above still reads as the number of its cards.
+- **A card played leaves from the left end of the fan, as the viewer sees it, and a card drawn comes in at its right end.** The view says how many cards there are and no more, so the cards are named by a rule (`heldKeysFor`): the cards that stay keep their names and glide to their new slots, the one that leaves is the one at the left end, and each new one is a new name at the right end. The left end is the first slot for a seat that faces the viewer's way and the last for the one across the table, where the fan runs the other way on the picture (`leftEndIsFirst`).
 - `heldLeftPose(frame, layout, count)` is where a card that is played from a hand of `count` flies from, on the table: the left end of the hand, still the size it was. The template gives it to the card an opponent has played and to the bid card that comes from a hand (`heldFrom`).
-- A hand is laid in a frame of its own and never in the world's, so that its layout is the same for every seat and every number of players.
-- A hand that stands up hides the table behind it as the camera sees it, so the box that its plate stands beyond is the one the camera sees (`frameBoxOfPoses` with the camera's `tilt`), and a board's test compares the plate with the cards as seen.
+- A hand is laid in the frame of its seat and never in the world's, so that its layout is the same for every seat and every number of players.
+- A hand that stands up hides the table behind it as the camera sees it, so the box that its plate stands beyond is the one the camera sees (`frameBoxOfPoses` with the camera's `tilt`), brought onto the axis of the seat (`onAxis`), and a board's test compares the plate with the cards as seen.
 - The shadow is no part of the cards, so it has no state: it does not glow and it takes no press. A player is chosen by a `Hotspot` over the hand and its plate, whose glow is the cards' own ([Choosing a player](25-floor-buttons.md#choosing-a-player)).
 
-From `template/src/components/board/scene.tsx`, an opponent's hand and plate:
+From `template/src/components/board/scene.tsx`, an opponent's line: the plate stands above the play area and the hand, the hand is in the frame of the seat like the plate:
 
 ```tsx
-<PlayerSeat id={j.id} frame={seatFrame(s)} above={heldBox(s)} line={pointsText(j.points)} />
-<HeldHand count={j.cardCount} frame={heldFrame(s)} layout={(n) => heldLayout(n, s)} size={CARD_SIZE} back={back} enter={DECK_POSE} shadow={HELD_SHADOW} />
+<PlayerSeat id={j.id} frame={seatFrame(s)} above={seatBox(s)} line={pointsText(j.points)} />
+<HeldHand count={j.cardCount} frame={seatFrame(s)} layout={(n) => heldLayout(n, s)} size={CARD_SIZE} back={back} enter={DECK_POSE} shadow={HELD_SHADOW} />
 ```
 
 ## A trick

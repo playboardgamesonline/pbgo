@@ -26,7 +26,7 @@ export function SceneBoardSpecimen() {
   const first = hand[0]
   return (
     <SceneFrame
-      label="A small card table as Courtisans lays one: the viewer's hand held big at the bottom left of the screen, the cards the other players hold standing in a fan with a small round shadow under it, each name on the side of the cards that faces the middle of the table and the viewer's own in the middle of the front, a draw pile, and the middle of the table where played cards lie, on a dark mat lit at its middle"
+      label="A small card table as Courtisans lays one: every player a line along the axis of their seat, turned as their name is, from the middle of the table outward the name, the info line under it, a card in their play area and their hand (the cards the other players hold standing in a fan with a small round shadow under it, the viewer's held big at the bottom left of the screen), a draw pile, and the middle of the table where played cards lie, on a dark mat lit at its middle"
       controls={
         <>
           <Choice

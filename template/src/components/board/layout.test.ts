@@ -1,8 +1,8 @@
-import { aspectScale, cornersOfBox, frameBoxOfPoses, HELD_FAN_SETTINGS, inFrame, outOfFrame, placeCamera, plateAbove, plateBoxOf, plateOf, pointInFrame, type Pose, SEAT_SETTINGS, screenHandLayout, screenViewOf } from "@pbgo/table"
+import { aspectScale, boxesOverlap, cornersOfBox, frameBoxOfPoses, HELD_FAN_SETTINGS, inFrame, placeCamera, plateAbove, plateBoxOf, pointInFrame, type Pose, SEAT_SETTINGS, screenHandLayout, screenViewOf } from "@pbgo/table"
 import { PerspectiveCamera, Vector3 } from "three"
 import { describe, expect, it } from "vitest"
 import { CAMERA } from "./camera"
-import { BID, bidPose, bidRowPose, CLOCK, HAND_MAX, HAND_SETTINGS, heldBox, heldFrame, heldFrom, HELD_SHADOW, heldLayout, seatFrame, seats, trickPose } from "./layout"
+import { BID, bidPose, bidRowPose, CLOCK, collectedPose, HAND_MAX, HAND_SETTINGS, handBox, heldFrom, HELD_SHADOW, heldLayout, isViewerSeat, playBox, type SeatSpot, seatBox, seatFrame, seats, trickPose } from "./layout"
 import { CARD_SIZE } from "./textures"
 
 type Rect = { x: number; z: number; yaw: number; width: number; depth: number }
@@ -28,6 +28,22 @@ function overlap(a: Rect, b: Rect): boolean {
 
 const ids = (count: number) => Array.from({ length: count }, (_, i) => `p${i}`)
 
+/** A point of the world in the frame of a seat: x to the right of the player who sits there, the least z toward the middle of the table (the inverse of `pointInFrame`) */
+function inSeat(seat: SeatSpot, point: { x: number; z: number }): { x: number; z: number } {
+  const frame = seatFrame(seat)
+  const dx = point.x - frame.x
+  const dz = point.z - frame.z
+  return { x: dx * Math.cos(seat.yaw) - dz * Math.sin(seat.yaw), z: dx * Math.sin(seat.yaw) + dz * Math.cos(seat.yaw) }
+}
+
+/** Every table of two to eight players, with the viewer seated at each place */
+function everySeat(): { count: number; id: string; seat: SeatSpot }[] {
+  return Array.from({ length: 7 }, (_, i) => i + 2).flatMap((count) => {
+    const ring = seats(ids(count), "p0")
+    return [...ring].map(([id, seat]) => ({ count, id, seat }))
+  })
+}
+
 describe("the bid cards of the table", () => {
   it("lie in a row across the middle, the lowest bid on the left and the row centred", () => {
     const row = Array.from({ length: 6 }, (_, k) => bidRowPose(k, 6).position)
@@ -51,15 +67,24 @@ describe("the bid cards of the table", () => {
     expect(raised.position.z).toBeGreaterThan(rest.position.z)
   })
 
-  it("lie face up or face down at the seat, on the line to the middle, turned as the seat is", () => {
-    const seat = seats(ids(4), "p0").get("p2")!
-    const up = bidPose(seat, true)
-    const down = bidPose(seat, false)
-    expect(up.position.x).toBeCloseTo(seat.x * BID.toward, 6)
-    expect(up.position.z).toBeCloseTo(seat.z * BID.toward, 6)
-    // The two lie on the same spot, one turned over
-    expect(down.position.equals(up.position)).toBe(true)
-    expect(down.quaternion.equals(up.quaternion)).toBe(false)
+  it("lie face up or face down in the play area of the seat, on its axis, turned as the seat is", () => {
+    for (const { count, id, seat } of everySeat()) {
+      const up = bidPose(seat, true)
+      const down = bidPose(seat, false)
+      // On the axis of the seat, a card's width from it, in the play area
+      const place = inSeat(seat, up.position)
+      expect(place.x, `${id} of ${count}`).toBeCloseTo(0, 6)
+      const play = playBox(seat)
+      expect(place.z, `${id} of ${count}`).toBeGreaterThan(play.minZ)
+      expect(place.z, `${id} of ${count}`).toBeLessThan(play.maxZ)
+      // The top of the card points the way the top of the frame does, at the middle of the table: it is turned as the name is
+      const top = new Vector3(0, 1, 0).applyQuaternion(up.quaternion)
+      const toMiddle = pointInFrame({ ...seatFrame(seat), x: 0, z: 0 }, { x: 0, z: -1 })
+      expect(top.x * toMiddle.x + top.z * toMiddle.z, `${id} of ${count}`).toBeCloseTo(1, 6)
+      // The two lie on the same spot, one turned over
+      expect(down.position.equals(up.position)).toBe(true)
+      expect(down.quaternion.equals(up.quaternion)).toBe(false)
+    }
   })
 
   it("leave room for one another, for the clock and for the row, at a table of two to six players, whoever the viewer is", () => {
@@ -141,7 +166,7 @@ function polygonsOverlap(a: Polygon, b: Polygon): boolean {
 
 type Hand = { id: string; cards: Polygon[]; plate: Polygon }
 
-/** The hands and the plates of a table of `count` as the viewer `viewer` sees it (`null`: a spectator, who has no seat) in a window of this aspect ratio: for each player the polygons of their cards on the screen, hands of every size, and the one of their plate. The viewer's hand is the screen hand, in the frame of the camera; their plate is at their seat */
+/** The hands and the plates of a table of `count` as the viewer `viewer` sees it (`null`: a spectator, who has no seat) in a window of this aspect ratio: for each player the polygons of their cards on the screen, hands of every size, and the one of their plate, which stands above their play area and their hand in the frame of their seat. The viewer's hand is the screen hand, in the frame of the camera */
 function hands(count: number, viewer: number | null, aspect: number): Hand[] {
   const players = ids(count)
   const me = viewer === null ? null : players[viewer]!
@@ -150,18 +175,13 @@ function hands(count: number, viewer: number | null, aspect: number): Hand[] {
   const view = screenViewOf({ m00: camera.projectionMatrix.elements[0]!, m11: camera.projectionMatrix.elements[5]! }, HAND_SETTINGS.distance)
   return players.map((id) => {
     const seat = ring.get(id)!
-    if (id === me) {
-      const cards = Array.from({ length: HAND_MAX }, (_, i) => screenHandLayout(i + 1, view, CARD_SIZE, HAND_SETTINGS).map((pose) => handCardOnScreen(camera, pose))).flat()
-      const plate = plateBoxOf(plateOf(seat, true))
-      return { id, cards, plate: flatOnScreen(camera, cornersOfBox(plate, { x: 0, z: 0, yaw: 0 })) }
-    }
-    const frame = heldFrame(seat)
-    const cards = Array.from({ length: HAND_MAX }, (_, i) => heldLayout(i + 1, seat).map((pose) => cardOnScreen(camera, inFrame(frame, pose)))).flat()
-    return { id, cards, plate: flatOnScreen(camera, cornersOfBox(plateBoxOf(plateAbove(heldBox(seat))), seatFrame(seat))) }
+    const plate = flatOnScreen(camera, cornersOfBox(plateBoxOf(plateAbove(seatBox(seat))), seatFrame(seat)))
+    if (id === me) return { id, cards: Array.from({ length: HAND_MAX }, (_, i) => screenHandLayout(i + 1, view, CARD_SIZE, HAND_SETTINGS).map((pose) => handCardOnScreen(camera, pose))).flat(), plate }
+    return { id, cards: Array.from({ length: HAND_MAX }, (_, i) => heldLayout(i + 1, seat).map((pose) => cardOnScreen(camera, inFrame(seatFrame(seat), pose)))).flat(), plate }
   })
 }
 
-/** What else lies on the table of `count` while the players bid and play: the bid each player has made, the card each has played to the middle, the row of bid cards the viewer chooses from (at its longest) and the clock */
+/** What else lies on the table of `count` while the players bid and play: the bid each player has made, the card each has played to the middle, the pile of the tricks each has won, the row of bid cards the viewer chooses from (at its longest) and the clock */
 function middle(count: number, viewer: number | null, aspect: number) {
   const players = ids(count)
   const ring = seats(players, viewer === null ? null : players[viewer]!)
@@ -169,6 +189,7 @@ function middle(count: number, viewer: number | null, aspect: number) {
   const things = players.flatMap((id) => [
     { what: `bid of ${id}`, shape: cardOnScreen(camera, bidPose(ring.get(id)!, true)) },
     { what: `trick card of ${id}`, shape: cardOnScreen(camera, trickPose(ring.get(id)!, 0)) },
+    { what: `pile of won tricks of ${id}`, shape: cardOnScreen(camera, collectedPose(ring.get(id)!)) },
   ])
   if (viewer !== null) for (let k = 0; k < 11; k++) things.push({ what: `bid card ${k}`, shape: cardOnScreen(camera, bidRowPose(k, 11)) })
   const half = CLOCK.size / 2
@@ -191,21 +212,19 @@ const TABLES = ASPECTS.flatMap((aspect) => [
 ])
 
 describe("the hands of the table", () => {
-  it("face the viewer, and the seats face the middle: the plate of an opponent is in a frame whose top points at the middle, their hand is turned toward the viewer so that the backs of its cards look their way", () => {
-    for (let count = 2; count <= 8; count++) {
-      const ring = seats(ids(count), "p0")
-      for (const [id, seat] of ring) {
-        if (id === "p0") continue
-        const plate = seatFrame(seat)
-        const top = pointInFrame({ ...plate, x: 0, z: 0 }, { x: 0, z: -1 })
-        const toMiddle = { x: -plate.x / Math.hypot(plate.x, plate.z), z: -plate.z / Math.hypot(plate.x, plate.z) }
-        expect(top.x * toMiddle.x + top.z * toMiddle.z, `${id} of ${count}`).toBeCloseTo(1, 9)
-        // the viewer is toward +z, and above
-        for (const pose of heldLayout(5, seat)) {
-          const back = new Vector3(0, 0, -1).applyQuaternion(inFrame(heldFrame(seat), pose).quaternion)
-          expect(back.z, `a card of ${id} of ${count}`).toBeGreaterThan(0.9)
-          expect(back.y, `a card of ${id} of ${count}`).toBeGreaterThan(0)
-        }
+  it("are turned as their seat is, like the name: the top of the frame of a seat points at the middle, and the backs of the cards of a hand look that way, whoever sits where", () => {
+    for (const { count, id, seat } of everySeat()) {
+      if (isViewerSeat(seat)) continue
+      const frame = seatFrame(seat)
+      const top = pointInFrame({ ...frame, x: 0, z: 0 }, { x: 0, z: -1 })
+      // The way from the seat on the ring to the middle of the table: the frame stands on that line, a little beyond the seat
+      const toMiddle = { x: -seat.x / Math.hypot(seat.x, seat.z), z: -seat.z / Math.hypot(seat.x, seat.z) }
+      expect(top.x * toMiddle.x + top.z * toMiddle.z, `${id} of ${count}`).toBeCloseTo(1, 9)
+      for (const pose of heldLayout(5, seat)) {
+        // The hand has no turn of its own: in the frame of the seat its backs look toward the middle, leaning up a little
+        const back = new Vector3(0, 0, -1).applyQuaternion(inFrame(frame, pose).quaternion)
+        expect(back.x * toMiddle.x + back.z * toMiddle.z, `a card of ${id} of ${count}`).toBeGreaterThan(0.8)
+        expect(back.y, `a card of ${id} of ${count}`).toBeGreaterThan(0)
       }
     }
   })
@@ -216,8 +235,8 @@ describe("the hands of the table", () => {
       const cards = heldLayout(n, seat)
       for (const pose of cards) {
         const back = new Vector3(0, 0, -1).applyQuaternion(pose.quaternion)
-        // How far a card is from straight up: the angle between its back and the table's up is a quarter turn less
-        expect(Math.asin(Math.min(1, Math.abs(back.y))), `a hand of ${n}`).toBeLessThan(0.45)
+        // How far a card is from straight up: the angle between its back and the table's up is a quarter turn less. It leans a little, more at a seat that is seen from the side
+        expect(Math.asin(Math.min(1, Math.abs(back.y))), `a hand of ${n}`).toBeLessThan(HELD_FAN_SETTINGS.sideLean + 0.05)
       }
       const left = Math.min(...cards.map((pose) => pose.position.x))
       const right = Math.max(...cards.map((pose) => pose.position.x))
@@ -227,10 +246,9 @@ describe("the hands of the table", () => {
 
   it("stay where they are as a player's cards are played: the room holds a hand of every size", () => {
     const seat = seats(ids(4), "p0").get("p1")!
-    const room = heldBox(seat)
+    const room = handBox(seat)
     for (let n = 1; n <= HAND_MAX; n++) {
-      const placed = heldLayout(n, seat).map((pose) => outOfFrame(seatFrame(seat), inFrame(heldFrame(seat), pose)))
-      const hand = frameBoxOfPoses(placed, CARD_SIZE, seatFrame(seat), { tilt: CAMERA.tilt })!
+      const hand = frameBoxOfPoses(heldLayout(n, seat), CARD_SIZE, seatFrame(seat), { tilt: CAMERA.tilt })!
       expect(hand.minX).toBeGreaterThanOrEqual(room.minX - 1e-9)
       expect(hand.maxX).toBeLessThanOrEqual(room.maxX + 1e-9)
       expect(hand.minZ).toBeGreaterThanOrEqual(room.minZ - 1e-9)
@@ -268,18 +286,74 @@ describe("the hands of the table", () => {
     for (const [id, seat] of ring) {
       if (id === "p0") continue
       const from = heldFrom(seat, 5)
-      const xs = heldLayout(5, seat).map((pose) => inFrame(heldFrame(seat), pose).position.x)
+      const xs = heldLayout(5, seat).map((pose) => inFrame(seatFrame(seat), pose).position.x)
       expect(from.position.x, id).toBeCloseTo(Math.min(...xs), 6)
     }
   })
 })
 
 describe("the plates of the table", () => {
-  it("stand on the side of the cards of their player that faces the middle, whoever sits where", () => {
-    for (const seat of seats(ids(5), "p0").values()) {
-      if (seat.z > 0) continue
-      const box = heldBox(seat)
-      expect(plateBoxOf(plateAbove(box)).maxZ).toBeLessThanOrEqual(box.minZ - SEAT_SETTINGS.plateGap + 1e-9)
+  it("line a seat up on its axis, from the middle of the table outward: the name, the info line just under it, the play area, then the hand, at every seat, the viewer's included", () => {
+    for (const { count, id, seat } of everySeat()) {
+      const where = `${id} of ${count}`
+      const hand = handBox(seat)
+      const play = playBox(seat)
+      const plate = plateAbove(seatBox(seat))
+      const plateBox = plateBoxOf(plate)
+      // In the frame of the seat, the least z is toward the middle: the plate, then the play area, then the hand, each clear of the next
+      expect(plateBox.maxZ, where).toBeLessThanOrEqual(play.minZ - SEAT_SETTINGS.plateGap + 1e-9)
+      expect(play.maxZ, where).toBeLessThanOrEqual(hand.minZ - BID.room + 1e-9)
+      // The name comes first and the info line just under it, toward the cards
+      expect(plate.nameZ, where).toBeLessThan(plate.lineZ)
+      expect(plate.lineZ - plate.nameZ, where).toBeLessThan(1)
+      // All on the same axis: the plate, the play area and the hand are centred on x = 0 of the frame
+      expect(plate.x, where).toBeCloseTo(0, 9)
+      expect((play.minX + play.maxX) / 2, where).toBeCloseTo(0, 9)
+      expect((hand.minX + hand.maxX) / 2, where).toBeCloseTo(0, 9)
+      // And the box that holds a seat is the two of them, so that the plate has no other place to stand
+      expect(boxesOverlap(plateBox, play), where).toBe(false)
+      expect(boxesOverlap(play, hand), where).toBe(false)
+      expect(boxesOverlap(plateBox, hand), where).toBe(false)
+    }
+  })
+
+  it("stand in the frame of the seat, turned like the cards: a point of the axis is at the same place for the plate, the bid and the hand", () => {
+    for (const { count, id, seat } of everySeat()) {
+      // The bid card and the feet of the hand are on the line through the seat's frame, x = 0: the same line the plate is centred on
+      const bid = inSeat(seat, bidPose(seat, true).position)
+      expect(bid.x, `${id} of ${count}`).toBeCloseTo(0, 6)
+      if (isViewerSeat(seat)) continue
+      for (const pose of heldLayout(5, seat)) expect(Math.abs(inSeat(seat, inFrame(seatFrame(seat), pose).position).x), `${id} of ${count}`).toBeLessThan(1)
+      const middleOfHand = inSeat(seat, inFrame(seatFrame(seat), heldLayout(5, seat)[2]!).position)
+      expect(middleOfHand.x, `${id} of ${count}`).toBeCloseTo(0, 6)
+    }
+  })
+
+  it("stay whole in the picture, with the cards of the others and the play area of their seat, in every window", () => {
+    for (const { count, viewer, aspect } of TABLES) {
+      for (const { id, plate, cards } of hands(count, viewer, aspect)) {
+        for (const point of plate) {
+          expect(Math.abs(point.x), `plate of ${id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
+          expect(point.y, `plate of ${id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
+          expect(point.y, `plate of ${id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeGreaterThan(-1)
+        }
+        // The cards of an opponent too (the viewer's hand is cut by the bottom edge of the picture on purpose)
+        if (viewer === null || id !== `p${viewer}`) {
+          for (const card of cards) {
+            for (const point of card) {
+              expect(Math.abs(point.x), `cards of ${id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
+              expect(point.y, `cards of ${id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
+            }
+          }
+        }
+      }
+      for (const { what, shape } of middle(count, viewer, aspect).filter(({ what }) => what.startsWith("bid of") || what.startsWith("pile of"))) {
+        for (const point of shape) {
+          expect(Math.abs(point.x), `${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
+          expect(point.y, `${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
+          expect(point.y, `${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeGreaterThan(-1)
+        }
+      }
     }
   })
 

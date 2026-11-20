@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Bids } from "./bids"
 import { CAMERA, PHOTO } from "./camera"
 import { HELD_FAN_FIELDS, HELD_FAN_SETTINGS, HeldHand, PlayerSeat, SCREEN_HAND_FIELDS, ScreenHand, screenHandLayout, Table, Timer, useSettings, Zone, type Pose, type ZoneCard } from "@pbgo/table"
-import { CLOCK, DECK_POSE, collectedPose, HAND_SETTINGS, heldFrame, heldFrom, heldBox, heldLayout, HELD_SHADOW, LAYOUT_SETTINGS, seatFrame, seats, trickPose } from "./layout"
+import { CLOCK, DECK_POSE, collectedPose, HAND_SETTINGS, heldFrom, heldLayout, HELD_SHADOW, LAYOUT_SETTINGS, seatBox, seatFrame, seats, trickPose } from "./layout"
 import { CARD_SIZE, MAT_COLOR, MAT_LIGHT, backTexture, faceTexture, matTexture } from "./textures"
 
 function useCollect(view: PlayerView) {
@@ -25,10 +25,11 @@ function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: 
   useSettings("Layout", LAYOUT_SETTINGS, {
     radiusX: ["seat ring radius x", 3, 14, 0.1],
     radiusZ: ["seat ring radius z", 2, 10, 0.1],
-    heldReach: ["opponent hand reach", 0.8, 1.6, 0.01],
+    reachX: ["seat line reach x", 0.8, 1.6, 0.01],
+    reachZ: ["seat line reach z", 0.8, 1.6, 0.01],
     trickGap: ["trick spread", 0, 1, 0.01],
   }, { order: 1 })
-  // The cards the others hold are a small fan of backs that stands, turned toward the viewer: the Held hands folder tunes it
+  // The cards the others hold are a small fan of backs that stands, in the frame of its seat like the name: the Held hands folder tunes it
   useSettings("Held hands", HELD_FAN_SETTINGS, HELD_FAN_FIELDS, { order: 3 })
   // The viewer's hand is held at the bottom left of the screen, as Courtisans does: the Hand folder tunes it
   useSettings("Hand", HAND_SETTINGS, SCREEN_HAND_FIELDS, { order: 2 })
@@ -75,22 +76,23 @@ function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: 
 
   return (
     <>
-      {/* The hands of the others: a small fan of backs that stands, turned toward the viewer so that its cards can be counted, a small round shadow under it, and the plate of the player on the side that faces the middle, turned with the seat. A card played leaves from the left end, a card drawn comes in at the right */}
+      {/* Every player is a line along the axis of their seat, turned as their name is, and in this order from the middle of the table: the plate (the name, the info line under it), the play area (the bid) and the hand. The hands of the others are a small fan of backs that stands, with a small
+          round shadow under it: a card played leaves from the left end, a card drawn comes in at the right */}
       {view.players
         .filter((j) => j.id !== meId)
         .map((j) => {
           const s = slots.get(j.id)!
           return (
             <group key={j.id}>
-              <PlayerSeat id={j.id} frame={seatFrame(s)} above={heldBox(s)} line={pointsText(j.points)} />
-              <HeldHand count={j.cardCount} frame={heldFrame(s)} layout={(n) => heldLayout(n, s)} size={CARD_SIZE} back={back} enter={DECK_POSE} shadow={HELD_SHADOW} />
+              <PlayerSeat id={j.id} frame={seatFrame(s)} above={seatBox(s)} line={pointsText(j.points)} />
+              <HeldHand count={j.cardCount} frame={seatFrame(s)} layout={(n) => heldLayout(n, s)} size={CARD_SIZE} back={back} enter={DECK_POSE} shadow={HELD_SHADOW} />
             </group>
           )
         })}
-      {/* The viewer: their name stays at their seat, in the middle of the front of the table, and their hand is held at the bottom left of the screen, as in Courtisans */}
+      {/* The viewer is the same line at the front of the table: the plate, then the play area, then their hand, which is held at the bottom left of the screen, as in Courtisans, whatever the window */}
       {meId && (
         <>
-          <PlayerSeat id={meId} spot={slots.get(meId)!} viewer line={pointsText(view.players.find((j) => j.id === meId)?.points ?? 0)} />
+          <PlayerSeat id={meId} frame={seatFrame(slots.get(meId)!)} above={seatBox(slots.get(meId)!)} line={pointsText(view.players.find((j) => j.id === meId)?.points ?? 0)} />
           <ScreenHand settings={HAND_SETTINGS}>
             {(screen) => <Zone layout={screenHandLayout(hand.length, screen, CARD_SIZE, HAND_SETTINGS, raised)} size={CARD_SIZE} enter={screen.local(DECK_POSE)} cards={handCards} />}
           </ScreenHand>

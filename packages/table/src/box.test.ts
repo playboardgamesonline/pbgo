@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { boxesOverlap, boxOfPoses, boxOfRect, centreOf, cornersOfBox, frameBoxOfPoses, joinBoxes, pointInFrame, type TableBox } from "./box"
+import { boxAbove, boxesOverlap, boxOfPoses, boxOfRect, centreOf, cornersOfBox, frameBoxOfPoses, joinBoxes, onAxis, pointInFrame, type TableBox } from "./box"
 import { fan, inFrame, row } from "./layout"
 import { onTable } from "./pose"
 
@@ -24,6 +24,41 @@ describe("boxOfRect", () => {
     const eighth = boxOfRect({ x: 0, z: 0, width: 6, depth: 2, yaw: Math.PI / 4 })
     expect(eighth.maxX - eighth.minX).toBeCloseTo((6 + 2) * Math.SQRT1_2)
     expect(centreOf(eighth)).toEqual({ x: 0, z: 0 })
+  })
+})
+
+describe("boxAbove", () => {
+  const hand: TableBox = { minX: -1, maxX: 3, minZ: 2, maxZ: 3 }
+
+  it("stands on the middle's side of a box (toward its least z), the gap clear of it, and as wide and as deep as asked", () => {
+    const area = boxAbove(hand, { width: 1.5, depth: 2 }, 0.25)
+    expect(area.maxZ).toBeCloseTo(hand.minZ - 0.25)
+    expect(area.minZ).toBeCloseTo(hand.minZ - 0.25 - 2)
+    expect(area.maxX - area.minX).toBeCloseTo(1.5)
+  })
+
+  it("is centred on the box it stands beside unless it is given an x, and never overlaps it", () => {
+    expect(centreOf(boxAbove(hand, { width: 1.5, depth: 2 })).x).toBeCloseTo(1)
+    expect(centreOf(boxAbove(hand, { width: 1.5, depth: 2 }, 0, 0)).x).toBeCloseTo(0)
+    expect(boxesOverlap(boxAbove(hand, { width: 1.5, depth: 2 }), hand)).toBe(false)
+  })
+
+  it("lines the things of a seat up, each above the one before: the hand, the play area above it and the plate above both", () => {
+    const area = boxAbove(hand, { width: 1.5, depth: 2 }, 0.25)
+    const seat = joinBoxes([hand, area])!
+    expect(seat.minZ).toBeCloseTo(area.minZ)
+    expect(seat.maxZ).toBeCloseTo(hand.maxZ)
+  })
+})
+
+describe("onAxis", () => {
+  it("is as far to the left of the axis as to the right, and keeps the depth of the box", () => {
+    expect(onAxis({ minX: -1, maxX: 3, minZ: -2, maxZ: 1 })).toEqual({ minX: -3, maxX: 3, minZ: -2, maxZ: 1 })
+    expect(onAxis({ minX: -4, maxX: 0.5, minZ: 0, maxZ: 2 })).toEqual({ minX: -4, maxX: 4, minZ: 0, maxZ: 2 })
+  })
+
+  it("centres what is placed from it on the axis", () => {
+    expect(centreOf(onAxis({ minX: 1, maxX: 3, minZ: 0, maxZ: 1 })).x).toBeCloseTo(0)
   })
 })
 
