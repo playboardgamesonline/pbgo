@@ -1,6 +1,6 @@
 import { Euler, Quaternion, Vector3 } from "three"
 import { describe, expect, it } from "vitest"
-import { fan, grid, inFrame, pile, row, seats } from "./layout"
+import { fan, grid, inFrame, outOfFrame, pile, row, seats } from "./layout"
 import { FACE_DOWN, FACE_UP, type Pose, RESTING_HEIGHT, onTable } from "./pose"
 
 const AXES = [new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1)]
@@ -60,6 +60,28 @@ describe("inFrame", () => {
     expectSameRotation(pose.quaternion, FACE_UP)
     expect(spot).toEqual({ x: 1, z: 1, yaw: 0.3 })
     expect("delay" in inFrame(spot, pose)).toBe(false)
+  })
+})
+
+describe("outOfFrame", () => {
+  it("is the inverse of inFrame: a pose put in a frame and taken out of it is the pose it was", () => {
+    const pose = onTable(1.5, -2, { y: 0.4, face: "down", yaw: 0.3, scale: 0.7, delay: 0.1 })
+    for (const spot of [{ x: 0, z: 0 }, { x: 3, z: -4, yaw: 0.8 }, { x: -7, z: 2, yaw: -2.4 }, { x: 5, z: 5, yaw: Math.PI }]) {
+      const back = outOfFrame(spot, inFrame(spot, pose))
+      expectAt(back, pose.position.x, pose.position.y, pose.position.z)
+      expectSameRotation(back.quaternion, pose.quaternion)
+      expect(back.scale).toBe(0.7)
+      expect(back.delay).toBe(0.1)
+    }
+  })
+
+  it("says where something on the table is in the frame of a seat: a place beyond the seat toward the middle is at the least z of its frame", () => {
+    const seat = { x: -8, z: 0, yaw: -Math.PI / 2 }
+    const middle = onTable(0, 0)
+    // the middle of the table, from a seat on the left that faces it: straight ahead, which is -z of the seat's frame
+    const inSeat = outOfFrame(seat, middle)
+    expect(inSeat.position.x).toBeCloseTo(0, 9)
+    expect(inSeat.position.z).toBeCloseTo(-8, 9)
   })
 })
 
@@ -128,6 +150,22 @@ describe("fan", () => {
     expect(topOf(cards[1]).x).toBeCloseTo(0, 12)
     expect(topOf(cards[2]).x).toBeGreaterThan(0)
     expect(topOf(cards[2]).x).toBeCloseTo(Math.sin(0.1), 12)
+  })
+
+  it("turns about the feet of the cards when it is given the height of a card: the feet stay where gap, y and z put them, whatever the roll and the lean", () => {
+    const options = { gap: 0.2, y: 0.03, rise: 0.004, z: 1, curve: 0.05, tilt: -1.3, roll: 0.1, face: "down" as const, scale: 0.68, foot: 1.9 }
+    const cards = fan(5, options)
+    cards.forEach((card, i) => {
+      const off = i - 2
+      const foot = card.position.clone().sub(topOf(card).multiplyScalar((1.9 * 0.68) / 2))
+      expectAt({ ...card, position: foot }, off * 0.2, 0.03 + i * 0.004, 1 + Math.abs(off) * 0.05)
+    })
+  })
+
+  it("turns about the middle of the cards without the height of a card, as it always did", () => {
+    const withFoot = fan(3, { gap: 1, tilt: 0.3, roll: 0.1 })
+    const plain = fan(3, { gap: 1, tilt: 0.3, roll: 0.1, foot: undefined })
+    withFoot.forEach((card, i) => expectAt(plain[i]!, card.position.x, card.position.y, card.position.z))
   })
 
   it("turns the cards the same way about the vertical axis whichever face is up", () => {

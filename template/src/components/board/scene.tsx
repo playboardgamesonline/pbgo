@@ -4,8 +4,8 @@ import type { PlayedCard, PlayerView } from "@template/engine"
 import { useEffect, useMemo, useState } from "react"
 import { Bids } from "./bids"
 import { CAMERA, PHOTO } from "./camera"
-import { HeldHand, PlayerSeat, SCREEN_HAND_FIELDS, ScreenHand, screenHandLayout, Table, Timer, useSettings, Zone, type Pose, type ZoneCard } from "@pbgo/table"
-import { CLOCK, DECK_POSE, collectedPose, HAND_SETTINGS, heldFrame, heldFrom, heldBox, heldLayout, HELD_SHADOW, LAYOUT_SETTINGS, seats, trickPose } from "./layout"
+import { HELD_FAN_FIELDS, HELD_FAN_SETTINGS, HeldHand, PlayerSeat, SCREEN_HAND_FIELDS, ScreenHand, screenHandLayout, Table, Timer, useSettings, Zone, type Pose, type ZoneCard } from "@pbgo/table"
+import { CLOCK, DECK_POSE, collectedPose, HAND_SETTINGS, heldFrame, heldFrom, heldBox, heldLayout, HELD_SHADOW, LAYOUT_SETTINGS, seatFrame, seats, trickPose } from "./layout"
 import { CARD_SIZE, MAT_COLOR, MAT_LIGHT, backTexture, faceTexture, matTexture } from "./textures"
 
 function useCollect(view: PlayerView) {
@@ -26,14 +26,10 @@ function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: 
     radiusX: ["seat ring radius x", 3, 14, 0.1],
     radiusZ: ["seat ring radius z", 2, 10, 0.1],
     heldReach: ["opponent hand reach", 0.8, 1.6, 0.01],
-    heldGap: ["opponent hand spacing", 0.1, 0.8, 0.01],
-    heldScale: ["opponent hand scale", 0.3, 1, 0.01],
-    heldY: ["opponent hand height", 0, 2, 0.05],
-    heldRoll: ["opponent hand fan", 0, 0.4, 0.005],
-    heldTilt: ["opponent hand lean (front)", -1.57, 0, 0.01],
-    heldSideTilt: ["opponent hand lean (side)", -1.57, 0, 0.01],
     trickGap: ["trick spread", 0, 1, 0.01],
   }, { order: 1 })
+  // The cards the others hold are a small fan of backs that stands, turned toward the viewer: the Held hands folder tunes it
+  useSettings("Held hands", HELD_FAN_SETTINGS, HELD_FAN_FIELDS, { order: 3 })
   // The viewer's hand is held at the bottom left of the screen, as Courtisans does: the Hand folder tunes it
   useSettings("Hand", HAND_SETTINGS, SCREEN_HAND_FIELDS, { order: 2 })
   const meId = view.me?.id ?? null
@@ -79,16 +75,15 @@ function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: 
 
   return (
     <>
-      {/* The hands of the others: a fan of backs held up, a small round shadow under it, and the plate of the player on the side that faces the middle, turned with the seat. A card played leaves from the left end, a card drawn comes in at the right */}
+      {/* The hands of the others: a small fan of backs that stands, turned toward the viewer so that its cards can be counted, a small round shadow under it, and the plate of the player on the side that faces the middle, turned with the seat. A card played leaves from the left end, a card drawn comes in at the right */}
       {view.players
         .filter((j) => j.id !== meId)
         .map((j) => {
           const s = slots.get(j.id)!
-          const frame = heldFrame(s)
           return (
             <group key={j.id}>
-              <PlayerSeat id={j.id} frame={frame} above={heldBox(s)} line={pointsText(j.points)} />
-              <HeldHand count={j.cardCount} frame={frame} layout={(n) => heldLayout(n, s.yaw)} size={CARD_SIZE} back={back} enter={DECK_POSE} shadow={HELD_SHADOW} />
+              <PlayerSeat id={j.id} frame={seatFrame(s)} above={heldBox(s)} line={pointsText(j.points)} />
+              <HeldHand count={j.cardCount} frame={heldFrame(s)} layout={(n) => heldLayout(n, s)} size={CARD_SIZE} back={back} enter={DECK_POSE} shadow={HELD_SHADOW} />
             </group>
           )
         })}

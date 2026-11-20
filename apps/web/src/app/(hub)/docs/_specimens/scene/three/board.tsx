@@ -1,13 +1,13 @@
 "use client"
 
 import { DEFAULT_SEAT_THEME } from "@pbgo/core/lib/ui-theme"
-import { type CameraSettings, fan, frameBoxOfPoses, HeldHand, Pile, type Pose, RESTING_HEIGHT, row, SCREEN_HAND_SETTINGS, ScreenHand, screenHandLayout, Seat, seats, type Spot, Zone, type ZoneCard } from "@pbgo/table"
+import { type CameraSettings, frameBoxOfPoses, heldFan, HeldHand, heldShadow, heldYaw, inFrame, outOfFrame, Pile, type Pose, RESTING_HEIGHT, row, SCREEN_HAND_SETTINGS, ScreenHand, screenHandLayout, Seat, seats, type Spot, Zone, type ZoneCard } from "@pbgo/table"
 import { useState } from "react"
 import { back, CARD_SIZE, DECK, face, mat, palette } from "./art"
 import { Stage } from "./parts"
 
 // A whole small card table on the shared tools, the way the template builds one (`template/src/components/board/`, whose numbers these are) and as Courtisans lays its own: the viewer's hand held at the bottom left of the screen (`ScreenHand`, a `Zone` in the frame of the
-// camera), the cards each other player holds as a fan of backs that stands, with a small round shadow under it (`HeldHand`) and their name on the side of the cards that faces the middle, the viewer's name in the middle of the front of the table, a draw `Pile` and the middle of the
+// camera), the cards each other player holds as a small fan of backs that stands, turned toward the viewer, with a small round shadow under it (`HeldHand`) and their name on the side of the cards that faces the middle, the viewer's name in the middle of the front of the table, a draw `Pile` and the middle of the
 // table, which is a `Zone` too, all on a dark mat lit at its middle. The scene holds no rule: it is given what is where, and sends the card that was pressed.
 
 const CAMERA: CameraSettings = { tilt: 42, yaw: 0, distance: 21, fov: 34, targetX: 0, targetZ: 1.2 }
@@ -26,19 +26,18 @@ type Seated = Required<Spot>
 /** The viewer's hand: Courtisans' numbers, with the room it may take stopped short of the viewer's name in the middle. */
 const HAND = { ...SCREEN_HAND_SETTINGS, room: 0.42 }
 
-/** The frame of the cards an opponent holds: just beyond their seat, turned like it, so its top is toward the middle of the table. */
-function heldFrame(seat: Seated): Spot {
+/** The frame of an opponent at their seat: just beyond it, turned like it, so its top is toward the middle of the table. Their name stands in it, facing the middle. */
+function seatFrame(seat: Seated): Spot {
   return { x: seat.x * 1.2, z: seat.z * 1.2, yaw: seat.yaw }
 }
 
-/** Their backs, in a fan that stands: nearly straight for a seat the viewer sees from the front, leaning toward the middle for one at the side. */
-function heldLayout(n: number, yaw: number): Pose[] {
-  const tilt = -1.25 + (-1.0 + 1.25) * Math.abs(Math.sin(yaw))
-  return fan(n, { gap: 0.3, y: 0.66, rise: 0.004, curve: 0.08, tilt, roll: 0.12, face: "down", scale: 0.68 })
+/** The frame of the cards an opponent holds: at their seat, turned toward the viewer, so that their backs show and the cards can be counted. */
+function handFrame(seat: Seated): Spot {
+  return { ...seatFrame(seat), yaw: heldYaw(seat.yaw) }
 }
 
-/** How far the round shadow under a hand of `n` reaches. */
-const SHADOW = { radius: (n: number) => 0.6 + 0.13 * n, opacity: 0.55 }
+/** The small round shadow under a hand. */
+const SHADOW = heldShadow()
 
 /** The cards played to the middle, side by side. */
 function middleLayout(n: number): Pose[] {
@@ -71,13 +70,16 @@ export function BoardScene({ players, hand, played, onPlay }: { players: number;
   return (
     <Stage id="scene-board" camera={CAMERA} surface={mat()}>
       {ring.slice(1).map((seat, i) => {
-        const frame = heldFrame(seat)
-        const cards = frameBoxOfPoses(heldLayout(OPPONENT_CARDS, seat.yaw), CARD_SIZE, frame, { tilt: CAMERA.tilt })!
+        const plate = seatFrame(seat)
+        const hand = handFrame(seat)
+        const yaw = heldYaw(seat.yaw)
+        // The cards, in the frame of the seat: the hand is turned toward the viewer and the name is not
+        const cards = frameBoxOfPoses(heldFan(OPPONENT_CARDS, yaw, CARD_SIZE).map((pose) => outOfFrame(plate, inFrame(hand, pose))), CARD_SIZE, plate, { tilt: CAMERA.tilt })!
         return (
           <group key={i}>
             {/* The name stands on the side of the cards that faces the middle of the table, turned with the seat */}
-            <Seat frame={frame} above={cards} nickname={NAMES[i + 1] ?? `Player ${i + 2}`} color={colors[i + 1] ?? p.ivory} theme={DEFAULT_SEAT_THEME} line="0 pts" />
-            <HeldHand count={OPPONENT_CARDS} frame={frame} layout={(n) => heldLayout(n, seat.yaw)} size={CARD_SIZE} back={cardBack} enter={DECK} shadow={SHADOW} />
+            <Seat frame={plate} above={cards} nickname={NAMES[i + 1] ?? `Player ${i + 2}`} color={colors[i + 1] ?? p.ivory} theme={DEFAULT_SEAT_THEME} line="0 pts" />
+            <HeldHand count={OPPONENT_CARDS} frame={hand} layout={(n) => heldFan(n, yaw, CARD_SIZE)} size={CARD_SIZE} back={cardBack} enter={DECK} shadow={SHADOW} />
           </group>
         )
       })}

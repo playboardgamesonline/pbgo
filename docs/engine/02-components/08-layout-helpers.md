@@ -11,6 +11,7 @@ A layout helper returns the poses of a zone: one `Pose` per card, in the order o
 | `pile(n, options)` | `Pose[]` | A stack at the origin, the bottom card first |
 | `grid(n, options)` | `Pose[]` | Lines in reading order: the first line is the farthest from the viewer, the first card on its left, and a last line that is not full stays on the left |
 | `inFrame(spot, pose)` | `Pose` | A pose drawn in the frame of a spot, put on the table: it turns first, then moves |
+| `outOfFrame(spot, pose)` | `Pose` | The inverse of `inFrame`: a pose of the table put in the frame of a spot, for what lies in one frame and is wanted in another (the box of a hand turned toward the viewer, in the frame of its seat) |
 
 A `Spot` is `{ x, z, yaw? }`. The options are `FanOptions`, `RowOptions`, `PileOptions` and `GridOptions`.
 
@@ -39,6 +40,7 @@ scene-layouts
 | `topFace` | `pile` | The face of the top card alone; the face of the others by default |
 | `lean`, `leanAmplitude` | `pile` | A key and the size of the lean: each card turns a hair by its own number ([Poses](05-poses-and-motion.md)) |
 | `scale` | all | The uniform scale of the cards |
+| `foot` | `fan` | The height of a card at scale 1: the fan then turns about the feet of its cards and not their middles, as a hand held in the fingers does. `y` is the height of the feet and `gap` the distance between them |
 
 ## Boxes
 
@@ -71,6 +73,6 @@ From `template/src/components/board/layout.ts`, where a card an opponent plays f
 
 ```ts
 export function heldFrom(seat: SeatSpot, count: number): Pose {
-  return heldLeftPose(heldFrame(seat), (n) => heldLayout(n, seat.yaw), count)
+  return heldLeftPose(heldFrame(seat), (n) => heldLayout(n, seat), count)
 }
 ```

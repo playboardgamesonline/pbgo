@@ -5,13 +5,17 @@ import {
   type CameraSettings,
   centreOf,
   effectiveState,
-  fan,
   frameBoxOfPoses,
+  heldFan,
   HeldHand,
+  heldShadow,
+  heldYaw,
+  inFrame,
   Hotspot,
   joinBoxes,
   LightPool,
   NO_TOUCH,
+  outOfFrame,
   plateAbove,
   plateBoxOf,
   type Pose,
@@ -40,15 +44,11 @@ const CAMERA: CameraSettings = { tilt: 44, yaw: 0, distance: 20, fov: 34, target
 
 const RING = { radiusX: 7.4, radiusZ: 4.4 }
 
-/** The cards an opponent holds, a fan in the frame of their seat that stands, backs to the viewer: nearly straight for a seat the viewer sees from the front, leaning toward the middle for one at the side */
+/** The cards an opponent holds: a small fan of backs that stands (`heldFan`), in a frame at their seat that is turned toward the viewer (`heldYaw`), so that the backs show and the cards can be counted; their name stands in the frame of the seat, which faces the middle */
 const HELD = 5
-const heldLayout = (n: number, yaw: number): Pose[] => {
-  const tilt = -1.25 + (-1.0 + 1.25) * Math.abs(Math.sin(yaw))
-  return fan(n, { gap: 0.3, y: 0.66, rise: 0.004, curve: 0.08, tilt, roll: 0.12, face: "down", scale: 0.68 })
-}
-/** How far beyond its seat on the ring an opponent's hand stands, and how far its small round shadow reaches */
+/** How far beyond its seat on the ring an opponent's hand stands, and the small round shadow under it */
 const REACH = 1.2
-const SHADOW = { radius: (n: number) => 0.6 + 0.13 * n, opacity: 0.55 }
+const SHADOW = heldShadow()
 /** The viewer's hand: Courtisans' numbers, with the room it may take stopped short of the viewer's name in the middle */
 const HAND = { ...SCREEN_HAND_SETTINGS, room: 0.42 }
 /** The room around a player's cards and plate that a press counts in, in world units */
@@ -73,9 +73,14 @@ export type SeatSceneProps = {
   onPick: (seat: SeatId) => void
 }
 
-/** A hand and its plate, in the frame of a seat: the box of the cards, the box of the plate beyond it, and the area a press counts in, all in the frame */
-function boxesOf(layout: readonly Pose[], frame: Spot) {
-  const cards: TableBox = frameBoxOfPoses(layout, CARD_SIZE, frame, { tilt: CAMERA.tilt })!
+/** A hand and its plate, in the frame of a seat: the box of the cards, the box of the plate beyond it, and the area a press counts in, all in the frame of the seat. The hand is in a frame of its own, turned toward the viewer, so its cards are put in the frame of the seat first */
+function boxesOf(layout: readonly Pose[], hand: Spot, frame: Spot) {
+  const cards: TableBox = frameBoxOfPoses(
+    layout.map((pose) => outOfFrame(frame, inFrame(hand, pose))),
+    CARD_SIZE,
+    frame,
+    { tilt: CAMERA.tilt },
+  )!
   const plate = plateBoxOf(plateAbove(cards))
   const area = joinBoxes([cards, plate])!
   return { cards, plate, area }
@@ -109,21 +114,22 @@ export function SeatScene({ turn, together, away, stayed, choosing, empty, point
   }
   const opponent = (id: "left" | "right", spot: Required<Spot>, color: string) => {
     const frame: Spot = { x: spot.x * REACH, z: spot.z * REACH, yaw: spot.yaw }
-    const slots = heldLayout(HELD, spot.yaw)
-    const { cards, area } = boxesOf(slots, frame)
+    const yaw = heldYaw(spot.yaw)
+    const hand: Spot = { ...frame, yaw }
+    const { cards, area } = boxesOf(heldFan(HELD, yaw, CARD_SIZE), hand, frame)
     const none = empty && id === "left"
     const { active, away: gone } = seatStateOf(table, id)
     const state = stateOf(id)
     return (
       <group key={id}>
         <Seat frame={frame} above={cards} nickname={NAMES[id]} color={color} theme={DEFAULT_SEAT_THEME} active={active} away={gone} line={`${points} pts`} status={stayed && id === "right" ? "Stayed" : undefined} />
-        <HeldHand count={none ? 0 : HELD} frame={frame} layout={(n) => heldLayout(n, spot.yaw)} size={CARD_SIZE} back={cardBack} shadow={SHADOW} {...(choosing ? { state } : {})} />
+        <HeldHand count={none ? 0 : HELD} frame={hand} layout={(n) => heldFan(n, yaw, CARD_SIZE)} size={CARD_SIZE} back={cardBack} shadow={SHADOW} {...(choosing ? { state } : {})} />
         {none && choosing && (
           <LightPool
             size={{ width: CARD_SIZE.width * 0.68, height: CARD_SIZE.height * 0.68 }}
             state={state}
             position={[pointInFrame(frame, centreOf(cards)).x, 0.012, pointInFrame(frame, centreOf(cards)).z]}
-            yaw={frame.yaw}
+            yaw={yaw}
           />
         )}
         {choosing && hotspot(id, frame, area)}

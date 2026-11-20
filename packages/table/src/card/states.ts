@@ -44,8 +44,8 @@ export const CARD_STATE_SETTINGS = {
   selectedScale: 1.1,
   /** How dark a card that cannot be chosen is, 0 to 1 */
   disabledDim: 0.33,
-  /** How far the bloom reaches past the card, as a share of its smaller side */
-  bloomSpread: 0.28,
+  /** How far the bloom reaches past the card, as a share of its smaller side: a glow that hugs the card, never a halo round it */
+  bloomSpread: 0.1,
   /** How bright the bloom is at a bloom of 1: it is a light added to the table, not a coat of paint. Soft: it says that a card can be chosen and never shouts it */
   bloomOpacity: 0.5,
   /** How far a card that can be chosen breathes, as a share of its bloom, and how fast */

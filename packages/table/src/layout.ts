@@ -20,6 +20,15 @@ export function inFrame(spot: Spot, pose: Pose): Pose {
   return placed
 }
 
+/** A pose of the table put in the frame of a spot: the inverse of `inFrame`, for what lies on the table and is wanted in the frame of a seat (the box of a hand that is laid in another frame than the seat's) */
+export function outOfFrame(spot: Spot, pose: Pose): Pose {
+  const turn = new Quaternion().setFromAxisAngle(Y, -(spot.yaw ?? 0))
+  const position = new Vector3(pose.position.x - spot.x, pose.position.y, pose.position.z - spot.z).applyQuaternion(turn)
+  const placed: Pose = { position, quaternion: turn.multiply(pose.quaternion), scale: pose.scale }
+  if (pose.delay !== undefined) placed.delay = pose.delay
+  return placed
+}
+
 export type FanOptions = {
   /** Distance along x between two neighbouring cards */
   gap: number
@@ -38,20 +47,25 @@ export type FanOptions = {
   /** Default: up */
   face?: "up" | "down"
   scale?: number
+  /**
+   * The height of a card at scale 1, to turn the fan about the feet of its cards instead of their middles, as a hand held in the fingers turns: `y` is then the height of the feet, `gap` the distance between the feet, and each card turns about its own foot, so a hand that stands
+   * up opens at its top while its feet stay together. Without it each card turns about its middle
+   */
+  foot?: number
 }
 
 /** `n` cards held in a fan, centred on x = 0, the first on the left */
-export function fan(n: number, { gap, y = RESTING_HEIGHT, rise = 0, z = 0, curve = 0, tilt = 0, roll = 0, face = "up", scale = 1 }: FanOptions): Pose[] {
+export function fan(n: number, { gap, y = RESTING_HEIGHT, rise = 0, z = 0, curve = 0, tilt = 0, roll = 0, face = "up", scale = 1, foot }: FanOptions): Pose[] {
   const base = face === "up" ? -Math.PI / 2 : Math.PI / 2
   // A face-down card turns the other way about its own axis to turn the same way about the vertical one
   const turn = face === "up" ? -roll : roll
   return Array.from({ length: n }, (_, i) => {
     const off = i - (n - 1) / 2
-    return {
-      position: new Vector3(off * gap, y + i * rise, z + Math.abs(off) * curve),
-      quaternion: new Quaternion().setFromEuler(new Euler(base + tilt, 0, off * turn)),
-      scale,
-    }
+    const position = new Vector3(off * gap, y + i * rise, z + Math.abs(off) * curve)
+    const quaternion = new Quaternion().setFromEuler(new Euler(base + tilt, 0, off * turn))
+    // The foot of a card is half its height below its middle, along the card's own up: its middle is that far above the foot, whichever way the card is turned
+    if (foot !== undefined) position.add(new Vector3(0, (foot * scale) / 2, 0).applyQuaternion(quaternion))
+    return { position, quaternion, scale }
   })
 }
 

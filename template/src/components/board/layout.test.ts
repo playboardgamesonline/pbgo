@@ -1,8 +1,8 @@
-import { aspectScale, inFrame, placeCamera, plateAbove, plateBoxOf, plateOf, type Pose, SEAT_SETTINGS, screenHandLayout, screenViewOf, cornersOfBox, frameBoxOfPoses, pointInFrame } from "@pbgo/table"
+import { aspectScale, cornersOfBox, frameBoxOfPoses, HELD_FAN_SETTINGS, inFrame, outOfFrame, placeCamera, plateAbove, plateBoxOf, plateOf, pointInFrame, type Pose, SEAT_SETTINGS, screenHandLayout, screenViewOf } from "@pbgo/table"
 import { PerspectiveCamera, Vector3 } from "three"
 import { describe, expect, it } from "vitest"
 import { CAMERA } from "./camera"
-import { BID, bidPose, bidRowPose, CLOCK, HAND_MAX, HAND_SETTINGS, heldBox, heldFrame, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_SETTINGS, seats, trickPose } from "./layout"
+import { BID, bidPose, bidRowPose, CLOCK, HAND_MAX, HAND_SETTINGS, heldBox, heldFrame, heldFrom, HELD_SHADOW, heldLayout, seatFrame, seats, trickPose } from "./layout"
 import { CARD_SIZE } from "./textures"
 
 type Rect = { x: number; z: number; yaw: number; width: number; depth: number }
@@ -156,8 +156,8 @@ function hands(count: number, viewer: number | null, aspect: number): Hand[] {
       return { id, cards, plate: flatOnScreen(camera, cornersOfBox(plate, { x: 0, z: 0, yaw: 0 })) }
     }
     const frame = heldFrame(seat)
-    const cards = Array.from({ length: HAND_MAX }, (_, i) => heldLayout(i + 1, seat.yaw).map((pose) => cardOnScreen(camera, inFrame(frame, pose)))).flat()
-    return { id, cards, plate: flatOnScreen(camera, cornersOfBox(plateBoxOf(plateAbove(heldBox(seat))), frame)) }
+    const cards = Array.from({ length: HAND_MAX }, (_, i) => heldLayout(i + 1, seat).map((pose) => cardOnScreen(camera, inFrame(frame, pose)))).flat()
+    return { id, cards, plate: flatOnScreen(camera, cornersOfBox(plateBoxOf(plateAbove(heldBox(seat))), seatFrame(seat))) }
   })
 }
 
@@ -191,35 +191,46 @@ const TABLES = ASPECTS.flatMap((aspect) => [
 ])
 
 describe("the hands of the table", () => {
-  it("face the middle: the top of the frame of an opponent's hand points at it", () => {
+  it("face the viewer, and the seats face the middle: the plate of an opponent is in a frame whose top points at the middle, their hand is turned toward the viewer so that the backs of its cards look their way", () => {
     for (let count = 2; count <= 8; count++) {
       const ring = seats(ids(count), "p0")
       for (const [id, seat] of ring) {
         if (id === "p0") continue
-        const frame = heldFrame(seat)
-        const top = pointInFrame({ ...frame, x: 0, z: 0 }, { x: 0, z: -1 })
-        const toMiddle = { x: -frame.x / Math.hypot(frame.x, frame.z), z: -frame.z / Math.hypot(frame.x, frame.z) }
+        const plate = seatFrame(seat)
+        const top = pointInFrame({ ...plate, x: 0, z: 0 }, { x: 0, z: -1 })
+        const toMiddle = { x: -plate.x / Math.hypot(plate.x, plate.z), z: -plate.z / Math.hypot(plate.x, plate.z) }
         expect(top.x * toMiddle.x + top.z * toMiddle.z, `${id} of ${count}`).toBeCloseTo(1, 9)
+        // the viewer is toward +z, and above
+        for (const pose of heldLayout(5, seat)) {
+          const back = new Vector3(0, 0, -1).applyQuaternion(inFrame(heldFrame(seat), pose).quaternion)
+          expect(back.z, `a card of ${id} of ${count}`).toBeGreaterThan(0.9)
+          expect(back.y, `a card of ${id} of ${count}`).toBeGreaterThan(0)
+        }
       }
     }
   })
 
-  it("stand up: an opponent's cards are nearly straight where the viewer sees them from the front, and lean where they see them from the side", () => {
-    const standing = (yaw: number) => {
-      // How far the middle card of a hand of five is from lying flat, as the angle between its back and the table
-      const pose = heldLayout(5, yaw)[2]!
-      const back = new Vector3(0, 0, -1).applyQuaternion(pose.quaternion)
-      return Math.asin(Math.min(1, Math.abs(back.y)))
+  it("stand up and keep close: a hand is nearly straight and no wider than its cards and a little more, so that an opponent's cards are told apart and counted", () => {
+    const seat = seats(ids(4), "p0").get("p1")!
+    for (let n = 1; n <= HAND_MAX; n++) {
+      const cards = heldLayout(n, seat)
+      for (const pose of cards) {
+        const back = new Vector3(0, 0, -1).applyQuaternion(pose.quaternion)
+        // How far a card is from straight up: the angle between its back and the table's up is a quarter turn less
+        expect(Math.asin(Math.min(1, Math.abs(back.y))), `a hand of ${n}`).toBeLessThan(0.45)
+      }
+      const left = Math.min(...cards.map((pose) => pose.position.x))
+      const right = Math.max(...cards.map((pose) => pose.position.x))
+      expect(right - left, `a hand of ${n}`).toBeLessThan((n - 1) * 0.4 + 0.1)
     }
-    expect(standing(Math.PI)).toBeLessThan(0.45)
-    expect(standing(Math.PI / 2)).toBeGreaterThan(standing(Math.PI))
   })
 
   it("stay where they are as a player's cards are played: the room holds a hand of every size", () => {
     const seat = seats(ids(4), "p0").get("p1")!
     const room = heldBox(seat)
     for (let n = 1; n <= HAND_MAX; n++) {
-      const hand = frameBoxOfPoses(heldLayout(n, seat.yaw), CARD_SIZE, heldFrame(seat), { tilt: CAMERA.tilt })!
+      const placed = heldLayout(n, seat).map((pose) => outOfFrame(seatFrame(seat), inFrame(heldFrame(seat), pose)))
+      const hand = frameBoxOfPoses(placed, CARD_SIZE, seatFrame(seat), { tilt: CAMERA.tilt })!
       expect(hand.minX).toBeGreaterThanOrEqual(room.minX - 1e-9)
       expect(hand.maxX).toBeLessThanOrEqual(room.maxX + 1e-9)
       expect(hand.minZ).toBeGreaterThanOrEqual(room.minZ - 1e-9)
@@ -246,23 +257,19 @@ describe("the hands of the table", () => {
 
   it("have a round shadow that is the size of their fan: no smaller than its footprint and not much larger", () => {
     for (let n = 1; n <= HAND_MAX; n++) {
-      const slots = heldLayout(n)
-      const half = ((n - 1) * LAYOUT_SETTINGS.heldGap + CARD_SIZE.width * LAYOUT_SETTINGS.heldScale) / 2
-      expect(slots).toHaveLength(n)
+      const half = ((n - 1) * HELD_FAN_SETTINGS.gap + CARD_SIZE.width * HELD_FAN_SETTINGS.scale) / 2
       expect(HELD_SHADOW.radius(n) / half, `a hand of ${n}`).toBeGreaterThan(0.9)
       expect(HELD_SHADOW.radius(n) / half, `a hand of ${n}`).toBeLessThan(1.75)
     }
   })
 
   it("send the card that is played from the left end of the hand, as the viewer sees it", () => {
-    const ring = seats(ids(4), "p0")
+    const ring = seats(ids(5), "p0")
     for (const [id, seat] of ring) {
       if (id === "p0") continue
       const from = heldFrom(seat, 5)
-      const slots = heldLayout(5, seat.yaw).map((pose) => inFrame(heldFrame(seat), pose))
-      const xs = slots.map((pose) => pose.position.x)
-      // No card of the hand is farther to the left on the screen than the one it leaves from, but at a seat turned a quarter where they stand one behind the other
-      if (Math.abs(Math.cos(seat.yaw)) > 0.5) expect(from.position.x, id).toBeCloseTo(Math.min(...xs), 6)
+      const xs = heldLayout(5, seat).map((pose) => inFrame(heldFrame(seat), pose).position.x)
+      expect(from.position.x, id).toBeCloseTo(Math.min(...xs), 6)
     }
   })
 })

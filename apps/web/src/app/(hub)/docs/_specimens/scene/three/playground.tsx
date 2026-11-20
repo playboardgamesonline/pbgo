@@ -28,9 +28,13 @@ import {
   grid,
   gridCells,
   HandShadow,
+  heldFan,
+  heldShadow,
+  heldYaw,
   hexCells,
   Hotspot,
   inFrame,
+  outOfFrame,
   joinBoxes,
   lineSpaces,
   LightPool,
@@ -145,10 +149,10 @@ function topOfDraw(count: number, draw: { x: number; z: number }): Pose {
 /** The most cards drawn at a seat: two when the ring is crowded. The plate of a seat stands above the room of that many, so it does not move as cards are dealt. */
 const heldLimit = (players: number) => (players > 5 ? 2 : 3)
 
-/** The cards held at a seat, a fan in the frame of the seat: held up so that the others see the backs, nearly straight for a seat the viewer sees from the front and leaning toward the middle for one at the side, and opening as a hand does. */
-const heldFan = (n: number, yaw = Math.PI) => fan(n, { gap: 0.3, y: 0.66, rise: 0.004, curve: 0.08, tilt: -1.25 + 0.25 * Math.abs(Math.sin(yaw)), roll: 0.12, face: "down", scale: 0.68 })
-/** How far the small round shadow under a hand of `n` reaches. */
-const heldShadow = (n: number) => 0.6 + 0.13 * n
+/** The frame of the cards held at a seat: at the seat, turned toward the viewer (`heldYaw`), so that their backs show and they can be counted. The plate stays in the frame of the seat, which faces the middle. */
+const handFrameOf = (spot: { x: number; z: number; yaw: number }) => ({ ...heldFrame(spot), yaw: heldYaw(spot.yaw) })
+/** The shadow under a hand: small, and it grows with the cards. */
+const HELD_SHADOW = heldShadow()
 
 /** Where the top of the stack is when it holds `count` pieces: where a piece that was just taken flies in from. */
 /** The hand held at the bottom left of the screen, as Courtisans holds its own (`ScreenHand` of the kit): its numbers, with the room it may take stopped short of the middle of the picture. */
@@ -227,7 +231,11 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
   const choosing = parts.floor && parts.seats && state.floor.zones
   const heldState = (seat: number) => (choosing ? (giving ? effectiveState("interactive", touches[seat] ?? NO_TOUCH) : "disabled") : undefined)
   // The room of a seat's cards in the frame of the seat, as the camera sees it, and the plate that stands above it on the side that faces the middle
-  const roomOf = (spot: { x: number; z: number; yaw: number }) => frameBoxOfPoses(heldFan(heldLimit(players), spot.yaw), CARD_SIZE, heldFrame(spot), { tilt: state.above ? 6 : state.tilt })!
+  const roomOf = (spot: { x: number; z: number; yaw: number }) => {
+    const hand = handFrameOf(spot)
+    const plate = heldFrame(spot)
+    return frameBoxOfPoses(heldFan(heldLimit(players), hand.yaw, CARD_SIZE).map((pose) => outOfFrame(plate, inFrame(hand, pose))), CARD_SIZE, plate, { tilt: state.above ? 6 : state.tilt })!
+  }
   const fill = bagSize(BAG_START) === 0 ? 0 : bagSize(state.bag.counts) / bagSize(BAG_START)
   // A chequer for squares, three shades for hexagons so that no two neighbours match, a ring that alternates with its corners numbered; a cell with something on it takes the gold
   const cellLook = (cell: number): CellLook => {
@@ -569,6 +577,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
           const top = leader(state) === i
           const mark = `${top ? "★ " : ""}${i > 0 && heldAll.length > heldHere.length ? `×${heldAll.length}` : ""}`.trim()
           const frame = heldFrame(spot)
+          const hand = handFrameOf(spot)
           return (
             <group key={i}>
               <Seat
@@ -586,10 +595,10 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
               />
               {i > 0 && heldHere.length > 0 && (
                 <>
-                  <HandShadow at={frame} radius={heldShadow(heldHere.length)} opacity={0.4} />
+                  <HandShadow at={hand} radius={HELD_SHADOW.radius(heldHere.length)} opacity={HELD_SHADOW.opacity} />
                   <Zone
-                    frame={frame}
-                    layout={heldFan(heldHere.length, spot.yaw)}
+                    frame={hand}
+                    layout={heldFan(heldHere.length, hand.yaw, CARD_SIZE)}
                     size={CARD_SIZE}
                     cards={heldHere.map((one) => ({
                       key: one.id,
@@ -604,7 +613,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
               )}
               {/* A seat with no card in it still can be chosen: a pool of light where its cards would lie */}
               {heldState(i) && i > 0 && heldHere.length === 0 && (
-                <LightPool size={{ width: CARD_SIZE.width * 0.68, height: CARD_SIZE.height * 0.68 }} state={heldState(i)!} position={[frame.x, 0.012, frame.z]} yaw={frame.yaw} />
+                <LightPool size={{ width: CARD_SIZE.width * 0.68, height: CARD_SIZE.height * 0.68 }} state={heldState(i)!} position={[hand.x, 0.012, hand.z]} yaw={hand.yaw} />
               )}
             </group>
           )
