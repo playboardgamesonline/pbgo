@@ -150,8 +150,34 @@ function flatOnScreen(camera: PerspectiveCamera, corners: { x: number; z: number
   return corners.map(({ x, z }) => onScreen(camera, new Vector3(x, 0.03, z)))
 }
 
+/** Whether the boxes round two polygons are apart: most pairs of shapes of a table are, and then no axis need be tried */
+function boxesApart(a: Polygon, b: Polygon): boolean {
+  let aMinX = Infinity
+  let aMaxX = -Infinity
+  let aMinY = Infinity
+  let aMaxY = -Infinity
+  let bMinX = Infinity
+  let bMaxX = -Infinity
+  let bMinY = Infinity
+  let bMaxY = -Infinity
+  for (const point of a) {
+    aMinX = Math.min(aMinX, point.x)
+    aMaxX = Math.max(aMaxX, point.x)
+    aMinY = Math.min(aMinY, point.y)
+    aMaxY = Math.max(aMaxY, point.y)
+  }
+  for (const point of b) {
+    bMinX = Math.min(bMinX, point.x)
+    bMaxX = Math.max(bMaxX, point.x)
+    bMinY = Math.min(bMinY, point.y)
+    bMaxY = Math.max(bMaxY, point.y)
+  }
+  return aMaxX < bMinX || bMaxX < aMinX || aMaxY < bMinY || bMaxY < aMinY
+}
+
 /** Whether two convex polygons overlap, by the axes of their sides: they are apart when a gap shows on any of them */
 function polygonsOverlap(a: Polygon, b: Polygon): boolean {
+  if (boxesApart(a, b)) return false
   const axes = [a, b].flatMap((polygon) => polygon.map((point, i) => ({ x: polygon[(i + 1) % polygon.length]!.y - point.y, y: point.x - polygon[(i + 1) % polygon.length]!.x })))
   const span = (polygon: Polygon, axis: { x: number; y: number }) => {
     const along = polygon.map((point) => point.x * axis.x + point.y * axis.y)
@@ -167,7 +193,7 @@ function polygonsOverlap(a: Polygon, b: Polygon): boolean {
 type Hand = { id: string; cards: Polygon[]; plate: Polygon }
 
 /** The hands and the plates of a table of `count` as the viewer `viewer` sees it (`null`: a spectator, who has no seat) in a window of this aspect ratio: for each player the polygons of their cards on the screen, hands of every size, and the one of their plate, which stands above their play area and their hand in the frame of their seat. The viewer's hand is the screen hand, in the frame of the camera */
-function hands(count: number, viewer: number | null, aspect: number): Hand[] {
+function buildHands(count: number, viewer: number | null, aspect: number): Hand[] {
   const players = ids(count)
   const me = viewer === null ? null : players[viewer]!
   const ring = seats(players, me)
@@ -182,7 +208,7 @@ function hands(count: number, viewer: number | null, aspect: number): Hand[] {
 }
 
 /** What else lies on the table of `count` while the players bid and play: the bid each player has made, the card each has played to the middle, the pile of the tricks each has won, the row of bid cards the viewer chooses from (at its longest) and the clock */
-function middle(count: number, viewer: number | null, aspect: number) {
+function buildMiddle(count: number, viewer: number | null, aspect: number) {
   const players = ids(count)
   const ring = seats(players, viewer === null ? null : players[viewer]!)
   const camera = cameraOf(aspect)
@@ -204,6 +230,18 @@ function middle(count: number, viewer: number | null, aspect: number) {
   })
   return things
 }
+
+/** What a table is made of, built once for every test that looks at it: a table of two to six players is many shapes, and the tests look at the same ones */
+function once<T>(make: (count: number, viewer: number | null, aspect: number) => T): (count: number, viewer: number | null, aspect: number) => T {
+  const made = new Map<string, T>()
+  return (count, viewer, aspect) => {
+    const key = `${count}/${viewer}/${aspect}`
+    if (!made.has(key)) made.set(key, make(count, viewer, aspect))
+    return made.get(key)!
+  }
+}
+const hands = once(buildHands)
+const middle = once(buildMiddle)
 
 /** Every table the board must hold: two to six players, seated at each place, and a spectator's view up to five, in every window */
 const TABLES = ASPECTS.flatMap((aspect) => [
@@ -329,59 +367,54 @@ describe("the plates of the table", () => {
     }
   })
 
+  // A table is many shapes and the tests below look at all of them in every window: each collects what is wrong and says all of it at the end, instead of asking `expect` about every pair, which is where the time would go
+
   it("stay whole in the picture, with the cards of the others and the play area of their seat, in every window", () => {
+    const outside: string[] = []
+    const inside = (shape: Polygon) => shape.every((point) => Math.abs(point.x) < 1 && point.y < 1 && point.y > -1)
     for (const { count, viewer, aspect } of TABLES) {
+      const where = `${count} players, viewer ${viewer}, aspect ${aspect}`
       for (const { id, plate, cards } of hands(count, viewer, aspect)) {
-        for (const point of plate) {
-          expect(Math.abs(point.x), `plate of ${id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
-          expect(point.y, `plate of ${id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
-          expect(point.y, `plate of ${id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeGreaterThan(-1)
-        }
+        if (!inside(plate)) outside.push(`plate of ${id}, ${where}`)
         // The cards of an opponent too (the viewer's hand is cut by the bottom edge of the picture on purpose)
-        if (viewer === null || id !== `p${viewer}`) {
-          for (const card of cards) {
-            for (const point of card) {
-              expect(Math.abs(point.x), `cards of ${id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
-              expect(point.y, `cards of ${id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
-            }
-          }
-        }
+        if (viewer === null || id !== `p${viewer}`) cards.forEach((card, i) => !card.every((point) => Math.abs(point.x) < 1 && point.y < 1) && outside.push(`card ${i} of ${id}, ${where}`))
       }
-      for (const { what, shape } of middle(count, viewer, aspect).filter(({ what }) => what.startsWith("bid of") || what.startsWith("pile of"))) {
-        for (const point of shape) {
-          expect(Math.abs(point.x), `${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
-          expect(point.y, `${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeLessThan(1)
-          expect(point.y, `${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBeGreaterThan(-1)
-        }
-      }
+      for (const { what, shape } of middle(count, viewer, aspect)) if ((what.startsWith("bid of") || what.startsWith("pile of")) && !inside(shape)) outside.push(`${what}, ${where}`)
     }
+    expect(outside).toEqual([])
   })
 
   it("never lie over a card of any player or over one another, in any window", () => {
+    const over: string[] = []
     for (const { count, viewer, aspect } of TABLES) {
       const all = hands(count, viewer, aspect)
       for (const a of all) {
         for (const b of all) {
-          b.cards.forEach((card, i) => expect(polygonsOverlap(a.plate, card), `plate of ${a.id} and card ${i} of ${b.id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBe(false))
-          if (a.id < b.id) expect(polygonsOverlap(a.plate, b.plate), `plates of ${a.id} and ${b.id}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBe(false)
+          b.cards.forEach((card, i) => polygonsOverlap(a.plate, card) && over.push(`plate of ${a.id} and card ${i} of ${b.id}, ${count} players, viewer ${viewer}, aspect ${aspect}`))
+          if (a.id < b.id && polygonsOverlap(a.plate, b.plate)) over.push(`plates of ${a.id} and ${b.id}, ${count} players, viewer ${viewer}, aspect ${aspect}`)
         }
       }
     }
+    expect(over).toEqual([])
   })
 
   it("never lie over what is played and bid in the middle, nor over the clock", () => {
+    const over: string[] = []
     for (const { count, viewer, aspect } of TABLES) {
       for (const { id, plate } of hands(count, viewer, aspect)) {
-        for (const { what, shape } of middle(count, viewer, aspect)) expect(polygonsOverlap(plate, shape), `plate of ${id} and ${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBe(false)
+        for (const { what, shape } of middle(count, viewer, aspect)) if (polygonsOverlap(plate, shape)) over.push(`plate of ${id} and ${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`)
       }
     }
+    expect(over).toEqual([])
   })
 
   it("leave the middle clear of every hand too: no card of a hand lies over what is played and bid", () => {
+    const over: string[] = []
     for (const { count, viewer, aspect } of TABLES) {
       for (const { id, cards } of hands(count, viewer, aspect)) {
-        for (const { what, shape } of middle(count, viewer, aspect)) cards.forEach((card, i) => expect(polygonsOverlap(card, shape), `card ${i} of ${id} and ${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`).toBe(false))
+        for (const { what, shape } of middle(count, viewer, aspect)) cards.forEach((card, i) => polygonsOverlap(card, shape) && over.push(`card ${i} of ${id} and ${what}, ${count} players, viewer ${viewer}, aspect ${aspect}`))
       }
     }
+    expect(over).toEqual([])
   })
 })
