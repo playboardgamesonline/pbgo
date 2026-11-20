@@ -1,5 +1,6 @@
 "use client"
 
+import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { useCursor } from "@react-three/drei"
 import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { easing } from "maath"
@@ -7,6 +8,7 @@ import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState }
 import { AdditiveBlending, type Color, type Group, type Mesh, type MeshBasicMaterial, NormalBlending, Quaternion, type Texture, Vector3 } from "three"
 import { type CardReading, inspector } from "../debug/inspector"
 import { DEBUG_VIEW } from "../debug/view"
+import { useStandIn } from "../floor/stand-in"
 import { dragGoal } from "../drag/reach"
 import { DRAG_SETTINGS, followSeconds } from "../drag/settings"
 import type { ZoneId } from "../drag/store"
@@ -19,7 +21,9 @@ import { applyFold, foldable } from "./fold"
 import { type CardSize, cardGeometry, cornerRadius, edgeGeometry, frameGeometry } from "./geometry"
 import { type Glow, glowNameOf } from "./glows"
 import { CARD_SETTINGS } from "./settings"
+import { CARD_STATE_SETTINGS, type BloomKey, type CardState, effectiveState, haloSide, isPressable, stateLook } from "./states"
 import { glossTexture, haloTexture, shadowTexture, sparkleTexture } from "./textures"
+import { useCardBlooms } from "./theme"
 
 /** Where a dragged card was let go: the zone it was let go on, or null for none, and where it lay on the table (`useDrag`) */
 export type CardDrop = Drop
@@ -45,8 +49,18 @@ export type CardProps = {
   shadow?: boolean
   /** Drawn over everything else, glows of other cards included */
   above?: boolean
-  /** The card can no longer play (its player is out of the round): a grey filter over its picture and its edge, darker and with no colour. It lifts when `out` turns false */
+  /** The card can no longer play (its player is out of the round): a grey filter over its picture and its edge, darker and with no colour. It lifts when `out` turns false. The state `out` does the same */
   out?: boolean
+  /**
+   * How the card stands for the player: `base`, `interactive` (can be chosen now), `selected` (picked), `disabled`, `out`, or `hover` and `pressed` to force them. The table draws the state itself: a bloom of light in the game's colours (`UI_THEME.card`), the lift and the growth of
+   * a card under the pointer or picked, the dip of a pressed one, the dark of a disabled one. It raises an `interactive` card to `hover` and `pressed` from the pointer and the keyboard, so a game wires none of it. Without a state the card has none: it only reports the pointer
+   * and the game lifts and lights it with `glow` and `gloss` as it did. A card that can be pressed (`interactive`, `selected`) takes `onPress`, and only such a card does: one in any other state lets the pointer by
+   */
+  state?: CardState
+  /** The card was pressed: a click, a tap, or Enter or Space on its keyboard stand-in. A card in a state takes it only while it can be pressed */
+  onPress?: () => void
+  /** What a screen reader says of the card and what the keyboard focus lands on: the game's word and the card's name ("Take the discard", "Guard"). A card that can be pressed must give it, or no key reaches it: it has no stand-in */
+  ariaLabel?: string
   /** Seconds the card takes to settle on a new `target`, about: the smaller, the snappier (default 0.16) */
   speed?: number
   onClick?: (e: ThreeEvent<MouseEvent>) => void
@@ -74,6 +88,8 @@ export type CardProps = {
 const targetTmp = new Vector3()
 const scaleTmp = new Vector3()
 const normalTmp = new Vector3()
+const toCamera = new Vector3()
+const quatTmp = new Quaternion()
 
 // A target that moves farther than this in one go sends the card flying instead of gliding
 const JUMP = 4
@@ -82,6 +98,9 @@ const JUMP = 4
 // At least 0.001 apart: the depth buffer is only about 0.0004 precise at the usual camera distance, so closer layers would flicker into one another
 const FRONT = { face: 0.001, overlay: 0.002, frame: 0.002, gloss: 0.003, sparkle: 0.004 }
 const BACK = { face: 0.001, outline: 0.003, halo: 0.006, shadow: 0.012 }
+
+// What the pressing of a card without a name cannot do: the keyboard has no way to it. Said once, in development
+let warnedNoName = false
 
 // A glow's colours are read every frame so they can be tuned live; a colour is parsed only when it differs from the last one set
 const tints = new WeakMap<Color, string>()
@@ -110,7 +129,10 @@ export function Card({
   gloss,
   shadow = true,
   above = false,
-  out = false,
+  out: outProp = false,
+  state,
+  onPress,
+  ariaLabel,
   speed = 0.16,
   onClick,
   onHover,
@@ -125,6 +147,10 @@ export function Card({
   const { width, height } = size
   const radius = cornerRadius(size)
   const ref = useRef<Group>(null)
+  const reduced = usePrefersReducedMotion()
+  const blooms = useCardBlooms()
+  const stated = state !== undefined
+  const out = outProp || state === "out"
   const thickness = width * CARD_SETTINGS.thickness
   const stride = Math.min(width, height) / 5
   const geo = useMemo(() => foldable(cardGeometry(width, height, radius), stride), [width, height, radius, stride])
@@ -140,6 +166,8 @@ export function Card({
   const outlineMargin = 0.05 / fit
   const outlineRadius = size.radius === undefined ? undefined : size.radius + outlineMargin / 2
   const outlineGeo = outline ? cardGeometry(width + outlineMargin, height + outlineMargin, outlineRadius) : null
+  const bloomMargin = Math.min(width, height) * CARD_STATE_SETTINGS.bloomSpread
+  const bloomTex = stated ? haloTexture(width, height, bloomMargin, radius) : null
   const hasSparkle = !!sparkle
   const sparkleTex = useMemo(() => (hasSparkle ? sparkleTexture() : null), [hasSparkle])
   useEffect(() => () => sparkleTex?.dispose(), [sparkleTex])
@@ -149,6 +177,21 @@ export function Card({
   const sparkleRef = useRef<Mesh>(null)
 
   const [hovered, setHovered] = useState(false)
+  const [touched, setTouched] = useState(false)
+  // Whether a press of this card does anything: the game's own say for a card in a state, any handler for one without
+  const pressable = stated ? isPressable(state) && !!(onPress || onClick) : !!(onPress || onClick)
+  // The keyboard stand-in of a card that can be pressed: one real button in the page, over the card
+  const focused = useStandIn({ pressable: stated && isPressable(state) && !!onPress && !!ariaLabel, name: ariaLabel, onPress, anchor: ref })
+  const drawn: CardState = stated ? effectiveState(state, { hovered, focused, pressed: touched }) : "base"
+  const drawnRef = useRef<CardState>(drawn)
+  const bloomsRef = useRef(blooms)
+  const bloomMat = useRef<MeshBasicMaterial>(null)
+  const bloomSide = useRef<Group>(null)
+  const rise = useRef<Group>(null)
+  const frontMat = useRef<MeshBasicMaterial | null>(null)
+  const backMat = useRef<MeshBasicMaterial | null>(null)
+  // What the state has put on the card so far: how lit its bloom is, how high it stands, how much it has grown, how dark it is. Each settles on what the state asks, at once for a visitor who asks for less motion
+  const lived = useRef({ bloom: 0, lift: 0, scale: 1, dim: 0, key: "interactive" as BloomKey })
   const [glossTex] = useState(glossTexture)
   const [shadowTex] = useState(shadowTexture)
   const shadowRef = useRef<Mesh>(null)
@@ -156,7 +199,7 @@ export function Card({
   const overlayRef = useRef<Group>(null)
   const flight = useRef<Flight | null>(null)
   const lastOne = useRef(new Vector3())
-  useCursor(hovered && (!!onClick || draggable), draggable ? "grab" : "pointer")
+  useCursor(hovered && (pressable || draggable), draggable ? "grab" : "pointer")
   const memory = usePoseMemory()
   // Where the card is drawn while it is held, so a frame allocates nothing
   const [goal] = useState<Pose>(() => ({ position: new Vector3(), quaternion: new Quaternion(), scale: 1 }))
@@ -165,7 +208,14 @@ export function Card({
     level: target.position.y,
     position: () => ref.current?.position ?? null,
     dropOn,
-    onClick,
+    onClick: pressable
+      ? (e) => {
+          // A card in a state takes the click: it goes no farther, to the table behind it or to a zone over it
+          if (stated) e.stopPropagation()
+          onClick?.(e)
+          onPress?.()
+        }
+      : undefined,
     onDragStart: () => {
       // A card that was still flying is picked out of the air
       flight.current = null
@@ -180,6 +230,25 @@ export function Card({
   const latest = useRef({ id, target, glow })
   useEffect(() => {
     latest.current = { id, target, glow }
+    drawnRef.current = drawn
+    bloomsRef.current = blooms
+  })
+  // A press that ends off the card (the pointer slid away, a touch was cancelled) still ends
+  useEffect(() => {
+    if (!touched) return
+    const release = () => setTouched(false)
+    window.addEventListener("pointerup", release)
+    window.addEventListener("pointercancel", release)
+    return () => {
+      window.removeEventListener("pointerup", release)
+      window.removeEventListener("pointercancel", release)
+    }
+  }, [touched])
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && !warnedNoName && stated && isPressable(state) && onPress && !ariaLabel) {
+      warnedNoName = true
+      console.warn("A Card that can be pressed has no `ariaLabel`, so no key reaches it: give it the game's word and the card's name")
+    }
   })
   useEffect(() => () => inspector.leave(inspectKey), [inspectKey])
   const reading = (): CardReading => {
@@ -221,7 +290,7 @@ export function Card({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useFrame(({ pointer, clock }, dt) => {
+  useFrame(({ pointer, clock, camera }, dt) => {
     const S = CARD_SETTINGS
     const t = clock.elapsedTime
     if (halo && haloRef.current) {
@@ -244,7 +313,9 @@ export function Card({
       if (m.map) m.map.offset.x = ((t * sparkle.speed) % 1.6) - 0.8
       m.opacity = sparkle.opacity
     }
-    const shine = gloss === true ? S.gloss : gloss || 0
+    // A card the table draws in a state has the shine under the pointer unless the game gives its own
+    const touching = drawnRef.current === "hover" || drawnRef.current === "pressed"
+    const shine = gloss !== undefined ? (gloss === true ? S.gloss : gloss || 0) : touching ? S.gloss : 0
     if (glossRef.current) {
       const m = glossRef.current.material as MeshBasicMaterial
       easing.damp(m, "opacity", shine, 0.3, dt)
@@ -275,6 +346,43 @@ export function Card({
       easing.dampQ(g.quaternion, aim.quaternion, smooth, dt)
       easing.damp3(g.scale, scaleTmp.setScalar(aim.scale), smooth, dt)
     }
+    if (stated) {
+      const SS = CARD_STATE_SETTINGS
+      const look = stateLook(drawnRef.current, SS)
+      const now = lived.current
+      if (look.theme) now.key = look.theme
+      const settle = (name: "bloom" | "lift" | "scale" | "dim", to: number) => {
+        if (reduced) now[name] = to
+        else easing.damp(now, name, to, SS.bloomSettle, dt)
+      }
+      settle("bloom", look.bloom)
+      settle("lift", look.lift)
+      settle("scale", look.scale)
+      settle("dim", look.dim)
+      // The state's rise: the card stands higher and grows about its middle, whichever way it faces. Its place on the table, and the memory of it, stay as they were
+      if (rise.current) {
+        g.getWorldQuaternion(quatTmp)
+        rise.current.position.set(0, now.lift * height, 0).applyQuaternion(quatTmp.invert())
+        rise.current.scale.setScalar(now.scale)
+      }
+      // The bloom lies behind the card, away from the camera, so it reaches out round the card whichever way it faces: a card face up, standing up, or a pile face down
+      const light = bloomsRef.current[now.key]
+      if (bloomMat.current && bloomSide.current) {
+        const pulse = drawnRef.current === "interactive" && !reduced ? Math.sin(t * SS.bloomSpeed) * SS.bloomPulse : 0
+        bloomMat.current.opacity = Math.min(1, now.bloom * SS.bloomOpacity * light.strength * (1 + pulse))
+        tint(bloomMat.current.color, light.color)
+        bloomSide.current.visible = bloomMat.current.opacity > 0.01
+        g.getWorldQuaternion(quatTmp)
+        normalTmp.set(0, 0, 1).applyQuaternion(quatTmp)
+        toCamera.copy(camera.position).sub(g.getWorldPosition(scaleTmp))
+        const behind = haloSide(normalTmp, toCamera) === "back"
+        bloomSide.current.position.z = behind ? -thickness / 2 - BACK.halo : thickness / 2 + BACK.halo
+        bloomSide.current.rotation.y = behind ? 0 : Math.PI
+      }
+      // A card that cannot be chosen is darker, picture and back alike
+      frontMat.current?.color.setScalar(1 - now.dim)
+      backMat.current?.color.setScalar(1 - now.dim)
+    }
     // The face arches by up to `fold * height / 2` towards the viewer: lift what is drawn on it by as much, or the arch would hide it
     if (overlayRef.current) overlayRef.current.position.z = thickness / 2 + FRONT.overlay + Math.max(0, fold.current.value) * (height / 2)
     if (shadowRef.current) {
@@ -287,7 +395,16 @@ export function Card({
     <group
       ref={ref}
       renderOrder={above ? 20 : 0}
-      onPointerDown={drag.bind.onPointerDown}
+      // A handler only on a card that can be pressed or dragged: one with none is no control, to the pointer or to a check of the board
+      onPointerDown={
+        pressable || drag.bind.onPointerDown
+          ? (e) => {
+              if (pressable) setTouched(true)
+              drag.bind.onPointerDown?.(e)
+            }
+          : undefined
+      }
+      onPointerUp={pressable ? () => setTouched(false) : undefined}
       onClick={drag.bind.onClick}
       onPointerOver={(e) => {
         e.stopPropagation()
@@ -297,6 +414,7 @@ export function Card({
       }}
       onPointerOut={() => {
         setHovered(false)
+        setTouched(false)
         onHover?.(false)
         inspector.leave(inspectKey)
       }}
@@ -305,53 +423,79 @@ export function Card({
         <planeGeometry args={[width * 1.18, height * 1.1]} />
         <meshBasicMaterial map={shadowTex} transparent depthWrite={false} />
       </mesh>
-      <mesh geometry={geo} position-z={thickness / 2 + FRONT.face}>
-        <meshBasicMaterial ref={(m) => applyFold(m, arch(fold.current, height, 1, out ? 1 : 0))} map={front} transparent={above} toneMapped={false} />
-      </mesh>
-      {children && (
-        <group ref={overlayRef} position-z={thickness / 2 + FRONT.overlay}>
-          {children}
-        </group>
-      )}
-      <mesh geometry={edge} position-z={-thickness / 2}>
-        <meshBasicMaterial attach="material-0" visible={false} />
-        <meshBasicMaterial attach="material-1" ref={(m) => applyFold(m, arch(fold.current, height, 1, out ? 1 : 0))} color="#d9cba6" transparent={above} toneMapped={false} />
-      </mesh>
-      <mesh ref={glossRef} geometry={geo} position-z={thickness / 2 + FRONT.gloss} raycast={() => null} visible={false}>
-        <meshBasicMaterial map={glossTex} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
-      </mesh>
-      <mesh geometry={geo} rotation-y={Math.PI} position-z={-thickness / 2 - BACK.face}>
-        <meshBasicMaterial ref={(m) => applyFold(m, arch(fold.current, height, -1, out ? 1 : 0))} map={back} transparent={above} toneMapped={false} />
-      </mesh>
-      {halo && haloTex && (
-        <mesh position-z={-thickness / 2 - BACK.halo} raycast={() => null}>
-          <planeGeometry args={[width + 2 * haloMargin, height + 2 * haloMargin]} />
+      <group ref={rise} renderOrder={above ? 20 : 0}>
+        <mesh geometry={geo} position-z={thickness / 2 + FRONT.face}>
           <meshBasicMaterial
-            ref={haloRef}
-            map={haloTex}
-            color={halo.color}
-            transparent
-            depthWrite={false}
-            blending={halo.blend === "add" ? AdditiveBlending : NormalBlending}
+            ref={(m) => {
+              frontMat.current = m
+              applyFold(m, arch(fold.current, height, 1, out ? 1 : 0))
+            }}
+            map={front}
+            transparent={above}
             toneMapped={false}
           />
         </mesh>
-      )}
-      {sparkle && sparkleTex && (
-        <mesh ref={sparkleRef} geometry={geo} position-z={thickness / 2 + FRONT.sparkle} raycast={() => null}>
-          <meshBasicMaterial map={sparkleTex} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+        {children && (
+          <group ref={overlayRef} position-z={thickness / 2 + FRONT.overlay}>
+            {children}
+          </group>
+        )}
+        <mesh geometry={edge} position-z={-thickness / 2}>
+          <meshBasicMaterial attach="material-0" visible={false} />
+          <meshBasicMaterial attach="material-1" ref={(m) => applyFold(m, arch(fold.current, height, 1, out ? 1 : 0))} color="#d9cba6" transparent={above} toneMapped={false} />
         </mesh>
-      )}
-      {frame && frameGeo && (
-        <mesh ref={frameRef} geometry={frameGeo} position-z={thickness / 2 + FRONT.frame} raycast={() => null}>
-          <meshBasicMaterial color={frame.color} transparent toneMapped={false} />
+        <mesh ref={glossRef} geometry={geo} position-z={thickness / 2 + FRONT.gloss} raycast={() => null} visible={false}>
+          <meshBasicMaterial map={glossTex} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
         </mesh>
-      )}
-      {outline && outlineGeo && (
-        <mesh ref={outlineRef} geometry={outlineGeo} position-z={-thickness / 2 - BACK.outline} raycast={() => null}>
-          <meshBasicMaterial color={outline.color} toneMapped={false} />
+        <mesh geometry={geo} rotation-y={Math.PI} position-z={-thickness / 2 - BACK.face}>
+          <meshBasicMaterial
+            ref={(m) => {
+              backMat.current = m
+              applyFold(m, arch(fold.current, height, -1, out ? 1 : 0))
+            }}
+            map={back}
+            transparent={above}
+            toneMapped={false}
+          />
         </mesh>
-      )}
+        {halo && haloTex && (
+          <mesh position-z={-thickness / 2 - BACK.halo} raycast={() => null}>
+            <planeGeometry args={[width + 2 * haloMargin, height + 2 * haloMargin]} />
+            <meshBasicMaterial
+              ref={haloRef}
+              map={haloTex}
+              color={halo.color}
+              transparent
+              depthWrite={false}
+              blending={halo.blend === "add" ? AdditiveBlending : NormalBlending}
+              toneMapped={false}
+            />
+          </mesh>
+        )}
+        {sparkle && sparkleTex && (
+          <mesh ref={sparkleRef} geometry={geo} position-z={thickness / 2 + FRONT.sparkle} raycast={() => null}>
+            <meshBasicMaterial map={sparkleTex} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
+          </mesh>
+        )}
+        {frame && frameGeo && (
+          <mesh ref={frameRef} geometry={frameGeo} position-z={thickness / 2 + FRONT.frame} raycast={() => null}>
+            <meshBasicMaterial color={frame.color} transparent toneMapped={false} />
+          </mesh>
+        )}
+        {outline && outlineGeo && (
+          <mesh ref={outlineRef} geometry={outlineGeo} position-z={-thickness / 2 - BACK.outline} raycast={() => null}>
+            <meshBasicMaterial color={outline.color} toneMapped={false} />
+          </mesh>
+        )}
+        {stated && (
+          <group ref={bloomSide} visible={false}>
+            <mesh raycast={() => null}>
+              <planeGeometry args={[width + 2 * bloomMargin, height + 2 * bloomMargin]} />
+              <meshBasicMaterial ref={bloomMat} map={bloomTex} transparent opacity={0} depthWrite={false} blending={AdditiveBlending} toneMapped={false} />
+            </mesh>
+          </group>
+        )}
+      </group>
     </group>
   )
 }

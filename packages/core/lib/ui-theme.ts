@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react"
-import type { UiTheme } from "./binding"
+import type { CardColor, UiTheme } from "./binding"
 
 /**
  * Resolvers of a game's `UI_THEME` (binding): each group of the theme over its defaults, field by field. Pure, so the shared
@@ -46,6 +46,25 @@ export const DEFAULT_SEAT_THEME: SeatTheme = {
 
 /** The seat label's look: `UI_THEME.seat` of the game over the defaults. */
 export const seatTheme = (theme?: UiTheme["seat"]): SeatTheme => over(DEFAULT_SEAT_THEME, theme)
+
+export type CardBloom = { color: CardColor; strength: number }
+export type CardTheme = { interactive: CardBloom; hover: CardBloom; pressed: CardBloom; selected: CardBloom }
+
+/** The bloom of a card in each state that has one: the accent of the game's theme, and the text colour for a card that is picked, so it differs from one that can be. */
+export const DEFAULT_CARD_THEME: CardTheme = {
+  interactive: { color: "accent", strength: 1 },
+  hover: { color: "accent", strength: 1 },
+  pressed: { color: "accent", strength: 1 },
+  selected: { color: "foreground", strength: 1 },
+}
+
+/** The cards' look: `UI_THEME.card` of the game over the defaults, state by state and field by field. */
+export const cardTheme = (theme?: UiTheme["card"]): CardTheme => ({
+  interactive: over(DEFAULT_CARD_THEME.interactive, theme?.interactive),
+  hover: over(DEFAULT_CARD_THEME.hover, theme?.hover),
+  pressed: over(DEFAULT_CARD_THEME.pressed, theme?.pressed),
+  selected: over(DEFAULT_CARD_THEME.selected, theme?.selected),
+})
 
 export type GameOverTheme = Required<NonNullable<UiTheme["gameOver"]>>
 

@@ -51,6 +51,7 @@ A `Counter` is shared: `packages/table/src/counter/counter.tsx`. The props are `
 | `y` | How high above the table it lies, just over the surface by default: the height of what it lies on, to write a number on a piece |
 | `height` | The size of the letters in world units (default 0.9) |
 | `style` | How the letters are dressed, a `TextStyle` of [text on the table](09-score.md#text-on-the-table): the colour, an outline, a glow |
+| `font` | The CSS font of the letters. Default: the display font of the table (`useLettering`), so that a count reads in the lettering of the plates, the game's own font when it uploaded one |
 | `format` | How a number is written: `(value) => string`. The words and symbols are the game's own, in the visitor's language. Default: the number, with a true minus sign |
 | `seconds` | The most seconds a change takes to count (default `COUNTER_SETTINGS.seconds`) |
 | `change` | Shows what changed above the number, "+3" or "−2", which floats up and fades (default true). Changes that come one on the other are added up |
@@ -73,7 +74,7 @@ A `Counter` is shared: `packages/table/src/counter/counter.tsx`. The props are `
 - The number swells a little each time it changes and settles when the numbers stop.
 - What changed floats up beside the number and fades, green for a gain and red for a loss. A change that comes while the last one is still floating is added to it. `change={false}` shows no change.
 - A number that is not whole is shown at once, and a visitor who asks for less motion sees each new number at once, with no swelling and no change floating ([Motion](../../design/02-foundations/07-motion.md)).
-- The letters are painted with `TableText`, so the counter is lit, turned and covered as the rest of the table is, and it takes the font of the table.
+- The letters are painted with `TableText`, so the counter is lit, turned and covered as the rest of the table is, and it takes the display font of the table (`useLettering`: the game's own font when it uploaded one, else the kit's), as the plates do.
 
 ### Settings
 

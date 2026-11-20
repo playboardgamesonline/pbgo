@@ -1,7 +1,6 @@
 "use client"
 
-import { type CameraSettings, defineGlows, fan, Pile, type Pose, RESTING_HEIGHT, row, seats, shifted, type Spot, Zone, type ZoneCard } from "@pbgo/table"
-import { useState } from "react"
+import { type CameraSettings, fan, Pile, type Pose, RESTING_HEIGHT, row, seats, type Spot, Zone, type ZoneCard } from "@pbgo/table"
 import { back, CARD_SIZE, DECK, face } from "./art"
 import { Stage, TableLabel } from "./parts"
 
@@ -13,17 +12,14 @@ const CAMERA: CameraSettings = { tilt: 40, yaw: 0, distance: 21, fov: 34, target
 /** The ring of seats. */
 const RING = { radiusX: 7.4, radiusZ: 4.4 }
 
-const GLOWS = defineGlows({ selection: { frame: {} } })
-
 /** The cards each other player holds. */
 const OPPONENT_CARDS = 5
 
 type Seat = Required<Spot>
 
-/** The slots of a hand of `n` cards, a fan in front of the viewer; the card at `raised` (-1: none) lifts toward them. */
-function handLayout(n: number, raised: number): Pose[] {
-  const slots = fan(n, { gap: 1.05, y: 1.1, rise: 0.004, z: 6.1, curve: 0.06, tilt: 0.62, roll: 0.05, scale: 1.2 })
-  return slots.map((slot, i) => (i === raised ? shifted(slot, { y: 0.45, z: -0.25 }) : slot))
+/** The slots of a hand of `n` cards, a fan in front of the viewer. The table lifts the card under the pointer: the layout does not. */
+function handLayout(n: number): Pose[] {
+  return fan(n, { gap: 1.05, y: 1.1, rise: 0.004, z: 6.1, curve: 0.06, tilt: 0.62, roll: 0.05, scale: 1.2 })
 }
 
 /** The frame of the cards an opponent holds: just beyond their seat, turned like it. */
@@ -44,24 +40,18 @@ function middleLayout(n: number): Pose[] {
 const DRAW_PILE: Spot = { x: -5.9, z: 0.3 }
 
 export function BoardScene({ players, hand, played, onPlay }: { players: number; hand: readonly number[]; played: readonly number[]; onPlay: (id: number) => void }) {
-  const [hovered, setHovered] = useState<number | null>(null)
   const cardBack = back()
   const ring = seats(players, { ...RING, me: 0 })
-  const raised = hand.indexOf(hovered ?? -1)
 
   const handCards: ZoneCard[] = hand.map((id) => ({
     key: id,
     id,
     front: face(id),
     back: cardBack,
-    glow: hovered === id ? GLOWS.selection : null,
-    gloss: hovered === id,
-    onHover: (over) => setHovered((current) => (over ? id : current === id ? null : current)),
-    onClick: (event) => {
-      event.stopPropagation()
-      setHovered(null)
-      onPlay(id)
-    },
+    // The cards can be chosen: the table lights the one under the pointer or the keyboard focus and lifts it
+    state: "interactive",
+    ariaLabel: `Play card ${id}`,
+    onPress: () => onPlay(id),
   }))
   const middleCards: ZoneCard[] = played.map((id) => ({ key: id, id, front: face(id), back: cardBack }))
 
@@ -81,7 +71,7 @@ export function BoardScene({ players, hand, played, onPlay }: { players: number;
         </group>
       ))}
       <Pile frame={DRAW_PILE} count={14} size={CARD_SIZE} back={cardBack} lean="draw" leanAmplitude={0.06} />
-      <Zone layout={handLayout(hand.length, raised)} size={CARD_SIZE} enter={DECK} cards={handCards} />
+      <Zone layout={handLayout(hand.length)} size={CARD_SIZE} enter={DECK} cards={handCards} />
       <Zone layout={middleLayout(played.length)} size={CARD_SIZE} cards={middleCards} />
     </Stage>
   )

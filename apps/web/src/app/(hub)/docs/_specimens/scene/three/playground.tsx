@@ -42,7 +42,6 @@ import {
   Seat,
   seats,
   Sheet,
-  shifted,
   Sketch,
   Slider,
   spacesIn,
@@ -318,15 +317,18 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
             <Card
               key={thing.id}
               id={`thing-${thing.id}`}
-              target={chosen ? shifted(pose, { y: 0.25 }) : pose}
+              target={pose}
               front={face(thing.card)}
               back={cardBack}
               size={CARD_SIZE}
               from={thing.from !== undefined ? topOfDraw(thing.from, draw) : undefined}
+              // The table raises and lights a picked card; `glow` adds one of the parts of a glow on top, for the panel's choice
+              state={chosen ? "selected" : "interactive"}
+              ariaLabel={`Card ${thing.card}`}
+              onPress={() => actions.select(chosen ? null : thing.id)}
               glow={chosen && state.glow !== "none" ? GLOWS[state.glow] : null}
               draggable
               onDrop={letGo(thing)}
-              onClick={choose(thing)}
             />
           )
         }
@@ -466,7 +468,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
       {parts.hand && (state.layout.hand === "corner" ? <CornerHand>{(frame) => handView(frame, frame.scale)}</CornerHand> : handView({ ...HAND_AT }, 1))}
       {parts.piles && (
         <>
-          <Pile frame={draw} count={PLAY_DECK.size - state.piles.drawn} size={CARD_SIZE} back={cardBack} {...PILE_LOOK} limit={state.layout.piles === "middle" ? 6 : PILE_LIMIT} top={{ id: "draw-top", onClick: (event) => (event.stopPropagation(), actions.deal()) }} />
+          <Pile frame={draw} count={PLAY_DECK.size - state.piles.drawn} size={CARD_SIZE} back={cardBack} {...PILE_LOOK} limit={state.layout.piles === "middle" ? 6 : PILE_LIMIT} top={{ id: "draw-top", state: "interactive", ariaLabel: "Deal a card", onPress: actions.deal }} />
           <TableLabel text="Draw pile" x={draw.x} z={draw.z + 2.1} height={0.45} tone="muted" />
           <DropZone id="discard" shape={rectShape(discard.x, discard.z, 2.4, 3.2)} show="always" />
           <Zone
