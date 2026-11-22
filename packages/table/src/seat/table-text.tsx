@@ -4,6 +4,7 @@ import { useCursor } from "@react-three/drei"
 import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { CanvasTexture, type MeshBasicMaterial, SRGBColorSpace } from "three"
+import { TEXT_PX } from "./text-px"
 
 /** The font of the lettering on the table unless a game gives its own */
 export const TABLE_FONT = 'ui-rounded, "Avenir Next", "Nunito", system-ui, sans-serif'
@@ -25,7 +26,11 @@ export type TextStyle = {
   strike?: boolean
 }
 
-function draw(text: string, style: TextStyle, font: string) {
+/**
+ * Paints a lettering on a canvas and makes a texture of it: the texture, its aspect ratio, the scale that turns a `height` into the plane's height, and the width of the text alone, in canvas pixels (`TEXT_PX` of them make a `height`).
+ * `TableText` draws it on a plane; a block that tints the lettering itself, as the action label does, paints it white and colours the material.
+ */
+export function paintText(text: string, style: TextStyle, font: string) {
   const measure = document.createElement("canvas").getContext("2d")!
   measure.font = `${style.weight ?? 900} ${SIZE}px ${font}`
   measure.letterSpacing = style.spacing ?? "0px"
@@ -117,10 +122,11 @@ function draw(text: string, style: TextStyle, font: string) {
   const texture = new CanvasTexture(canvas)
   texture.colorSpace = SRGBColorSpace
   texture.anisotropy = 8
-  return { texture, ratio: canvas.width / canvas.height, scale: canvas.height / 155, textWidth }
+  return { texture, ratio: canvas.width / canvas.height, scale: canvas.height / TEXT_PX, textWidth }
 }
 
-function useFontReady(font: string) {
+/** Whether `font` has loaded: a lettering is painted again when it has, so it never stays in the fallback's letters */
+export function useFontReady(font: string) {
   const [fontReady, setFontReady] = useState(false)
   useEffect(() => {
     let active = true
@@ -172,7 +178,7 @@ export function TableText({
   const fontReady = useFontReady(font)
   const { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, strike } = style
   const { texture, ratio, scale, textWidth } = useMemo(
-    () => draw(text, { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, strike }, font),
+    () => paintText(text, { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, strike }, font),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [text, color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, strike, font, fontReady],
   )
@@ -215,9 +221,9 @@ export function TableText({
         <planeGeometry args={[totalHeight * ratio, totalHeight]} />
         <meshBasicMaterial ref={material} map={texture} transparent depthWrite={false} toneMapped={false} />
       </mesh>
-      {/* a canvas pixel is `height / 155` world units: the edges of the text, whatever the glyphs measured */}
-      {children && <group position-x={-(textWidth * height) / 155 / 2}>{children}</group>}
-      {trailing && <group position-x={(textWidth * height) / 155 / 2}>{trailing}</group>}
+      {/* a canvas pixel is `height / TEXT_PX` world units: the edges of the text, whatever the glyphs measured */}
+      {children && <group position-x={-(textWidth * height) / TEXT_PX / 2}>{children}</group>}
+      {trailing && <group position-x={(textWidth * height) / TEXT_PX / 2}>{trailing}</group>}
     </group>
   )
 }

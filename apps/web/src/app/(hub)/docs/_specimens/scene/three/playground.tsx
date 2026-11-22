@@ -484,7 +484,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
       {parts.hand && (state.layout.hand === "corner" ? screenHand() : handView({ ...HAND_AT }))}
       {parts.piles && (
         <>
-          <Pile frame={draw} count={PLAY_DECK.size - state.piles.drawn} size={CARD_SIZE} back={cardBack} {...PILE_LOOK} limit={state.layout.piles === "middle" ? 6 : PILE_LIMIT} top={{ id: "draw-top", state: "interactive", ariaLabel: "Deal a card", onPress: actions.deal }} />
+          <Pile frame={draw} count={PLAY_DECK.size - state.piles.drawn} size={CARD_SIZE} back={cardBack} {...PILE_LOOK} limit={state.layout.piles === "middle" ? 6 : PILE_LIMIT} top={{ id: "draw-top" }} action={{ label: "Draw", ariaLabel: "Deal a card", onPress: actions.deal }} />
           <TableLabel text="Draw pile" x={draw.x} z={draw.z + 2.1} height={0.45} tone="muted" />
           <DropZone id="discard" shape={rectShape(discard.x, discard.z, 2.4, 3.2)} show="always" />
           <Zone

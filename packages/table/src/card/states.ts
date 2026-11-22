@@ -74,6 +74,9 @@ export const CARD_STATE_FIELDS = {
   bloomSettle: ["bloom settle (s)", 0.01, 0.6, 0.01],
 } satisfies Record<keyof typeof CARD_STATE_SETTINGS, Field>
 
+/** How far a card rises under the pointer or the keyboard focus, in world units: the share of its height that `hoverLift` says, at the scale it lies at. What names the card (an action label) rises as far with it */
+export const cardRise = (size: { height: number }, scale = 1, S: typeof CARD_STATE_SETTINGS = CARD_STATE_SETTINGS) => S.hoverLift * size.height * scale
+
 /** The key of `UI_THEME.card` that colours a state's bloom, for the states that have one */
 export type BloomKey = "interactive" | "hover" | "pressed" | "selected"
 

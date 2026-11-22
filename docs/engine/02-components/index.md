@@ -34,6 +34,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 | Paper | A piece of paper on the table with a few words that can be pressed: what the fields are drawn as, and a button on the table | | `Paper` | Built: [Bets and choices](12-bets-and-choices.md#fields-that-open-a-window) |
 | Floor button | A button drawn flat on the table: a tinted pad with an outline whose borders lift under the pointer or the keyboard focus. Hit and Stay | `onPress`, the `disabled` state | `FloorButton` | Built: [Floor buttons](25-floor-buttons.md) |
 | Hotspot | An invisible area of the table that chooses a player: it takes the pointer and the keyboard, and the cards under it glow | `onPress` | `Hotspot`, `LightPool`, the states of a `Card` | Built: [Floor buttons](25-floor-buttons.md#choosing-a-player) |
+| Action label | The word that says what pressing an object does ("Draw" over the draw pile), lying on the table on the far side of the object with a small arrow that points down at it. It is pressed like the object and lit with it | `onPress` | `ActionLabel`, the `action` of a `Pile`, `pileAboveAt`, `cardRise` | Built: [Action labels](27-action-labels.md) |
 | Seat | A player's place, facing the middle of the table, and their line along its axis, turned with the seat: the plate (name, info line), the play area and the hand | The players, `waitingFor` | `Seat`, `PlayerSeat` | Built: [Seats](03-seats.md) |
 | Text on the table | Words and numbers written flat | A number or a word in the view | `TableText` | Built: [Score](09-score.md) |
 | Table and camera | The surface everything lies on, and the way it is seen | | `Table` | Built: [Table](01-table.md), [Camera](02-camera.md) |
@@ -79,5 +80,6 @@ What each component is, what the engine holds of it, what the board draws, and w
 - [Tiles](24-tiles.md): tiles with an edge on each side, laid where the sides match in the engine, with where each one fits and the roads and cities of the whole layout, and the tiles on the table with the cells they go on.
 - [Floor buttons](25-floor-buttons.md): buttons drawn flat on the table, whose borders lift under the pointer or the keyboard focus, with a keyboard stand-in and a reduced-motion state, and the invisible hotspot that chooses a player.
 - [Rules of the board](26-rules-of-the-board.md): what holds for every board, whatever the game.
+- [Action labels](27-action-labels.md): the word over an object that says what pressing it does, with a small arrow that points down at it, pressed and lit like the object.
 
 What no tool draws or holds yet is on [Not built yet](../03-not-built-yet.md), with what holds instead. The players and the turn are in [The game](../01-the-game/index.md).
