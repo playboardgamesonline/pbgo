@@ -189,7 +189,7 @@ The turn marker is a crown that stands on the upper-right corner of the avatar o
 
 ## Whose turn it is on the screen
 
-The table says whose turn it is with the crown on the avatar of the player, and nothing else: no line across the table, no light under a seat. The words are the screen's, around the table: the ticker at the top left says "It's your turn", "Ann's turn" or "Waiting for Ann, Bob", written by the platform in the visitor's language from what the table says (`waitingFor` and `meId` of `PublicGame`; `yourTurn`, `turnOf`, `waitingFor` of `UI_TEXTS`), and an announcement plays when the turn comes to the viewer ([Turn change](#turn-change)). A game writes no sentence and keeps no turn marker of its own.
+The table says whose turn it is with the crown on the avatar of the player, and nothing else: no line across the table, no light under a seat. The words are the screen's, around the table: the ticker at the top left says "It's your turn", "Ann's turn" or "Waiting for Ann, Bob", written by the platform in the visitor's language from what the table says (`waitingFor` and `meId` of `PublicGame`; `yourTurn`, `turnOf`, `waitingFor` of `UI_TEXTS`), and an announcement plays when the turn comes to the viewer ([Turn change](#turn-change)). Under it the ticker says what to do while the viewer has something to do (`prompt` of `Ticker`: one sentence in the game's words, in the visitor's language, given by the board from the view, and nothing when there is nothing to do). A game writes no sentence on the table and keeps no turn marker of its own.
 
 | What the game waits for | What the ticker says | The crown |
 | --- | --- | --- |

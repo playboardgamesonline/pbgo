@@ -35,7 +35,7 @@ function TableCorner({ gameCode, options, onLeave, className }: { gameCode: stri
 }
 
 /**
- * Standard game screen: the table (children) full screen. What is said around it stands in the corners, so that the cards keep the middle and the bottom: top left the state of the game (`ticker`: whose turn it is, the round, the history),
+ * Standard game screen: the table (children) full screen. What is said around it stands in the corners, so that the cards keep the middle and the bottom: top left the state of the game (`ticker`: whose turn it is, what to do, the round, the history),
  * in the game's look; top right the social dock, the one island in the platform's look, with the settings and the way out, and the players of the table with their scores under it; bottom right the chat of the table, which only shows when it has
  * something to say. The players and the chat are still drawn in the platform's look (`platform-look.test.ts` lists what has not moved to the game's yet).
  * `overlay` is for the game's own buttons and panels. The table is as tall as the window and the cookie banner floats over it; the HUD and the overlay stand above the banner's room, so a bottom-anchored button keeps its distance from the card.

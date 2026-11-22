@@ -8,6 +8,7 @@ import { shortName } from "../../lib/short-name"
 import { useText } from "../skin-provider"
 import { useGame } from "./context"
 import { PlayerAvatar } from "./player-seat"
+import { PromptLine } from "./prompt-line"
 
 /** One turn of the history: its author and the actions shown (each action is rendered by the game). */
 export type HistoryTurn = { key: string | number; playerId: string; entries: { key: string | number; node: React.ReactNode }[] }
@@ -89,7 +90,10 @@ const fadeOf = (scrolled: boolean) => `linear-gradient(to bottom, ${scrolled ? "
 
 /**
  * Top-left of the screen, in the game's look: the state of the game, laid straight on the table with no card behind it (`table-ink` keeps it legible over any skin and anything the table shows there) and wide enough for a line of the history to
- * stay on one line. Whose turn it is, what the game says besides (`status`: the round, the tokens), then the history (newest first, fading out as it goes down).
+ * stay on one line. Whose turn it is, what the viewer has to do (`prompt`), what the game says besides (`status`: the round, the tokens), then the history (newest first, fading out as it goes down).
+ *
+ * `prompt` is the one place a board's instruction is said, since the table writes no sentence: one sentence in the game's words, in the visitor's language, under the main line while the viewer has something to do ("Choose a card to play"),
+ * and nothing when they have not. What lies under it follows it down and up as it comes and goes. It is read out for visitors who do not see the screen (`PromptLine`).
  *
  * `waitingFor` (`game.waitingFor`, what the game waits for) decides the main line when it is given: "Your turn" when I am one of
  * the players, "Waiting for A, B" when several others are, that player's turn when it is one. A board that holds the
@@ -106,6 +110,7 @@ export function Ticker({
   activePlayerId,
   waitingFor,
   idle,
+  prompt,
   status,
   history,
   sentences = false,
@@ -114,6 +119,8 @@ export function Ticker({
   waitingFor?: readonly string[]
   /** Text when nobody has to play (default: the "waiting" / "game over" labels) */
   idle?: string
+  /** What the viewer has to do now, in one sentence of the game's words, in the visitor's language: under the main line while they have something to do, nothing (`null`) when they have not. A player named in it is a `PlayerName` */
+  prompt?: React.ReactNode
   /** Global information under the main line (round, tokens…) */
   status?: React.ReactNode
   history: HistoryTurn[]
@@ -142,73 +149,77 @@ export function Ticker({
       >
         {several ? <WaitingLabel playerIds={several} /> : turn ? <TurnLabel playerId={turn} /> : waiting}
       </motion.p>
-      {status && <div className="font-display text-sm tracking-[0.18em] text-foreground/70 uppercase tabular-nums short:text-xs">{status}</div>}
-      {history.length > 0 && (
-        <>
-          <div aria-hidden className="h-px w-full bg-gradient-to-r from-foreground/40 to-transparent" />
-          <div
-            // a region that scrolls is reached with the keyboard too
-            tabIndex={0}
-            role="region"
-            aria-label={t("history")}
-            className="pointer-events-auto max-h-56 w-fit max-w-full overflow-y-auto pb-6 outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-ring/50 short:max-h-28 short:pb-3 [&::-webkit-scrollbar]:hidden"
-            onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 2)}
-            style={{ maskImage: fadeOf(scrolled), WebkitMaskImage: fadeOf(scrolled) }}
-          >
-            <ol className="flex flex-col items-start gap-3 text-base short:gap-2">
-              {history.map((turn) => {
-                // One action is one line with its player's avatar before it; several are a heading and the actions under it. The entries keep their place in the list when a second one comes, so the first does not play its entrance again
-                const alone = turn.entries.length === 1
-                return (
-                  <motion.li
-                    key={turn.key}
-                    layout="position"
-                    initial={{ opacity: 0, y: -travel(motionMode, 8) }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={enter}
-                    className="flex max-w-full flex-col items-start gap-1.5 short:gap-1"
-                  >
-                    {!alone && (
-                      <span className="flex items-center gap-2 text-sm text-foreground/70">
-                        <TurnAvatar playerId={turn.playerId} />
-                        {/* one box, so that the label (text, a nickname, text) is not three items of the row */}
-                        <span>
-                          <TurnLabel playerId={turn.playerId} short />
+      <PromptLine prompt={prompt} motionMode={motionMode} />
+      {/* what lies under the sentence follows it down and up as it comes and goes, so that the history does not jump */}
+      <motion.div layout="position" transition={enter} className="flex min-w-0 flex-col gap-2 short:gap-1.5">
+        {status && <div className="font-display text-sm tracking-[0.18em] text-foreground/70 uppercase tabular-nums short:text-xs">{status}</div>}
+        {history.length > 0 && (
+          <>
+            <div aria-hidden className="h-px w-full bg-gradient-to-r from-foreground/40 to-transparent" />
+            <div
+              // a region that scrolls is reached with the keyboard too
+              tabIndex={0}
+              role="region"
+              aria-label={t("history")}
+              className="pointer-events-auto max-h-56 w-fit max-w-full overflow-y-auto pb-6 outline-none [scrollbar-width:none] focus-visible:ring-2 focus-visible:ring-ring/50 short:max-h-28 short:pb-3 [&::-webkit-scrollbar]:hidden"
+              onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 2)}
+              style={{ maskImage: fadeOf(scrolled), WebkitMaskImage: fadeOf(scrolled) }}
+            >
+              <ol className="flex flex-col items-start gap-3 text-base short:gap-2">
+                {history.map((turn) => {
+                  // One action is one line with its player's avatar before it; several are a heading and the actions under it. The entries keep their place in the list when a second one comes, so the first does not play its entrance again
+                  const alone = turn.entries.length === 1
+                  return (
+                    <motion.li
+                      key={turn.key}
+                      layout="position"
+                      initial={{ opacity: 0, y: -travel(motionMode, 8) }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={enter}
+                      className="flex max-w-full flex-col items-start gap-1.5 short:gap-1"
+                    >
+                      {!alone && (
+                        <span className="flex items-center gap-2 text-sm text-foreground/70">
+                          <TurnAvatar playerId={turn.playerId} />
+                          {/* one box, so that the label (text, a nickname, text) is not three items of the row */}
+                          <span>
+                            <TurnLabel playerId={turn.playerId} short />
+                          </span>
                         </span>
-                      </span>
-                    )}
-                    {turn.entries.map((entry) => (
-                      <motion.div
-                        key={entry.key}
-                        initial={{ opacity: 0, y: -travel(motionMode, 6) }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={enter}
-                        className={alone ? "flex max-w-full items-start gap-2" : "max-w-full pl-7 short:pl-6"}
-                      >
-                        {alone ? (
-                          <>
-                            <TurnAvatar playerId={turn.playerId} line />
-                            <span className="min-w-0">
-                              {!sentences && (
-                                <>
-                                  <PlayerName id={turn.playerId} />{" "}
-                                </>
-                              )}
-                              {entry.node}
-                            </span>
-                          </>
-                        ) : (
-                          entry.node
-                        )}
-                      </motion.div>
-                    ))}
-                  </motion.li>
-                )
-              })}
-            </ol>
-          </div>
-        </>
-      )}
+                      )}
+                      {turn.entries.map((entry) => (
+                        <motion.div
+                          key={entry.key}
+                          initial={{ opacity: 0, y: -travel(motionMode, 6) }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={enter}
+                          className={alone ? "flex max-w-full items-start gap-2" : "max-w-full pl-7 short:pl-6"}
+                        >
+                          {alone ? (
+                            <>
+                              <TurnAvatar playerId={turn.playerId} line />
+                              <span className="min-w-0">
+                                {!sentences && (
+                                  <>
+                                    <PlayerName id={turn.playerId} />{" "}
+                                  </>
+                                )}
+                                {entry.node}
+                              </span>
+                            </>
+                          ) : (
+                            entry.node
+                          )}
+                        </motion.div>
+                      ))}
+                    </motion.li>
+                  )
+                })}
+              </ol>
+            </div>
+          </>
+        )}
+      </motion.div>
     </div>
   )
 }
