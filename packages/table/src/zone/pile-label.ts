@@ -23,8 +23,8 @@ export function pileLabelAt(frame: Spot | undefined, size: CardSize, scale = 1):
 }
 
 /**
- * Where the arrow of the action label over a pile points: the middle of the pile's far edge, the one away from the viewer, which is where the count is not, at the height of the top of the pile (`y`, the height of its top card: the table's for one
- * card). The label stays upright for the viewer, as the count does, so this is the room the pile takes away from them, whatever way its frame turns it. `scale` is the scale of the cards of the pile.
+ * Where the action label over a pile hangs from: the middle of the pile's far edge, the one away from the viewer, which is where the count is not, at the height of the top of the pile (`y`, the height of its top card: the table's for one card). The label
+ * floats a gap above it and faces the camera, so this is the room the pile takes away from the viewer, whatever way its frame turns it. `scale` is the scale of the cards of the pile.
  */
 export function pileAboveAt(frame: Spot | undefined, size: CardSize, scale = 1, y: number = RESTING_HEIGHT): { x: number; y: number; z: number } {
   return { x: frame?.x ?? 0, y, z: (frame?.z ?? 0) - halfDepth(frame, size, scale) }

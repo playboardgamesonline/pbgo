@@ -22,9 +22,9 @@ describe("how large the lettering is", () => {
 })
 
 describe("the plan of a label", () => {
-  it("hangs the lettering away from the object, past the arrow and a gap", () => {
+  it("hangs the lettering above the arrow, past its length and a gap", () => {
     const plan = labelPlan(4 * TEXT_PX, LABEL_ROOM)
-    expect(plan.letteringZ).toBeLessThan(-(ARROW.length + LABEL_GAP.lettering))
+    expect(plan.letteringY).toBeGreaterThan(ARROW.length + LABEL_GAP.lettering)
   })
 
   it("takes the room at most, whatever the word", () => {
@@ -40,21 +40,21 @@ describe("the plan of a label", () => {
     for (const letters of [1, 6, 30]) {
       const plan = labelPlan(letters * 0.6 * TEXT_PX, LABEL_ROOM)
       const { hit } = plan
-      const near = hit.z + hit.depth / 2
-      const far = hit.z - hit.depth / 2
-      expect(far).toBeLessThan(plan.letteringZ - (0.4 * plan.height))
-      expect(near).toBeGreaterThan(0)
+      const top = hit.y + hit.height / 2
+      const bottom = hit.y - hit.height / 2
+      expect(top).toBeGreaterThan(plan.letteringY + 0.4 * plan.height)
+      expect(bottom).toBeLessThan(0)
       expect(hit.width).toBeGreaterThanOrEqual(Math.max(plan.width, ARROW.width))
     }
   })
 
-  it("never reaches the object it names: the pointer stops short of its edge", () => {
+  it("never reaches the object it names: the pointer stops short of its top", () => {
     const { hit } = labelPlan(4 * TEXT_PX, LABEL_ROOM)
-    // the origin is the tip, which is a gap away from the object's edge
-    expect(hit.z + hit.depth / 2).toBeLessThan(LABEL_GAP.tip)
+    // the origin is the tip, which is a gap above the top of the object
+    expect(hit.y - hit.height / 2).toBeGreaterThan(-LABEL_GAP.tip)
   })
 
-  it("is centred across the table, on the object", () => {
+  it("is centred across the label, over the object", () => {
     expect(labelPlan(4 * TEXT_PX, LABEL_ROOM).hit.x).toBe(0)
   })
 })
@@ -113,7 +113,7 @@ describe("the colour of a label", () => {
 })
 
 describe("how the arrow moves", () => {
-  it("bobs toward the object and back at rest, never away from its place and never past its reach", () => {
+  it("bobs down toward the object and back at rest, never above its place and never past its reach", () => {
     for (let t = 0; t < 8; t += 0.05) {
       const offset = arrowOffset(t, 0, false)
       expect(offset).toBeGreaterThanOrEqual(0)

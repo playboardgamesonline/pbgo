@@ -1282,7 +1282,7 @@ export function SceneActionLabelSpecimen() {
   }
   return (
     <SceneFrame
-      label="A card table seen from above with a draw pile on the left and a discard on the right: over each, on the far side, the word that says what pressing it does, Draw and Take the discard, with a small arrow under it that points down at the pile and bobs toward it. The word and the pile light each other under the pointer, and pressing either does the same"
+      label="A card table seen from above with a draw pile on the left and a discard on the right: floating over each, facing the camera, the word that says what pressing it does, Draw and Take the discard, with a small arrow under it that points down at the pile and bobs toward it. The word and the pile light each other under the pointer, and pressing either does the same"
       controls={
         <>
           <Option label="The player can act" checked={can} onChange={setCan} />
