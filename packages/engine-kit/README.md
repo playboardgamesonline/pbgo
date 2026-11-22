@@ -203,7 +203,7 @@ A card that goes back into hiding after it was seen gets a **new id**, so nobody
 | `reissueIds(ids, held, rng, space?)` | The same for several cards: `fresh[i]` replaces `held[i]`. |
 | `cardOf(ids, id)` | The index in the catalogue of the card that holds `id`, or `-1`. |
 | `keyOfId(ids, catalogue, id)` | What the card that holds `id` is: its key in the game's catalogue. An id that nobody holds is a bug of the engine, a `RangeError`. |
-| `faceOfId(ids, catalogue, id)` | The `Face` of the card that holds `id`: `{ id, type }`, what a view shows a player who may see it. |
+| `faceOfId(ids, catalogue, id)` | The `CardFace` of the card that holds `id`: `{ id, type }`, what a view shows a player who may see it. |
 | `facesOfIds(ids, catalogue, held)` | The faces of several ids, in that order. |
 
 ### Decks (`deck.ts`)
