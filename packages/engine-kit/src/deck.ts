@@ -81,3 +81,10 @@ export function deal<T = number>(pile: readonly T[], seats: number, size: number
   if (seats * size > pile.length) throw new RangeError(`Cannot deal ${size} cards to ${seats} seats from a pile of ${pile.length}`)
   return { hands: Array.from({ length: seats }, (_, seat) => pile.slice(seat * size, (seat + 1) * size)), pile: pile.slice(seats * size) }
 }
+
+/** Takes `item` out of `list`, in place. It must be there: a card is in exactly one place, so one that is not where it should be is a bug of the engine and a `RangeError`. */
+export function removeFrom<T = number>(list: T[], item: T): void {
+  const index = list.indexOf(item)
+  if (index < 0) throw new RangeError(`The card ${String(item)} is not where it should be`)
+  list.splice(index, 1)
+}

@@ -71,6 +71,24 @@ type State = {
 | `playFor(game, state, playerId, at?)` | Plays the current step of one waiting player (`autoPlayFor`); `at` is the time the server plays it at, for a game with a clock. `EngineError("NOT_WAITING")` if they are not waiting, `"AUTOPLAY_UNSUPPORTED"` if the game cannot. |
 | `playOn(game, state, maxSteps = 1000)` | Plays for the first waiting player until the game is over. For tests and simulations. |
 
+### Seats and the machinery of a step (`players.ts`, `step.ts`)
+
+The seats run clockwise and the array of the ids of the table is the only source of order. Every engine that says what happens wrote the same few helpers again; they are the kit's.
+
+| | |
+| --- | --- |
+| `seatOf(seats, playerId)` | The seat of a player, `-1` when they are not at the table. |
+| `playerAt(seats, seat)` | The id of the player in `seat`. A seat that does not exist is a bug of the engine, a `RangeError`. |
+| `nextSeat(count, from, skip?)` | The seat that plays after `from`, going round clockwise, that `skip` does not rule out (a player who is out, one who has stayed). `from` itself comes last; `null` when every seat is ruled out. |
+| `openStep(state, streams?)` | A step starts here: a private copy of the state (`structuredClone`) and the streams the state keeps picked up where the last step left them, each under the name of the field that saves it (`["rng"]` unless the game keeps others, `["rng", "idsRng"]`). Returns a `StepContext`: `s`, `events` and the streams. |
+| `closeStep(ctx)` | A step ends here: every stream the step opened is saved back into the state, which comes out with what happened, as a `Step`. |
+| `noteEvent(ctx, event, hidden?)` | Notes what happened, for everybody; `hidden` is `{ to, masked }` when only some players may read it in full (see Log). |
+
+```ts
+export const open = (state: State) => openStep<State, MyEvent, "rng" | "idsRng">(state, ["rng", "idsRng"])
+export const close = closeStep
+```
+
 ### Options
 
 `options.ts`. Declarative game options (`number` / `choice` / `boolean`, optional `group`, `requires`, `conflictsWith`, `players`): `defaultOptions`, `normalizeOptions`, `optionStatus`, `optionGroup`, `applyPreset`, `presetMatches`. An option names no text: its words, and those of a preset and of a line of score, are written in the game's Sanity under the keys of `texts.ts` (`optionLabelKey`, `choiceLabelKey`, `scoreLabelKey`…), and `engineTextKeys(definition)` lists the ones a definition needs.
@@ -184,6 +202,9 @@ A card that goes back into hiding after it was seen gets a **new id**, so nobody
 | `reissueId(ids, id, rng, space?)` | Gives the card that holds `id` a new id that no card holds. Returns `{ ids, fresh }`: the new table and the new id, which the caller puts where the card is now. The old id must not stay anywhere in the state. A retired id is not remembered: it could come back, by chance, one time in `space`. |
 | `reissueIds(ids, held, rng, space?)` | The same for several cards: `fresh[i]` replaces `held[i]`. |
 | `cardOf(ids, id)` | The index in the catalogue of the card that holds `id`, or `-1`. |
+| `keyOfId(ids, catalogue, id)` | What the card that holds `id` is: its key in the game's catalogue. An id that nobody holds is a bug of the engine, a `RangeError`. |
+| `faceOfId(ids, catalogue, id)` | The `Face` of the card that holds `id`: `{ id, type }`, what a view shows a player who may see it. |
+| `facesOfIds(ids, catalogue, held)` | The faces of several ids, in that order. |
 
 ### Decks (`deck.ts`)
 
@@ -197,6 +218,7 @@ A pile is an array of ids with the **top first**: `pile[0]` is drawn next and th
 | `reshuffleDiscard(piles, rng, { keep? })` | Shuffles the discard and puts it under what is left of the deck. The `keep` cards on top of the discard stay where they are (Skyjo keeps its visible card: `keep: 1`). |
 | `drawWithReshuffle(piles, count, rng, { keep? })` | Draws `count` cards; when the deck runs out in the middle of the draw, the discard is reshuffled once and the draw goes on. Never before: a deck that holds exactly `count` cards is not reshuffled. Fewer cards come back only when both piles are exhausted; the game decides what that means. Returns `{ drawn, piles }`. |
 | `deal(pile, seats, size)` | `{ hands, pile }`: `size` cards to each seat, block after block from the top (`hands[seat]`). `RangeError` when the pile is too short, rather than uneven hands. |
+| `removeFrom(list, item)` | Takes `item` out of `list`, in place. It must be there: a card is in exactly one place, so one that is not where it should be is a bug of the engine, a `RangeError`. |
 
 `Piles<T>` is `{ deck: T[]; discard: T[] }`. Every function is generic and defaults to numeric ids.
 

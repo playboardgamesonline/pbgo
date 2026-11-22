@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import { deal, draw, drawWithReshuffle, insertAt, peek, reshuffleDiscard } from "./deck"
+import { deal, draw, drawWithReshuffle, insertAt, peek, removeFrom, reshuffleDiscard } from "./deck"
 import { createRng, createSaveableRng, restoreRng, shuffle } from "./rng"
 
 const range = (count: number, from = 0) => Array.from({ length: count }, (_, i) => from + i)
@@ -262,5 +262,31 @@ describe("deal", () => {
     const pile = range(6)
     deal(pile, 2, 2)
     expect(pile).toEqual(range(6))
+  })
+})
+
+describe("removeFrom", () => {
+  it("takes the card out of the list, in place, and leaves the others where they were", () => {
+    const hand = [4, 9, 12, 7]
+    removeFrom(hand, 12)
+    expect(hand).toEqual([4, 9, 7])
+  })
+
+  it("takes only the one card", () => {
+    const list = [1, 2, 3]
+    removeFrom(list, 1)
+    removeFrom(list, 3)
+    expect(list).toEqual([2])
+  })
+
+  it("refuses a card that is not there: a card is in exactly one place", () => {
+    expect(() => removeFrom([1, 2, 3], 9)).toThrow(RangeError)
+    expect(() => removeFrom([], 1)).toThrow(RangeError)
+  })
+
+  it("takes whatever a list holds, not ids only", () => {
+    const names = ["a", "b"]
+    removeFrom(names, "a")
+    expect(names).toEqual(["b"])
   })
 })

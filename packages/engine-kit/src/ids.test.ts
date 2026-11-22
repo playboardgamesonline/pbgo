@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { cardOf, ID_SPACE, issueIds, reissueId, reissueIds } from "./ids"
+import { cardOf, faceOfId, facesOfIds, ID_SPACE, issueIds, keyOfId, reissueId, reissueIds } from "./ids"
 import { createRng, sideSeed, type Rng } from "./rng"
 
 /** A stream that returns the given numbers, one after the other. */
@@ -161,5 +161,39 @@ describe("cardOf", () => {
   it("answers -1 for an id nobody holds", () => {
     expect(cardOf([5, 8, 13], 6)).toBe(-1)
     expect(cardOf([], 1)).toBe(-1)
+  })
+})
+
+describe("the face of a card", () => {
+  const catalogue = ["guard", "priest", "baron"] as const
+  const ids = [4001, 22, 9090]
+
+  it("is the key of the card that holds the id, in the catalogue", () => {
+    expect(keyOfId(ids, catalogue, 22)).toBe("priest")
+    expect(keyOfId(ids, catalogue, 9090)).toBe("baron")
+  })
+
+  it("is the id and the key together", () => {
+    expect(faceOfId(ids, catalogue, 4001)).toEqual({ id: 4001, type: "guard" })
+  })
+
+  it("is the faces of several ids, in the order they are given", () => {
+    expect(facesOfIds(ids, catalogue, [9090, 4001])).toEqual([
+      { id: 9090, type: "baron" },
+      { id: 4001, type: "guard" },
+    ])
+    expect(facesOfIds(ids, catalogue, [])).toEqual([])
+  })
+
+  it("is refused for an id that nobody holds: a bug of the engine, never a player's mistake", () => {
+    expect(() => keyOfId(ids, catalogue, 7)).toThrow(RangeError)
+    expect(() => faceOfId(ids, catalogue, 7)).toThrow(RangeError)
+    expect(() => facesOfIds(ids, catalogue, [22, 7])).toThrow(RangeError)
+  })
+
+  it("follows a card that was given a new id", () => {
+    const { ids: renewed, fresh } = reissueId(ids, 22, createRng(1))
+    expect(keyOfId(renewed, catalogue, fresh)).toBe("priest")
+    expect(() => keyOfId(renewed, catalogue, 22)).toThrow(RangeError)
   })
 })
