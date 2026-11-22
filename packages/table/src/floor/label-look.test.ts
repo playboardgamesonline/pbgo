@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { NO_TOUCH } from "../card/states"
 import { TEXT_PX } from "../seat/text-px"
-import { ARROW, arrowOffset, arrowOutline, BOB, fitHeight, LABEL_GAP, LABEL_HEIGHT, LABEL_ROOM, labelColour, labelPlan, labelScale, touchOf } from "./label-look"
+import { ARROW, arrowOffset, arrowOutline, BOB, fitHeight, LABEL_GAP, LABEL_HEIGHT, LABEL_ROOM, labelColour, labelPlan, labelScale, pointerTouch, touchOf } from "./label-look"
 
 describe("how large the lettering is", () => {
   it("is the size asked for when the word fits the room", () => {
@@ -56,6 +56,17 @@ describe("the plan of a label", () => {
 
   it("is centred across the table, on the object", () => {
     expect(labelPlan(4 * TEXT_PX, LABEL_ROOM).hit.x).toBe(0)
+  })
+})
+
+describe("what the pointer does to a label", () => {
+  it("is NO_TOUCH itself while it does nothing, so that nothing is told of a change that is none", () => {
+    expect(pointerTouch(false, false)).toBe(NO_TOUCH)
+  })
+
+  it("is hovered, then pressed, with no keyboard focus: the label has no key of its own", () => {
+    expect(pointerTouch(true, false)).toEqual({ hovered: true, focused: false, pressed: false })
+    expect(pointerTouch(true, true)).toEqual({ hovered: true, focused: false, pressed: true })
   })
 })
 

@@ -11,7 +11,7 @@ import { useCardBlooms } from "../card/theme"
 import { useLettering } from "../lettering"
 import { RESTING_HEIGHT } from "../pose"
 import { paintText, useFontReady } from "../seat/table-text"
-import { ARROW, arrowOffset, arrowOutline, LABEL_GAP, LABEL_HEIGHT, LABEL_ROOM, labelColour, labelPlan, labelScale, touchOf } from "./label-look"
+import { ARROW, arrowOffset, arrowOutline, LABEL_GAP, LABEL_HEIGHT, LABEL_ROOM, labelColour, labelPlan, labelScale, pointerTouch, touchOf } from "./label-look"
 import { liftTarget, stepLift } from "./lift"
 
 export type ActionLabelProps = {
@@ -74,14 +74,16 @@ export function ActionLabel({ at, label, onPress, disabled = false, touch = NO_T
   const [shadow] = useState(shadowTexture)
 
   // What the visitor does to the label, which the board reads, and what is done to the label or to the object it names, which lifts it
-  const own: Touch = { hovered: pressable && hovered, focused: false, pressed: pressable && pressed }
+  const own = pointerTouch(pressable && hovered, pressable && pressed)
   const latest = useRef(onTouch)
   useEffect(() => {
     latest.current = onTouch
   })
+  const ownHovered = own.hovered
+  const ownPressed = own.pressed
   useEffect(() => {
-    latest.current?.({ hovered: pressable && hovered, focused: false, pressed: pressable && pressed })
-  }, [pressable, hovered, pressed])
+    latest.current?.(pointerTouch(ownHovered, ownPressed))
+  }, [ownHovered, ownPressed])
   // A label that goes (the object cannot be pressed any more) leaves nothing touched behind it
   useEffect(() => () => latest.current?.(NO_TOUCH), [])
   const target = liftTarget({ ...touchOf(own, touch), disabled })

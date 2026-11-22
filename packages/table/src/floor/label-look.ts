@@ -1,7 +1,7 @@
 // The pure half of an action label, the word that says what pressing an object does ("Draw" over the draw pile): where the arrow and the lettering stand over the object, how large each is, and the colour of each stage. No three.js and no React:
 // `action-label.tsx` draws it and `label-look.test.ts` holds it.
 
-import type { Touch } from "../card/states"
+import { NO_TOUCH, type Touch } from "../card/states"
 import { TEXT_PX } from "../seat/text-px"
 import { mix } from "./lift"
 
@@ -61,6 +61,11 @@ export function labelPlan(textWidth: number, room: number, preferred: number = L
   const far = letteringZ - LETTER_HALF * height - HIT_PAD
   const near = HIT_PAST_TIP
   return { height, width, letteringZ, hit: { x: 0, z: (near + far) / 2, width: Math.max(width, ARROW.width) + 2 * HIT_PAD, depth: near - far } }
+}
+
+/** What the pointer does to the label: `NO_TOUCH` itself while it does nothing, so that what keeps it is not told of a change that is none */
+export function pointerTouch(hovered: boolean, pressed: boolean): Touch {
+  return hovered || pressed ? { hovered, focused: false, pressed } : NO_TOUCH
 }
 
 /** What is done to the label: its own pointer, and what is done to the object it names. The label lights as the object does, and the object as the label does */
