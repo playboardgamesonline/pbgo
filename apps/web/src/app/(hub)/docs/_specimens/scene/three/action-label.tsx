@@ -13,6 +13,8 @@ const CAMERA: CameraSettings = { tilt: 40, yaw: 0, distance: 13, fov: 34, target
 const DRAW: Spot = { x: -3.3, z: 0 }
 const DISCARD: Spot = { x: 3.3, z: 0 }
 const SCALE = 1.25
+// The piles are far apart, so each word has the room between them: a longer word would be set smaller to fit a narrower one
+const ROOM = 5
 const DISCARD_LAYOUT = pile(1, { face: "up", scale: SCALE })
 
 export function ActionLabelScene({ count, can, discard, onDraw, onTake }: { count: number; can: boolean; discard: number; onDraw: () => void; onTake: () => void }) {
@@ -22,14 +24,14 @@ export function ActionLabelScene({ count, can, discard, onDraw, onTake }: { coun
   const [over, setOver] = useState(false)
   return (
     <Stage id="scene-action-label" camera={CAMERA} playIntro={false}>
-      <Pile frame={DRAW} count={count} size={CARD_SIZE} back={cardBack} scale={SCALE} limit={14} lean="draw" leanAmplitude={0.06} action={can ? { label: "Draw", onPress: onDraw } : undefined} />
+      <Pile frame={DRAW} count={count} size={CARD_SIZE} back={cardBack} scale={SCALE} limit={14} lean="draw" leanAmplitude={0.06} action={can ? { label: "Draw", onPress: onDraw, room: ROOM } : undefined} />
       <Zone
         frame={DISCARD}
         layout={DISCARD_LAYOUT}
         size={CARD_SIZE}
         cards={[{ key: "discard", front: face(discard), back: cardBack, state: can ? effectiveState("interactive", touch) : "base", onPress: onTake, ariaLabel: "Take the discard", onHover: setOver }]}
       />
-      {can && <ActionLabel at={pileAboveAt(DISCARD, CARD_SIZE, SCALE, DISCARD_LAYOUT[0]?.position.y)} label="Take the discard" onPress={onTake} touch={{ ...NO_TOUCH, hovered: over }} onTouch={setTouch} rise={cardRise(CARD_SIZE, SCALE)} />}
+      {can && <ActionLabel at={pileAboveAt(DISCARD, CARD_SIZE, SCALE, DISCARD_LAYOUT[0]?.position.y)} label="Take the discard" onPress={onTake} touch={{ ...NO_TOUCH, hovered: over }} onTouch={setTouch} rise={cardRise(CARD_SIZE, SCALE)} room={ROOM} />}
     </Stage>
   )
 }
