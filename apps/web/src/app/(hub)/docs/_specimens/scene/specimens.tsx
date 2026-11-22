@@ -14,7 +14,8 @@ import { SceneFrame } from "./frame"
 import { ISLAND_CORNERS } from "./island"
 import { deal, lay, nextFitting, SEED, START, TABLE, TILES, type TileName, view } from "./landscape"
 import { BONUS, CATEGORIES, CATEGORY_OF, ROW_OF, scoreOf, totalOf, upperOf } from "./yahtzee"
-import { FloorButtonsScene, TilesScene, BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CardStatesScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, MatScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
+import { FloorButtonsScene, TilesScene, BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CardStatesScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
+import { MatScene } from "./lazy"
 
 // The light half of the 3D specimens of the engine docs: each is the state and the controls of one scene, laid out in a `SceneFrame`, and the scene itself (`lazy.tsx`), which is drawn only when the frame is near the window. The controls
 // are the platform's own and hold every value the scene is given, so they are there, and still, before the scene is and after it is let go; the scene is a function of them and sends back what the pointer did in it.
@@ -1002,6 +1003,34 @@ export function SceneFloorButtonsSpecimen() {
   )
 }
 
+export function SceneMatSpecimen() {
+  const [color, setColor] = useState<MatColor>("indigo")
+  const [pattern, setPattern] = useState<MatPattern>("mosaic")
+  const [picture, setPicture] = useState(false)
+  const [blend, setBlend] = useState<Blend>("multiply")
+  const [light, setLight] = useState(true)
+  const [glow, setGlow] = useState(true)
+  const [tile, setTile] = useState(5)
+  return (
+    <SceneFrame
+      label="A card table seen from above with a few cards on it, on a mat that is set by the controls: a colour, a pattern (a lattice, a mosaic, a grain or none), planks of wood laid over it with a blend, a pool of light on the middle and a faint wheel of colours turning through it"
+      controls={
+        <>
+          <Choice label="Colour" value={color} options={Object.entries(MAT_COLORS).map(([value, { label }]) => ({ value, label, description: label }))} onChange={(value) => setColor(value as MatColor)} />
+          <Choice label="Pattern" value={pattern} options={Object.entries(MAT_PATTERNS).map(([value, label]) => ({ value, label, description: label }))} onChange={(value) => setPattern(value as MatPattern)} />
+          <Knob label="One repeat covers" value={tile} min={1} max={8} step={0.5} onChange={setTile} />
+          <Option label="Planks laid over it" checked={picture} onChange={setPicture} />
+          <Choice label="Blend of the planks" value={blend} options={Object.entries(MAT_BLENDS).map(([value, label]) => ({ value, label, description: label }))} onChange={(value) => setBlend(value as Blend)} />
+          <Option label="Pool of light" checked={light} onChange={setLight} />
+          <Option label="Wheel of colours in it" checked={glow} onChange={setGlow} />
+        </>
+      }
+    >
+      <MatScene color={color} pattern={pattern} picture={picture} blend={blend} light={light} glow={glow} tile={tile} />
+    </SceneFrame>
+  )
+}
+
 export function SceneGridSpecimen() {
   // What the engine holds: the cell each pawn stands on, and the way it walked there
   const [pawns, setPawns] = useState<Record<GridKind, { cell: number; route: number[] }>>({ square: { cell: GRID_START.square, route: [] }, hex: { cell: GRID_START.hex, route: [] } })
@@ -1267,34 +1296,6 @@ export function SceneDragSpecimen() {
       }
     >
       <DragScene cards={cards} picked={picked} above={above} mayPlay={mayPlay} onDrop={drop} onPick={(card) => setPicked((now) => (now === card ? null : card))} onZone={zone} />
-    </SceneFrame>
-  )
-}
-
-export function SceneMatSpecimen() {
-  const [color, setColor] = useState<MatColor>("indigo")
-  const [pattern, setPattern] = useState<MatPattern>("mosaic")
-  const [picture, setPicture] = useState(false)
-  const [blend, setBlend] = useState<Blend>("multiply")
-  const [light, setLight] = useState(true)
-  const [glow, setGlow] = useState(true)
-  const [tile, setTile] = useState(5)
-  return (
-    <SceneFrame
-      label="A card table seen from above with a few cards on it, on a mat that is set by the controls: a colour, a pattern (a lattice, a mosaic, a grain or none), planks of wood laid over it with a blend, a pool of light on the middle and a faint wheel of colours turning through it"
-      controls={
-        <>
-          <Choice label="Colour" value={color} options={Object.entries(MAT_COLORS).map(([value, { label }]) => ({ value, label, description: label }))} onChange={(value) => setColor(value as MatColor)} />
-          <Choice label="Pattern" value={pattern} options={Object.entries(MAT_PATTERNS).map(([value, label]) => ({ value, label, description: label }))} onChange={(value) => setPattern(value as MatPattern)} />
-          <Knob label="One repeat covers" value={tile} min={1} max={8} step={0.5} onChange={setTile} />
-          <Option label="Planks laid over it" checked={picture} onChange={setPicture} />
-          <Choice label="Blend of the planks" value={blend} options={Object.entries(MAT_BLENDS).map(([value, label]) => ({ value, label, description: label }))} onChange={(value) => setBlend(value as Blend)} />
-          <Option label="Pool of light" checked={light} onChange={setLight} />
-          <Option label="Wheel of colours in it" checked={glow} onChange={setGlow} />
-        </>
-      }
-    >
-      <MatScene color={color} pattern={pattern} picture={picture} blend={blend} light={light} glow={glow} tile={tile} />
     </SceneFrame>
   )
 }

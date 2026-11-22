@@ -52,6 +52,7 @@ export const sceneSpecimens: Specimens = {
   "scene-layouts": SceneLayoutsSpecimen,
   "scene-zones": SceneZonesSpecimen,
   "scene-pile": ScenePileSpecimen,
+  "scene-mat": SceneMatSpecimen,
   "scene-seats": SceneSeatsSpecimen,
   "scene-seat": SceneSeatSpecimen,
   "scene-dice": SceneDiceSpecimen,
@@ -72,5 +73,4 @@ export const sceneSpecimens: Specimens = {
   "scene-pour": ScenePourSpecimen,
   "scene-bag": SceneBagSpecimen,
   "scene-drag": SceneDragSpecimen,
-  "scene-mat": SceneMatSpecimen,
 }

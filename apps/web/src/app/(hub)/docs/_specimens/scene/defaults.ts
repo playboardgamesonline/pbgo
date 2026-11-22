@@ -30,6 +30,25 @@ export type LayoutName = (typeof LAYOUTS)[number]
 /** The pile specimen: the most cards the slider reaches, the count it starts at and the cards drawn from it. */
 export const PILE_CARDS = { max: 30, start: 14 }
 
+/** The colours the mat specimen tries: the colour of the table, the line of a lattice a hair off it, and the colour the middle of the pool lights it to. */
+export const MAT_COLORS = {
+  slate: { label: "Slate", base: "#0c0c0e", line: "#17171b", center: "#383840" },
+  teal: { label: "Teal", base: "#043039", line: "#07414d", center: "#094f5d" },
+  wine: { label: "Wine", base: "#2a0f17", line: "#3a1520", center: "#4d1c2b" },
+  indigo: { label: "Indigo", base: "#120b2c", line: "#1c1245", center: "#251760" },
+} as const
+export type MatColor = keyof typeof MAT_COLORS
+
+/** The patterns the mat specimen offers under the planks. */
+export const MAT_PATTERNS = { lattice: "Lattice", mosaic: "Mosaic", grain: "Grain", plain: "Plain" } as const
+export type MatPattern = keyof typeof MAT_PATTERNS
+
+/** The blends of the planks. */
+export const MAT_BLENDS: Record<Blend, string> = { normal: "Normal", multiply: "Multiply", screen: "Screen", overlay: "Overlay", "soft-light": "Soft light", "hard-light": "Hard light", lighten: "Lighten", darken: "Darken" }
+
+/** Everything the mat specimen's controls set, and its scene reads. */
+export type MatKnobs = { color: MatColor; pattern: MatPattern; picture: boolean; blend: Blend; light: boolean; glow: boolean; tile: number }
+
 /** The players the seats specimen rings, from two to eight. */
 export const SEAT_PLAYERS = { min: 2, max: 8, start: 4 }
 
@@ -358,22 +377,3 @@ export const PLAY_LIMITS = { things: 24, spaces: 8, counter: 99, dice: 6, zoom: 
 export const PLAY_TABLE = { surface: "#2f7683", surfaceDark: "#1c4a55" } as const
 /** The tones of the floor buttons, Flip 7's (`FLOOR_TONES` of `games/flip-7/src/lib/floor-tones.ts`): Hit and Deal, Stay, and the zone of a seat. */
 export const PLAY_FLOOR_TONES = { hit: "#4fe0c0", stay: "#b4c6d8", target: "#a6efe0" } as const
-
-/** The colours the mat specimen tries: the colour of the table, the line of a lattice a hair off it, and the colour the middle of the pool lights it to. */
-export const MAT_COLORS = {
-  slate: { label: "Slate", base: "#0c0c0e", line: "#17171b", center: "#383840" },
-  teal: { label: "Teal", base: "#043039", line: "#07414d", center: "#094f5d" },
-  wine: { label: "Wine", base: "#2a0f17", line: "#3a1520", center: "#4d1c2b" },
-  indigo: { label: "Indigo", base: "#120b2c", line: "#1c1245", center: "#251760" },
-} as const
-export type MatColor = keyof typeof MAT_COLORS
-
-/** The patterns the mat specimen offers under the planks. */
-export const MAT_PATTERNS = { lattice: "Lattice", mosaic: "Mosaic", grain: "Grain", plain: "Plain" } as const
-export type MatPattern = keyof typeof MAT_PATTERNS
-
-/** The blends of the planks. */
-export const MAT_BLENDS: Record<Blend, string> = { normal: "Normal", multiply: "Multiply", screen: "Screen", overlay: "Overlay", "soft-light": "Soft light", "hard-light": "Hard light", lighten: "Lighten", darken: "Darken" }
-
-/** Everything the mat specimen's controls set, and its scene reads. */
-export type MatKnobs = { color: MatColor; pattern: MatPattern; picture: boolean; blend: Blend; light: boolean; glow: boolean; tile: number }
