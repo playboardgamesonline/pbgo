@@ -41,6 +41,7 @@ const names = new WeakMap<Glow, string>()
  * The glows a game gives its cards, by name: `defineGlows({ selection: { frame: {} }, gold: { halo: { color: "#f2c14e", spread: 0.14 }, sparkle: {} } })`.
  * Every glow gets its own parts, filled in with the defaults.
  * A card reads the colours, opacities and speeds on every frame, so a debug panel can tune them while the game runs; `spread` and `blend` are read when the card is drawn.
+ * @deprecated A card says a `state` and the table draws the bloom, the lift and the dark itself, in the game's colours: a card has no outline and no frame. The glows of a board go with the next pass over the boards
  */
 export function defineGlows<Name extends string>(specs: Record<Name, GlowSpec>) {
   const glows = {} as Record<Name, Glow>

@@ -355,5 +355,3 @@ export const PLAY_LIMITS = { things: 24, spaces: 8, counter: 99, dice: 6, zoom: 
 
 /** The table of the card scenes, Flip 7's felt: the colour of the endless table and of the pool of light in its middle. They are `SETTINGS_DEFAULTS.theme.surfaceDark` and `.surface` of `games/flip-7/src/index.ts`, kept here because a game's settings are not a package of the docs. */
 export const PLAY_TABLE = { surface: "#2f7683", surfaceDark: "#1c4a55" } as const
-/** The tones of the floor buttons, Flip 7's (`FLOOR_TONES` of `games/flip-7/src/lib/floor-tones.ts`): Hit and Deal, Stay, and the zone of a seat. */
-export const PLAY_FLOOR_TONES = { hit: "#4fe0c0", stay: "#b4c6d8", target: "#a6efe0" } as const

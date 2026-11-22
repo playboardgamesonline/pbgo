@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { DEFAULT_ANNOUNCEMENT_THEME, DEFAULT_CARD_THEME, DEFAULT_GAME_OVER_THEME, DEFAULT_SEAT_THEME, announcementTheme, cardTheme, gameOverStyle, gameOverTheme, seatTheme } from "./ui-theme"
+import { DEFAULT_ANNOUNCEMENT_THEME, DEFAULT_BUTTON_THEME, DEFAULT_CARD_THEME, DEFAULT_GAME_OVER_THEME, DEFAULT_SEAT_THEME, announcementTheme, buttonTheme, cardTheme, gameOverStyle, gameOverTheme, seatTheme } from "./ui-theme"
 
 describe("announcementTheme", () => {
   it("is the look the announcements had before games could tune them", () => {
@@ -141,5 +141,22 @@ describe("cardTheme", () => {
     const theme = cardTheme()
     theme.interactive.strength = 9
     expect(DEFAULT_CARD_THEME.interactive.strength).toBe(1)
+  })
+})
+
+describe("buttonTheme", () => {
+  it("is the accent for the action that goes on and the text colour for the quieter ones", () => {
+    expect(buttonTheme()).toEqual(DEFAULT_BUTTON_THEME)
+    expect(buttonTheme({})).toEqual(DEFAULT_BUTTON_THEME)
+    expect(DEFAULT_BUTTON_THEME).toEqual({ primary: "accent", neutral: "foreground" })
+  })
+
+  it("lets a game tune one tone and leaves the other alone", () => {
+    expect(buttonTheme({ neutral: "#b4c6d8" })).toEqual({ primary: "accent", neutral: "#b4c6d8" })
+    expect(buttonTheme({ primary: "surface" })).toEqual({ primary: "surface", neutral: "foreground" })
+  })
+
+  it("keeps the default of a field set to undefined", () => {
+    expect(buttonTheme({ primary: undefined, neutral: "#b4c6d8" })).toEqual({ primary: "accent", neutral: "#b4c6d8" })
   })
 })

@@ -55,15 +55,15 @@ A game can hold cards of different kinds, and its board paints each kind its own
 | `from` | The `Pose` the card flies in from when it appears; without it the card appears at `target`, or where the pose memory says |
 | `front`, `back` | The textures of the two sides |
 | `size` | A `CardSize`, the same for every card of a game: cards of one size share their geometry |
-| `glow` | A `Glow` from `defineGlows`, or `null` |
+| `glow` | Deprecated: a `Glow` from `defineGlows`, or `null`. A card says a `state` and the table draws the bloom itself; a card has no outline and no frame |
 | `gloss` | The shine that follows the pointer over the front: `true` for the usual strength, a number for its own |
 | `shadow` | Whether the card casts a drop shadow; on unless set to false |
 | `above` | Draws the card over everything else, the glows of other cards included |
-| `out` | The card can no longer play, its player being out of the round: a grey filter over its picture and its edge, on the card's own pixels (`uGrey` in the fold shader, `GREY_SHADE`: no colour, half the brightness). It costs no extra mesh or texture, and lifts when `out` turns false, so the next round has colour again. Flip 7 sets it on every card of a busted player. The state `out` does the same |
+| `out` | Deprecated, say `state="out"`: the card can no longer play, its player being out of the round: a grey filter over its picture and its edge, on the card's own pixels (`uGrey` in the fold shader, `GREY_SHADE`: no colour, half the brightness). It costs no extra mesh or texture, and lifts when `out` turns false, so the next round has colour again. Flip 7 sets it on every card of a busted player. The state `out` does the same |
 | `state` | How the card stands for the player: `base`, `interactive`, `selected`, `disabled`, `out`, or `hover` and `pressed` to force them. The table draws the state itself ([States](#states)). Without one the card has none and the game lifts and lights it |
 | `onPress`, `ariaLabel` | The card was pressed (a click, a tap, or Enter or Space on its keyboard stand-in), and the name that stand-in says: the game's word and the card's name. A card that can be pressed must give both, or no key reaches it |
 | `speed` | About how many seconds the card takes to settle on a new `target`; smaller is snappier |
-| `onClick`, `onHover` | Pointer events. A card with a `state` lifts and lights itself, and `onPress` is the way to press it. A card with none only reports the pointer, and the game moves the pose and sets `glow` or `gloss` ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)) |
+| `onClick` (deprecated), `onHover` | Pointer events; `onClick` goes with the next pass over the boards. A card with a `state` lifts and lights itself, and `onPress` is the way to press it. A card with none only reports the pointer, and the game moves the pose and sets `glow` or `gloss` ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)) |
 | `onArrive` | Called when a flight ends, for instance to remove a card that exists only for its flight |
 | `draggable` | The player can pick the card up with the pointer and let it go on the table: it follows the pointer, lifted, and goes back to its `target` when it is let go ([Dragging](19-dragging.md)) |
 | `dropOn`, `onDragStart`, `onDrop`, `onDragCancel` | The zones it may be let go on, and what it reports: `onDrop` is called with a `CardDrop`, the zone it was let go on or `null`, and where it lay ([Dragging](19-dragging.md#dragging-a-card-or-a-piece)) |
@@ -130,6 +130,8 @@ A card shows two textures, and the package paints them. `paintFace` paints any f
 - A missing picture is never a DOM card and never a blank: pass `standIn` the label `[missing: <key>]`, so the gap stays visible. A game's pictures come from its Sanity project; the template, a demo, paints its faces in code.
 
 ## Glows
+
+**Deprecated.** A card has no outline and no frame: the [states](#states) are how a card says what it is, and a board wires no glow. `defineGlows` and the `glow` prop stay until the boards have moved to states, and then go; what this section describes is what they draw until then. A mark of the game's own that the states do not give (a shield, a gold card) is asked of the kit as a piece to lay on the card, never as an outline.
 
 A glow is what a game's own meaning lights a card with: a halo behind it, an outline, a ring around its front, a band of shine (a Handmaid's shield, a gold card). It is not how a card says that it can be chosen, is under the pointer or is picked: those are the card's [states](#states), which the table draws. A game names the glows of its cards once with `defineGlows`, which takes a record of specs and returns the glows under the same names, and a card wears one at a time through its `glow` prop. Shared: `packages/table/src/card/glows.ts`.
 

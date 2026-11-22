@@ -976,7 +976,7 @@ export function SceneFloorButtonsSpecimen() {
   const [presses, setPresses] = useState(0)
   return (
     <SceneFrame
-      label="A card table seen from above with two buttons drawn flat on it, Hit in blue-green and Stay in grey, a third that is switched off, and a wide zone below them: under the pointer or the keyboard focus the border of each rises off the table with a shadow and the fill brightens"
+      label="A card table seen from above with three buttons drawn flat on it, Hit in the accent of the game's theme, Stay in its quieter tone and a third that is switched off: under the pointer or the keyboard focus the border of each rises off the table with a shadow and the fill brightens"
       controls={
         <>
           <Option label="Disable them" checked={disabled} onChange={setDisabled} />

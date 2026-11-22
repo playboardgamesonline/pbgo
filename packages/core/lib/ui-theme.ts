@@ -66,6 +66,14 @@ export const cardTheme = (theme?: UiTheme["card"]): CardTheme => ({
   selected: over(DEFAULT_CARD_THEME.selected, theme?.selected),
 })
 
+export type ButtonTheme = { primary: CardColor; neutral: CardColor }
+
+/** The tones of the buttons on the table: the accent of the game's theme for the action that goes on, its text colour for the quieter ones. */
+export const DEFAULT_BUTTON_THEME: ButtonTheme = { primary: "accent", neutral: "foreground" }
+
+/** The buttons' tones: `UI_THEME.button` of the game over the defaults. */
+export const buttonTheme = (theme?: UiTheme["button"]): ButtonTheme => over(DEFAULT_BUTTON_THEME, theme)
+
 export type GameOverTheme = Required<NonNullable<UiTheme["gameOver"]>>
 
 /** What the game over looked like before games could tune it: the skin's surface with a thin accent line, rounded corners, a cream polaroid. */
