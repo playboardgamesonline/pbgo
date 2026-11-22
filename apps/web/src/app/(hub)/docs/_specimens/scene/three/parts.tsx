@@ -4,7 +4,7 @@ import { Card, type CameraIntro, type CameraSettings, onTable, type Pose, type S
 import { useFrame } from "@react-three/fiber"
 import { type ReactNode, useRef } from "react"
 import { useSceneReady } from "../frame"
-import { back, CARD_SIZE, FELT_LAYERS, face, label, palette, type Palette } from "./art"
+import { back, CARD_SIZE, face, felt, label, palette, type Palette } from "./art"
 
 // What the scenes have in common. A scene is always a `Stage` (one `Table`, with an id of its own because the default id is the same for all and ids are unique on a page) with some words and some cards on it.
 
@@ -38,7 +38,7 @@ export function Stage({
   children: ReactNode
 }) {
   return (
-    <Table id={id} camera={camera} intro={intro} playIntro={playIntro} surface={surface ?? { color: palette().felt, layers: FELT_LAYERS, resolution: 256 }}>
+    <Table id={id} camera={camera} intro={intro} playIntro={playIntro} surface={surface ?? { color: palette().felt, map: felt() }}>
       <Ready />
       {children}
     </Table>
