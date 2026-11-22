@@ -35,7 +35,7 @@ export type HeldHandProps = {
 export function HeldHand({ count, frame, layout, size, back, enter, shadow, state }: HeldHandProps) {
   // The names of the cards, kept from one render to the next and worked out from the count
   const [held, setHeld] = useState(NO_KEYS)
-  const now = heldKeysFor(held, count, leftEndIsFirst(frame))
+  const now = heldKeysFor(held, count, leftEndIsFirst(frame, layout))
   if (now !== held) setHeld(now)
   return (
     <>

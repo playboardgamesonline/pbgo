@@ -2,10 +2,18 @@ import { inFrame, type Spot } from "../layout"
 import type { Pose } from "../pose"
 
 /**
- * Whether the first card of a fan laid in the frame of a seat is the one on the left of the picture, as the viewer sees the table: a seat that faces the viewer's way has its own left on the picture's left, and a seat across from the viewer has it on the right, so the last card
- * is the one on the left. A seat turned a quarter has its fan running along the depth of the picture: its first card, on the seat's own left, counts as the left end.
+ * Whether the first card of a fan laid in the frame of a seat is the one on the left of the picture, as the viewer sees the table: a seat that faces the viewer's way has its own left on the picture's left, and a seat across from the viewer has it on the right, so the last card is the one on
+ * the left. A seat turned a quarter has its fan running along the depth of the picture: with the `layout` of the hand the left end is read where the two ends of a hand of five really stand (the step of the fan between two cards, which keeps them apart, can then decide it), and without it the first card, on the
+ * seat's own left, counts as the left end.
  */
-export function leftEndIsFirst(frame: Spot | undefined): boolean {
+export function leftEndIsFirst(frame: Spot | undefined, layout?: (count: number) => Pose[]): boolean {
+  if (frame && layout) {
+    // The two ends of a hand of five, which are what the rule is about: a hand that bends has its middle off to one side at a seat turned a quarter, and the card that leaves is an end
+    const slots = layout(5)
+    const first = slots[0] && inFrame(frame, slots[0]).position.x
+    const last = slots[4] && inFrame(frame, slots[4]).position.x
+    if (first !== undefined && last !== undefined && Math.abs(first - last) > 1e-9) return first < last
+  }
   return Math.cos(frame?.yaw ?? 0) > -1e-6
 }
 
@@ -35,5 +43,5 @@ export function heldKeysFor(held: HeldKeys, count: number, leftFirst: boolean): 
 /** The pose, on the table, of the card at the left end of a hand of `count` in the frame of its seat: where a card that is played from it flies from, with the hand still the size it was */
 export function heldLeftPose(frame: Spot, layout: (count: number) => Pose[], count: number): Pose {
   const slots = layout(Math.max(1, count))
-  return inFrame(frame, slots[leftEndIsFirst(frame) ? 0 : slots.length - 1]!)
+  return inFrame(frame, slots[leftEndIsFirst(frame, layout) ? 0 : slots.length - 1]!)
 }
