@@ -8,13 +8,17 @@ A seat is a place at the table where a player sits, and it faces the middle of t
 
 | Option | Role |
 | --- | --- |
-| `radiusX`, `radiusZ` | Half the width and half the depth of the ring |
+| `radiusX`, `radiusZ` | Half the width and half the depth of the ring: a number, or a pair for the fewest players and for the most (`players`), which the ring goes between in steps as the table fills ([A table that fills](#a-table-that-fills)) |
 | `me` | The index of the viewer's seat. Without it, or when it is not a seat (the -1 of an `indexOf`, an index past the players), nobody is the viewer |
-| `margin` | The angle kept free at each end of the far half, so the outer seats do not close in on the viewer's sides |
+| `margin` | The angle kept free at each end of the far half, so the outer seats do not close in on the viewer's sides (0.35 radians by default). `first` replaces it for the numbers of players it gives |
+| `first` | Where the player after the viewer sits, in degrees, for each number of players ([A table that fills](#a-table-that-fills)) |
+| `players` | The fewest and the most players that the pairs and `first` are given for (2 and 8 by default): a table of fewer or more takes the nearest end |
+| `viewerZ` | How far toward the viewer their own seat lies (the depth of the ring by default): less when the viewer's cards are bigger than the others' and want to stand nearer the middle |
+| `widen` | How much wider the ring of a spectator of a full table is (1.25 by default) |
 
 - The viewer sits in front, on the +z side, with a yaw of zero: their frame is the world's, and what lies there reads upright.
 - The others share the far half of the ring in turn order, starting with the player after the viewer, who sits at the viewer's left: the turn passes to the left. A single opponent sits straight across.
-- Without a viewer, as at a spectator's view, everyone sits on the far half in order.
+- Without a viewer, as at a spectator's view, the players take the chairs of a table of one more player, the viewer's chair in front staying empty: nobody sits where the viewer would, and the front keeps the room for the piles and the buttons. A spectator of a full table gets a ring `widen` times wider, since nine chairs on the ring of eight are closer together than a plate allows.
 - Every seat faces the middle of the table: the top of its frame, its least z, points at the middle, so that whatever a game lays in the frame of a seat is laid as the player who sits there sees it. The cards of a seat across from the viewer lie upside down for the viewer and upright for that player, and those of a seat at the side lie on their side. The viewer's seat has the yaw of zero, and the others the yaw that turns the top of their frame toward the middle.
 - The ring is symmetric: the opponents mirror each other.
 
@@ -34,6 +38,22 @@ export function seats(ids: string[], meId: string | null): Map<string, SeatSpot>
   return new Map(ids.map((id, i): [string, SeatSpot] => [id, ring[i]]))
 }
 ```
+
+### A table that fills
+
+A ring that is right for two players is too small for eight, and one that is right for eight leaves two players far apart, so a game gives its ring at both ends and the table goes between them (`byPlayers(count, [atTheFewest, atTheMost], players)`: a straight line, held at the two ends). Where the first opponent sits is a table of its own, by number of players: the viewer's own cards take room in front, and the more players there are the less each of them needs. From Skyjo's `layout.ts`:
+
+```ts
+const RING = {
+  radiusX: [4.311, 4.533],
+  radiusZ: [4.337, 6.988],
+  viewerZ: 4.724,
+  first: { 2: 180, 3: 145, 4: 90, 5: 90, 6: 66, 7: 62, 8: 60 },
+}
+const ring = seats(ids.length, { ...RING, me: viewer < 0 ? null : viewer })
+```
+
+The angles are in degrees, clockwise from the viewer's seat as the camera sees the table: 0 in front of the viewer, 90 on their left, 180 straight across. At six players the first opponent sits at 66, the last at 294 and the three between at 123, 180 and 237: the first and the last keep 66 degrees off the viewer and the others are spread evenly between them. `seatAt(angle, radiusX, radiusZ)` is the seat for one angle. What else grows with the table, the scale of the opponents' cards for one, is given the same way, `byPlayers(count, [0.603, 0.404])`, and is not a setting of the kit.
 
 ## The plate
 

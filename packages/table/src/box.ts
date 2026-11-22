@@ -131,6 +131,43 @@ export function cornersOfBox(box: TableBox, frame: Spot): { x: number; z: number
 /** The middle of a box */
 export const centreOf = (box: TableBox) => ({ x: (box.minX + box.maxX) / 2, z: (box.minZ + box.maxZ) / 2 })
 
+/** A point on the table, in world units: x to the right, z toward the viewer */
+export type Place = { x: number; z: number }
+
+/** The least and the greatest of `polygon` along the axis (`ax`, `az`), which has a length of 1 */
+function spanOn(polygon: readonly Place[], ax: number, az: number): [number, number] {
+  let least = Infinity
+  let greatest = -Infinity
+  for (const point of polygon) {
+    const along = point.x * ax + point.z * az
+    if (along < least) least = along
+    if (along > greatest) greatest = along
+  }
+  return [least, greatest]
+}
+
+/**
+ * Whether two convex polygons on the table cover some of it together: the corners going round, as `cornersOfBox` gives them for a box in the frame of a seat. They are apart when a gap shows along the axis of a side of either, so a plate and a grid that are turned are told apart as they
+ * are, not by the boxes that hold them. With `by`, polygons that are closer than that along such an axis count too: the clear space a layout keeps between two things (default 0: polygons that only touch do not overlap).
+ */
+export function polygonsOverlap(a: readonly Place[], b: readonly Place[], by = 0): boolean {
+  for (const polygon of [a, b]) {
+    for (let i = 0; i < polygon.length; i++) {
+      const from = polygon[i]!
+      const to = polygon[(i + 1) % polygon.length]!
+      // the axis of a side is its normal, kept to a length of 1 so that `by` is in world units
+      const nx = to.z - from.z
+      const nz = from.x - to.x
+      const length = Math.hypot(nx, nz)
+      if (length === 0) continue
+      const [a0, a1] = spanOn(a, nx / length, nz / length)
+      const [b0, b1] = spanOn(b, nx / length, nz / length)
+      if (a1 + by <= b0 || b1 + by <= a0) return false
+    }
+  }
+  return true
+}
+
 /** Whether two boxes cover some of the table together. With `by`, boxes closer than that count too: the clear space a layout keeps between two things (default 0: boxes that only touch do not overlap) */
 export function boxesOverlap(a: TableBox, b: TableBox, by = 0): boolean {
   return a.minX < b.maxX + by && b.minX < a.maxX + by && a.minZ < b.maxZ + by && b.minZ < a.maxZ + by

@@ -1,6 +1,6 @@
 import { Euler, Quaternion, Vector3 } from "three"
 import { describe, expect, it } from "vitest"
-import { fan, grid, inFrame, pile, row, seats } from "./layout"
+import { byPlayers, fan, grid, inFrame, pile, row, seatAt, seats } from "./layout"
 import { FACE_DOWN, FACE_UP, type Pose, RESTING_HEIGHT, onTable } from "./pose"
 
 const AXES = [new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 0, 1)]
@@ -432,5 +432,129 @@ describe("seats", () => {
     expect(four[2].x).toBeCloseTo(0, 12)
     expect(four[2].z).toBeCloseTo(-4.4, 12)
     expect(Math.cos(four[2].yaw)).toBeCloseTo(-1, 12)
+  })
+})
+
+describe("byPlayers", () => {
+  it("goes in a straight line from what the fewest players have to what the most have", () => {
+    expect(byPlayers(2, [4, 10])).toBe(4)
+    expect(byPlayers(8, [4, 10])).toBe(10)
+    expect(byPlayers(5, [4, 10])).toBeCloseTo(7, 12)
+  })
+
+  it("holds at the two ends for a table of fewer or more players", () => {
+    expect(byPlayers(1, [4, 10])).toBe(4)
+    expect(byPlayers(12, [4, 10])).toBe(10)
+  })
+
+  it("goes between the ends the game gives: Flip 7's are three and eight", () => {
+    expect(byPlayers(3, [1, 6], [3, 8])).toBe(1)
+    expect(byPlayers(8, [1, 6], [3, 8])).toBe(6)
+    expect(byPlayers(5, [1, 6], [3, 8])).toBeCloseTo(3, 12)
+  })
+
+  it("is the first end when there is one table size", () => {
+    expect(byPlayers(5, [4, 10], [5, 5])).toBe(4)
+  })
+})
+
+describe("seatAt", () => {
+  it("puts the angle on the ring: 0 in front of the viewer, 90 on their left, 180 across, 270 on their right", () => {
+    expect(seatAt(0, 7, 5)).toEqual({ x: 0, z: 5, yaw: 0 })
+    const left = seatAt(90, 7, 5)
+    expect(left.x).toBeCloseTo(-7, 12)
+    expect(left.z).toBeCloseTo(0, 12)
+    const across = seatAt(180, 7, 5)
+    expect(across.x).toBeCloseTo(0, 12)
+    expect(across.z).toBeCloseTo(-5, 12)
+    expect(seatAt(270, 7, 5).x).toBeCloseTo(7, 12)
+  })
+
+  it("turns the top of what lies there toward the middle of the table", () => {
+    for (const angle of [60, 90, 145, 180, 215, 270, 300]) {
+      const seat = seatAt(angle, 7, 5)
+      const top = topOf(inFrame(seat, onTable(0, 0)))
+      const length = Math.hypot(seat.x, seat.z)
+      expect(top.x).toBeCloseTo(-seat.x / length, 9)
+      expect(top.z).toBeCloseTo(-seat.z / length, 9)
+    }
+  })
+})
+
+describe("seats of a table that grows", () => {
+  // Skyjo's and Flip 7's ring: where the player after the viewer sits, by number of players
+  const FIRST = { 2: 180, 3: 145, 4: 90, 5: 90, 6: 66, 7: 62, 8: 60 }
+  const ring = { radiusX: [4.3, 4.5] as const, radiusZ: [4.3, 7] as const, first: FIRST, viewerZ: 4.7 }
+
+  /** The angle of a seat on the ring, in degrees clockwise from the viewer, as `seatAt` put it there */
+  const angleOf = (seat: { x: number; z: number }, radiusX: number, radiusZ: number) => (((Math.atan2(-seat.x / radiusX, seat.z / radiusZ) * 180) / Math.PI) + 360) % 360
+
+  it("keeps the first and the last opponent as far from the viewer as the game says, and spreads the others evenly", () => {
+    const angles = (count: number) => {
+      const spots = seats(count, { ...ring, me: 0 })
+      const rx = 4.3 + (4.5 - 4.3) * ((count - 2) / 6)
+      const rz = 4.3 + (7 - 4.3) * ((count - 2) / 6)
+      return spots.slice(1).map((seat) => Math.round(angleOf(seat, rx, rz)))
+    }
+    expect(angles(2)).toEqual([180])
+    expect(angles(3)).toEqual([145, 215])
+    expect(angles(4)).toEqual([90, 180, 270])
+    expect(angles(5)).toEqual([90, 150, 210, 270])
+    expect(angles(6)).toEqual([66, 123, 180, 237, 294])
+    expect(angles(7)).toEqual([62, 109, 156, 204, 251, 298])
+    expect(angles(8)).toEqual([60, 100, 140, 180, 220, 260, 300])
+  })
+
+  it("makes the ring bigger as the table fills, from its radii at the fewest players to those at the most", () => {
+    // the seat straight across, at 2 and at 8 players, and the one at 150 degrees at 5 (the table that is half full)
+    expect(seats(2, { ...ring, me: 0 })[1].z).toBeCloseTo(-4.3, 9)
+    expect(seats(8, { ...ring, me: 0 })[4].z).toBeCloseTo(-7, 9)
+    expect(seats(5, { ...ring, me: 0 })[2].z).toBeCloseTo(Math.cos((150 * Math.PI) / 180) * (4.3 + (7 - 4.3) * 0.5), 9)
+    // the seat at the left of the viewer is as wide as the ring is at that table
+    expect(seats(4, { ...ring, me: 0 })[1].x).toBeCloseTo(-(4.3 + (4.5 - 4.3) * (2 / 6)), 9)
+  })
+
+  it("puts the viewer's own seat where the game says, not on the ring", () => {
+    expect(seats(5, { ...ring, me: 2 })[2]).toEqual({ x: 0, z: 4.7, yaw: 0 })
+    // without it, on the ring of that table
+    expect(seats(2, { radiusX: 4, radiusZ: 3, me: 0 })[0]).toEqual({ x: 0, z: 3, yaw: 0 })
+  })
+
+  it("seats a spectator as at a table of one more, the viewer's chair in front left empty", () => {
+    const watched = seats(5, { ...ring, me: null })
+    const sat = seats(6, { ...ring, me: 0 })
+    // the same chairs but the viewer's: the first of the five takes the first of the others
+    watched.forEach((seat, i) => {
+      expect(seat.x).toBeCloseTo(sat[i + 1].x, 9)
+      expect(seat.z).toBeCloseTo(sat[i + 1].z, 9)
+    })
+  })
+
+  it("gives a spectator of a full table a wider ring: nine chairs on the ring of eight are closer than a plate allows", () => {
+    const full = seats(8, { ...ring, me: null })
+    const sat = seats(8, { ...ring, me: 0 })
+    expect(Math.max(...full.map((seat) => Math.abs(seat.z)))).toBeGreaterThan(Math.max(...sat.map((seat) => Math.abs(seat.z))))
+    expect(seats(8, { ...ring, me: null, widen: 1 }).every((seat) => Math.abs(seat.z) <= 7 + 1e-9)).toBe(true)
+  })
+
+  it("takes the margin for a number of players the table leaves out, and 180 for a single opponent", () => {
+    const some = seats(4, { radiusX: 6, radiusZ: 4, me: 0, first: { 2: 180 }, players: [2, 4] })
+    const plain = seats(4, { radiusX: 6, radiusZ: 4, me: 0 })
+    some.forEach((seat, i) => {
+      expect(seat.x).toBeCloseTo(plain[i].x, 12)
+      expect(seat.z).toBeCloseTo(plain[i].z, 12)
+    })
+    expect(seats(2, { radiusX: 6, radiusZ: 4, me: 0, margin: 0.9 })[1].z).toBeCloseTo(-4, 12)
+  })
+
+  it("turns every seat toward the middle, whatever the table", () => {
+    for (const count of [2, 3, 5, 8]) {
+      for (const seat of seats(count, { ...ring, me: 0 }).slice(1)) {
+        const top = topOf(inFrame(seat, onTable(0, 0)))
+        const length = Math.hypot(seat.x, seat.z)
+        expect(top.x).toBeCloseTo(-seat.x / length, 9)
+        expect(top.z).toBeCloseTo(-seat.z / length, 9)
+      }
+    }
   })
 })

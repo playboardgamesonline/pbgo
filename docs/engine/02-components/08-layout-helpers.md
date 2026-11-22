@@ -57,8 +57,9 @@ A layout says where each card lies; a box says what a set of cards covers of the
 | `onAxis(box)` | The box brought onto the axis of a seat's frame, as far to the left of x = 0 as to the right, so that the plate placed from it is centred on the line of the seat, however the slant of the camera shifted the box of the cards that stand |
 | `centreOf(box)` | The middle of a box (in the frame the box is in) |
 | `boxesOverlap(a, b, by)` | Whether two boxes cover some of the table together, or come closer than `by` |
+| `polygonsOverlap(a, b, by)` | Whether two convex polygons on the table cover some of it together, or come closer than `by` along the axis of a side: the corners going round, as `cornersOfBox` gives them for a box in the frame of a seat. What a layout test asks of two turned things, a plate and a grid, a zone and a pile |
 
-- A box of rotated cards is the box of their corners, so it is larger than the cards: a row turned by a quarter turn is as wide as the cards are deep. Where the exact shape matters (a plate beside a turned row), a test uses the corners of each card and the separating axes of two convex shapes, as the layout tests of the template and of Flip 7 do; the box is for placing.
+- A box of rotated cards is the box of their corners, so it is larger than the cards: a row turned by a quarter turn is as wide as the cards are deep. Where the exact shape matters (a plate beside a turned row), a test takes the corners of each (`cornersOfBox` for a box in the frame of a seat, those of each card for the cards) and asks `polygonsOverlap`, which uses the separating axes of two convex shapes and of Flip 7 do; the box is for placing.
 - A box is what a board asks of its layout and not a layout itself: a player's cards are boxed at the room of the biggest hand, so the plate above them does not move as cards are played.
 
 ## Rules

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { boxAbove, boxesOverlap, boxOfPoses, boxOfRect, centreOf, cornersOfBox, frameBoxOfPoses, joinBoxes, onAxis, pointInFrame, type TableBox } from "./box"
+import { boxAbove, boxesOverlap, boxOfPoses, boxOfRect, centreOf, cornersOfBox, frameBoxOfPoses, joinBoxes, onAxis, type Place, pointInFrame, polygonsOverlap, type TableBox } from "./box"
 import { fan, inFrame, row } from "./layout"
 import { onTable } from "./pose"
 
@@ -220,5 +220,48 @@ describe("frameBoxOfPoses", () => {
 
   it("has no box for no card", () => {
     expect(frameBoxOfPoses([], SIZE, { x: 0, z: 0, yaw: 0 })).toBeNull()
+  })
+})
+
+describe("polygonsOverlap", () => {
+  const square = (x: number, z: number, size = 2, turn = 0): Place[] => cornersOfBox({ minX: -size / 2, maxX: size / 2, minZ: -size / 2, maxZ: size / 2 }, { x, z, yaw: turn })
+
+  it("tells squares that cover each other from squares that are apart", () => {
+    expect(polygonsOverlap(square(0, 0), square(1, 1))).toBe(true)
+    expect(polygonsOverlap(square(0, 0), square(3, 0))).toBe(false)
+    expect(polygonsOverlap(square(0, 0), square(0, -3))).toBe(false)
+  })
+
+  it("lets two squares that only touch lie side by side", () => {
+    expect(polygonsOverlap(square(0, 0), square(2, 0))).toBe(false)
+    expect(polygonsOverlap(square(0, 0), square(1.99, 0))).toBe(true)
+  })
+
+  it("tells turned things apart by their shape, not by the boxes that hold them", () => {
+    // A square turned a quarter of a turn and a half, a diamond: its corner points at a square that its own box would cover
+    const diamond = square(0, 0, 2, Math.PI / 4)
+    const corner = square(1.3, 1.3, 0.5)
+    expect(boxesOverlap(boxOfRect({ x: 0, z: 0, width: 2, depth: 2, yaw: Math.PI / 4 }), boxOfRect({ x: 1.3, z: 1.3, width: 0.5, depth: 0.5 }))).toBe(true)
+    expect(polygonsOverlap(diamond, corner)).toBe(false)
+    expect(polygonsOverlap(diamond, square(0.9, 0.9, 0.5))).toBe(true)
+  })
+
+  it("keeps a clear space apart when it is given one", () => {
+    expect(polygonsOverlap(square(0, 0), square(2.3, 0), 0.25)).toBe(false)
+    expect(polygonsOverlap(square(0, 0), square(2.3, 0), 0.35)).toBe(true)
+  })
+
+  it("takes the corners of a box drawn in a seat's frame, turned with it", () => {
+    const frame = { x: -4, z: -1, yaw: Math.PI / 2 }
+    const plate = cornersOfBox({ minX: -1, maxX: 1, minZ: -2, maxZ: -1 }, frame)
+    const cards = cornersOfBox({ minX: -1.5, maxX: 1.5, minZ: -0.9, maxZ: 1 }, frame)
+    expect(polygonsOverlap(plate, cards)).toBe(false)
+    expect(polygonsOverlap(plate, cornersOfBox({ minX: -1.5, maxX: 1.5, minZ: -1.2, maxZ: 1 }, frame))).toBe(true)
+  })
+
+  it("is symmetric", () => {
+    const a = square(0, 0, 2, 0.3)
+    const b = square(1.4, 0.2, 1.2, -0.5)
+    expect(polygonsOverlap(a, b)).toBe(polygonsOverlap(b, a))
   })
 })

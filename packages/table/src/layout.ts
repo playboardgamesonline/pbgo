@@ -131,32 +131,75 @@ export function grid(n: number, { columns, gapX, gapZ, rows, y = RESTING_HEIGHT,
   return Array.from({ length: n }, (_, i) => onTable((i % columns - (columns - 1) / 2) * gapX, (Math.floor(i / columns) - (lines - 1) / 2) * gapZ, { y, face, yaw: turn, scale }))
 }
 
+/** A pair of numbers for a table of the fewest players and a table of the most (`SeatsOptions.players`): what grows with the table is given at its two ends, and goes between them in steps */
+export type Between = readonly [fewest: number, most: number]
+
+/** The fewest and the most players a ring is tuned for unless it says otherwise */
+export const PLAYERS: Between = [2, 8]
+
+/**
+ * What a table of `count` players has, from the value it has at the fewest players and at the most (`between`), the fewest and the most being `players`: a straight line from one to the other, held at the two ends, so that a count outside them takes the nearest end. The radii of
+ * the ring go this way (one ring does not serve a table of two and a table of eight), and so does whatever else grows with the table: the scale of the opponents' cards, the room a plate is given.
+ */
+export function byPlayers(count: number, [fewest, most]: Between, players: Between = PLAYERS): number {
+  const span = players[1] - players[0]
+  const t = span <= 0 ? 0 : Math.min(1, Math.max(0, (count - players[0]) / span))
+  return fewest + (most - fewest) * t
+}
+
+/**
+ * The seat at `angle` on an ellipse of half-width `radiusX` and half-depth `radiusZ`. The angle is in degrees, clockwise as the camera sees the table, from the viewer's seat: 0 is in front of the viewer, 90 on their left, 180 straight across, 270 on their right. The yaw turns the top of
+ * what lies there toward the middle of the table, as the player who sits there reads it.
+ */
+export function seatAt(angle: number, radiusX: number, radiusZ: number): Required<Spot> {
+  const a = (angle * Math.PI) / 180
+  // `+ 0` so that the seat in front has an x of 0 and not of -0
+  const x = -Math.sin(a) * radiusX + 0
+  const z = Math.cos(a) * radiusZ
+  return { x, z, yaw: Math.abs(x) < 1e-9 && z > 0 ? 0 : Math.atan2(x, z) }
+}
+
 export type SeatsOptions = {
-  /** Half the width of the ring the seats stand on */
-  radiusX: number
-  /** Half the depth of the ring the seats stand on */
-  radiusZ: number
-  /** Index of the viewer's seat, which sits in front: the others follow in order around the far half of the ring. Without it (or when it is not a seat, like the -1 of an `indexOf`), everyone sits on the far half */
+  /** Half the width of the ring the seats stand on: a number, or its half-width at the fewest players and at the most (`players`), which it goes between in steps as the table fills. A table of two and a table of eight cannot share a ring */
+  radiusX: number | Between
+  /** Half the depth of the ring the seats stand on: a number, or a pair like `radiusX` */
+  radiusZ: number | Between
+  /** Index of the viewer's seat, which sits in front: the others follow in order around the ring. Without it (or when it is not a seat, like the -1 of an `indexOf`), the players sit as at a table of one more player, the chair in front of the viewer being the one nobody has */
   me?: number | null
-  /** Angle (radians) kept free at each end of the far half, so the outer seats do not close in on the viewer's sides (default 0.35) */
+  /** Angle (radians) kept free at each end of the far half, so the outer seats do not close in on the viewer's sides (default 0.35). Replaced by `first` for the numbers of players it gives */
   margin?: number
+  /**
+   * Where the player after the viewer sits, in degrees clockwise from the viewer's seat, for a table of each number of players (the keys): 90 is the viewer's left side, 180 straight across. It is also how far from the viewer the first and the last opponent keep, since the viewer's own cards take room in front,
+   * and the more players the less each needs. The other opponents are spread evenly between the first and the last, and a single opponent sits at this angle. A number of players it leaves out takes `margin`, and 180 for a table of two
+   */
+  first?: Readonly<Record<number, number>>
+  /** The fewest and the most players that `radiusX`, `radiusZ` and `first` are given for (default 2 and 8): a table of fewer or more takes the nearest end */
+  players?: Between
+  /** How far toward the viewer their own seat lies (default: the depth of the ring at this table). Smaller than the ring when the viewer's cards are bigger than the others' and want to stand nearer the middle */
+  viewerZ?: number
+  /** How much wider than the ring of the most players the ring is for a table that has none in front and is already full: the chairs of one more are closer together than a plate allows (default 1.25) */
+  widen?: number
 }
 
 /**
  * The seats of `count` players on an ellipse around the table, indexed like the players, the turn passing from the viewer to the left.
- * The viewer's seat is at the front with yaw 0, so what lies there reads upright. Every other seat has the yaw that sends the top edge of a face-up card toward the middle of the table, the way the player who sits there reads it: a layout drawn in the frame of
- * any seat has its far side, its top, toward the middle, and what stands on that side (a name, the cards played) faces the centre of the table
+ * The viewer's seat is at the front with yaw 0, so what lies there reads upright. Every other seat has the yaw that sends the top edge of a face-up card toward the middle of the table, the way the player who sits there sees it:
+ * any seat has its far side, its top, toward the middle, and what stands on that side (a name, the cards played) faces the centre of the table.
+ * Without a viewer the players take the chairs of a table of one more, the viewer's chair in front staying empty: nobody sits where the viewer would, and the front keeps the room for the piles and the buttons.
  */
-export function seats(count: number, { radiusX, radiusZ, me = null, margin = 0.35 }: SeatsOptions): Required<Spot>[] {
+export function seats(count: number, { radiusX, radiusZ, me = null, margin = 0.35, first, players = PLAYERS, viewerZ, widen = 1.25 }: SeatsOptions): Required<Spot>[] {
   const viewer = me !== null && me >= 0 && me < count ? me : null
-  const others = viewer === null ? count : count - 1
+  // The table the seats are those of: this one, or one chair more when nobody sits in front
+  const chairs = viewer === null ? count + 1 : count
+  const spread = viewer === null && chairs > players[1] ? widen : 1
+  const rx = (typeof radiusX === "number" ? radiusX : byPlayers(chairs, radiusX, players)) * spread
+  const rz = (typeof radiusZ === "number" ? radiusZ : byPlayers(chairs, radiusZ, players)) * spread
+  const others = chairs - 1
+  const start = first?.[Math.min(players[1], Math.max(players[0], chairs))] ?? (others === 1 ? 180 : 90 + (margin * 180) / Math.PI)
   return Array.from({ length: count }, (_, i) => {
-    if (i === viewer) return { x: 0, z: radiusZ, yaw: 0 }
+    if (i === viewer) return { x: 0, z: viewerZ ?? rz, yaw: 0 }
     // Where this seat comes among the others, counting from the player after the viewer
     const k = viewer === null ? i : (i - viewer - 1 + count) % count
-    const angle = others === 1 ? -Math.PI / 2 : Math.PI + margin + (k / (others - 1)) * (Math.PI - 2 * margin)
-    const x = Math.cos(angle) * radiusX
-    const z = Math.sin(angle) * radiusZ
-    return { x, z, yaw: Math.atan2(x, z) }
+    return seatAt(others === 1 ? start : start + (k / (others - 1)) * (360 - 2 * start), rx, rz)
   })
 }
