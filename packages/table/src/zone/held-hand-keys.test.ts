@@ -15,6 +15,25 @@ describe("which end is on the left", () => {
   })
 })
 
+describe("which end is on the left, by the layout", () => {
+  it("is read where the first two cards stand when the layout is given, whatever the rule of the seat says", () => {
+    const frame = { x: 0, z: 5, yaw: 0 }
+    // a row that runs from the right of the picture to its left: the rule of the seat says the first card is on the left, the layout says it is not
+    const reversed = (count: number) => fan(count, { gap: 0.5 }).reverse()
+    expect(leftEndIsFirst(frame)).toBe(true)
+    expect(leftEndIsFirst(frame, (count) => fan(count, { gap: 0.5 }))).toBe(true)
+    expect(leftEndIsFirst(frame, reversed)).toBe(false)
+    // the same row seen from across the table runs the other way on the picture
+    expect(leftEndIsFirst({ x: 0, z: -5, yaw: Math.PI }, (count) => fan(count, { gap: 0.5 }))).toBe(false)
+  })
+
+  it("falls back to the rule of the seat when two cards stand at the same x", () => {
+    const stacked = (count: number) => fan(count, { gap: 0 })
+    expect(leftEndIsFirst({ x: 0, z: -5, yaw: Math.PI }, stacked)).toBe(false)
+    expect(leftEndIsFirst({ x: 0, z: 5, yaw: 0 }, stacked)).toBe(true)
+  })
+})
+
 describe("the cards of a hand known by their count", () => {
   it("come in at the right, one name each, the oldest nearest the others", () => {
     const dealt = heldKeysFor(NO_KEYS, 3, true)

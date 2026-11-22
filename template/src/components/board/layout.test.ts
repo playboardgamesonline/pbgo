@@ -259,22 +259,22 @@ describe("the hands of the table", () => {
       const toMiddle = { x: -seat.x / Math.hypot(seat.x, seat.z), z: -seat.z / Math.hypot(seat.x, seat.z) }
       expect(top.x * toMiddle.x + top.z * toMiddle.z, `${id} of ${count}`).toBeCloseTo(1, 9)
       for (const pose of heldLayout(5, seat)) {
-        // The hand has no turn of its own: in the frame of the seat its backs look toward the middle, leaning up a little
+        // The hand has no turn of its own: in the frame of the seat its backs look toward the middle, straight up
         const back = new Vector3(0, 0, -1).applyQuaternion(inFrame(frame, pose).quaternion)
-        expect(back.x * toMiddle.x + back.z * toMiddle.z, `a card of ${id} of ${count}`).toBeGreaterThan(0.8)
-        expect(back.y, `a card of ${id} of ${count}`).toBeGreaterThan(0)
+        expect(back.x * toMiddle.x + back.z * toMiddle.z, `a card of ${id} of ${count}`).toBeGreaterThan(Math.cos(2 * HELD_FAN_SETTINGS.arc + 0.01))
+        expect(back.y, `a card of ${id} of ${count}`).toBeCloseTo(0, 9)
       }
     }
   })
 
-  it("stand up and keep close: a hand is nearly straight and no wider than its cards and a little more, so that an opponent's cards are told apart and counted", () => {
+  it("stand up and keep close: a hand is straight and no wider than its cards and a little more, so that an opponent's cards are told apart and counted", () => {
     const seat = seats(ids(4), "p0").get("p1")!
     for (let n = 1; n <= HAND_MAX; n++) {
       const cards = heldLayout(n, seat)
       for (const pose of cards) {
         const back = new Vector3(0, 0, -1).applyQuaternion(pose.quaternion)
-        // How far a card is from straight up: the angle between its back and the table's up is a quarter turn less. It leans a little, more at a seat that is seen from the side
-        expect(Math.asin(Math.min(1, Math.abs(back.y))), `a hand of ${n}`).toBeLessThan(HELD_FAN_SETTINGS.sideLean + 0.05)
+        // How far a card is from straight up: the angle between its back and the table's up is a quarter turn less. The cards stand straight, which is no lean at all (`lean` and `sideLean` of the settings)
+        expect(Math.asin(Math.min(1, Math.abs(back.y))), `a hand of ${n}`).toBeLessThan(Math.max(HELD_FAN_SETTINGS.lean, HELD_FAN_SETTINGS.sideLean) + 0.05)
       }
       const left = Math.min(...cards.map((pose) => pose.position.x))
       const right = Math.max(...cards.map((pose) => pose.position.x))
@@ -325,7 +325,8 @@ describe("the hands of the table", () => {
       if (id === "p0") continue
       const from = heldFrom(seat, 5)
       const xs = heldLayout(5, seat).map((pose) => inFrame(seatFrame(seat), pose).position.x)
-      expect(from.position.x, id).toBeCloseTo(Math.min(...xs), 6)
+      // an end of the fan, the one on the left of the picture (the middle of a hand that bends can lie farther left at a seat on a side, and is not the card that leaves)
+      expect(from.position.x, id).toBeCloseTo(Math.min(xs[0]!, xs[4]!), 6)
     }
   })
 })
