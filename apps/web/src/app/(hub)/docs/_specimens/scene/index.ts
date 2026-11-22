@@ -16,6 +16,7 @@ import {
   SceneGlowsSpecimen,
   SceneGridSpecimen,
   SceneLayoutsSpecimen,
+  SceneMatSpecimen,
   SceneNumbersSpecimen,
   ScenePiecesSpecimen,
   ScenePileSpecimen,
@@ -71,4 +72,5 @@ export const sceneSpecimens: Specimens = {
   "scene-pour": ScenePourSpecimen,
   "scene-bag": SceneBagSpecimen,
   "scene-drag": SceneDragSpecimen,
+  "scene-mat": SceneMatSpecimen,
 }

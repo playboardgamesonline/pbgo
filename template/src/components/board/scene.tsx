@@ -6,7 +6,7 @@ import { Bids } from "./bids"
 import { CAMERA, PHOTO } from "./camera"
 import { HELD_FAN_FIELDS, HELD_FAN_SETTINGS, HeldHand, PlayerSeat, SCREEN_HAND_FIELDS, ScreenHand, screenHandLayout, Table, Timer, useSettings, Zone, type Pose, type ZoneCard } from "@pbgo/table"
 import { CLOCK, DECK_POSE, collectedPose, HAND_SETTINGS, heldFrom, heldLayout, HELD_SHADOW, LAYOUT_SETTINGS, seatBox, seatFrame, seats, trickPose } from "./layout"
-import { CARD_SIZE, MAT_COLOR, MAT_LIGHT, backTexture, faceTexture, matTexture } from "./textures"
+import { CARD_SIZE, MAT_COLOR, MAT_LAYERS, MAT_LIGHT, MAT_RESOLUTION, backTexture, faceTexture } from "./textures"
 
 function useCollect(view: PlayerView) {
   const key = view.lastTrick ? view.lastTrick.cards.map((c) => c.card.id).join("|") : null
@@ -131,9 +131,8 @@ type SceneProps = {
 }
 
 export function Scene(props: SceneProps) {
-  const [mat] = useState(matTexture)
   return (
-    <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, map: mat, light: MAT_LIGHT }} held={props.held} onLoaded={props.onLoaded}>
+    <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, layers: MAT_LAYERS, resolution: MAT_RESOLUTION, light: MAT_LIGHT }} held={props.held} onLoaded={props.onLoaded}>
       <World {...props} />
     </Table>
   )

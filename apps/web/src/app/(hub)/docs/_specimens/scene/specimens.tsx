@@ -8,12 +8,13 @@ import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Button } from "@pbgo/ui/platform/button"
 import { Choice, Knob, Option } from "./controls"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
-import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, ISLAND_BUILDS, ISLAND_PLAYERS, type IslandBuild, type IslandPlayer, SHEET, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, SKETCH_BRUSHES, SKETCH_COLORS, SKETCH_PEN, SKETCH_RULES, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
+import type { Blend } from "@pbgo/table"
+import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, ISLAND_BUILDS, ISLAND_PLAYERS, type IslandBuild, type IslandPlayer, SHEET, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, MAT_BLENDS, MAT_COLORS, MAT_PATTERNS, type MatColor, type MatPattern, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, SKETCH_BRUSHES, SKETCH_COLORS, SKETCH_PEN, SKETCH_RULES, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
 import { SceneFrame } from "./frame"
 import { ISLAND_CORNERS } from "./island"
 import { deal, lay, nextFitting, SEED, START, TABLE, TILES, type TileName, view } from "./landscape"
 import { BONUS, CATEGORIES, CATEGORY_OF, ROW_OF, scoreOf, totalOf, upperOf } from "./yahtzee"
-import { FloorButtonsScene, TilesScene, BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CardStatesScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
+import { FloorButtonsScene, TilesScene, BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CardStatesScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, MatScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
 
 // The light half of the 3D specimens of the engine docs: each is the state and the controls of one scene, laid out in a `SceneFrame`, and the scene itself (`lazy.tsx`), which is drawn only when the frame is near the window. The controls
 // are the platform's own and hold every value the scene is given, so they are there, and still, before the scene is and after it is let go; the scene is a function of them and sends back what the pointer did in it.
@@ -1266,6 +1267,34 @@ export function SceneDragSpecimen() {
       }
     >
       <DragScene cards={cards} picked={picked} above={above} mayPlay={mayPlay} onDrop={drop} onPick={(card) => setPicked((now) => (now === card ? null : card))} onZone={zone} />
+    </SceneFrame>
+  )
+}
+
+export function SceneMatSpecimen() {
+  const [color, setColor] = useState<MatColor>("indigo")
+  const [pattern, setPattern] = useState<MatPattern>("mosaic")
+  const [picture, setPicture] = useState(false)
+  const [blend, setBlend] = useState<Blend>("multiply")
+  const [light, setLight] = useState(true)
+  const [glow, setGlow] = useState(true)
+  const [tile, setTile] = useState(5)
+  return (
+    <SceneFrame
+      label="A card table seen from above with a few cards on it, on a mat that is set by the controls: a colour, a pattern (a lattice, a mosaic, a grain or none), planks of wood laid over it with a blend, a pool of light on the middle and a faint wheel of colours turning through it"
+      controls={
+        <>
+          <Choice label="Colour" value={color} options={Object.entries(MAT_COLORS).map(([value, { label }]) => ({ value, label, description: label }))} onChange={(value) => setColor(value as MatColor)} />
+          <Choice label="Pattern" value={pattern} options={Object.entries(MAT_PATTERNS).map(([value, label]) => ({ value, label, description: label }))} onChange={(value) => setPattern(value as MatPattern)} />
+          <Knob label="One repeat covers" value={tile} min={1} max={8} step={0.5} onChange={setTile} />
+          <Option label="Planks laid over it" checked={picture} onChange={setPicture} />
+          <Choice label="Blend of the planks" value={blend} options={Object.entries(MAT_BLENDS).map(([value, label]) => ({ value, label, description: label }))} onChange={(value) => setBlend(value as Blend)} />
+          <Option label="Pool of light" checked={light} onChange={setLight} />
+          <Option label="Wheel of colours in it" checked={glow} onChange={setGlow} />
+        </>
+      }
+    >
+      <MatScene color={color} pattern={pattern} picture={picture} blend={blend} light={light} glow={glow} tile={tile} />
     </SceneFrame>
   )
 }

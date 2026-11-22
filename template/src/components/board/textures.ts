@@ -1,7 +1,7 @@
 "use client"
 
 import type { Card, CardColor } from "@template/engine"
-import { type CardSize, latticeTexture, paintFace } from "@pbgo/table"
+import { type CardSize, type MatLayer, paintFace } from "@pbgo/table"
 import type { Texture } from "three"
 
 /** Width and height of a card in world units: the same for every card of the game */
@@ -107,14 +107,13 @@ export function bidFaceTexture(amount: number): Texture {
 
 export const bidBackTexture = (): Texture => backTexture("#e0613a", "#2b1d1a")
 
-/** The colour of the table: the average of its felt, which the table fades into with distance */
 /** The mat the table lies on: a very dark grey with a diamond lattice a hair lighter, as a printed playing mat has, with no grain; and a pool of light on its middle, so that it is lit there and falls away to black toward its edges, as the table of Courtisans does */
 export const MAT_COLOR = "#0c0c0e"
 export const MAT_LINE = "#17171b"
 export const MAT_LIGHT = { color: "#2c2c31", radius: 20 }
 
-let mat: Texture | null = null
-export function matTexture(): Texture {
-  if (!mat) mat = latticeTexture({ base: MAT_COLOR, line: MAT_LINE, diamonds: 3, width: 2.5 })
-  return mat
-}
+/** What lies on the colour of the mat, from the bottom up: the lattice, which the table bakes once into the picture that repeats over it */
+export const MAT_LAYERS: MatLayer[] = [{ kind: "lattice", line: MAT_LINE, diamonds: 3, width: 2.5 }]
+
+/** Pixels across the baked picture of the mat: the width of a line is given in them, so a larger one would make the lines finer */
+export const MAT_RESOLUTION = 256

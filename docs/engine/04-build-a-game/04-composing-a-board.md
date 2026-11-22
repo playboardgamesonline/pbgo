@@ -22,7 +22,7 @@ src/components/board/
 | What | Where in the template | Page |
 | --- | --- | --- |
 | The camera and the photo camera | `camera.ts`: `CAMERA`, `PHOTO` | [Camera](../02-components/02-camera.md), [Share photo](../02-components/01-table.md#share-photo) |
-| The table's colour, picture and light | The `surface` prop of `Table` in `scene.tsx`, fed by `MAT_COLOR`, `matTexture` and `MAT_LIGHT` of `textures.ts` | [Surface](../02-components/01-table.md#surface) |
+| The table's colour, picture and light | The `surface` prop of `Table` in `scene.tsx`, fed by `MAT_COLOR`, `MAT_LAYERS` and `MAT_LIGHT` of `textures.ts` | [Surface](../02-components/01-table.md#surface) |
 | The size of a card, its faces and its back | `textures.ts`: `CARD_SIZE`, `faceTexture`, `backTexture` | [Faces and textures](../02-components/04-cards.md#faces-and-textures) |
 | The glows | `glows.ts` | [Glows](../02-components/04-cards.md#glows) |
 | Where cards and seats go | `layout.ts` | [Layout helpers](../02-components/08-layout-helpers.md), [Seats](../02-components/03-seats.md) |
