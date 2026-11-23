@@ -30,8 +30,12 @@ export function openStep<S extends { [P in K]: number }, E = unknown, K extends 
   return ctx
 }
 
-/** A step ends here: every stream the step opened is saved back into the state, which comes out with what happened. `state` is the copy `openStep` made, never the one that came in */
-export function closeStep<S, E, K extends string>(ctx: StepContext<S, E, K>): Step<S, E> {
+/**
+ * A step ends here: every stream the step opened is saved back into the state, which comes out with what happened. `state` is the copy `openStep` made, never the one that came in.
+ * It reads only `s` and `events` from the context (the streams were noted when it opened), so it takes a context a game names with an alias, `type Context = StepContext<State, MyEvent>`, as it takes the one `openStep` has just made: no type argument is ever needed,
+ * and `export const close = closeStep` keeps its generics.
+ */
+export function closeStep<S, E>(ctx: { s: S; events: LogEntry<E>[] }): Step<S, E> {
   const state = ctx.s as Record<string, unknown>
   for (const key of opened.get(ctx) ?? []) state[key] = (ctx as unknown as Record<string, SaveableRng>)[key]!.save()
   return { state: ctx.s, events: ctx.events }
