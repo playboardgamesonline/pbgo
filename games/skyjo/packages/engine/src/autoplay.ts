@@ -1,6 +1,6 @@
-import { EngineError, seatOf } from "@pbgo/engine-kit"
+import { EngineError, closeStep, seatOf } from "@pbgo/engine-kit"
 import { dealRound, discard, draw, flip, place, reveal, take } from "./actions"
-import { type Ctx, close, gridOf, open, revealedCount, valueOf, waitingFor } from "./machine"
+import { type Ctx, gridOf, open, revealedCount, valueOf, waitingFor } from "./machine"
 import { columnCells } from "./scoring"
 import { OPENING_FLIPS, type SkyjoStep, type State } from "./types"
 
@@ -115,7 +115,7 @@ export function autoPlay(ctx: Ctx, playerId: string): void {
 export function autoPlayStep(state: State, playerId: string): SkyjoStep {
   const ctx = open(state)
   autoPlay(ctx, playerId)
-  return close(ctx)
+  return closeStep(ctx)
 }
 
 /** `GAME.autoPlayFor`: the state once `playerId` has been played for. */
