@@ -28,7 +28,7 @@ const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr
 
 /** No card waits for its turn to come in: the cards of a table that was just opened are where they lie */
 const NO_ENTRANCES: ReturnType<typeof timelineOf>["entrances"] = new Map()
-const NO_COLUMNS: ReturnType<typeof timelineOf>["columns"] = []
+const NO_REMOVALS: ReturnType<typeof timelineOf>["removals"] = []
 
 /** `held` and `onLoaded` are the start screen's (PLT-107): behind it the board is drawn and loads, says so, and holds its opening (the camera's entrance, the start announcement) until the screen goes */
 type Props = {
@@ -158,6 +158,8 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
       schema: ({ button }) => ({
         "Last card to turn over": button(() => runDebugCommand("lastCard")),
         "Column of three on the next move": button(() => runDebugCommand("columnOnTop")),
+        "Column of three in the second column": button(() => runDebugCommand("middleColumnOnTop")),
+        "Two columns thrown at the count": button(() => runDebugCommand("columnsAtTheCount")),
         "Lowest card on top of the pile": button(() => runDebugCommand("lowOnTop")),
         "Highest card on top of the pile": button(() => runDebugCommand("highOnTop")),
         "Score near the end of the game": button(() => runDebugCommand("nearTarget")),
@@ -235,7 +237,10 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
         onFlip={(position) => void send({ type: "flip", position })}
         onDeal={() => void send({ type: "deal" })}
         entrances={playing ? timeline.entrances : NO_ENTRANCES}
-        columns={playing ? timeline.columns : NO_COLUMNS}
+        removals={playing ? timeline.removals : NO_REMOVALS}
+        replaced={playing ? timeline.replaced : null}
+        v={timeline.v}
+        reduced={motion === "reduced"}
         busy={busy}
         held={held}
         onLoaded={onLoaded}

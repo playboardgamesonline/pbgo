@@ -63,7 +63,7 @@ describe("the timeline of the last move", () => {
     expect(t.entrances.get(cardKey(9))).toEqual({ origin: { kind: "held" }, delay: 0 })
   })
 
-  it("flies the three cards of a thrown column from their cells, one after the other, and keeps them on the discard until the move is over", () => {
+  it("plays a thrown column as one motion that begins when the move before it in the turn has landed, and has no entrance for its cards", () => {
     const cards = [face(1, "card-6"), face(2, "card-6"), face(3, "card-6")]
     const t = timelineOf(
       [
@@ -72,14 +72,42 @@ describe("the timeline of the last move", () => {
       ],
       players,
     )
-    expect(t.columns).toEqual(cards)
-    const delays = cards.map((card) => t.entrances.get(cardKey(card.id))!.delay)
-    expect(delays[0]).toBe(PACE_SETTINGS.place)
-    expect(delays[1]!).toBeGreaterThan(delays[0]!)
-    expect(delays[2]!).toBeGreaterThan(delays[1]!)
-    expect(t.entrances.get(cardKey(1))?.origin).toEqual({ kind: "cell", player: "cleo", position: 3, up: true })
-    expect(t.entrances.get(cardKey(3))?.origin).toEqual({ kind: "cell", player: "cleo", position: 5, up: true })
-    expect(t.settle).toBeGreaterThanOrEqual(delays[2]! + PACE_SETTINGS.landing)
+    expect(t.removals).toHaveLength(1)
+    const [removal] = t.removals
+    expect(removal).toMatchObject({ player: "cleo", column: 1, cards, at: PACE_SETTINGS.place })
+    // the cards are not flown by their entrances: the stack is, from the film of the column
+    for (const card of cards) expect(t.entrances.has(cardKey(card.id))).toBe(false)
+    // the card the placement put on the discard is the one the stack lands on, and flies there from its cell
+    expect(t.replaced).toEqual(face(4))
+    expect(t.entrances.get(cardKey(4))).toEqual({ origin: { kind: "cell", player: "cleo", position: 7, up: true }, delay: 0 })
+    // the move lasts as long as the column does
+    expect(t.settle).toBeCloseTo(PACE_SETTINGS.place + removal!.timing.total)
+  })
+
+  it("has no card put on the discard for a column that a turned card made", () => {
+    const t = timelineOf([line(6, { kind: "reveal", by: "ana", position: 4, card: face(5, "card-6"), how: "flip" }), line(6, { kind: "column", by: "ana", column: 1, value: 6, cards: [face(3, "card-6"), face(4, "card-6"), face(5, "card-6")] })], players)
+    expect(t.removals).toHaveLength(1)
+    expect(t.replaced).toBeNull()
+  })
+
+  it("plays the columns of a round that is counted one after the other, in the order the engine threw them away, each faster as there are more", () => {
+    const column = (by: string, column: number, base: number): SkyjoEvent => ({ kind: "column", by, column, value: 4, cards: [face(base, "card-4"), face(base + 1, "card-4"), face(base + 2, "card-4")] })
+    const end: SkyjoEvent = { kind: "end", scores: [0, 1, 2], ender: "ana", doubled: false }
+    const one = timelineOf([line(9, column("ana", 0, 10)), line(9, end)], players)
+    const four = timelineOf([line(9, column("ana", 0, 10)), line(9, column("bob", 2, 20)), line(9, column("bob", 3, 30)), line(9, column("cleo", 1, 40)), line(9, end)], players)
+    expect(four.removals.map(({ player, column }) => [player, column])).toEqual([["ana", 0], ["bob", 2], ["bob", 3], ["cleo", 1]])
+    // one after the other: each begins when the one before it is over
+    const [a, b, c, d] = four.removals
+    expect(a!.at).toBe(0)
+    expect(b!.at).toBeCloseTo(a!.at + a!.timing.total)
+    expect(c!.at).toBeCloseTo(b!.at + b!.timing.total)
+    expect(d!.at).toBeCloseTo(c!.at + c!.timing.total)
+    // a few columns take their time, many share what a move may take: each is played faster than one alone
+    expect(one.removals[0]!.timing.total).toBeGreaterThan(1)
+    expect(a!.timing.total).toBeLessThan(one.removals[0]!.timing.total)
+    expect(a!.timing.total * 4).toBeLessThanOrEqual(PACE_SETTINGS.columns + 1e-9)
+    // and a count that throws away nothing waits only for its own beat
+    expect(timelineOf([line(9, { kind: "end", scores: [0, 1, 2], ender: "ana", doubled: false })], players).removals).toEqual([])
   })
 
   it("gives every event of the game a beat, so that a move that says nothing new still takes its time", () => {
