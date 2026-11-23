@@ -45,15 +45,15 @@ A ring that is right for two players is too small for eight, and one that is rig
 
 ```ts
 const RING = {
-  radiusX: [4.311, 4.533],
-  radiusZ: [4.337, 6.988],
-  viewerZ: 4.724,
-  first: { 2: 180, 3: 145, 4: 90, 5: 90, 6: 66, 7: 62, 8: 60 },
+  radiusX: [5.12, 5.56],
+  radiusZ: [6.24, 7.33],
+  viewerZ: 5.08,
+  first: { 2: 180, 3: 152, 4: 90, 5: 88, 6: 67, 7: 62, 8: 60 },
 }
 const ring = seats(ids.length, { ...RING, me: viewer < 0 ? null : viewer })
 ```
 
-The angles are in degrees, clockwise from the viewer's seat as the camera sees the table: 0 in front of the viewer, 90 on their left, 180 straight across. At six players the first opponent sits at 66, the last at 294 and the three between at 123, 180 and 237: the first and the last keep 66 degrees off the viewer and the others are spread evenly between them. `seatAt(angle, radiusX, radiusZ)` is the seat for one angle. What else grows with the table, the scale of the opponents' cards for one, is given the same way, `byPlayers(count, [0.603, 0.404])`, and is not a setting of the kit.
+The angles are in degrees, clockwise from the viewer's seat as the camera sees the table: 0 in front of the viewer, 90 on their left, 180 straight across. At six players the first opponent sits at 67, the last at 293 and the three between at 124, 180 and 236: the first and the last keep 67 degrees off the viewer and the others are spread evenly between them. `seatAt(angle, radiusX, radiusZ)` is the seat for one angle. What else grows with the table, the scale of the opponents' cards for one, is given the same way, `byPlayers(count, [0.62, 0.46])`, and is not a setting of the kit.
 
 ## The plate
 
