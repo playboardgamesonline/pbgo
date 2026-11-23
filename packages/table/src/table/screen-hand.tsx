@@ -28,18 +28,30 @@ function inCameraFrame(camera: Camera, pose: Pose): Pose {
   return local
 }
 
+/** Where the pointer is over the canvas, from -1 to 1 across it and from -1 at the bottom to 1 at the top */
+export type ScreenPointer = { x: number; y: number }
+
 /**
  * The frame of a hand held at the bottom left of the screen, as Courtisans does it: a frame that follows the camera, so that what is laid in it keeps its place on the screen whatever the window, the entrance of the camera and the view. `children` is given the `ScreenHandView`
  * (where the edges of the picture are in the frame, and `local`, which puts a place of the table in it) and lays the cards there, with `screenHandLayout` for the slots. The cards are a `Zone` like any other, so they glide, fly and glow as cards of the table do, and a card that goes to
  * the table flies from where it was on the screen. It is not in the share photo.
  */
-export function ScreenHand({ settings = SCREEN_HAND_SETTINGS, children }: { settings?: ScreenHandSettings; children: (view: ScreenHandView) => ReactNode }) {
+export function ScreenHand({
+  settings = SCREEN_HAND_SETTINGS,
+  onFrame,
+  children,
+}: {
+  settings?: ScreenHandSettings
+  /** Called on every frame, once the frame has gone to the camera, with its view and where the pointer is: for poses that depend on the camera and the pointer together, such as a card that leans toward the pointer or one that rests on the table while the camera moves. It changes the poses its cards are given in place, and the cards read them on their own frame */
+  onFrame?: (view: ScreenHandView, pointer: ScreenPointer) => void
+  children: (view: ScreenHandView) => ReactNode
+}) {
   useSettingsVersion()
   const camera = useThree((three) => three.camera)
   const group = useRef<Group>(null)
   const [view, setView] = useState<ScreenHandView | null>(null)
   const local = useCallback((pose: Pose) => inCameraFrame(camera, pose), [camera])
-  useFrame(() => {
+  useFrame(({ pointer }) => {
     const g = group.current
     if (!g) return
     // The camera has been put where it stands this frame (the rig runs first): the frame goes there, and the picture's edges are read from its lens
@@ -48,7 +60,10 @@ export function ScreenHand({ settings = SCREEN_HAND_SETTINGS, children }: { sett
     g.quaternion.copy(camera.quaternion)
     const m = (camera as PerspectiveCamera).projectionMatrix.elements
     const next = screenViewOf({ m00: m[0]!, m11: m[5]! }, settings.distance)
-    if (!view || Math.abs(next.halfWidth - view.halfWidth) > 1e-3 || Math.abs(next.halfHeight - view.halfHeight) > 1e-3 || next.distance !== view.distance) setView({ ...next, local })
+    const changed = !view || Math.abs(next.halfWidth - view.halfWidth) > 1e-3 || Math.abs(next.halfHeight - view.halfHeight) > 1e-3 || next.distance !== view.distance
+    const current = changed || !view ? { ...next, local } : view
+    if (changed) setView(current)
+    onFrame?.(current, pointer)
   })
   return (
     <group ref={group} userData={{ hiddenInPhoto: true }}>

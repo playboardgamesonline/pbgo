@@ -41,8 +41,20 @@ export type TableProps = {
   held?: boolean
   /** Called once, when the table is drawn with everything its children waited for: the pictures and models they suspend on (`useTexture`, `useLoader`). What a game loads without suspending it reports itself */
   onLoaded?: () => void
+  /** A press on the table where nothing answers, for a board that lets go of what is picked when the visitor presses elsewhere. A plane under everything takes it, so what lies on the table and takes its own press (a card, a zone, a button) keeps it: only the empty table is left */
+  onEmptyPress?: () => void
   /** What lies on the table: cards, seats */
   children: ReactNode
+}
+
+/** A plane under everything, as wide as the table is to the eye, that takes the press nothing above it took. It draws nothing */
+function EmptyPress({ onPress }: { onPress: () => void }) {
+  return (
+    <mesh rotation-x={-Math.PI / 2} position-y={-0.01} onClick={() => onPress()}>
+      <planeGeometry args={[400, 400]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    </mesh>
+  )
 }
 
 /** Mounts once everything beside it in the `Suspense` boundary is in, which is when the table is loaded */
@@ -60,7 +72,7 @@ function Loaded({ onLoaded }: { onLoaded?: () => void }) {
  * The table every game plays on: a canvas with the camera, an endless surface, the lights and the share photo, the memory that lets a card which changes place fly from where it was, and the zones that what is dragged is let go on. Cards and everything else go inside.
  * While the debug panel is open it also holds the tools of the table (`debug/table-debug.tsx`): the folders for what it owns, helpers drawn over it, an inspector and a slow motion.
  */
-export function Table({ id = TABLE_CANVAS_ID, camera, intro, playIntro, surface, lights, photo, near = 0.1, far = 300, held = false, onLoaded, children }: TableProps) {
+export function Table({ id = TABLE_CANVAS_ID, camera, intro, playIntro, surface, lights, photo, near = 0.1, far = 300, held = false, onLoaded, onEmptyPress, children }: TableProps) {
   // Made out here: React context does not cross into the canvas, so the provider sits inside it
   const memory = useMemo(() => createPoseMemory(), [])
   // The zones the things of this table are let go on, and the drag that is going on over them
@@ -75,6 +87,7 @@ export function Table({ id = TABLE_CANVAS_ID, camera, intro, playIntro, surface,
     <Canvas id={id} gl={{ preserveDrawingBuffer: true }} dpr={[1, 2]} camera={{ fov: camera.fov, near, far }}>
       {/* Outside the Suspense: the table is there from the first frame, before any texture has loaded */}
       <Surface {...surface} />
+      {onEmptyPress && <EmptyPress onPress={onEmptyPress} />}
       <PoseMemoryContext.Provider value={memory}>
         <DragContext.Provider value={drag}>
           <Suspense fallback={null}>

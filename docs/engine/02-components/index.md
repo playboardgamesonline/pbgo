@@ -36,6 +36,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 | Hotspot | An invisible area of the table that chooses a player: it takes the pointer and the keyboard, and the cards under it glow | `onPress` | `Hotspot`, `LightPool`, the states of a `Card` | Built: [Floor buttons](25-floor-buttons.md#choosing-a-player) |
 | Action label | The word that says what pressing an object does ("Draw" over the draw pile), floating above the object, facing the camera, with a small arrow that points down at it. It is pressed like the object and lit with it | `onPress` | `ActionLabel`, the `action` of a `Pile`, `pileAboveAt`, `pileFootprint`, `cardRise` | Built: [Action labels](27-action-labels.md) |
 | Aura and light band | A glow round a zone, and a band of light that fades away from one end, drawn flat on the table for a place that is lit or a lane that is open | Whether a place can be played | `Aura`, `LightBand`, `AURA_LOOK`, `BAND` | Built: [Zone lights](29-zone-lights.md) |
+| Picture | A flat image that lies on the table: a sticker, a sign, an arrow, a soft disc under a number, with a stamp that lands it with a thump | | `Picture`, `PICTURE`, `Stamp`, `STAMP` | Built: [Pictures](31-pictures.md) |
 | Seat | A player's place, facing the middle of the table, and their line along its axis, turned with the seat: the plate (name, info line), the play area and the hand | The players, `waitingFor` | `Seat`, `PlayerSeat` | Built: [Seats](03-seats.md) |
 | Text on the table | Words and numbers written flat | A number or a word in the view | `TableText` | Built: [Score](09-score.md) |
 | Table and camera | The surface everything lies on, and the way it is seen | | `Table` | Built: [Table](01-table.md), [Camera](02-camera.md) |
@@ -85,6 +86,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 - [Tiles](24-tiles.md): tiles with an edge on each side, laid where the sides match in the engine, with where each one fits and the roads and cities of the whole layout, and the tiles on the table with the cells they go on.
 - [Floor buttons](25-floor-buttons.md): buttons drawn flat on the table, whose borders lift under the pointer or the keyboard focus, with a keyboard stand-in and a reduced-motion state, and the invisible hotspot that chooses a player.
 - [Zone lights](29-zone-lights.md): a glow round a zone and a band of light that fades away from one end, drawn flat on the table for a place that is lit or a lane that is open.
+- [Pictures](31-pictures.md): a flat image that lies on the table, cut out by its texture, taking no press, and the stamp that lands it with a thump.
 - [Sounds](28-sounds.md): the effects a game declares, the sounds a card makes by itself and the sounds of the lines of the log.
 - [Rules of the board](26-rules-of-the-board.md): what holds for every board, whatever the game.
 - [Action labels](27-action-labels.md): the word over an object that says what pressing it does, with a small arrow that points down at it, pressed and lit like the object.

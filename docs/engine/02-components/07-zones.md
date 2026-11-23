@@ -91,6 +91,7 @@ The viewer's own hand is held at the bottom left of the screen, whatever the win
 | Prop | Role |
 | --- | --- |
 | `settings` | `ScreenHandSettings`, default `SCREEN_HAND_SETTINGS`: Courtisans' numbers (below). A game that keeps the room of the hand short of something in the middle of the front of the table gives its own, `{ ...SCREEN_HAND_SETTINGS, room: 0.42 }` |
+| `onFrame` | `(view, pointer) => void`, called on every frame once the frame has gone to the camera, with where the pointer is (`x` and `y`, from -1 to 1): for poses that depend on the camera and the pointer together, such as a card that leans toward the pointer or one that rests on the table while the camera moves. It changes the poses its cards are given in place, and the cards read them on their own frame |
 | `children` | `(view) => ReactNode`: lays the hand in the frame, with `screenHandLayout(count, view, cardSize, settings, raised)` for the slots |
 
 | Setting | Role |
