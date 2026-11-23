@@ -72,7 +72,7 @@ describe("the words the code reads", () => {
     for (const field of WORD_FIELDS) expect(read, `${field} is declared and written but nothing reads it`).toContain(field)
   })
 
-  it("cover what the floor buttons and the table say: draw, take, throw away, deal, the prompt of each step and the name of a card of the grid", () => {
+  it("cover what the labels over the piles, the deal button and the ticker say: draw, take, throw away, deal, the prompt of each step and the name of a card of the grid", () => {
     for (const name of ["draw", "takeDiscard", "throwAway", "deal", "promptReveal", "promptChoose", "promptPlaceDrawn", "promptPlaceTaken", "promptFlip", "cell"]) expect([...used()], name).toContain(name)
   })
 })

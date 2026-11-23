@@ -10,9 +10,9 @@ const word = (name: string, title: string) => defineField({ name, title, type: "
  */
 export const texts = createTexts(
   [
-    word("draw", "Button · draw the top card of the pile"),
-    word("takeDiscard", "Button · take the top card of the discard"),
-    word("throwAway", "Button · throw the drawn card away and turn a card over"),
+    word("draw", "Label over the draw pile · draw the top card"),
+    word("takeDiscard", "Label over the discard · take its top card"),
+    word("throwAway", "Label over the discard · throw the drawn card away and turn a card over"),
     word("deal", "Button · deal the next round"),
     word("promptReveal", "Prompt · turn two of your cards over"),
     word("promptChoose", "Prompt · draw from the pile or take the discard"),

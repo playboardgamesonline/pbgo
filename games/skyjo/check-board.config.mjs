@@ -59,8 +59,8 @@ const config = {
   // a few turns are played before a reload or an absence, so that there are cards face up, a card on the discard and a score under each seat
   warm: 24,
 
-  // The situations the windows are photographed in: the viewer's turn to choose, holding a card they drew (the card in hand between the piles and the throw-away pad) and between two rounds (the count under each seat and the dealer's pad or the word
-  // that says who deals), reached by playing the first round with the engine's own player, a move at a time, so that the board plays out the last one as it would
+  // The situations the windows are photographed in: the viewer's turn to choose, holding a card they drew (the card in hand between the piles and the word Discard and flip over the discard) and between two rounds (the count under each seat and the dealer's button
+  // over the piles), reached by playing the first round with the engine's own player, a move at a time, so that the board plays out the last one as it would
   scenes: {
     async turn(table) {
       await atViewer(table)
@@ -74,11 +74,11 @@ const config = {
     },
   },
 
-  // What the viewer presses, in the order the game offers it: a card of their grid to open the round, the draw pile's Draw pad, a card of the grid to put the card in hand in, the Take pad, the throw-away pad then a card to turn over, and the Deal pad when the deal
-  // comes round to the viewer (once in a round of the table: at a big table the game ends before, which the report says). Everything else the viewer does is played through the API, to come to the next of these. The seats play as an absent player would,
-  // so that a game lasts several rounds
+  // What the viewer presses, in the order the game offers it: a card of their grid to open the round, the top card of the draw pile (and the word Draw over it), a card of the grid to put the card in hand in, the top card of the discard (and the word over it), the discard again to throw
+  // the drawn card away, then a card to turn over, and the Deal button when the deal comes round to the viewer (once in a round of the table: at a big table the game ends before, which the report says). Everything else the viewer does is played through the API, to come
+  // to the next of these. The seats play as an absent player would, so that a game lasts several rounds
   presses: {
-    expect: ["reveal", "draw", "place", "take", "throw", "flip", "deal"],
+    expect: ["reveal", "draw", "place", "take", "takeWord", "drawWord", "throw", "flip", "deal"],
     max: 80,
     bot: engine,
     plan({ state, me, exercised }) {
@@ -87,6 +87,8 @@ const config = {
       if (phase.kind === "choose" && phase.player === me) {
         if (!exercised.has("draw")) return { label: "draw" }
         if (!exercised.has("take")) return { label: "take" }
+        if (!exercised.has("takeWord")) return { label: "takeWord" }
+        if (!exercised.has("drawWord")) return { label: "drawWord" }
         return exercised.has("throw") ? null : { label: "draw" }
       }
       if (phase.kind === "place" && phase.player === me) {
@@ -98,13 +100,18 @@ const config = {
       if (phase.kind === "between" && phase.dealer === me) return exercised.has("deal") ? null : { label: "deal" }
       return null
     },
-    // Where the controls lie, from what the board offers: the pads lie in the strip under the piles (z about 1.6: Draw left of the middle, Take and Throw away right of it, Deal across the middle), the cells of the viewer's grid in front of them (z of 3 and more)
+    // Where the controls lie, from what the board offers: the cards of the piles lie at z about 0.1 (the draw pile left of the middle, the discard right of it) and the word over each floats above them (y of 0.5 and more, up the screen: z under 0), the Deal button
+    // across the middle in the room over the piles (z under -1), the cards of the viewer's grid in front of them (z of 2.1 and more)
     find({ label, pressables }) {
-      const strip = (pressable) => pressable.world !== null && pressable.world[2] > 1 && pressable.world[2] < 2.1
-      const cells = pressables.filter((pressable) => pressable.world !== null && pressable.world[2] >= 2.1)
-      if (label === "draw") return pressables.find((pressable) => strip(pressable) && pressable.world[0] < -0.5)
-      if (label === "take" || label === "throw") return pressables.find((pressable) => strip(pressable) && pressable.world[0] > 0.5)
-      if (label === "deal") return pressables.find((pressable) => strip(pressable) && Math.abs(pressable.world[0]) < 0.5)
+      const lies = (pressable) => pressable.world !== null
+      const pile = (pressable) => lies(pressable) && pressable.world[1] < 0.6 && pressable.world[2] > -0.3 && pressable.world[2] < 0.6
+      const word = (pressable) => lies(pressable) && pressable.world[1] >= 0.6 && pressable.world[2] > -1.2 && pressable.world[2] <= -0.3
+      const cells = pressables.filter((pressable) => lies(pressable) && pressable.world[2] >= 2.1)
+      if (label === "draw") return pressables.find((pressable) => pile(pressable) && pressable.world[0] < -0.5)
+      if (label === "drawWord") return pressables.find((pressable) => word(pressable) && pressable.world[0] < -0.5)
+      if (label === "take" || label === "throw") return pressables.find((pressable) => pile(pressable) && pressable.world[0] > 0.5)
+      if (label === "takeWord") return pressables.find((pressable) => word(pressable) && pressable.world[0] > 0.5)
+      if (label === "deal") return pressables.find((pressable) => lies(pressable) && pressable.world[2] < -1 && Math.abs(pressable.world[0]) < 0.5)
       if (label === "reveal" || label === "place" || label === "flip") return cells.find((pressable) => pressable.reachable) ?? cells[0]
       return undefined
     },

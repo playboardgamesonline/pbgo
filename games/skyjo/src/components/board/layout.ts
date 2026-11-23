@@ -1,4 +1,4 @@
-import { type Field, onTable, type Pose, SEAT_SETTINGS, type Spot } from "@pbgo/table"
+import { type Field, onTable, PILE_LABEL_GAP, PILE_LABEL_HEIGHT, type Pose, SEAT_SETTINGS, type Spot } from "@pbgo/table"
 
 /** A seat at the table: where it stands and the yaw that turns what lies there to face its player: the viewer's seat is at yaw 0, a seat across from them at π, one on their left at -π/2 */
 export type SeatSpot = Required<Spot>
@@ -201,15 +201,6 @@ export function gridBox(grid: Grid): Box {
   return { x: grid.at.x, z: grid.at.z, halfWidth: width / 2, halfDepth: depth / 2, yaw: grid.yaw }
 }
 
-/**
- * The zone of a cell that its player presses: the card plus half the gap to its neighbours on every side, so that the twelve zones tile the whole grid plus its gaps, with no gap between them and no overlap. A zone is `pitch.x` wide and `pitch.z` deep.
- */
-export function cellZone(grid: Grid, position: number): Box {
-  const pitch = pitchOf(grid.scale)
-  const place = cellPlace(grid, position)
-  return { x: place.x, z: place.z, halfWidth: pitch.x / 2, halfDepth: pitch.z / 2, yaw: grid.yaw }
-}
-
 /** The four corners of a box, in the table's frame */
 export function cornersOf({ x, z, halfWidth, halfDepth, yaw }: Box): Place[] {
   const along = alongOf(yaw)
@@ -278,51 +269,39 @@ export function pilePlaces(): { deck: Place; held: Place; discard: Place } {
   return { deck: { x: -R.pilesX, z: R.pilesZ }, held: { x: 0, z: R.pilesZ }, discard: { x: R.pilesX, z: R.pilesZ } }
 }
 
-/** One gap, the same between a pile and a pad, between two pads and between a pad and the room above the piles: the pads and the piles of the middle of the table are laid out with it. */
+/** One gap, the same between a pile and the room over it: the middle of the table is laid out with it. */
 export const FLOOR = { gap: 0.3, padDepth: 0.85 }
 
 export type Pad = { x: number; z: number; width: number; depth: number }
 
 export type FloorPlan = {
-  /** Draw (under the draw pile) and Take (under the discard), on the viewer's choice; Throw away (under the discard) when they hold a card they drew */
-  draw: Pad
-  take: Pad
-  throwAway: Pad
-  /** Deal, for the dealer between two rounds: one pad across the room of the two */
+  /** Deal, for the dealer between two rounds: the one button of the table, over the piles (an action with no object on the table) */
   deal: Pad
-  /** The room above the piles and the card in hand, kept clear: the instruction is said by the ticker, and nothing is written on the table */
+  /** The room over the piles and the card in hand, kept clear: the instruction is said by the ticker, and nothing is written on the table. The word over a pile (the action label) floats, and the deal button lies here */
   above: Pad
-  /** The whole middle, for the footprints: the piles, the card in hand, the pads and the instruction */
+  /** The whole middle, for the footprints: the piles, the count under each, the card in hand and the room over them */
   strip: Pad
 }
 
 export function floorPlan(): FloorPlan {
   const R = LAYOUT_SETTINGS
-  const { deck, discard } = pilePlaces()
   const pile = CARD.height * R.pileScale
   const g = FLOOR.gap
-  // the pads are as wide as the room between the middles of the two piles, less a gap
-  const width = 2 * R.pilesX - g
-  const z = R.pilesZ + pile / 2 + g + FLOOR.padDepth / 2
-  const draw = { x: deck.x, z, width, depth: FLOOR.padDepth }
-  const take = { x: discard.x, z, width, depth: FLOOR.padDepth }
-  const aboveWidth = 4 * R.pilesX
+  const across = 2 * R.pilesX + CARD.width * R.pileScale
   const aboveDepth = 0.9
-  const above = { x: 0, z: R.pilesZ - pile / 2 - g - aboveDepth / 2, width: aboveWidth, depth: aboveDepth }
+  const above = { x: 0, z: R.pilesZ - pile / 2 - g - aboveDepth / 2, width: 4 * R.pilesX, depth: aboveDepth }
   const top = above.z - aboveDepth / 2
-  const bottom = z + FLOOR.padDepth / 2
+  // each pile writes its count under it: its middle `PILE_LABEL_GAP` under the pile's edge, the letters `PILE_LABEL_HEIGHT` tall
+  const bottom = R.pilesZ + pile / 2 + PILE_LABEL_GAP + PILE_LABEL_HEIGHT / 2
   return {
-    draw,
-    take,
-    throwAway: { ...take },
-    deal: { x: 0, z, width: 2 * width + g, depth: FLOOR.padDepth },
+    deal: { x: 0, z: above.z, width: across, depth: FLOOR.padDepth },
     above,
-    strip: { x: 0, z: (top + bottom) / 2, width: 2 * R.pilesX + CARD.width * R.pileScale, depth: bottom - top },
+    strip: { x: 0, z: (top + bottom) / 2, width: across, depth: bottom - top },
   }
 }
 
 /**
- * Where things stand on a table of `n` players, as boxes: the plate and the grid of each seat, the piles and the card in hand, the pads and the instruction. The viewer is the first seat; a spectator (`seated` false) has none.
+ * Where things stand on a table of `n` players, as boxes: the plate and the grid of each seat, the piles and the card in hand, the strip of the middle. The viewer is the first seat; a spectator (`seated` false) has none.
  */
 export function tableBoxes(n: number, seated = true): Box[] {
   const R = LAYOUT_SETTINGS
