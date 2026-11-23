@@ -1,5 +1,6 @@
-import type { CharacterKey } from "./catalogue"
-import { type Ctx, areaOf, emit, faceOf, facesOf, handOf, keyOf, playerAt, soleCard, valueOf } from "./machine"
+import { faceOfId, facesOfIds, keyOfId, noteEvent, playerAt } from "@pbgo/engine-kit"
+import { CATALOGUE, type CharacterKey } from "./catalogue"
+import { type Ctx, areaOf, handOf, soleCard, valueOf } from "./machine"
 
 /**
  * What each character does when it is played (rulebook, pp. 8-13), by key. The card is already in front of its player when its effect runs, and the player holds
@@ -22,7 +23,7 @@ export type Effect = (ctx: Ctx, play: Play) => void
 
 /** A card that picks another player, played when every other player in the round is protected: it is played with no effect (rulebook, p. 11). */
 function fizzle(ctx: Ctx, by: string): void {
-  emit(ctx, { kind: "fizzled", by })
+  noteEvent(ctx, { kind: "fizzled", by })
 }
 
 /**
@@ -36,15 +37,15 @@ export function eliminate(ctx: Ctx, seat: number, cause: "guard" | "baron" | "pr
   areaOf(s, seat).push(...cards)
   // Nobody out is protected: only a player on their turn is knocked out (by their own card, or by the Princess discarded), and their protection ended when it began
   s.out[seat] = true
-  emit(ctx, { kind: "out", player: playerAt(s, seat), cards: facesOf(s, cards), cause })
+  noteEvent(ctx, { kind: "out", player: playerAt(s.seats, seat), cards: facesOfIds(s.ids, CATALOGUE, cards), cause })
 }
 
 /** Guard (rulebook, p. 12): name a character other than the Guard; the chosen player announces whether they hold it, and if they do they are out of the round. */
 function guard(ctx: Ctx, { by, target, guess }: Play): void {
   const { s } = ctx
   if (target === null || guess === null) return fizzle(ctx, by)
-  const hit = keyOf(s, soleCard(s, target)) === guess
-  emit(ctx, { kind: "guess", by, target: playerAt(s, target), guess, hit })
+  const hit = keyOfId(s.ids, CATALOGUE, soleCard(s, target)) === guess
+  noteEvent(ctx, { kind: "guess", by, target: playerAt(s.seats, target), guess, hit })
   if (hit) eliminate(ctx, target, "guard")
 }
 
@@ -52,18 +53,18 @@ function guard(ctx: Ctx, { by, target, guess }: Play): void {
 function priest(ctx: Ctx, { by, target }: Play): void {
   const { s } = ctx
   if (target === null) return fizzle(ctx, by)
-  const player = playerAt(s, target)
-  emit(ctx, { kind: "look", by, target: player, card: keyOf(s, soleCard(s, target)) }, { to: [by], masked: { kind: "look", by, target: player } })
+  const player = playerAt(s.seats, target)
+  noteEvent(ctx, { kind: "look", by, target: player, card: keyOfId(s.ids, CATALOGUE, soleCard(s, target)) }, { to: [by], masked: { kind: "look", by, target: player } })
 }
 
 /** Baron (rulebook, p. 12): compare hands with another player in secret; the lower value is out of the round, and with a tie neither is. */
 function baron(ctx: Ctx, { seat, by, target }: Play): void {
   const { s } = ctx
   if (target === null) return fizzle(ctx, by)
-  const player = playerAt(s, target)
+  const player = playerAt(s.seats, target)
   const mine = soleCard(s, seat)
   const theirs = soleCard(s, target)
-  emit(ctx, { kind: "compare", by, target: player, cards: { by: keyOf(s, mine), target: keyOf(s, theirs) } }, { to: [by, player], masked: { kind: "compare", by, target: player } })
+  noteEvent(ctx, { kind: "compare", by, target: player, cards: { by: keyOfId(s.ids, CATALOGUE, mine), target: keyOfId(s.ids, CATALOGUE, theirs) } }, { to: [by, player], masked: { kind: "compare", by, target: player } })
   if (valueOf(s, mine) < valueOf(s, theirs)) eliminate(ctx, seat, "baron")
   else if (valueOf(s, theirs) < valueOf(s, mine)) eliminate(ctx, target, "baron")
 }
@@ -72,13 +73,13 @@ function baron(ctx: Ctx, { seat, by, target }: Play): void {
 function king(ctx: Ctx, { seat, by, target }: Play): void {
   const { s } = ctx
   if (target === null) return fizzle(ctx, by)
-  const player = playerAt(s, target)
+  const player = playerAt(s.seats, target)
   const mine = soleCard(s, seat)
   const theirs = soleCard(s, target)
-  const cards = { by: keyOf(s, mine), target: keyOf(s, theirs) }
+  const cards = { by: keyOfId(s.ids, CATALOGUE, mine), target: keyOfId(s.ids, CATALOGUE, theirs) }
   s.hands[seat] = [theirs]
   s.hands[target] = [mine]
-  emit(ctx, { kind: "swap", by, target: player, cards }, { to: [by, player], masked: { kind: "swap", by, target: player } })
+  noteEvent(ctx, { kind: "swap", by, target: player, cards }, { to: [by, player], masked: { kind: "swap", by, target: player } })
 }
 
 /**
@@ -88,11 +89,11 @@ function king(ctx: Ctx, { seat, by, target }: Play): void {
 function prince(ctx: Ctx, { by, target }: Play): void {
   const { s } = ctx
   if (target === null) throw new RangeError("A Prince always has a player to pick: the one who plays it")
-  const player = playerAt(s, target)
+  const player = playerAt(s.seats, target)
   const discarded = handOf(s, target).splice(0)
   areaOf(s, target).push(...discarded)
-  for (const id of discarded) emit(ctx, { kind: "discard", by, player, card: faceOf(s, id) })
-  if (discarded.some((id) => keyOf(s, id) === "princess")) return eliminate(ctx, target, "princess")
+  for (const id of discarded) noteEvent(ctx, { kind: "discard", by, player, card: faceOfId(s.ids, CATALOGUE, id) })
+  if (discarded.some((id) => keyOfId(s.ids, CATALOGUE, id) === "princess")) return eliminate(ctx, target, "princess")
   let card: number | undefined
   if (s.deck.length > 0) card = s.deck.shift()
   else if (s.aside !== null) {
@@ -101,7 +102,7 @@ function prince(ctx: Ctx, { by, target }: Play): void {
   }
   if (card === undefined) throw new RangeError("A Prince finds a card to draw: the deck, or the card set aside")
   handOf(s, target).push(card)
-  emit(ctx, { kind: "draw", by: player, card: faceOf(s, card) }, { to: [player], masked: { kind: "draw", by: player } })
+  noteEvent(ctx, { kind: "draw", by: player, card: faceOfId(s.ids, CATALOGUE, card) }, { to: [player], masked: { kind: "draw", by: player } })
 }
 
 /**
@@ -115,13 +116,13 @@ function chancellor(ctx: Ctx, { seat, by }: Play): void {
   if (drawn.length === 0) return fizzle(ctx, by)
   handOf(s, seat).push(...drawn)
   s.stage = { kind: "keep" }
-  emit(ctx, { kind: "chancellor", by, drew: drawn.length, cards: facesOf(s, drawn) }, { to: [by], masked: { kind: "chancellor", by, drew: drawn.length } })
+  noteEvent(ctx, { kind: "chancellor", by, drew: drawn.length, cards: facesOfIds(s.ids, CATALOGUE, drawn) }, { to: [by], masked: { kind: "chancellor", by, drew: drawn.length } })
 }
 
 /** Handmaid (rulebook, p. 11): until the start of their next turn, the other players cannot pick the player of the Handmaid (`startTurn` ends the protection). */
 function handmaid(ctx: Ctx, { seat, by }: Play): void {
   ctx.s.shielded[seat] = true
-  emit(ctx, { kind: "protect", by })
+  noteEvent(ctx, { kind: "protect", by })
 }
 
 /** Princess (rulebook, p. 8): a player who plays her is out of the round. (Discarded by a Prince she does the same: `prince`.) */

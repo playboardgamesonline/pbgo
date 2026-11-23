@@ -1,5 +1,5 @@
-import { EngineError } from "@pbgo/engine-kit"
-import { type Ctx, close, lineOf, open, playerAt, refuse, roundScore, seatOf, targetsOf, waitingFor } from "./machine"
+import { EngineError, noteEvent, playerAt, seatOf } from "@pbgo/engine-kit"
+import { type Ctx, close, lineOf, open, refuse, roundScore, targetsOf, waitingFor } from "./machine"
 import { giveCard, receive, run, startRound } from "./round"
 import { type Action, CLIENT_ACTIONS, type FrameOf, type State, type Flip7Step } from "./types"
 
@@ -11,7 +11,7 @@ import { type Action, CLIENT_ACTIONS, type FrameOf, type State, type Flip7Step }
 /** The turn of `by`, which has not acted yet. */
 function turnOf(s: State, by: string): FrameOf<"turn"> {
   const frame = s.stack.at(-1)
-  if (frame?.kind !== "turn" || frame.acted || playerAt(s, frame.seat) !== by) throw refuse("hit or stay")
+  if (frame?.kind !== "turn" || frame.acted || playerAt(s.seats, frame.seat) !== by) throw refuse("hit or stay")
   return frame
 }
 
@@ -30,7 +30,7 @@ export function stay(ctx: Ctx, by: string): void {
   if (lineOf(s, frame.seat).length === 0) throw new EngineError("CANNOT_STAY", "You have no card in front of you: hit")
   s.status[frame.seat] = "stayed"
   frame.acted = true
-  ctx.events.push({ event: { kind: "stay", by, points: roundScore(s, frame.seat) } })
+  noteEvent(ctx, { kind: "stay", by, points: roundScore(s, frame.seat) })
   run(ctx)
 }
 
@@ -38,8 +38,8 @@ export function stay(ctx: Ctx, by: string): void {
 export function chooseTarget(ctx: Ctx, by: string, target: unknown): void {
   const { s } = ctx
   const frame = s.stack.at(-1)
-  if (frame?.kind !== "target" || playerAt(s, frame.seat) !== by) throw refuse("choose a target")
-  const seat = typeof target === "string" ? seatOf(s, target) : -1
+  if (frame?.kind !== "target" || playerAt(s.seats, frame.seat) !== by) throw refuse("choose a target")
+  const seat = typeof target === "string" ? seatOf(s.seats, target) : -1
   if (seat < 0 || !targetsOf(s, frame).includes(seat)) throw new EngineError("INVALID_TARGET", "That player cannot get this card")
   giveCard(ctx, frame, seat)
   run(ctx)
@@ -48,7 +48,7 @@ export function chooseTarget(ctx: Ctx, by: string, target: unknown): void {
 /** The dealer deals the next round. */
 export function dealRound(ctx: Ctx, by: string): void {
   const { s } = ctx
-  if (s.stack.length > 0 || playerAt(s, s.dealer) !== by) throw refuse("deal")
+  if (s.stack.length > 0 || playerAt(s.seats, s.dealer) !== by) throw refuse("deal")
   startRound(ctx)
 }
 

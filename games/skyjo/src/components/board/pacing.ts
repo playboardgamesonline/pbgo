@@ -1,4 +1,4 @@
-import type { SkyjoEvent } from "@skyjo/engine"
+import type { CardFace, SkyjoEvent } from "@skyjo/engine"
 import type { LogLine } from "@pbgo/core/lib/game-types"
 import type { Field } from "@pbgo/table"
 
@@ -96,7 +96,7 @@ export type Timeline = {
   /** Where what the last move brought comes from, and the seconds it waits before it sets out, by key (`cellKey`, `cardKey`, `HELD_KEY`) */
   entrances: Map<string, Entrance>
   /** The cards of the columns the last move threw away: they stay on the discard, one on the other, until the move has played out */
-  columns: { id: number; type: string }[]
+  columns: CardFace[]
   /** Seconds until that move has played out: the last card has landed and the last thing has had its time */
   settle: number
 }
