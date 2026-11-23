@@ -1,4 +1,4 @@
-import { boxOfPoses, byPlayers, cornersOfBox, type Field, onAxis, onTable, PILE_LABEL_GAP, PILE_LABEL_HEIGHT, type Place, plateAbove, plateBoxOf, type Pose, pointInFrame, seats, type Spot, type TableBox } from "@pbgo/table"
+import { boxOfPoses, byPlayers, cornersOfBox, type Field, onAxis, onTable, PILE_LABEL_GAP, PILE_LABEL_HEIGHT, type Place, plateAbove, plateBoxOf, type Pose, pointInFrame, SEAT_SETTINGS, type SeatSettings, seats, type Spot, type TableBox } from "@pbgo/table"
 
 /** A seat at the table: where it stands and the yaw that turns what lies there to face the middle, as the player who sits there sees it: the viewer's seat is at yaw 0, the one across at half a turn, one on their left at -π/2 */
 export type SeatSpot = Required<Spot>
@@ -173,8 +173,17 @@ const rectOf = ({ x, z, width, depth }: Pad): Place[] => [
   { x: x - width / 2, z: z + depth / 2 },
 ]
 
+/** How much farther from its grid a plate stands here than the kit's default gap (`plateGap` of `SEAT_SETTINGS`): twelve bright cards lie right under the name and the score, which need room around them to be read */
+export const PLATE_AIR = 0.25
+
+/** The settings of Skyjo's plates: the kit's, as the debug panel has them, with the plate `PLATE_AIR` farther from the grid. A `Seat` is given them and the layout works its boxes out with the same */
+export const plateSettings = (): SeatSettings => ({ ...SEAT_SETTINGS, plateGap: SEAT_SETTINGS.plateGap + PLATE_AIR })
+
 /** What a seat's plate covers of the table, in its frame: the plate that stands above the grid (`plateAbove`), from the top of the name to the foot of the info line, as wide as the kit takes a plate to be */
-export const plateBox = ({ above }: SeatLayout): TableBox => plateBoxOf(plateAbove(above))
+export const plateBox = ({ above }: SeatLayout): TableBox => {
+  const settings = plateSettings()
+  return plateBoxOf(plateAbove(above, settings), settings)
+}
 
 /** Everything that lies on a table of `n` players, as the polygons the camera and the tests look at (the corners of each, going round) */
 export type TableParts = {

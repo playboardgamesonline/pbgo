@@ -1,6 +1,6 @@
-import { cornersOfBox, PILE_LABEL_GAP, PILE_LABEL_HEIGHT, type Place, polygonsOverlap, pointInFrame } from "@pbgo/table"
+import { cornersOfBox, PILE_LABEL_GAP, PILE_LABEL_HEIGHT, type Place, polygonsOverlap, pointInFrame, SEAT_SETTINGS } from "@pbgo/table"
 import { describe, expect, it } from "vitest"
-import { CARD, cardSize, cellPlace, cellPose, cellSpot, FLOOR, floorPlan, gridBox, gridSize, LAYOUT_SETTINGS, pilePlaces, pitchOf, plateBox, seatsOf, tableParts, tableQuads } from "./layout"
+import { CARD, cardSize, cellPlace, cellPose, cellSpot, FLOOR, floorPlan, gridBox, gridSize, LAYOUT_SETTINGS, PLATE_AIR, pilePlaces, pitchOf, plateBox, plateSettings, seatsOf, tableParts, tableQuads } from "./layout"
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
 const SIZES = [2, 3, 4, 5, 6, 7, 8]
@@ -193,6 +193,16 @@ describe("the table", () => {
         // in the frame of the seat the top, the least z, is toward the middle: the plate is above the grid, clear of it
         expect(plate.maxZ, `${n} players`).toBeLessThanOrEqual(seat.above.minZ)
         expect(plate.minX + plate.maxX, `${n} players`).toBeCloseTo(0, 6)
+      }
+    }
+  })
+
+  it("stands every plate farther from its grid than the kit's default: the gap is the kit's and `PLATE_AIR` more, as the settings the seat is given say", () => {
+    expect(PLATE_AIR).toBeGreaterThan(0)
+    expect(plateSettings().plateGap).toBeCloseTo(SEAT_SETTINGS.plateGap + PLATE_AIR, 10)
+    for (const n of SIZES) {
+      for (const seat of seatsOf(ids(n), "p0").values()) {
+        expect(seat.above.minZ - plateBox(seat).maxZ, `${n} players`).toBeCloseTo(SEAT_SETTINGS.plateGap + PLATE_AIR, 6)
       }
     }
   })

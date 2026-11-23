@@ -7,7 +7,7 @@ import { useDeferredValue, useMemo, useState } from "react"
 import type { ClientCatalog } from "../../lib/catalog"
 import { fill, type Vocabulary } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { cellPlace, cellPose, floorPlan, LAYOUT_FIELDS, LAYOUT_SETTINGS, pilePlaces, seatsOf } from "./layout"
+import { cellPlace, cellPose, floorPlan, LAYOUT_FIELDS, LAYOUT_SETTINGS, pilePlaces, plateSettings, seatsOf } from "./layout"
 import { cardKey, cellKey, type Entrance, HELD_KEY, type Origin, PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { CARD_SIZE, matOf, useFaces } from "./textures"
 
@@ -203,7 +203,7 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
         return (
           <group key={player.id}>
             {/* The plate stands on the middle's side of the grid, in the frame of the seat, turned as the name is */}
-            <PlayerSeat id={player.id} frame={place.frame} above={place.above} line={pointsText(seat.total)} status={status} />
+            <PlayerSeat id={player.id} frame={place.frame} above={place.above} line={pointsText(seat.total)} status={status} settings={plateSettings()} />
             {/* What lies in front of the player: twelve cells of three rows by four columns, face down until turned, a hole where a column was thrown away, in the frame of the seat, so that the grid faces the middle as the name does. The cards of the opening deal are not on
                 the table while the start screen is up: they mount, and are dealt round the table, when it goes (a card that is already there when its entrance is given does not fly) */}
             <Zone

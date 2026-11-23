@@ -143,11 +143,11 @@ Everything of a player stands on one line, the axis of their seat: the line from
 
 | Setting | Role |
 | --- | --- |
-| `plateGap` | The clear space between the edge of a player's cards that faces the middle and the foot of their plate |
+| `plateGap` | The clear space between the edge of a player's cards that faces the middle and the foot of their plate. A board whose cards want more air around the name (Skyjo's, which lie in a block of twelve) gives its `Seat` and its layout settings of its own, the kit's with a larger gap |
 | `reachX`, `reachZ` | How far out of the ring an opponent's plate stands when it has no `above`, as factors of the spot |
 | `viewerReachX`, `viewerReachZ` | The same for the viewer's plate |
 | `nameHeight`, `nameLift` | The size of the name's letters, and how far toward the middle of the table it stands from the middle of the plate, the middle of the avatar |
-| `nameRoom` | The widest a name may be: a longer one shrinks to this width, with its proportions, instead of reaching the plate of the next seat. Twelve letters of the platform's font make about 3.1, so only a name of wide capitals is touched |
+| `nameRoom` | The widest a name may be: a longer one shrinks to this width, with its proportions, instead of reaching the plate of the next seat. Twelve letters of the platform's font are about six times the height of the lettering wide, so only a name of wide capitals is touched |
 | `lineHeight`, `lineDrop` | The same for the info line, which drops toward the cards from the middle of the plate |
 | `avatarSize`, `avatarGap` | The avatar's diameter and its gap to the lettering beside it |
 | `crownSize`, `crownRight`, `crownBack` | The crown's size, and how far its foot stands from the avatar's centre: to the right and toward the middle of the table |
