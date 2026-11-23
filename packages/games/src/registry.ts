@@ -96,8 +96,8 @@ export const GAMES = [
     tagline: "The princess deduction card game, online.",
     players: { min: 2, max: 6 },
     sanityProjectId: "8h6tuu2t",
-    live: false,
-    indexable: false,
+    live: true,
+    indexable: true,
   },
   {
     slug: "odin",
