@@ -63,9 +63,9 @@ Each is a key of the theme (`accent`, `foreground`, `surface`…) or `#rrggbb` (
 | Stay, beside the draw pile, one pad across the strip between the two piles and as deep as them, on the viewer's turn. It lies dim when the viewer holds nothing to bank | `floorPlan().pad` | `neutral`: a pale cool grey `#b4c6d8` with a hint of the blue-green of the table |
 | Deal, the same pad, for the dealer between two rounds | `floorPlan().pad` | `primary`: a luminous blue-green `#4fe0c0`, which reads on the teal table |
 | Hit is not a button: it is the draw pile, whose top card is pressed, with the word "Hit" over it | `action` of its `Pile` | |
-| The zone of each seat that can get the action card the viewer holds: a floor zone over the cards and the plate, see [Choosing a player](#choosing-a-player) for the rule a board follows | `zones()`, `ZONE_PADDING`, `ZONE_MAX_WIDTH` | a paler aqua `#a6efe0`, `tint` 0.3 |
+| The area of each seat that can get the action card the viewer holds: a `Hotspot` over the cards and the plate, which lights the cards as the pointer goes over it, and a pool of light where a player has no card yet, see [Choosing a player](#choosing-a-player) | `zones()`, `ZONE_PADDING`, `ZONE_MAX_WIDTH` | none: the cards are lit by the bloom of their state |
 
-The tones are `UI_THEME.button` of the game, `{ primary: "#4fe0c0", neutral: "#b4c6d8" }`. The action card drawn lies face up at the left of the strip, beside the draw pile, and its sentence is written flat beside it (`fitPrompt` breaks it into lines that fit the room), because Stay and the card never show at once. The game's words for them are `hit`, `stay`, `deal`, `targetFreeze`, `targetFlipThree`, `targetSecondChance` and `targetPlayer` (the accessible name of a zone).
+The tones are `UI_THEME.button` of the game, `{ primary: "#4fe0c0", neutral: "#b4c6d8" }`. The action card drawn lies face up at the left of the strip, beside the draw pile, in the state `selected` for the player who gives it, because Stay and the card never show at once. What the player has to do is the ticker's `prompt`, one sentence for each action card, and the table writes none. The game's words for them are `hit`, `stay`, `deal`, `targetFreeze`, `targetFlipThree`, `targetSecondChance` and `targetPlayer` (the accessible name of an area).
 
 ## Choosing a player
 

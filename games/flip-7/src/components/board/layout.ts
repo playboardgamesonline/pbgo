@@ -202,8 +202,8 @@ export function pilePlaces(): { deck: Place; discard: Place } {
 }
 
 /**
- * The strip of the table between the two piles, where the viewer's one button and the card to give lie. It is as deep as the piles and its gaps are one length (`gap`): pile to pad and pad to discard, or pile to card, card to text, text to discard.
- * Stay (or Deal) stands in it across its width, and an action card drawn with its prompt: the two never show at once. Hit is no pad: it is the draw pile, whose top card is pressed.
+ * The strip of the table between the two piles, where the viewer's one button and the card to give lie. It is as deep as the piles and its gaps are one length (`gap`): pile to pad and pad to discard, or pile to card and card to discard.
+ * Stay (or Deal) stands in it across its width, and an action card drawn: the two never show at once. Hit is no pad: it is the draw pile, whose top card is pressed.
  */
 export const FLOOR = { gap: 0.3 }
 
@@ -214,8 +214,6 @@ export type FloorPlan = {
   pad: Pad
   /** The action card drawn, face up, at the left of the strip, beside the draw pile, the size of the piles' cards */
   card: Place & { scale: number }
-  /** The room for the words beside the card: its left edge, its width and its depth */
-  prompt: Pad
   /** The whole strip, for the footprints */
   strip: Pad
 }
@@ -231,43 +229,10 @@ export function floorPlan(): FloorPlan {
   const z = deck.z
   const pad = { x: (left + right) / 2, z, width: right - left - 2 * g, depth }
   const cardX = left + g + cardWidth / 2
-  const textLeft = cardX + cardWidth / 2 + g
-  const textWidth = right - g - textLeft
   return {
     pad,
     card: { x: cardX, z, scale: R.pileScale },
-    prompt: { x: textLeft + textWidth / 2, z, width: textWidth, depth },
     strip: { x: (left + right) / 2, z, width: right - left, depth },
-  }
-}
-
-/**
- * A sentence cut into lines of at most `max` characters, at the spaces, for lettering laid flat: a word longer than a line stays whole on a line of its own. The words are the game's, in the visitor's language, so the length is not known in advance.
- */
-export function wrapWords(text: string, max: number): string[] {
-  const lines: string[] = []
-  let line = ""
-  for (const word of text.split(/\s+/).filter(Boolean)) {
-    if (line && Array.from(`${line} ${word}`).length > max) {
-      lines.push(line)
-      line = word
-    } else line = line ? `${line} ${word}` : word
-  }
-  if (line) lines.push(line)
-  return lines
-}
-
-/**
- * A sentence laid flat in a room of `width` by `depth`: the lines it breaks into and the size of the letters. It starts at the size asked for and shrinks the letters until the lines fit the depth (each line takes `1.25` times the height), never below `least`.
- * A letter is about 0.62 of its height wide.
- */
-export function fitPrompt(text: string, width: number, depth: number, preferred = 0.42, least = 0.24): { lines: string[]; height: number; step: number } {
-  let height = preferred
-  for (;;) {
-    const lines = wrapWords(text, Math.max(1, Math.floor(width / (height * 0.62))))
-    const step = height * 1.25
-    if (lines.length * step <= depth || height <= least) return { lines, height, step }
-    height = Math.max(least, height - 0.02)
   }
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { type Box, boxesOverlap, CARD, fixedBoxes, FLOOR, fitPrompt, floorPlan, wrapWords, zones, cornersOf, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, plateAt, plateBox, seatAngle, seatSpots, tableBoxes, tableQuads, uprightYaw } from "./layout"
+import { type Box, boxesOverlap, CARD, fixedBoxes, FLOOR, floorPlan, zones, cornersOf, heldPlace, heldPoses, LAYOUT_SETTINGS, lineGap, linePoses, lines, pilePlaces, plateAt, plateBox, seatAngle, seatSpots, tableBoxes, tableQuads, uprightYaw } from "./layout"
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
 const SIZES = [3, 4, 5, 6, 7, 8]
@@ -298,50 +298,14 @@ describe("the floor between the piles", () => {
     expect(discard.x - pile - right).toBeCloseTo(FLOOR.gap)
   })
 
-  it("puts the action card where the pad begins and the words after it, with the same gaps, and nothing runs into the discard", () => {
+  it("puts the action card where the pad begins, and nothing runs into the discard", () => {
     const [padLeft] = edges(plan.pad)
     expect(plan.card.x - (CARD.width * plan.card.scale) / 2).toBeCloseTo(padLeft)
-    const [promptLeft, promptRight] = edges(plan.prompt)
-    expect(promptLeft - (plan.card.x + (CARD.width * plan.card.scale) / 2)).toBeCloseTo(FLOOR.gap)
-    expect(discard.x - pile - promptRight).toBeCloseTo(FLOOR.gap)
-    expect(plan.prompt.width).toBeGreaterThan(2)
+    expect(discard.x - pile - (plan.card.x + (CARD.width * plan.card.scale) / 2)).toBeGreaterThan(FLOOR.gap)
   })
 
   it("lies clear of the viewer's line, in the middle band", () => {
     expect(plan.strip.z + plan.strip.depth / 2).toBeLessThan(LAYOUT_SETTINGS.viewerZ - (CARD.height * LAYOUT_SETTINGS.viewerScale) / 2)
-  })
-})
-
-describe("wrapWords", () => {
-  it("breaks at the spaces into lines of at most the length", () => {
-    expect(wrapWords("Choose the player who gets this Freeze", 14)).toEqual(["Choose the", "player who", "gets this", "Freeze"])
-    for (const line of wrapWords("Choose the player who gets this Second Chance", 16)) expect(Array.from(line).length).toBeLessThanOrEqual(16)
-  })
-  it("keeps a word longer than a line whole, and says nothing for nothing", () => {
-    expect(wrapWords("Supercalifragilistic go", 6)).toEqual(["Supercalifragilistic", "go"])
-    expect(wrapWords("   ", 10)).toEqual([])
-  })
-})
-
-describe("fitPrompt", () => {
-  it("keeps the size asked for when the sentence fits the room, and writes it on lines that fit the width", () => {
-    const { lines, height } = fitPrompt("Choose the player who gets this Freeze", 3.2, 1.7)
-    expect(height).toBeLessThanOrEqual(0.42)
-    for (const line of lines) expect(Array.from(line).length * height * 0.62).toBeLessThanOrEqual(3.2 + 1e-9)
-  })
-  it("shrinks the letters, to a least, for a long sentence in a small room", () => {
-    const long = "Elige al jugador que recibe esta carta Segunda oportunidad ahora mismo"
-    const { lines, height, step } = fitPrompt(long, 2, 1.9)
-    expect(height).toBeLessThan(0.42)
-    expect(height).toBeGreaterThanOrEqual(0.24)
-    expect(lines.length * step).toBeLessThanOrEqual(1.9 + 1e-9)
-  })
-  it("fits the three English prompts into the room beside the action card", () => {
-    const { prompt } = floorPlan()
-    for (const text of ["Choose the player who gets this Freeze", "Choose the player who gets this Flip Three", "Choose the player who gets this Second Chance"]) {
-      const { lines, step } = fitPrompt(text, prompt.width, prompt.depth)
-      expect(lines.length * step, text).toBeLessThanOrEqual(prompt.depth + 1e-9)
-    }
   })
 })
 

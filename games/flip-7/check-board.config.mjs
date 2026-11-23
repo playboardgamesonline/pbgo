@@ -19,6 +19,8 @@ function player({ state, me }, stayAt = 2) {
 const quick = (context) => player(context, 1)
 
 const viewerTurn = (state, who) => who === 0 && state.view.phase.kind === "turn"
+/** Lets the announcement of a round or of the viewer's turn (about three seconds, over the board) go before the window is photographed */
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 /** Plays the table on until it is the turn of a seat (to hit or stay) */
 const atTurn = (table, seat) => table.advance({ until: (state, who) => who === seat && state.view.phase.kind === "turn", label: `the turn of ${table.names[seat]}` })
 
@@ -41,11 +43,13 @@ const config = {
     },
     async deal(table) {
       await table.advance({ until: (state, who) => who === 0 && state.view.phase.kind === "between", bot: quick, label: "the viewer's deal" })
+      await pause(4000)
     },
     async target(table) {
       await table.advance({ until: viewerTurn, label: "the viewer's turn" })
       await table.rig("freezeOnTop")
       await table.act(0, { type: "hit" })
+      await pause(4000)
     },
   },
 

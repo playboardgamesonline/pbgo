@@ -55,7 +55,7 @@ The Tuning tab has a slider for every number a component reads on every frame, m
 
 ## The table
 
-The scenes with seats or floor buttons lie on Flip 7's teal felt: the kit's `grainTexture` in `surfaceDark` with the pool of light in `surface` added over it (`PLAY_TABLE` in the specimens' `defaults.ts`, the values of Flip 7's `SETTINGS_DEFAULTS`; the floor tones are `PLAY_FLOOR_TONES`, its `FLOOR_TONES`). The other scenes and every other docs specimen keep the specimens' own felt. The scoreboard list starts shut above four players, so it never stands over the seats on the right; press its header to open it.
+The scenes with seats or floor buttons lie on Flip 7's teal felt: the kit's `grainTexture` in `surfaceDark` with the pool of light in `surface` added over it (`PLAY_TABLE` in the specimens' `defaults.ts`, the values of Flip 7's `SETTINGS_DEFAULTS`; the floor tones are `PLAY_FLOOR_TONES`, the `button` of its `UI_THEME`). The other scenes and every other docs specimen keep the specimens' own felt. The scoreboard list starts shut above four players, so it never stands over the seats on the right; press its header to open it.
 
 ## Transitions
 

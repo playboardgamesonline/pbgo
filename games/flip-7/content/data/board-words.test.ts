@@ -42,10 +42,10 @@ const sources = (dir: string): string[] =>
     return /\.(ts|tsx)$/.test(name) && !/\.test\.tsx?$/.test(name) ? [path] : []
   })
 
-/** The words the board and its screen read: every `words.<name>` of the code that draws, announces or tells the history. */
+/** The words the board and its screen read: every `words.<name>` of the code that draws, announces, tells the history or says the sentence the holder of an action card is told (`targetPromptOf`). */
 const used = () => {
   const found = new Set<string>()
-  for (const file of [...sources(join(import.meta.dirname, "../../src/components")), join(import.meta.dirname, "../../src/lib/history.ts")]) {
+  for (const file of [...sources(join(import.meta.dirname, "../../src/components")), join(import.meta.dirname, "../../src/lib/history.ts"), join(import.meta.dirname, "../../src/lib/words.ts")]) {
     for (const match of readFileSync(file, "utf8").matchAll(/\bwords\.(\w+)/g)) found.add(match[1]!)
   }
   return found
@@ -72,7 +72,7 @@ describe("the words the code reads", () => {
     for (const field of WORD_FIELDS) expect(read, `${field} is declared and written but nothing reads it`).toContain(field)
   })
 
-  it("cover what the floor buttons and the zones say: hit, stay, deal, a prompt for each action card and the name of a player's zone", () => {
+  it("cover what the draw pile, the pad and the areas say: hit, stay, deal, a prompt for each action card and the name of a player's area", () => {
     for (const name of ["hit", "stay", "deal", "targetFreeze", "targetFlipThree", "targetSecondChance", "targetPlayer"]) expect([...used()], name).toContain(name)
   })
 })
