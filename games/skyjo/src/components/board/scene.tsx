@@ -1,6 +1,6 @@
 "use client"
 
-import type { Face, PlayerView, PublicCell, PublicSeat } from "@skyjo/engine"
+import type { CardFace, PlayerView, PublicCell, PublicSeat } from "@skyjo/engine"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import { shortName } from "@pbgo/core/lib/short-name"
@@ -63,7 +63,7 @@ export type SceneProps = {
   /** Where what the last move brought comes from, and the seconds it waits before it sets out (`timelineOf`) */
   entrances: ReadonlyMap<string, Entrance>
   /** The cards of the columns the last move threw away: they lie on the discard until it has played out */
-  columns: readonly Face[]
+  columns: readonly CardFace[]
   /** The last move is still playing out: the seats say what the table said before it, until it has */
   busy: boolean
   /** The start screen is up: the camera's entrance waits for it to go (`held` of the shared `Table`), and the cards of the deal wait with it */
@@ -153,7 +153,7 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
 
   // The top two cards of the discard keep their place: the one that was on top stays face up under the one that comes, so that the pile never shows a back where a card lay a moment ago
   const top = view.discard.top
-  const [pair, setPair] = useState<{ top: Face | null; under: Face | null }>({ top, under: null })
+  const [pair, setPair] = useState<{ top: CardFace | null; under: CardFace | null }>({ top, under: null })
   if (pair.top?.id !== top?.id) setPair({ top, under: pair.top })
   const under = pair.under
 
