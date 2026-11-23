@@ -37,6 +37,7 @@ import {
   SceneTrackSpecimen,
   SceneZonesSpecimen,
 } from "./specimens"
+import { SceneStagingSpecimen } from "./staging"
 
 /**
  * The live 3D scenes of the engine docs (`docs/engine/02-components/`), one for each page that explains a piece of `@pbgo/table`, built from the package itself so that they cannot drift from it. The names are the pages' to ask for. Each is a light
@@ -62,6 +63,7 @@ export const sceneSpecimens: Specimens = {
   "scene-zone-lights": SceneZoneLightsSpecimen,
   "scene-dice": SceneDiceSpecimen,
   "scene-text-field": SceneTextFieldSpecimen,
+  "scene-staging": SceneStagingSpecimen,
   "scene-bets": SceneBetsSpecimen,
   "scene-bid": SceneBidSpecimen,
   "scene-numbers": SceneNumbersSpecimen,
