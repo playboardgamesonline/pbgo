@@ -192,6 +192,7 @@ export type Texts = {
     lostWith?: LocaleString;
     pointsShort?: LocaleString;
     players?: LocaleString;
+    me?: LocaleString;
     playersReady?: LocaleString;
     seatDone?: LocaleString;
     seatWaiting?: LocaleString;
@@ -219,13 +220,10 @@ export type Texts = {
   throwAway?: LocaleString;
   deal?: LocaleString;
   promptReveal?: LocaleString;
-  promptRevealWait?: LocaleString;
   promptChoose?: LocaleString;
   promptPlaceDrawn?: LocaleString;
   promptPlaceTaken?: LocaleString;
   promptFlip?: LocaleString;
-  promptWait?: LocaleString;
-  promptBetween?: LocaleString;
   promptDeal?: LocaleString;
   cell?: LocaleString;
   lastTurn?: LocaleString;
@@ -649,7 +647,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../../src/sanity/queries.ts
 // Variable: CATALOG_QUERY
-// Query: {  "game": *[_id == "game"][0]{ cardBack },  "texts": *[_id == "texts"][0]{    draw, takeDiscard, throwAway, deal,    promptReveal, promptRevealWait, promptChoose, promptPlaceDrawn, promptPlaceTaken, promptFlip, promptWait, promptBetween, promptDeal,    cell, lastTurn, ended, roundPoints, roundPointsDoubled, round, endsAt, start, lastTurnAnnouncement,    eventRound, eventReveal, eventTake, eventDraw, eventDrawSeen, eventPlace, eventThrow, eventFlip, eventColumn, eventStart, eventLast,    eventReshuffle, eventEnd, eventEndDoubled, eventOver  },  "cards": *[_type == "card"]{ key, image }}
+// Query: {  "game": *[_id == "game"][0]{ cardBack },  "texts": *[_id == "texts"][0]{    draw, takeDiscard, throwAway, deal,    promptReveal, promptChoose, promptPlaceDrawn, promptPlaceTaken, promptFlip, promptDeal,    cell, lastTurn, ended, roundPoints, roundPointsDoubled, round, endsAt, start, lastTurnAnnouncement,    eventRound, eventReveal, eventTake, eventDraw, eventDrawSeen, eventPlace, eventThrow, eventFlip, eventColumn, eventStart, eventLast,    eventReshuffle, eventEnd, eventEndDoubled, eventOver  },  "cards": *[_type == "card"]{ key, image }}
 export type CATALOG_QUERY_RESULT = {
   game:
     | {
@@ -672,13 +670,10 @@ export type CATALOG_QUERY_RESULT = {
         throwAway: null;
         deal: null;
         promptReveal: null;
-        promptRevealWait: null;
         promptChoose: null;
         promptPlaceDrawn: null;
         promptPlaceTaken: null;
         promptFlip: null;
-        promptWait: null;
-        promptBetween: null;
         promptDeal: null;
         cell: null;
         lastTurn: null;
@@ -711,13 +706,10 @@ export type CATALOG_QUERY_RESULT = {
         throwAway: LocaleString | null;
         deal: LocaleString | null;
         promptReveal: LocaleString | null;
-        promptRevealWait: LocaleString | null;
         promptChoose: LocaleString | null;
         promptPlaceDrawn: LocaleString | null;
         promptPlaceTaken: LocaleString | null;
         promptFlip: LocaleString | null;
-        promptWait: LocaleString | null;
-        promptBetween: LocaleString | null;
         promptDeal: LocaleString | null;
         cell: LocaleString | null;
         lastTurn: LocaleString | null;
@@ -776,7 +768,7 @@ export type CATALOG_QUERY_RESULT = {
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "game": *[_id == "game"][0]{ cardBack },\n  "texts": *[_id == "texts"][0]{\n    draw, takeDiscard, throwAway, deal,\n    promptReveal, promptRevealWait, promptChoose, promptPlaceDrawn, promptPlaceTaken, promptFlip, promptWait, promptBetween, promptDeal,\n    cell, lastTurn, ended, roundPoints, roundPointsDoubled, round, endsAt, start, lastTurnAnnouncement,\n    eventRound, eventReveal, eventTake, eventDraw, eventDrawSeen, eventPlace, eventThrow, eventFlip, eventColumn, eventStart, eventLast,\n    eventReshuffle, eventEnd, eventEndDoubled, eventOver\n  },\n  "cards": *[_type == "card"]{ key, image }\n}': CATALOG_QUERY_RESULT;
+    '{\n  "game": *[_id == "game"][0]{ cardBack },\n  "texts": *[_id == "texts"][0]{\n    draw, takeDiscard, throwAway, deal,\n    promptReveal, promptChoose, promptPlaceDrawn, promptPlaceTaken, promptFlip, promptDeal,\n    cell, lastTurn, ended, roundPoints, roundPointsDoubled, round, endsAt, start, lastTurnAnnouncement,\n    eventRound, eventReveal, eventTake, eventDraw, eventDrawSeen, eventPlace, eventThrow, eventFlip, eventColumn, eventStart, eventLast,\n    eventReshuffle, eventEnd, eventEndDoubled, eventOver\n  },\n  "cards": *[_type == "card"]{ key, image }\n}': CATALOG_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

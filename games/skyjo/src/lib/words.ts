@@ -1,7 +1,7 @@
 // The words of Skyjo's board, plain data with no import: read by the board (through the catalog), and by the tests that keep it equal to the Studio's `texts` and to the seed.
 
 /**
- * The fields of the "Board" tab of the `texts` document in Sanity, under the same names: the three floor buttons and Deal, what is written flat on the table for the instruction of the moment (`prompt…`), the accessible name of a
+ * The fields of the "Board" tab of the `texts` document in Sanity, under the same names: the words of the buttons and the labels over the piles (Draw, Take, Throw away, Deal), what the ticker says the viewer has to do (`prompt…`), the accessible name of a
  * card of the viewer's grid, what a seat says (the last turn, the points of the round), the announcements that are the game's own and the sentences of the history. Every one is written in Sanity, in every language; a word it does not have reads `[missing: <key>]`.
  */
 export const WORD_FIELDS = [
@@ -10,13 +10,10 @@ export const WORD_FIELDS = [
   "throwAway",
   "deal",
   "promptReveal",
-  "promptRevealWait",
   "promptChoose",
   "promptPlaceDrawn",
   "promptPlaceTaken",
   "promptFlip",
-  "promptWait",
-  "promptBetween",
   "promptDeal",
   "cell",
   "lastTurn",

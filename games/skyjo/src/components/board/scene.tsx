@@ -1,9 +1,7 @@
 "use client"
 
 import type { CardFace, PlayerView, PublicCell, PublicSeat } from "@skyjo/engine"
-import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { shortName } from "@pbgo/core/lib/short-name"
 import { FloorButton, onTable, Pile, PlayerSeat, type Pose, Table, TableText, useSettings, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useMemo, useState } from "react"
 import type { ClientCatalog } from "../../lib/catalog"
@@ -11,7 +9,7 @@ import { FLOOR_TONES } from "../../lib/floor-tones"
 import { fill, type Vocabulary } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
 import { GLOWS } from "./glows"
-import { cellPlace, cellPose, cellZone, fitPrompt, floorPlan, type Grid, grids, LAYOUT_FIELDS, LAYOUT_SETTINGS, pilePlaces, plateAt, seatSpots } from "./layout"
+import { cellPlace, cellPose, cellZone, floorPlan, type Grid, grids, LAYOUT_FIELDS, LAYOUT_SETTINGS, pilePlaces, plateAt, seatSpots } from "./layout"
 import { cardKey, cellKey, type Entrance, HELD_KEY, type Origin, PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { CARD_SIZE, matOf, useFaces } from "./textures"
 import { useViewport } from "./viewport"
@@ -54,38 +52,6 @@ export type SceneProps = {
 /** The word under a player's name while the round is on: they ended it (every card face up) or have one last turn to play. Nobody has one before somebody ends the round. */
 const lastTurnOf = (lastTurn: PublicSeat["lastTurn"], words: Vocabulary) => (lastTurn === "ender" ? words.ended : lastTurn === "pending" ? words.lastTurn : undefined)
 
-/** A sentence written flat on the table, in the room above the piles: broken into lines that fit it, the lines centred in the room */
-function Prompt({ text, plan, color, outline }: { text: string; plan: { x: number; z: number; width: number; depth: number }; color: string; outline: string }) {
-  const { lines, height, step } = fitPrompt(text, plan.width, plan.depth)
-  return (
-    <>
-      {lines.map((line, i) => (
-        <TableText key={i} text={line} style={{ color, outline, weight: 900 }} height={height} position={[plan.x, 0.02, plan.z + (i - (lines.length - 1) / 2) * step]} />
-      ))}
-    </>
-  )
-}
-
-/** The instruction of the moment, for the viewer or for somebody looking on, in the game's words */
-function promptOf(view: PlayerView, words: Vocabulary, name: (id: string) => string): string | null {
-  const { phase, me } = view
-  const mine = view.players.find((player) => player.id === me)
-  switch (phase.kind) {
-    case "reveal":
-      return mine && phase.waiting.includes(mine.id) ? words.promptReveal : words.promptRevealWait
-    case "choose":
-      return phase.player === me ? words.promptChoose : fill(words.promptWait, { player: name(phase.player) })
-    case "place":
-      return phase.player === me ? (phase.from === "deck" ? words.promptPlaceDrawn : words.promptPlaceTaken) : fill(words.promptWait, { player: name(phase.player) })
-    case "flip":
-      return phase.player === me ? words.promptFlip : fill(words.promptWait, { player: name(phase.player) })
-    case "between":
-      return phase.dealer === me ? words.promptDeal : fill(words.promptBetween, { player: name(phase.dealer) })
-    case "over":
-      return null
-  }
-}
-
 /** The cells of a seat the viewer may press right now, by position: the face-down ones while the round opens (two of them) or after a throw-away, any card while holding one */
 function pressable(view: PlayerView): ReadonlySet<number> {
   const { phase, me } = view
@@ -106,7 +72,6 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
   const { theme } = useSiteSettings()
   const faces = useFaces(catalog)
   const { words } = catalog
-  const { nickname } = useGame()
   const meId = view.me
   const ids = view.players.map((player) => player.id)
   const key = ids.join("|")
@@ -122,7 +87,6 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
   const dealing = phase.kind === "between" && phase.dealer === meId
   const presses = useMemo(() => pressable(view), [view])
   const pressCell = phase.kind === "reveal" ? onReveal : phase.kind === "place" ? onPlace : onFlip
-  const prompt = promptOf(view, words, (id) => shortName(nickname(id)))
 
   // What a seat says, the total and the word under the name, is what the table said before the last move until the move has played out: a total does not change before the count has landed
   const now = useMemo(() => new Map(view.players.map((player) => [player.id, { lastTurn: player.lastTurn, total: player.total, rounds: view.rounds.length }])), [view.players, view.rounds.length])
@@ -286,9 +250,6 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
 
       {/* The card in hand, between the piles: face up for the player who drew it (and for everybody when it came from the discard), face down for the others */}
       <Zone frame={{ x: handAt.x, z: handAt.z }} layout={[onTable(0, 0, { y: 0.2, face: inHand?.card ? "up" : "down", scale: R.heldScale })]} size={CARD_SIZE} cards={handCard} />
-
-      {/* The instruction of the moment, written flat on the table above the piles */}
-      {prompt && !held && <Prompt text={prompt} plan={plan.prompt} color={theme.foreground} outline={theme.surfaceDark} />}
 
       {/* The viewer's choice: Draw under the pile, Take under the discard; after a draw, Throw away under the discard. The cells of the grid are the other half of the choice */}
       {viewerChooses && (

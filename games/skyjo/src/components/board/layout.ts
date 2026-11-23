@@ -278,7 +278,7 @@ export function pilePlaces(): { deck: Place; held: Place; discard: Place } {
   return { deck: { x: -R.pilesX, z: R.pilesZ }, held: { x: 0, z: R.pilesZ }, discard: { x: R.pilesX, z: R.pilesZ } }
 }
 
-/** One gap, the same between a pile and a pad, between two pads and between a pad and the text: the pads, the piles and the words of the middle of the table are laid out with it. */
+/** One gap, the same between a pile and a pad, between two pads and between a pad and the room above the piles: the pads and the piles of the middle of the table are laid out with it. */
 export const FLOOR = { gap: 0.3, padDepth: 0.85 }
 
 export type Pad = { x: number; z: number; width: number; depth: number }
@@ -290,8 +290,8 @@ export type FloorPlan = {
   throwAway: Pad
   /** Deal, for the dealer between two rounds: one pad across the room of the two */
   deal: Pad
-  /** The room for the instruction written flat on the table, above the piles and the card in hand and the count of the draw pile */
-  prompt: Pad
+  /** The room above the piles and the card in hand, kept clear: the instruction is said by the ticker, and nothing is written on the table */
+  above: Pad
   /** The whole middle, for the footprints: the piles, the card in hand, the pads and the instruction */
   strip: Pad
 }
@@ -306,43 +306,18 @@ export function floorPlan(): FloorPlan {
   const z = R.pilesZ + pile / 2 + g + FLOOR.padDepth / 2
   const draw = { x: deck.x, z, width, depth: FLOOR.padDepth }
   const take = { x: discard.x, z, width, depth: FLOOR.padDepth }
-  const promptWidth = 4 * R.pilesX
-  const promptDepth = 0.9
-  const prompt = { x: 0, z: R.pilesZ - pile / 2 - g - promptDepth / 2, width: promptWidth, depth: promptDepth }
-  const top = prompt.z - promptDepth / 2
+  const aboveWidth = 4 * R.pilesX
+  const aboveDepth = 0.9
+  const above = { x: 0, z: R.pilesZ - pile / 2 - g - aboveDepth / 2, width: aboveWidth, depth: aboveDepth }
+  const top = above.z - aboveDepth / 2
   const bottom = z + FLOOR.padDepth / 2
   return {
     draw,
     take,
     throwAway: { ...take },
     deal: { x: 0, z, width: 2 * width + g, depth: FLOOR.padDepth },
-    prompt,
+    above,
     strip: { x: 0, z: (top + bottom) / 2, width: 2 * R.pilesX + CARD.width * R.pileScale, depth: bottom - top },
-  }
-}
-
-/** A sentence cut into lines of at most `max` characters, at the spaces, for lettering laid flat: a word longer than a line stays whole on a line of its own. The words are the game's, in the visitor's language, so the length is not known in advance. */
-export function wrapWords(text: string, max: number): string[] {
-  const lines: string[] = []
-  let line = ""
-  for (const word of text.split(/\s+/).filter(Boolean)) {
-    if (line && Array.from(`${line} ${word}`).length > max) {
-      lines.push(line)
-      line = word
-    } else line = line ? `${line} ${word}` : word
-  }
-  if (line) lines.push(line)
-  return lines
-}
-
-/** A sentence laid flat in a room of `width` by `depth`: the lines it breaks into and the size of the letters. It starts at the size asked for and shrinks the letters until the lines fit the depth (each line takes `1.25` times the height), never below `least`. A letter is about 0.62 of its height wide. */
-export function fitPrompt(text: string, width: number, depth: number, preferred = 0.38, least = 0.22): { lines: string[]; height: number; step: number } {
-  let height = preferred
-  for (;;) {
-    const lines = wrapWords(text, Math.max(1, Math.floor(width / (height * 0.62))))
-    const step = height * 1.25
-    if (lines.length * step <= depth || height <= least) return { lines, height, step }
-    height = Math.max(least, height - 0.02)
   }
 }
 

@@ -9,7 +9,6 @@ import {
   cellSpot,
   cellZone,
   FLOOR,
-  fitPrompt,
   floorPlan,
   gridBox,
   grids,
@@ -24,7 +23,6 @@ import {
   tableBoxes,
   tableOf,
   uprightYaw,
-  wrapWords,
 } from "./layout"
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
@@ -308,7 +306,7 @@ describe("the middle of the table", () => {
   })
 
   it("lays the pads under the piles, one gap from them, as wide as the room between the piles' middles and one gap apart", () => {
-    const { draw, take, throwAway, deal, prompt } = floorPlan()
+    const { draw, take, throwAway, deal, above } = floorPlan()
     const pile = (CARD.height * LAYOUT_SETTINGS.pileScale) / 2
     const { deck, discard } = pilePlaces()
     expect(draw.z - draw.depth / 2 - (deck.z + pile)).toBeCloseTo(FLOOR.gap)
@@ -322,8 +320,8 @@ describe("the middle of the table", () => {
     // deal is one pad across the room of the two
     expect(deal.x - deal.width / 2).toBeCloseTo(draw.x - draw.width / 2)
     expect(deal.x + deal.width / 2).toBeCloseTo(take.x + take.width / 2)
-    // the words lie above the piles, one gap from them
-    expect(deck.z - pile - (prompt.z + prompt.depth / 2)).toBeCloseTo(FLOOR.gap)
+    // the room kept clear lies above the piles, one gap from them
+    expect(deck.z - pile - (above.z + above.depth / 2)).toBeCloseTo(FLOOR.gap)
   })
 
   it("keeps the pads clear of the piles and of the card in hand", () => {
@@ -337,20 +335,7 @@ describe("the middle of the table", () => {
   })
 })
 
-describe("the words laid on the table", () => {
-  it("breaks a sentence at the spaces into lines of at most the length asked, and keeps a long word whole", () => {
-    expect(wrapWords("turn two of your cards over", 12)).toEqual(["turn two of", "your cards", "over"])
-    expect(wrapWords("Unbelievably long", 5)).toEqual(["Unbelievably", "long"])
-    expect(wrapWords("   ", 5)).toEqual([])
-  })
-
-  it("shrinks the letters until the lines fit the room, never below the least", () => {
-    const small = fitPrompt("Place it in your grid, or discard it", 6.4, 0.9)
-    expect(small.lines.length * small.step).toBeLessThanOrEqual(0.9 + 1e-9)
-    const long = fitPrompt("A very long sentence in another language that cannot possibly fit on one line of the table at all", 6.4, 0.9)
-    expect(long.height).toBeGreaterThanOrEqual(0.22 - 1e-9)
-  })
-
+describe("the plate of a seat", () => {
   it("turns a plate back by half a turn when it would be more than a quarter turn from upright", () => {
     expect(uprightYaw(0)).toBeCloseTo(0)
     expect(uprightYaw(Math.PI)).toBeCloseTo(0)
