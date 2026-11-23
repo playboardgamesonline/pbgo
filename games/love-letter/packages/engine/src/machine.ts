@@ -17,8 +17,8 @@ export type Ctx = StepContext<State, LoveLetterEvent, "rng" | "idsRng">
 /** A step starts here: a copy of the state to mutate, with the two streams picked up where the last step left them. */
 export const open = (state: State): Ctx => openStep<State, LoveLetterEvent, "rng" | "idsRng">(state, ["rng", "idsRng"])
 
-/** A step ends here: the two streams are saved back into the state, which comes out with what happened. */
-export const close = (ctx: Ctx): LoveLetterStep => closeStep<State, LoveLetterEvent, "rng" | "idsRng">(ctx)
+/** A step ends here: the two streams are saved back into the state, which comes out with what happened. The context is written out in full, since `closeStep` cannot read the streams it saves through the alias `Ctx` */
+export const close = (ctx: StepContext<State, LoveLetterEvent, "rng" | "idsRng">): LoveLetterStep => closeStep(ctx)
 
 // --- Cards
 
