@@ -87,6 +87,7 @@ export { FloorButton, type FloorButtonProps, RIM_HEIGHT } from "./floor/floor-bu
 export { type FloorTone, floorTones, toneColour, useFloorTones } from "./floor/tones"
 export { useStandIn } from "./floor/stand-in"
 export { HOTSPOT_HIT_Y, Hotspot, type HotspotProps } from "./floor/hotspot"
+export { type Area, type AreaSeed, cornersOfArea, growAreas, growBox, hotspotOf, padBox } from "./floor/areas"
 export { Aura, type AuraProps } from "./floor/aura"
 export { Picture, type PictureProps } from "./floor/picture"
 export { PICTURE, pictureAspect } from "./floor/picture-look"

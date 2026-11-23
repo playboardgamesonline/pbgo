@@ -15,7 +15,7 @@ import {
   domainBox,
   handBox,
   heldLayout,
-  hotspotOf,
+  seatHotspot,
   laneArea,
   MAT_D,
   MAT_W,
@@ -247,7 +247,7 @@ describe("the lanes and the button of the Queen's table", () => {
   it("are pressed over the cards that lie in them and over no seat, whatever the table", () => {
     for (const { label, seats: places } of everyTable()) {
       for (const [id, seat] of places) {
-        const area = areaOf(hotspotOf(seat, seat.maxWidth))
+        const area = areaOf(seatHotspot(seat, seat.maxWidth))
         for (const column of COLUMNS) {
           for (const light of [true, false]) {
             const lane = areaOf(laneArea(column, light, STEP * 0.96))
@@ -277,7 +277,7 @@ describe("the lanes and the button of the Queen's table", () => {
         expect(polygonsOverlap(pad, domain), `${label}: the button and the domain of ${id}`).toBe(false)
         expect(polygonsOverlap(pad, plate), `${label}: the button and the plate of ${id}`).toBe(false)
         if (hand) expect(polygonsOverlap(pad, hand), `${label}: the button and the hand of ${id}`).toBe(false)
-        expect(polygonsOverlap(pad, areaOf(hotspotOf(seat, seat.maxWidth))), `${label}: the button and the area of ${id}`).toBe(false)
+        expect(polygonsOverlap(pad, areaOf(seatHotspot(seat, seat.maxWidth))), `${label}: the button and the area of ${id}`).toBe(false)
       }
     }
     for (const column of COLUMNS) {

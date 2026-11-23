@@ -1,5 +1,5 @@
 import { FAMILIES, HAND_SIZE, type VisibleCard, type Family, type Level, type PlayerView } from "@courtisans/engine"
-import { type CardSize, centreOf, FACE_DOWN, FACE_UP, frameBoxOfPoses, heldFan, heldLeftPose, heldShadow, inFrame, joinBoxes, lean, onAxis, onTable, type Pose, plateAbove, plateBoxOf, pointInFrame, RESTING_HEIGHT, SCREEN_HAND_SETTINGS, SEAT_SETTINGS, type Spot, type TableBox } from "@pbgo/table"
+import { type CardSize, FACE_DOWN, FACE_UP, frameBoxOfPoses, heldFan, heldLeftPose, heldShadow, hotspotOf, inFrame, joinBoxes, lean, onAxis, onTable, padBox, type Pose, plateAbove, plateBoxOf, pointInFrame, RESTING_HEIGHT, SCREEN_HAND_SETTINGS, SEAT_SETTINGS, type Spot, type TableBox } from "@pbgo/table"
 import { Quaternion, Vector3 } from "three"
 import { MAT_ORDER } from "../../lib/catalog"
 import { CAMERA } from "./camera"
@@ -197,11 +197,10 @@ export function seatBox(seat: Seat): TableBox {
 
 /** The area of a seat that is pressed to choose its player: their domain and the plate that stands beyond it, with a little room round, in the frame of the seat */
 export const HOTSPOT_PADDING = 0.3
-export function hotspotOf(seat: Seat, width: number): { at: { x: number; z: number; yaw: number }; width: number; depth: number } {
+export function seatHotspot(seat: Seat, width: number): ReturnType<typeof hotspotOf> {
   const plate = plateBoxOf(plateAbove(seatBox(seat), SEAT_SETTINGS), SEAT_SETTINGS)
   const area: TableBox = { minX: -width / 2, maxX: width / 2, minZ: Math.min(plate.minZ, -DH / 2), maxZ: DH / 2 }
-  const middle = centreOf(area)
-  return { at: { ...pointInFrame(seat.frame, middle), yaw: seat.frame.yaw }, width: area.maxX - area.minX + 2 * HOTSPOT_PADDING, depth: area.maxZ - area.minZ + 2 * HOTSPOT_PADDING }
+  return hotspotOf({ frame: seat.frame, box: padBox(area, [HOTSPOT_PADDING, HOTSPOT_PADDING, HOTSPOT_PADDING, HOTSPOT_PADDING]) })
 }
 
 /**

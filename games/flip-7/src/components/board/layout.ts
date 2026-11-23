@@ -1,4 +1,4 @@
-import { type Between, boxOfRect, byPlayers, cornersOfBox, type Field, joinBoxes, onTable, plateAbove, plateBoxOf, type Pose, pointInFrame, polygonsOverlap, type Quad, row, seats as ringOf, type Spot, type TableBox } from "@pbgo/table"
+import { type Area, type AreaSeed, type Between, boxOfRect, byPlayers, cornersOfArea, cornersOfBox, type Field, growAreas, joinBoxes, onTable, plateAbove, plateBoxOf, type Pose, pointInFrame, polygonsOverlap, type Quad, row, seats as ringOf, type Spot, type TableBox } from "@pbgo/table"
 
 /** A seat at the table: where it stands and the yaw that turns what lies there to face the middle, as the player who sits there sees it: the viewer's seat is at yaw 0, a seat across from them at π, one on their left at -π/2 */
 export type SeatSpot = Required<Spot>
@@ -233,22 +233,6 @@ export const ZONE_PADDING = 0.5
 /** The widest an area gets, in world units: the viewer's line may spread across the whole front of the table, and an area as wide as that would be a band, not the place of a seat */
 export const ZONE_MAX_WIDTH = 7
 
-/** The area of a seat that a press counts in: a box in the frame of the seat, which the `Hotspot` of the seat stands on */
-export type Area = { frame: SeatSpot; box: TableBox }
-
-/** Where a `Hotspot` stands for an area: the middle of its box on the table, the yaw of its frame, and its size */
-export function areaPlace({ frame, box }: Area): { at: Spot; width: number; depth: number } {
-  const middle = pointInFrame(frame, { x: (box.minX + box.maxX) / 2, z: (box.minZ + box.maxZ) / 2 })
-  return { at: { ...middle, yaw: frame.yaw }, width: box.maxX - box.minX, depth: box.maxZ - box.minZ }
-}
-
-const areaShape = ({ frame, box }: Area): Quad => cornersOfBox(box, frame)
-
-/** A box grown by a padding on each of its four sides (in the frame: left, right, toward the middle of the table, away from it) */
-function padded(box: TableBox, [left, right, inner, outer]: readonly number[]): TableBox {
-  return { minX: box.minX - left!, maxX: box.maxX + right!, minZ: box.minZ - inner!, maxZ: box.maxZ + outer! }
-}
-
 /**
  * The play area of a seat, in its frame: the line's room (at the widest `ZONE_MAX_WIDTH`) by the height of a card, the cards set aside when the box that holds them too is free of `avoid`, and the plate with the name, wherever it stands beyond the line. The plate is inside:
  * it is part of the area, so a press on the name counts.
@@ -264,77 +248,25 @@ function playArea(line: Line, avoid: readonly Quad[], withHeld = true): TableBox
 }
 
 /**
- * The area of a seat that the viewer presses to give it a card: ONE area per player, their play area: the cards, the plate with the name inside it, and a generous padding all round. A press anywhere in it, on the cards, the padding or the name, gives the player the card.
- * Each side of the padding grows to `ZONE_PADDING` and stops short of whatever `avoid` holds there (the plates of the other seats, the piles, the buttons), so the area is as large as the room lets it be.
- */
-export function zoneBox(line: Line, avoid: readonly Quad[], share = 1): TableBox {
-  const core = playArea(line, avoid, share > 0.3)
-  const shape = (box: TableBox) => shapeOf(box, line)
-  // a thing the play area is already a hair from is kept clear as it is; the others with a little room to spare
-  const room = avoid.map((other) => ({ other, by: polygonsOverlap(shape(core), other, 0.02) ? 0 : 0.02 }))
-  const pad = [0, 0, 0, 0].map((_, side) => {
-    let value = ZONE_PADDING * share
-    const only = (amount: number) => padded(core, [0, 1, 2, 3].map((i) => (i === side ? amount : 0)))
-    while (value > 0 && room.some(({ other, by }) => polygonsOverlap(shape(only(value)), other, by))) value = Math.max(0, value - 0.05)
-    return value
-  })
-  // the sides together, at the corners: all of the padding shrinks until nothing is touched
-  let box = padded(core, pad)
-  for (let i = 0; i < 40 && avoid.some((other) => polygonsOverlap(shape(box), other)); i++) {
-    for (let k = 0; k < 4; k++) pad[k] = pad[k]! * 0.85
-    box = padded(core, pad)
-  }
-  return box
-}
-
-/** The plate of every seat on the table, by id, as the shape it covers */
-const plateShapes = (placed: ReadonlyMap<string, Line>): Map<string, Quad> => new Map([...placed].map(([id, line]) => [id, shapeOf(plateBox(line), line)] as const))
-
-/**
- * The area of every seat, by id, for a table in which the lines lie as `placed` says. Where two areas overlap, the padding of both shrinks, a little at a time, until they only touch; with no padding an area is the cards alone, which no other line overlaps.
+ * The area of every seat, by id, for a table in which the lines lie as `placed` says: ONE area per player that the viewer presses to give them a card, their play area (`playArea`: the cards, the plate with the name inside it) and a generous padding all round (`ZONE_PADDING`), a
+ * press anywhere in it, on the cards, the padding or the name, gives. Each side of the padding stops short of whatever the area keeps clear of, the plates of the other seats, the piles and the buttons, and where two areas overlap the padding of both gives back until they only touch
+ * (`growAreas` of the table kit); with no padding left an area narrows along its line, never below its plate.
  */
 export function zones(placed: ReadonlyMap<string, Line>): Map<string, Area> {
   const plates = plateShapes(placed)
   const ids = [...placed.keys()]
   const fixed = fixedShapes().map(({ shape }) => shape)
-  // what an area keeps clear of: the plates of the other seats, which are theirs, the piles and the buttons
-  const avoidOf = (id: string) => [...ids.filter((other) => other !== id).map((other) => plates.get(other)!), ...fixed]
-  const share = new Map(ids.map((id) => [id, 1]))
-  const build = (id: string): Area => ({ frame: frameOf(placed.get(id)!), box: zoneBox(placed.get(id)!, avoidOf(id), share.get(id)) })
-  const out = new Map(ids.map((id) => [id, build(id)] as const))
-  for (let pass = 0; pass < 60; pass++) {
-    let touched = false
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        if (!polygonsOverlap(areaShape(out.get(ids[i]!)!), areaShape(out.get(ids[j]!)!))) continue
-        touched = true
-        for (const id of [ids[i]!, ids[j]!]) {
-          share.set(id, share.get(id)! * 0.9)
-          out.set(id, build(id))
-        }
-      }
-    }
-    if (!touched) break
+  const seeds = new Map<string, AreaSeed>()
+  for (const [id, line] of placed) {
+    // what an area keeps clear of: the plates of the other seats, which are theirs, the piles and the buttons
+    const avoid = [...ids.filter((other) => other !== id).map((other) => plates.get(other)!), ...fixed]
+    seeds.set(id, { frame: frameOf(line), core: (share) => playArea(line, avoid, share > 0.3), avoid, plate: plateBox(line) })
   }
-  // last resort, with no padding left: the area narrows along its line, never below its plate
-  for (let pass = 0; pass < 100; pass++) {
-    let touched = false
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        if (!polygonsOverlap(areaShape(out.get(ids[i]!)!), areaShape(out.get(ids[j]!)!))) continue
-        touched = true
-        for (const id of [ids[i]!, ids[j]!]) {
-          const { frame, box } = out.get(id)!
-          const plate = plateBox(placed.get(id)!)
-          const half = Math.max((plate.maxX - plate.minX) / 2, ((box.maxX - box.minX) / 2) * 0.97)
-          out.set(id, { frame, box: { ...box, minX: -half, maxX: half } })
-        }
-      }
-    }
-    if (!touched) break
-  }
-  return out
+  return growAreas(seeds, ZONE_PADDING)
 }
+
+/** The plate of every seat on the table, by id, as the shape it covers */
+const plateShapes = (placed: ReadonlyMap<string, Line>): Map<string, Quad> => new Map([...placed].map(([id, line]) => [id, shapeOf(plateBox(line), line)] as const))
 
 /** The area of every seat of a table of `n` players, in turn order from the viewer (the first is the viewer's), for the tests that keep them apart from each other and from the piles */
 export function zoneAreas(n: number, seated = true): Area[] {
@@ -367,7 +299,7 @@ export function tableShapes(n: number, full = false, seated = true): { name: str
 export const seenQuads = (n: number, seated = true): Quad[] => tableShapes(n, false, seated).map(({ shape }) => shape)
 
 /** What the camera has to have in the window too, without it weighing on the centre (`fitCamera`): the areas that the viewer presses to give a card (`zoneAreas`), which reach a little past the plates and must never lie under a box of the platform. */
-export const reachQuads = (n: number, seated = true): Quad[] => zoneAreas(n, seated).map(areaShape)
+export const reachQuads = (n: number, seated = true): Quad[] => zoneAreas(n, seated).map(cornersOfArea)
 
 /** Everything the camera has to bring into the window, what is seen and what is reached */
 export const tableQuads = (n: number, seated = true): Quad[] => [...seenQuads(n, seated), ...reachQuads(n, seated)]

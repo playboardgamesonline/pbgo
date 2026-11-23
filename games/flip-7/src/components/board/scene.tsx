@@ -3,13 +3,13 @@
 import type { CardFace, PlayerView, PublicSeat } from "@flip-7/engine"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { type CardState, effectiveState, FloorButton, Hotspot, LightPool, NO_TOUCH, onTable, Pile, pile, PlayerSeat, Table, type Touch, useLettering, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
+import { type CardState, effectiveState, FloorButton, Hotspot, hotspotOf, LightPool, NO_TOUCH, onTable, Pile, pile, PlayerSeat, Table, type Touch, useLettering, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useMemo, useState } from "react"
 import type { ClientCatalog } from "../../lib/catalog"
 import { madeFlip7 } from "../../lib/flip7-line"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { areaPlace, cardsBox, dealtFrom, floorPlan, frameOf, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, seatSpots, stickerPlaces, zones } from "./layout"
+import { cardsBox, dealtFrom, floorPlan, frameOf, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, seatSpots, stickerPlaces, zones } from "./layout"
 import { PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { Sticker } from "./stickers"
 import { CARD_SIZE, useFaces } from "./textures"
@@ -101,7 +101,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         // A player who can get the action card the viewer holds has their cards in the state `interactive`, and the table raises it to `hover` and `pressed` from what the visitor does to their area
         const touch = touches[player.id] ?? NO_TOUCH
         const state: CardState = out ? "out" : pickable ? effectiveState("interactive", touch) : "base"
-        const area = areaPlace(areas.get(player.id)!)
+        const area = hotspotOf(areas.get(player.id)!)
         // The BUST! stamp and the "+15 point bonus" badge lie on the table when the table says so, that is once the move has played out (`said`), and stay until the next round. A stamp is drawn only if the game document has its picture
         const { bust, bonus } = faces.stickers
         const places = stickerPlaces(line, bust?.aspect ?? 1.8, bonus?.aspect ?? 1.65)

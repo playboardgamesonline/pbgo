@@ -13,6 +13,7 @@ import {
   HELD_FAN_SETTINGS,
   HeldHand,
   Hotspot,
+  hotspotOf,
   inFrame,
   LightPool,
   NO_TOUCH,
@@ -210,9 +211,7 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
   const hotspot = (id: string, line: Line) => (
     <Hotspot
       key={`press-${id}`}
-      at={{ ...pointInFrame(line.seat, centreOf(line.press)), yaw: line.seat.yaw }}
-      width={line.press.maxX - line.press.minX}
-      depth={line.press.maxZ - line.press.minZ}
+      {...hotspotOf({ frame: line.seat, box: line.press })}
       ariaLabel={fill(words.targetPlayer, { target: nickname(id) })}
       {...(step.kind === "target" || step.kind === "guess" ? { onPress: () => apply(pressPlayer(step, choice, id)) } : {})}
       onTouch={(touch) => setTouches((now) => ({ ...now, [id]: touch }))}

@@ -58,7 +58,7 @@ Each is a key of the theme (`accent`, `foreground`, `surface`…) or `#rrggbb` (
 | Stay, beside the draw pile, one pad across the strip between the two piles and as deep as them, on the viewer's turn. It lies dim when the viewer holds nothing to bank | `floorPlan().pad` | `neutral` |
 | Deal, the same pad, for the dealer between two rounds | `floorPlan().pad` | `primary` |
 | Hit is not a button: it is the draw pile, whose top card is pressed, with the word "Hit" over it | `action` of its `Pile` | |
-| The area of each seat that can get the action card the viewer holds: a `Hotspot` over the cards and the plate, which lights the cards as the pointer goes over it, and a pool of light where a player has no card yet, see [Choosing a player](#choosing-a-player) | `zones()`, `ZONE_PADDING` | none: the cards are lit by the bloom of their state |
+| The area of each seat that can get the action card the viewer holds: a `Hotspot` over the cards and the plate, which lights the cards as the pointer goes over it, and a pool of light where a player has no card yet, see [Choosing a player](#choosing-a-player) | `zones()` (`growAreas` of the kit, `ZONE_PADDING`) | none: the cards are lit by the bloom of their state |
 
 The tones are the game's `UI_THEME.button`, which the game says once ([Tones](#tones)). What the player has to do is the ticker's `prompt`, one sentence for each action card, and the table writes none. The game's words for them are `hit`, `stay`, `deal`, `targetFreeze`, `targetFlipThree`, `targetSecondChance` and `targetPlayer` (the accessible name of an area).
 
@@ -74,7 +74,7 @@ scene-seat
 
 | Prop of a `Hotspot` | Role |
 | --- | --- |
-| `at`, `width`, `depth` | `{ x, z, yaw? }` and the size of the area in world units: the middle of the box of the player's cards and their plate on the table, the yaw of their seat, and the size of that box with a little room all round. The box is in the frame of the seat, so `at` is `pointInFrame(frame, centreOf(box))` |
+| `at`, `width`, `depth` | `{ x, z, yaw? }` and the size of the area in world units: the middle of the box of the player's cards and their plate on the table, the yaw of their seat, and the size of that box with a little room all round. The box is in the frame of the seat, so `at` is `pointInFrame(frame, centreOf(box))`: `hotspotOf({ frame, box })` works the three out, `<Hotspot {...hotspotOf(area)} … />` |
 | `ariaLabel` | What a screen reader says and what the keyboard focus lands on ("Give the turn to Alix"); the area has no label of its own |
 | `onPress` | A click, a tap, or Enter or Space on the focused area calls it. Without it the area takes no press and no pointer |
 | `onTouch` | Told what the visitor does to the area (`{ hovered, focused, pressed }`) every time it changes, and `NO_TOUCH` when the area goes: the game states the cards under it from it |
@@ -85,6 +85,7 @@ scene-seat
 - **A seat with no card is chosen too.** A `LightPool` the size of a card, where the cards would lie, is lit in the same states, so an empty area and a full one read alike. It lies flat on the table, takes no pointer and breathes while it can be chosen.
 - **The keyboard** reaches the area as it reaches a card that can be pressed: one visually hidden button for each, saying `ariaLabel` (`useStandIn`), and the focus counts as a touch. Reduced motion makes the states instant.
 - **Colours** are the game's: `UI_THEME.card` gives each state's bloom its colour and strength, and the table has no colour of its own for a target. A board never types one.
+- **Growing the areas.** An area is grown from what it must hold: `growBox(core, frame, avoid, padding)` pads the core on each side (`padBox`) as far as the room lets it, each side stopping short of `avoid`, the shapes on the table it keeps clear of (the plates of the other seats, the piles, the buttons), and the four sides giving back together at the corners; `growAreas(seeds, padding)` does it for every seat of a table and, where two areas overlap, gives back the padding of both a little at a time until they only touch, then narrows an area toward the axis of its seat, never below its plate. A seed is the seat's frame, its `core` (a function of the share of padding that is left, for a board whose core changes with it) and what it avoids. Flip 7 grows its areas this way (`zones()`); a board with room to spare can pad a box once with `padBox` and give it to `hotspotOf`, as Love Letter does (`hotspotPadding`).
 - **Geometry.** Tested with the boxes, not a screenshot: no area overlaps another area, another seat's plate, a pile or the buttons, and an area holds its player's cards and plate (the `layout.test.ts` of Flip 7 and of the template are the models).
 
 ## Limits

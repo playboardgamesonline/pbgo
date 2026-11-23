@@ -1,4 +1,4 @@
-import { boxAbove, boxOfRect, byPlayers, cornersOfBox, type Field, frameBoxOfPoses, HELD_FAN_SETTINGS, heldFan, heldLeftPose, heldShadow, joinBoxes, onAxis, onTable, plateAbove, type Plate, plateBoxOf, type Pose, row, SCREEN_HAND_SETTINGS, seats as ringOf, shifted, type Spot, type TableBox } from "@pbgo/table"
+import { boxAbove, boxOfRect, byPlayers, cornersOfBox, type Field, frameBoxOfPoses, HELD_FAN_SETTINGS, heldFan, heldLeftPose, heldShadow, joinBoxes, onAxis, onTable, padBox, type Plate, plateAbove, plateBoxOf, type Pose, row, SCREEN_HAND_SETTINGS, seats as ringOf, shifted, type Spot, type TableBox } from "@pbgo/table"
 
 /** A seat at the table: where the line of a player starts and the yaw that turns what lies in it to face the middle of the table, as the player who sits there sees it: the viewer's seat is at yaw 0, a seat across from them at π, one on their left at -π/2 */
 export type SeatSpot = Required<Spot>
@@ -191,9 +191,6 @@ export type Line = {
   press: TableBox
 }
 
-/** A box grown by `by` on each of its four sides */
-const grown = (box: TableBox, by: number): TableBox => ({ minX: box.minX - by, maxX: box.maxX + by, minZ: box.minZ - by, maxZ: box.maxZ + by })
-
 /** The line of the player in `seat` at a table of `chairs` chairs, whether they are the viewer or not. The plate stands above the play area and the hand joined; the play area is above the hand */
 export function lineOf(seat: SeatSpot, viewer: boolean, chairs: number): Line {
   const R = LAYOUT_SETTINGS
@@ -203,7 +200,7 @@ export function lineOf(seat: SeatSpot, viewer: boolean, chairs: number): Line {
   const cards = onAxis(joinBoxes([hand, play])!)
   const plate = plateAbove(cards)
   const plateBox = plateCover(plate)
-  const press = grown(joinBoxes([cards, plateBox])!, R.hotspotPadding)
+  const press = padBox(joinBoxes([cards, plateBox])!, [R.hotspotPadding, R.hotspotPadding, R.hotspotPadding, R.hotspotPadding])
   return { seat, viewer, area, hand, play, cards, plate, plateBox, press }
 }
 
@@ -311,7 +308,7 @@ export function seenQuads(n: number, seated = true): Place[][] {
 }
 
 /** What the camera has to have in the window too, without it weighing on the centre: the areas that the viewer presses to choose a player, which reach a little past the plates, and must never lie under a box of the platform */
-export const reachQuads = (n: number, seated = true): Place[][] => tableLines(n, seated).map((line) => quadOf(grown(line.press, REACH_MARGIN), line.seat))
+export const reachQuads = (n: number, seated = true): Place[][] => tableLines(n, seated).map((line) => quadOf(padBox(line.press, [REACH_MARGIN, REACH_MARGIN, REACH_MARGIN, REACH_MARGIN]), line.seat))
 
 /** How far past the area of a seat the camera keeps the window, in world units: the cards of a hand that stands are seen a little higher than the flat model of the camera's fit puts them, and the viewer's finger has no aim to lose */
 const REACH_MARGIN = 0.5
