@@ -51,7 +51,7 @@ export const LAYOUT_SETTINGS = {
   closest: 0.34,
   /** The room round a player's cards and plate that a press counts in, in world units */
   hotspotPadding: 0.04,
-  /** The deck on the left of the middle and the card set aside on its right, with the strip of the viewer's choices between them (the middle band of the table), and the three cards set aside face up at two players under the card set aside: where each lies and how big it is */
+  /** The deck on the left of the middle and the card set aside on its right, with the controls of the moment between them (the middle band of the table), and the three cards set aside face up at two players under the card set aside: where each lies and how big it is */
   deckX: -3.1,
   deckZ: 0.2,
   deckScale: 0.85,
@@ -242,41 +242,29 @@ export function middleBoxes(faceUp: boolean): TableBox[] {
 }
 
 /**
- * The strip in the middle of the table, between the deck and the card set aside, where the viewer is told what to do and where the controls of the moment lie, one thing at a time: the sentence, then one pad (Play, Deal), two (Swap and Keep), or the nine
- * characters a Guard can name. It lies well above the bottom band of the window that the banner of the cookie settings covers, and clear of everything else on the table: `layout.test.ts` and `camera.test.ts` hold both.
+ * The middle of the table, between the deck and the card set aside: where the Deal button lies for the player who deals, the nine characters a Guard can name and the faces a reveal shows (a Priest's look, a Baron's comparison, a King's trade), one thing at a time. It
+ * lies well above the bottom band of the window that the banner of the cookie settings covers, and clear of everything else on the table: `layout.test.ts` and `camera.test.ts` hold both. The table writes no sentence: what to do is said by the ticker.
  */
-export const STRIP = {
-  /** Half the width of the strip: the deck lies left of it and the card set aside right of it */
+export const MIDDLE = {
+  /** Half the width of the middle: the deck lies left of it and the card set aside right of it */
   half: 2.4,
-  /** The sentence: where it is centred along z, how wide it may run and how tall its lettering is at most */
-  sentence: { z: -1.6, width: 4.7, height: 0.42 },
-  /** One pad, centred in the strip: Play, Deal */
-  pad: { z: 0.2, width: 2.8, depth: 1.1 },
-  /** Two pads side by side: Swap on the left, Keep on the right */
-  pair: { z: 0.2, width: 2.3, depth: 1.0, gap: 0.2 },
+  /** The Deal button, centred */
+  deal: { z: 0.2, width: 2.8, depth: 1.1 },
   /** The nine characters a Guard can name, as small faces in two rows (five, then four, centred), in the order of their value: how big each is (a share of a card of the table), how many are in each row, the gap between two and where the first row lies along z */
   guess: { scale: 0.62, rows: [5, 4] as readonly number[], gap: 0.1, z: -0.55 },
+  /** The faces of a reveal: one in the middle, two a card and a half apart, how high they lie and how big they are */
+  reveal: { z: 0.55, y: 0.2, scale: 0.9, apart: 1.9 },
 }
 
-/** A pad on the table: where it lies and how big it is, in world units, along x and z */
+/** A thing lying on the table: where it lies and how big it is, in world units, along x and z */
 export type Pad = { x: number; z: number; width: number; depth: number }
 
-/** The pad of a single control: Play, Deal */
-export const padPlace = (): Pad => ({ x: 0, ...STRIP.pad })
+/** The place of the Deal button */
+export const dealPlace = (): Pad => ({ x: 0, ...MIDDLE.deal })
 
-/** The two pads of a Chancellor's keep: Swap on the left, Keep on the right */
-export function pairPlaces(): [Pad, Pad] {
-  const { z, width, depth, gap } = STRIP.pair
-  const x = (width + gap) / 2
-  return [
-    { x: -x, z, width, depth },
-    { x, z, width, depth },
-  ]
-}
-
-/** Where the nine characters a Guard can name lie, row by row from the left (the order of `guessable`): each a small face, `width` by `depth` on the table */
+/** Where the nine characters a Guard can name lie, row by row from the left (the order of `GUESSES`): each a small face, `width` by `depth` on the table */
 export function guessPlaces(count = 9): Pad[] {
-  const { scale, rows, gap, z } = STRIP.guess
+  const { scale, rows, gap, z } = MIDDLE.guess
   const width = CARD.width * scale
   const depth = CARD.height * scale
   return rows
@@ -285,43 +273,19 @@ export function guessPlaces(count = 9): Pad[] {
 }
 
 /** The slots of the nine small faces, in the frame of the table */
-export const guessPoses = (count = 9): Pose[] => guessPlaces(count).map((place) => onTable(place.x, place.z, { scale: STRIP.guess.scale }))
+export const guessPoses = (count = 9): Pose[] => guessPlaces(count).map((place) => onTable(place.x, place.z, { scale: MIDDLE.guess.scale }))
 
-/** The box that holds the sentence and every pad of the strip, whichever is drawn */
-export function stripBox(): TableBox {
-  const pads = [padPlace(), ...pairPlaces(), ...guessPlaces()]
-  const top = Math.min(STRIP.sentence.z - STRIP.sentence.height, ...pads.map((pad) => pad.z - pad.depth / 2))
-  const bottom = Math.max(...pads.map((pad) => pad.z + pad.depth / 2))
-  return { minX: -STRIP.half, maxX: STRIP.half, minZ: top, maxZ: bottom }
+/** Where the faces of a reveal of `count` cards lie, in the frame of the table, side by side */
+export const revealPoses = (count: number): Pose[] => Array.from({ length: count }, (_, i) => onTable((i - (count - 1) / 2) * MIDDLE.reveal.apart, MIDDLE.reveal.z, { y: MIDDLE.reveal.y, scale: MIDDLE.reveal.scale }))
+
+/** The box that holds the Deal button, the nine characters and the faces of a reveal (two at the most), whichever is drawn */
+export function controlsBox(): TableBox {
+  const faces = CARD.height * MIDDLE.reveal.scale
+  const pads = [dealPlace(), ...guessPlaces()]
+  const top = Math.min(MIDDLE.reveal.z - faces / 2, ...pads.map((pad) => pad.z - pad.depth / 2))
+  const bottom = Math.max(MIDDLE.reveal.z + faces / 2, ...pads.map((pad) => pad.z + pad.depth / 2))
+  return { minX: -MIDDLE.half, maxX: MIDDLE.half, minZ: top, maxZ: bottom }
 }
-
-/**
- * A sentence laid on the table in a strip `width` wide: on one line when its lettering fits at `height`; else broken at the space that leaves the two lines most alike; else the largest size at which the longer of them fits, never less than half of `height`. `em` is how
- * wide a text is over the height of its lettering, as the browser measures it in the font the sentence is drawn in (`sentenceMeasure`); without it a letter is taken to be `SENTENCE_LETTER` of the height wide.
- */
-export function fitSentence(text: string, width: number, height: number, em?: (text: string) => number): { lines: string[]; height: number } {
-  const parts = text.trim().split(/\s+/).filter(Boolean)
-  const whole = parts.join(" ")
-  const across = em ?? ((line: string) => Array.from(line).length * SENTENCE_LETTER)
-  if (parts.length <= 1 || across(whole) * height <= width) return { lines: whole === "" ? [] : [whole], height: Math.min(height, whole === "" ? height : width / across(whole)) }
-  // the break that leaves the two lines most alike in width
-  let best: string[] = [whole]
-  let gap = Infinity
-  for (let i = 1; i < parts.length; i++) {
-    const left = parts.slice(0, i).join(" ")
-    const right = parts.slice(i).join(" ")
-    const spread = Math.abs(across(left) - across(right))
-    if (spread < gap) {
-      gap = spread
-      best = [left, right]
-    }
-  }
-  const longest = Math.max(...best.map(across))
-  return { lines: best, height: Math.max(height / 2, Math.min(height, width / longest)) }
-}
-
-/** How wide a letter of a sentence on the table is taken to be, as a share of its height, when the font is not measured: wide enough for the capitals and the digits of a body font in bold */
-const SENTENCE_LETTER = 0.58
 
 /** The corners on the table of a box drawn in the frame of a seat, going round: what the camera has to bring into the window, and what the tests lay over one another */
 export const quadOf = (box: TableBox, seat: Spot): Place[] => cornersOfBox(box, seat)
@@ -338,7 +302,7 @@ const mirrored = (box: TableBox): TableBox => ({ minX: -box.maxX, maxX: -box.min
  * only as far as its play area, which is always the room of the biggest.
  */
 export function seenQuads(n: number, seated = true): Place[][] {
-  const middle = [...middleBoxes(n === 2), stripBox()]
+  const middle = [...middleBoxes(n === 2), controlsBox()]
   return [
     ...tableLines(n, seated).flatMap((line) => [line.plateBox, line.play].map((box) => quadOf(box, line.seat))),
     ...middle.map(worldQuad),

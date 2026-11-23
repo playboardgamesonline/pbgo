@@ -2,7 +2,7 @@
 
 /**
  * The fields of the "Board" tab of the `texts` document in Sanity, under the same names: the round and the tokens that win for the ticker, the announcement that is the game's own, the status of a player on their plate, and what the strip in the middle of the table says and
- * its pads, and one sentence for each event of the log, for the history of the ticker. Every one is written in Sanity, in every language that has it; a word it does not have in the language asked reads in English, and one that English does not have either reads `[missing: <key>]`.
+ * what the ticker says to do and its button, and one sentence for each event of the log, for the history of the ticker. Every one is written in Sanity, in every language that has it; a word it does not have in the language asked reads in English, and one that English does not have either reads `[missing: <key>]`.
  */
 export const WORD_FIELDS = [
   "round",
@@ -16,13 +16,11 @@ export const WORD_FIELDS = [
   "chooseOther",
   "chooseAny",
   "nameCharacter",
-  "noTarget",
   "keepOne",
   "putBack",
   "play",
   "keep",
   "deal",
-  "swap",
   "targetPlayer",
   "eventRound",
   "eventDraw",
@@ -46,7 +44,6 @@ export const WORD_FIELDS = [
   "eventSpy",
   "eventOver",
   "outOfRound",
-  "waitDeal",
 ] as const
 
 export type WordField = (typeof WORD_FIELDS)[number]

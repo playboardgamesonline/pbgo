@@ -51,13 +51,11 @@ export const BOARD_WORDS: (Said & { key: string })[] = [
   { key: "chooseOther", fr: "Choisis un autre joueur", en: "Choose another player" },
   { key: "chooseAny", fr: "Choisis un joueur, toi compris", en: "Choose a player, yourself included" },
   { key: "nameCharacter", fr: "Nomme un personnage", en: "Name a character" },
-  { key: "noTarget", fr: "Personne n’est ciblable : la carte est sans effet", en: "Nobody can be chosen: the card has no effect" },
   { key: "keepOne", fr: "Garde une carte", en: "Keep one card" },
-  { key: "putBack", fr: "Les autres vont sous la pioche, dans cet ordre", en: "The others go under the deck, in this order" },
+  { key: "putBack", fr: "Touche la carte qui passe sous la pioche en premier", en: "Press the card that goes under the deck first" },
   { key: "play", fr: "Jouer", en: "Play" },
   { key: "keep", fr: "Garder", en: "Keep" },
   { key: "deal", fr: "Distribuer", en: "Deal" },
-  { key: "swap", fr: "Inverser", en: "Swap" },
   { key: "targetPlayer", fr: "Choisir {target}", en: "Choose {target}" },
   { key: "eventRound", fr: "Distribue la manche {number}", en: "Deals round {number}" },
   { key: "eventDraw", fr: "Pioche une carte", en: "Draws a card" },
@@ -81,7 +79,6 @@ export const BOARD_WORDS: (Said & { key: string })[] = [
   { key: "eventSpy", fr: "{player} gagne le pion de l’Espionne", en: "{player} earns the Spy’s token" },
   { key: "eventOver", fr: "Partie gagnée par {winners}", en: "Game won by {winners}" },
   { key: "outOfRound", fr: "Tu as quitté la manche", en: "You are out of the round" },
-  { key: "waitDeal", fr: "{player} distribue la manche suivante", en: "{player} deals the next round" },
 ]
 
 /**
