@@ -3,7 +3,7 @@
 import { EASING_NAMES } from "@pbgo/core/components/game/easing"
 import { CARD_SETTINGS } from "./card3d"
 import { LAYOUT_SETTINGS } from "./layout"
-import { useSettings } from "./settings"
+import { useSettings } from "@pbgo/table"
 
 export function CardSettingsPanel() {
   useSettings(

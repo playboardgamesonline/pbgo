@@ -2,36 +2,23 @@
 
 import { type VisibleCard, type Mission, type PlayerView, missionOf } from "@courtisans/engine"
 import { useCursor } from "@react-three/drei"
-import { Canvas, useFrame, useThree } from "@react-three/fiber"
+import { useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
-import { Suspense, useEffect, useMemo, useRef, useState } from "react"
-import {
-  CanvasTexture,
-  Color,
-  Euler,
-  type Group,
-  type Mesh,
-  MeshBasicMaterial,
-  type PerspectiveCamera,
-  Quaternion,
-  type Texture,
-  Vector2,
-  Vector3,
-} from "three"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Color, Euler, type Group, type Mesh, MeshBasicMaterial, Quaternion, Vector3 } from "three"
 import { useCourtisans } from "../game/context"
 import { playSound } from "./sounds"
 import { useInteraction } from "../game/interaction"
 import { Aura, AURA_FIELDS, WINNER_AURA_SETTINGS, ZONE_AURA_SETTINGS } from "./aura"
 import { CardSettingsPanel } from "./card-settings"
-import { GamePhoto } from "./photo"
 import { CrownMark } from "./crown"
 import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import type { EndingState } from "./ending"
 import { Counters, MissionSign, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
-import { useSettings, useSettingsVersion } from "./settings"
-import { patternTexture } from "./patterns"
-import { button, roundValue, copyButton, debugTab, COPY_ORDER, useControls } from "@pbgo/core/components/game/debug-controls"
+import { copyButton, debugTab, useControls } from "@pbgo/core/components/game/debug-controls"
 import { useSeatTheme } from "@pbgo/core/components/game/seat-label"
+import { useSiteSettings } from "@pbgo/core/components/settings-provider"
+import { Playmat, type SurfaceProps, Table, useSettings, useSettingsVersion } from "@pbgo/table"
 import { useSkin } from "@pbgo/core/components/skin-provider"
 import { Card3D, CARD_SETTINGS, cardGeometry, edgeGeometry } from "./card3d"
 import { type TextStyle, TableText } from "./table-text"
@@ -62,6 +49,7 @@ import {
   seats,
   missionRestPose,
 } from "./layout"
+import { CAMERA, INTRO, PHOTO } from "./camera"
 import { type Textures, useTextures } from "./textures"
 
 type Placed = { card: VisibleCard; pose: Pose; playerId?: string }
@@ -123,255 +111,7 @@ type Transient = {
   target: Pose
 }
 
-export const DEFAULT_CAMERA = { tilt: 40, yaw: 0, distance: 37.6, fov: 26.5, target: { x: 0, y: 0.6 } }
-
-const RAD = Math.PI / 180
 const EMPTY: string[] = []
-const TARGET_TMP = new Vector3()
-
-const CAMERA_INTRO = { enabled: true, duration: 2.6, zoom: 1.45, rotate: 22, tilt: 12 }
-
-/** Progress 0 → 1 (ease out) of the camera intro, restarted at each opening (`run`). While `held` (the start screen is up) it waits at 0, the first frame of the entrance. */
-function useCameraIntro(run: boolean, held: boolean) {
-  const [intro] = useControls(
-    "Camera intro",
-    () => ({
-      enabled: { value: CAMERA_INTRO.enabled, label: "enabled" },
-      duration: { value: CAMERA_INTRO.duration, min: 0.5, max: 8, step: 0.1, label: "duration (s)" },
-      zoom: { value: CAMERA_INTRO.zoom, min: 1, max: 2.5, step: 0.01, label: "start distance ×" },
-      rotate: { value: CAMERA_INTRO.rotate, min: -90, max: 90, step: 1, label: "start yaw °" },
-      tilt: { value: CAMERA_INTRO.tilt, min: -30, max: 40, step: 0.5, label: "start tilt °" },
-    }),
-    { order: 1 },
-    debugTab("SCENE"),
-  )
-  const start = useRef<number | null>(null)
-  useEffect(() => {
-    start.current = run ? performance.now() : null
-  }, [run])
-  return { intro, progress: () => {
-    if (!intro.enabled) return 1
-    if (held) return 0
-    if (start.current === null) return 1
-    const p = Math.min(1, (performance.now() - start.current) / (intro.duration * 1000))
-    return 1 - Math.pow(1 - p, 3)
-  } }
-}
-
-function CameraRig({ introRun, introHeld }: { introRun: boolean; introHeld: boolean }) {
-  const { size } = useThree()
-  const { intro, progress } = useCameraIntro(introRun, introHeld)
-  const [setting, adjust] = useControls(
-    "Camera",
-    () => ({
-      tilt: { value: DEFAULT_CAMERA.tilt, min: 0, max: 85, step: 0.5, label: "tilt °" },
-      yaw: { value: DEFAULT_CAMERA.yaw, min: -180, max: 180, step: 1, label: "yaw °" },
-      distance: { value: DEFAULT_CAMERA.distance, min: 8, max: 70, step: 0.1, label: "distance" },
-      fov: { value: DEFAULT_CAMERA.fov, min: 10, max: 100, step: 0.5, label: "fov °" },
-      target: { value: DEFAULT_CAMERA.target, step: 0.05, label: "target x / z" },
-    }),
-    { order: 0 },
-    debugTab("SCENE"),
-  )
-  useControls(
-    "Camera",
-    {
-      "Copy values": { ...button((get) => {
-        const values = {
-          tilt: get("Camera.inclinaison"),
-          yaw: get("Camera.lacet"),
-          distance: get("Camera.distance"),
-          fov: get("Camera.fov"),
-          target: get("Camera.cible"),
-        }
-        navigator.clipboard?.writeText(JSON.stringify({ Camera: values }, roundValue, 2)).catch(() => null)
-        console.info("Camera", values)
-      }), order: COPY_ORDER },
-      Reset: { ...button(() => adjust(DEFAULT_CAMERA)), order: COPY_ORDER + 1 },
-    },
-    { order: 0 },
-    debugTab("SCENE"),
-  )
-
-  useFrame((makeState) => {
-    const cam = makeState.camera as PerspectiveCamera
-    const k = Math.max(1, 1.6 / (size.width / size.height))
-    const rest = 1 - progress()
-    const r = setting.distance * k * (1 + (intro.zoom - 1) * rest)
-    const incl = Math.max(0, setting.tilt + intro.tilt * rest) * RAD
-    const yaw = (setting.yaw + intro.rotate * rest) * RAD
-    const target = TARGET_TMP.set(setting.target.x, 0, setting.target.y)
-    cam.up.set(0, 1, 0)
-    cam.position.set(
-      target.x + r * Math.sin(incl) * Math.sin(yaw),
-      Math.max(0.5, r * Math.cos(incl)),
-      target.z + r * Math.sin(incl) * Math.cos(yaw),
-    )
-    if (incl < 0.001) cam.up.set(-Math.sin(yaw), 0, -Math.cos(yaw))
-    cam.lookAt(target)
-    if (cam.fov !== setting.fov) {
-      cam.fov = setting.fov
-      cam.updateProjectionMatrix()
-    }
-  })
-  return null
-}
-
-function useFrameTexture(create: () => CanvasTexture) {
-  const [texture] = useState(create)
-  return texture
-}
-
-function vignetteTexture() {
-  const c = document.createElement("canvas")
-  c.width = c.height = 512
-  const g = c.getContext("2d")!
-  const grad = g.createRadialGradient(256, 256, 40, 256, 256, 256)
-  grad.addColorStop(0, "#1d5a60")
-  grad.addColorStop(0.6, "#12424a")
-  grad.addColorStop(1, "#0a2a30")
-  g.fillStyle = grad
-  g.fillRect(0, 0, 512, 512)
-  return new CanvasTexture(c)
-}
-
-const MAT_GLSL = /* glsl */ `
-uniform vec2 uSize;
-uniform float uUnroll;
-uniform float uDesat;
-uniform sampler2D uCloth;
-uniform float uWithCloth;
-uniform float uScale;
-uniform float uMode;
-uniform float uStrength;
-vec3 melangeTapis(vec3 a, vec3 b) {
-  if (uMode < 0.5) return a * b;
-  if (uMode < 1.5) return 1.0 - (1.0 - a) * (1.0 - b);
-  if (uMode < 2.5) return mix(2.0 * a * b, 1.0 - 2.0 * (1.0 - a) * (1.0 - b), step(0.5, a));
-  return (1.0 - 2.0 * b) * a * a + 2.0 * b * a;
-}
-`
-
-const MAT_FRAGMENT = /* glsl */ `
-#include <map_fragment>
-{
-  if (vMapUv.x > uUnroll) discard;
-  float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(l), uDesat);
-  if (uWithCloth > 0.5) {
-    vec3 a = pow(max(diffuseColor.rgb, 0.0), vec3(1.0 / 2.2));
-    vec3 b = pow(texture2D(uCloth, vMapUv * uSize * uScale).rgb, vec3(1.0 / 2.2));
-    diffuseColor.rgb = pow(mix(a, clamp(melangeTapis(a, b), 0.0, 1.0), uStrength), vec3(2.2));
-  }
-}
-`
-
-export const BLEND_MODES = { multiply: 0, screen: 1, overlay: 2, "soft light": 3 } as const
-
-/** `rolled`: the mat is still rolled up, waiting for the opening to begin (the start screen is up) */
-function Table({ tex, flow, rolled, matDuration }: { tex: Textures; flow: boolean; rolled: boolean; matDuration: number }) {
-  const vignette = useFrameTexture(vignetteTexture)
-  const texPattern = useMemo(() => patternTexture("diamonds"), [])
-  const { opacity, desaturation, blend, strength, scaleFactor, thickness } = useControls(
-    "Mat",
-    {
-      opacity: { value: 0.12, min: 0, max: 1, step: 0.01, label: "background pattern opacity" },
-      desaturation: { value: 0.06, min: 0, max: 1, step: 0.01, label: "desaturation" },
-      blend: { value: 3, options: BLEND_MODES, label: "blend mode" },
-      strength: { value: 0.8, min: 0, max: 1, step: 0.01, label: "texture strength" },
-      scaleFactor: { value: 0.5, min: 0.1, max: 6, step: 0.05, label: "tiles / unit" },
-      thickness: { value: MAT_THICKNESS, min: 0.001, max: 0.3, step: 0.001, label: "thickness" },
-      ...copyButton("SCENE", "Mat"),
-    },
-    { collapsed: true, order: 8 },
-    debugTab("SCENE"),
-  )
-  const top = useMemo(() => cardGeometry(MAT_W, MAT_D, 0.07), [])
-  const rim = useMemo(() => {
-    const geo = edgeGeometry(MAT_W, MAT_D, thickness, 0.07).clone()
-    const pos = geo.attributes.position!
-    const uv = geo.attributes.uv!
-    for (let i = 0; i < pos.count; i++)
-      uv.setXY(i, Math.min(0.998, Math.max(0.002, pos.getX(i) / MAT_W + 0.5)), Math.min(0.998, Math.max(0.002, pos.getY(i) / MAT_D + 0.5)))
-    uv.needsUpdate = true
-    return geo
-  }, [thickness])
-  useEffect(() => () => rim.dispose(), [rim])
-  const material = useMemo(() => {
-    const uniformValues = {
-      uSize: { value: new Vector2(MAT_W, MAT_D) },
-      uUnroll: { value: 1 },
-      uDesat: { value: 0.18 },
-      uCloth: { value: null as Texture | null },
-      uWithCloth: { value: 0 },
-      uScale: { value: 0.5 },
-      uMode: { value: 3 },
-      uStrength: { value: 0.7 },
-    }
-    const m = new MeshBasicMaterial({ map: tex.mat, toneMapped: false })
-    m.userData.uniformValues = uniformValues
-    m.onBeforeCompile = (shader) => {
-      Object.assign(shader.uniforms, uniformValues)
-      shader.fragmentShader = shader.fragmentShader
-        .replace("#include <common>", `#include <common>\n${MAT_GLSL}`)
-        .replace("#include <map_fragment>", MAT_FRAGMENT)
-    }
-    return m
-  }, [tex.mat])
-  const topRef = useRef<Mesh>(null)
-  const start = useRef<number | null>(null)
-  const roller = useRef<Mesh>(null)
-  useFrame(({ clock }) => {
-    const uniformValues = (topRef.current?.material as MeshBasicMaterial | undefined)?.userData.uniformValues
-    if (!uniformValues) return
-    uniformValues.uDesat.value = desaturation
-    uniformValues.uCloth.value = tex.cloth
-    uniformValues.uWithCloth.value = tex.cloth ? 1 : 0
-    uniformValues.uMode.value = blend
-    uniformValues.uStrength.value = strength
-    uniformValues.uScale.value = scaleFactor
-    let d = 1
-    if (rolled) {
-      d = 0
-      start.current = null
-    } else if (flow) {
-      if (start.current === null) start.current = clock.elapsedTime
-      const t = Math.min(1, Math.max(0, (clock.elapsedTime - start.current - 0.15) / matDuration))
-      d = 1 - (1 - t) ** 3
-    } else start.current = null
-    uniformValues.uUnroll.value = d
-    const r = roller.current
-    if (r) {
-      r.visible = d < 0.999
-      const radius = 0.06 + 0.26 * (1 - d)
-      r.position.set(-MAT_W / 2 + d * MAT_W, radius + 0.02, 0)
-      r.scale.set(radius, 1, radius)
-    }
-  })
-  return (
-    <group>
-      <mesh rotation-x={-Math.PI / 2} position-y={-0.02}>
-        <planeGeometry args={[80, 60]} />
-        <meshBasicMaterial map={vignette} toneMapped={false} />
-      </mesh>
-      {texPattern && (
-        <mesh rotation-x={-Math.PI / 2} position-y={-0.015} raycast={() => null}>
-          <planeGeometry args={[80, 60]} />
-          <meshBasicMaterial map={texPattern} transparent opacity={opacity} depthWrite={false} toneMapped={false} />
-        </mesh>
-      )}
-      <mesh geometry={rim} rotation-x={-Math.PI / 2} material={[CACHE, material]} />
-      <mesh ref={topRef} geometry={top} rotation-x={-Math.PI / 2} position-y={thickness + 0.001} material={material} />
-      <mesh ref={roller} rotation-x={Math.PI / 2} visible={false} raycast={() => null}>
-        <cylinderGeometry args={[1, 1, MAT_D, 32]} />
-        <meshStandardMaterial color="#1f5358" roughness={0.9} />
-      </mesh>
-    </group>
-  )
-}
-
-const MAT_THICKNESS = 0.018
-const CACHE = new MeshBasicMaterial({ visible: false })
 
 const FADE = { uFadeBottom: { value: 0.8 }, uFadeTop: { value: 4 } }
 
@@ -704,6 +444,16 @@ function Ephemeral({ item, tex, onEnd }: { item: Transient; tex: Textures; onEnd
   )
 }
 
+/** A click on the table where nothing answers. The shared `Table` passes none on from its canvas, so a plane under everything takes it: what lies over it stops its own clicks. */
+function EmptyClick({ onClick }: { onClick: () => void }) {
+  return (
+    <mesh rotation-x={-Math.PI / 2} position-y={-0.01} onClick={onClick}>
+      <planeGeometry args={[400, 400]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    </mesh>
+  )
+}
+
 const HAND_DISTANCE = 6
 const SPACING = "18px"
 const QUAT_TMP = new Quaternion()
@@ -718,6 +468,7 @@ function World({
   openingStep,
   missionFocus,
   onMission,
+  onEmpty,
   onReady,
   held,
   onLoaded,
@@ -728,6 +479,7 @@ function World({
   openingStep: OpeningStep
   missionFocus: string | null
   onMission: (id: string) => void
+  onEmpty: () => void
   onReady: () => void
   held: boolean
   onLoaded: () => void
@@ -736,6 +488,7 @@ function World({
   settings: OpeningSettings
 }) {
   useEffect(() => onReady(), [onReady])
+  const { theme } = useSiteSettings()
   const { view, catalog, log, nickname, color, avatarUrl } = useCourtisans()
   const seat = useSeatTheme()
   const { hostIcon } = useSkin()
@@ -1102,14 +855,21 @@ function World({
 
   return (
     <>
-      <CameraRig introRun={openingStep === "unroll" && !held} introHeld={openingStep === "unroll" && held} />
       <CardSettingsPanel />
       <EndingSettings />
       <ZoneSettings />
       <MatLines results={results ?? null} ending={ending} />
-      <ambientLight intensity={0.8} />
-      <directionalLight position={[4, 12, 6]} intensity={2.2} />
-      <Table tex={tex} flow={flow} rolled={flow && held} matDuration={settings.matDuration} />
+      <EmptyClick onClick={onEmpty} />
+      <Playmat
+        size={{ width: MAT_W, depth: MAT_D, radius: 0.07 }}
+        picture={tex.mat}
+        cloth={{ picture: tex.cloth, blend: "soft-light", strength: 0.8, tile: 2 }}
+        desaturate={0.06}
+        thickness={0.018}
+        unroll={flow ? (held ? "rolled" : "unrolling") : "flat"}
+        duration={settings.matDuration}
+        roller={theme.surface}
+      />
 
       {[...board.values()].map(({ card, pose, playerId }) => {
         const candidate = candidates.has(card.id)
@@ -1349,6 +1109,9 @@ function World({
   )
 }
 
+/** A colour between two others, as a hex string: the lines of the lattice of the table lie close to its colour, tinted with the accent. */
+const mixed = (from: string, to: string, share: number) => `#${new Color(from).lerp(new Color(to), share).getHexString()}`
+
 export default function Scene3D(props: {
   openingStep: OpeningStep
   missionFocus: string | null
@@ -1364,28 +1127,32 @@ export default function Scene3D(props: {
   ending: EndingState | null
   settings: OpeningSettings
 }) {
+  const { theme } = useSiteSettings()
+  // The endless table: the colour of the edge of the table, a lattice a hair off it, and a pool of light at the middle that falls away to it
+  const surface = useMemo<SurfaceProps>(
+    () => ({
+      color: theme.surfaceDark,
+      layers: [{ kind: "lattice", line: mixed(theme.surfaceDark, theme.accent, 0.12), diamonds: 3, width: 1 }],
+      resolution: 512,
+      tile: 8,
+      light: { center: theme.surface, radius: 22 },
+    }),
+    [theme],
+  )
   return (
-    <Canvas
-      id="scene-3d"
-      gl={{ preserveDrawingBuffer: true }}
-      dpr={[1, 2]}
-      camera={{ fov: 26.5, near: 0.1, far: 200, position: [0, 23, 13.5] }}
-      onPointerMissed={props.onEmpty}
-    >
-      <Suspense fallback={null}>
-        <World
-          openingStep={props.openingStep}
-          missionFocus={props.missionFocus}
-          onMission={props.onMission}
-          onReady={props.onReady}
-          held={props.held}
-          onLoaded={props.onLoaded}
-          onProgress={props.onProgress}
-          ending={props.ending}
-          settings={props.settings}
-        />
-        <GamePhoto />
-      </Suspense>
-    </Canvas>
+    <Table camera={CAMERA} intro={INTRO} playIntro={props.openingStep === "unroll"} photo={PHOTO} surface={surface} lights held={props.held}>
+      <World
+        openingStep={props.openingStep}
+        missionFocus={props.missionFocus}
+        onMission={props.onMission}
+        onEmpty={props.onEmpty}
+        onReady={props.onReady}
+        held={props.held}
+        onLoaded={props.onLoaded}
+        onProgress={props.onProgress}
+        ending={props.ending}
+        settings={props.settings}
+      />
+    </Table>
   )
 }

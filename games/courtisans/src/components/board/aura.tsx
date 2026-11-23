@@ -1,7 +1,7 @@
 "use client"
 
 import { useFrame } from "@react-three/fiber"
-import type { Field } from "./settings"
+import type { Field } from "@pbgo/table"
 import { easing } from "maath"
 import { useRef, useState } from "react"
 import { AdditiveBlending, Color, type Mesh, NormalBlending, type ShaderMaterial, Vector2 } from "three"
