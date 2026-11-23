@@ -1,156 +1,120 @@
-import { PILE_LABEL_GAP, PILE_LABEL_HEIGHT } from "@pbgo/table"
+import { cornersOfBox, PILE_LABEL_GAP, PILE_LABEL_HEIGHT, type Place, polygonsOverlap, pointInFrame } from "@pbgo/table"
 import { describe, expect, it } from "vitest"
-import {
-  type Box,
-  boxesOverlap,
-  CARD,
-  cardSize,
-  cellPlace,
-  cellPose,
-  cellSpot,
-  FLOOR,
-  floorPlan,
-  gridBox,
-  grids,
-  gridSize,
-  LAYOUT_SETTINGS,
-  pilePlaces,
-  pitchOf,
-  plateBox,
-  seatAngle,
-  seatAt,
-  seatSpots,
-  tableBoxes,
-  tableOf,
-  uprightYaw,
-} from "./layout"
+import { CARD, cardSize, cellPlace, cellPose, cellSpot, FLOOR, floorPlan, gridBox, gridSize, LAYOUT_SETTINGS, pilePlaces, pitchOf, plateBox, seatsOf, tableParts, tableQuads } from "./layout"
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
 const SIZES = [2, 3, 4, 5, 6, 7, 8]
 
-describe("the angle of a seat", () => {
-  const angles = (n: number, seated = true) => Array.from({ length: n }, (_, i) => seatAngle(i, n, seated))
+/** A rectangle on the table, whose sides run along x and z, as its corners going round */
+const rect = (x: number, z: number, halfWidth: number, halfDepth: number): Place[] => [
+  { x: x - halfWidth, z: z - halfDepth },
+  { x: x + halfWidth, z: z - halfDepth },
+  { x: x + halfWidth, z: z + halfDepth },
+  { x: x - halfWidth, z: z + halfDepth },
+]
 
-  it("puts the viewer in front and the others around the table, clockwise from them, at every size of table from two to eight", () => {
-    for (const n of SIZES) {
-      const all = angles(n)
-      expect(all[0], `${n} players`).toBe(0)
-      for (let i = 1; i < n; i++) expect(all[i]!, `${n} players, seat ${i}`).toBeGreaterThan(all[i - 1]!)
-      expect(all[n - 1]!, `${n} players`).toBeLessThan(360)
-    }
+/** The corners of the twelve cards of a seat's grid on the table, turned as its frame is */
+function cardsOf(id: string, n: number, seated = true): Place[][] {
+  const seat = seatsOf(ids(n), seated ? "p0" : null).get(id)!
+  const card = cardSize(seat.scale)
+  return Array.from({ length: 12 }, (_, position) => {
+    const at = cellPlace(seat, position)
+    const along = { x: Math.cos(at.yaw), z: -Math.sin(at.yaw) }
+    const down = { x: Math.sin(at.yaw), z: Math.cos(at.yaw) }
+    return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => ({ x: at.x + (a! * card.width * along.x + b! * card.height * down.x) / 2, z: at.z + (a! * card.width * along.z + b! * card.height * down.z) / 2 }))
   })
-
-  it("is the same on both sides of the viewer: the opponents mirror each other", () => {
-    for (const n of SIZES) {
-      const all = angles(n)
-      for (let i = 1; i < n; i++) expect(all[i]! + all[n - i]!, `${n} players, seats ${i} and ${n - i}`).toBeCloseTo(360)
-    }
-  })
-
-  it("is the table of the arrangement: who sits where, 2 to 8", () => {
-    expect(angles(2)).toEqual([0, 180])
-    expect(angles(3)).toEqual([0, 145, 215])
-    expect(angles(4)).toEqual([0, 90, 180, 270])
-    expect(angles(5)).toEqual([0, 90, 150, 210, 270])
-    expect(angles(6).map(Math.round)).toEqual([0, 66, 123, 180, 237, 294])
-    expect(angles(7).map(Math.round)).toEqual([0, 62, 109, 156, 204, 251, 298])
-    expect(angles(8).map(Math.round)).toEqual([0, 60, 100, 140, 180, 220, 260, 300])
-  })
-
-  it("seats a spectator at the places a table with one more player has, the empty chair in front being nobody's", () => {
-    for (const n of SIZES) {
-      expect(angles(n, false), `${n} players`).toEqual(angles(n + 1).slice(1))
-    }
-  })
-})
+}
 
 describe("the seats", () => {
   it("put the viewer in front, upright, and give every other seat the yaw that turns it to face the middle", () => {
     for (const n of SIZES) {
-      const spots = seatSpots(ids(n), "p1")
-      expect(spots.size, `${n} players`).toBe(n)
-      expect(spots.get("p1")).toMatchObject({ x: 0, yaw: 0 })
-      expect(spots.get("p1")!.z).toBeGreaterThan(0)
-      for (const [id, spot] of spots) {
-        if (id === "p1") continue
-        // facing the middle: the seat's own "toward the middle" (its -z axis turned by the yaw) points at the origin
-        const toward = { x: -Math.sin(spot.yaw), z: -Math.cos(spot.yaw) }
-        const middle = { x: -spot.x, z: -spot.z }
-        const length = Math.hypot(middle.x, middle.z)
-        expect(toward.x * (middle.x / length) + toward.z * (middle.z / length), `${n} players, ${id}`).toBeCloseTo(1)
+      const placed = seatsOf(ids(n), "p0")
+      const viewer = placed.get("p0")!
+      expect(viewer.frame).toEqual({ x: 0, z: LAYOUT_SETTINGS.viewerZ, yaw: 0 })
+      for (const [id, seat] of placed) {
+        if (id === "p0") continue
+        // the top of the frame, its least z, points at the middle of the table
+        const top = pointInFrame({ x: seat.frame.x, z: seat.frame.z, yaw: seat.frame.yaw }, { x: 0, z: -1 })
+        const toMiddle = Math.hypot(seat.frame.x, seat.frame.z)
+        expect((top.x - seat.frame.x) * (-seat.frame.x / toMiddle) + (top.z - seat.frame.z) * (-seat.frame.z / toMiddle), `${n} players, ${id}`).toBeCloseTo(1, 6)
       }
     }
   })
 
   it("turn the order of play to the viewer's left: the player after the viewer sits on the viewer's left", () => {
-    const spots = seatSpots(ids(4), "p0")
-    expect(spots.get("p1")!.x).toBeLessThan(0)
-    expect(spots.get("p3")!.x).toBeGreaterThan(0)
-    expect(spots.get("p2")!.z).toBeLessThan(0)
+    for (const n of SIZES) {
+      const placed = seatsOf(ids(n), "p0")
+      expect(placed.get("p1")!.frame.x, `${n} players`).toBeLessThan(0)
+      if (n > 2) expect(placed.get(`p${n - 1}`)!.frame.x, `${n} players`).toBeGreaterThan(0)
+    }
   })
 
   it("do not depend on who sits first: the viewer is always in front", () => {
-    for (const me of ["p0", "p2", "p4"]) expect(seatSpots(ids(5), me).get(me)).toMatchObject({ x: 0, yaw: 0 })
+    for (const viewer of ["p0", "p2", "p3"]) {
+      const seat = seatsOf(ids(4), viewer).get(viewer)!
+      expect(seat.frame).toEqual({ x: 0, z: LAYOUT_SETTINGS.viewerZ, yaw: 0 })
+    }
   })
 
   it("seat a spectator on a ring with an empty chair in front: nobody sits in front", () => {
     for (const n of SIZES) {
-      const spots = seatSpots(ids(n), null)
-      for (const spot of spots.values()) expect(spot.z, `${n} players`).toBeLessThanOrEqual(0.001 + LAYOUT_SETTINGS.radiusZ8 * 1.01)
-      expect(spots.size).toBe(n)
+      for (const seat of seatsOf(ids(n), null).values()) expect(Math.abs(seat.frame.x) > 1e-6 || seat.frame.z < 0, `${n} players`).toBe(true)
     }
   })
 
-  it("is a pure function: the same table gives the same seats", () => {
-    expect(seatSpots(ids(6), "p2")).toEqual(seatSpots(ids(6), "p2"))
-    expect(seatAt(90, 4, 3).x).toBeCloseTo(-4)
+  it("grow from a table of two to a table of eight: smaller cards for opponents", () => {
+    const scales = SIZES.map((n) => seatsOf(ids(n), "p0").get("p1")!.scale)
+    for (let i = 1; i < scales.length; i++) expect(scales[i]!).toBeLessThanOrEqual(scales[i - 1]! + 1e-9)
+    expect(scales[0]).toBeCloseTo(LAYOUT_SETTINGS.opponentScale2)
+    expect(scales.at(-1)).toBeCloseTo(LAYOUT_SETTINGS.opponentScale8)
   })
 
-  it("grows from a table of two to a table of eight: smaller cards for opponents", () => {
-    expect(tableOf(2).opponentScale).toBe(LAYOUT_SETTINGS.opponentScale2)
-    expect(tableOf(8).opponentScale).toBe(LAYOUT_SETTINGS.opponentScale8)
-    let before = Infinity
+  it("are a function of the seat order alone: renaming the players moves nothing", () => {
+    const a = seatsOf(["a", "b", "c"], "b")
+    const b = seatsOf(["x", "y", "z"], "y")
+    expect([...a.values()]).toEqual([...b.values()])
+  })
+
+  it("put the viewer's grid in front, bigger than the opponents'", () => {
     for (const n of SIZES) {
-      expect(tableOf(n).opponentScale).toBeLessThanOrEqual(before + 1e-9)
-      before = tableOf(n).opponentScale
+      const placed = seatsOf(ids(n), "p0")
+      expect(placed.get("p0")!.scale).toBeGreaterThan(placed.get("p1")!.scale)
     }
   })
 })
 
 describe("a grid", () => {
   it("is four columns of three: the cell is `column * 3 + row`, columns left to right and the first row toward the middle", () => {
-    const scale = 1
-    const pitch = pitchOf(scale)
-    expect(cellSpot(0, scale)).toEqual({ x: -1.5 * pitch.x, z: -pitch.z })
-    expect(cellSpot(2, scale)).toEqual({ x: -1.5 * pitch.x, z: pitch.z })
-    expect(cellSpot(11, scale)).toEqual({ x: 1.5 * pitch.x, z: pitch.z })
-    expect(cellSpot(4, scale).z).toBe(0)
-    const xs = Array.from({ length: 4 }, (_, column) => cellSpot(column * 3, scale).x)
-    expect(xs).toEqual([...xs].sort((a, b) => a - b))
+    const first = cellSpot(0, 1)
+    const last = cellSpot(11, 1)
+    expect(first.x).toBeLessThan(last.x)
+    expect(first.z).toBeLessThan(cellSpot(2, 1).z)
+    // the grid is centred on the frame of its seat
+    expect(first.x).toBeCloseTo(-last.x)
+    expect(cellSpot(1, 1).z).toBeCloseTo(0)
+    // three rows in a column, four columns in a row
+    expect(new Set(Array.from({ length: 12 }, (_, p) => cellSpot(p, 1).x)).size).toBe(4)
+    expect(new Set(Array.from({ length: 12 }, (_, p) => cellSpot(p, 1).z)).size).toBe(3)
   })
 
   it("never overlaps two cards, in a row or in a column, and leaves a gap of at least a twentieth of a card between neighbours", () => {
-    for (const scale of [0.3, 0.6, 1]) {
-      const pitch = pitchOf(scale)
-      const card = cardSize(scale)
-      expect(pitch.x - card.width).toBeGreaterThanOrEqual(card.width * 0.05)
-      expect(pitch.z - card.height).toBeGreaterThanOrEqual(card.height * 0.05)
-      // and no more than a fifth: the grid stays one block
-      expect(pitch.x - card.width).toBeLessThanOrEqual(card.width * 0.2)
-      expect(pitch.z - card.height).toBeLessThanOrEqual(card.height * 0.2)
+    const scale = 0.6
+    const card = cardSize(scale)
+    for (let a = 0; a < 12; a++) {
+      for (let b = a + 1; b < 12; b++) {
+        const dx = Math.abs(cellSpot(a, scale).x - cellSpot(b, scale).x)
+        const dz = Math.abs(cellSpot(a, scale).z - cellSpot(b, scale).z)
+        // two cards apart on the one axis or the other, by their own size at least
+        expect(dx >= card.width * 1.05 - 1e-9 || dz >= card.height * 1.05 - 1e-9, `${a} and ${b}`).toBe(true)
+      }
     }
   })
 
-  it("keeps the cards of every grid of every table apart, whatever their turn: the boxes of any two of the twelve cards share no area", () => {
+  it("keeps the cards of every grid of every table apart, whatever their turn", () => {
     for (const n of SIZES) {
-      for (const seated of [true, false]) {
-        const ring = Array.from({ length: n }, (_, i) => `p${i}`)
-        const placed = grids(seatSpots(ring, seated ? "p0" : null), seated ? "p0" : null)
-        for (const grid of placed.values()) {
-          const card = cardSize(grid.scale)
-          const boxes: Box[] = Array.from({ length: 12 }, (_, position) => ({ ...cellPlace(grid, position), halfWidth: card.width / 2, halfDepth: card.height / 2 }))
-          for (let i = 0; i < 12; i++) for (let j = i + 1; j < 12; j++) expect(boxesOverlap(boxes[i]!, boxes[j]!), `${n} players, cards ${i} and ${j}`).toBe(false)
-        }
+      for (const id of ids(n)) {
+        const cards = cardsOf(id, n)
+        for (let i = 0; i < 12; i++) for (let j = i + 1; j < 12; j++) expect(polygonsOverlap(cards[i]!, cards[j]!), `${n} players, ${id}: ${i} and ${j}`).toBe(false)
       }
     }
   })
@@ -160,6 +124,11 @@ describe("a grid", () => {
     const pitch = pitchOf(1)
     expect(width).toBeCloseTo(3 * pitch.x + CARD.width)
     expect(depth).toBeCloseTo(2 * pitch.z + CARD.height)
+    // the box of the grid, which the plate stands above, is the cards' own
+    const box = gridBox(1)
+    expect(box.maxX - box.minX).toBeCloseTo(width)
+    expect(box.maxZ - box.minZ).toBeCloseTo(depth)
+    expect(box.minX).toBeCloseTo(-box.maxX)
   })
 
   it("lays a card face up or face down at its cell, a hair higher the lower the row, so that overlapping cards never fight for a pixel", () => {
@@ -170,74 +139,78 @@ describe("a grid", () => {
     expect(up.quaternion.equals(down.quaternion)).toBe(false)
   })
 
-  it("puts the cell of the viewer where it reads in the frame of the grid, and the cell of a turned seat where its frame turns it", () => {
-    const viewer = { at: { x: 0, z: 3 }, yaw: 0, scale: 0.7 }
-    const spot = cellSpot(0, 0.7)
-    expect(cellPlace(viewer, 0)).toMatchObject({ x: spot.x, z: 3 + spot.z, yaw: 0 })
+  it("puts the cell of the viewer where it reads in the frame of the grid, and the cell of the seat across where its frame turns it", () => {
+    const viewer = seatsOf(ids(2), "p0").get("p0")!
+    const spot = cellSpot(0, viewer.scale)
+    expect(cellPlace(viewer, 0)).toMatchObject({ x: spot.x, z: viewer.frame.z + spot.z, yaw: 0 })
     // across the table (yaw π), the first column is on the viewer's right and the first row nearer the viewer
-    const across = { at: { x: 0, z: -3 }, yaw: Math.PI, scale: 0.7 }
-    expect(cellPlace(across, 0).x).toBeCloseTo(-spot.x)
-    expect(cellPlace(across, 0).z).toBeCloseTo(-3 - spot.z)
-  })
-
-  it("keeps the plate of a seat out of its grid", () => {
-    for (const n of SIZES) {
-      const spots = seatSpots(ids(n), "p0")
-      const placed = grids(spots, "p0")
-      for (const [id, spot] of spots) expect(boxesOverlap(plateBox(spot, placed.get(id)!), gridBox(placed.get(id)!)), `${n} players, ${id}`).toBe(false)
-    }
+    const across = seatsOf(ids(2), "p0").get("p1")!
+    const there = cellSpot(0, across.scale)
+    expect(cellPlace(across, 0).x).toBeCloseTo(across.frame.x - there.x)
+    expect(cellPlace(across, 0).z).toBeCloseTo(across.frame.z - there.z)
   })
 })
 
 describe("the table", () => {
-  it("keeps every plate, grid, pile, card in hand and strip apart from the others, at every table of two to eight, for a player and for a spectator", () => {
+  /** The things that lie on the table, each named, for the pairs that must keep apart */
+  function things(n: number, seated: boolean): [string, Place[]][] {
+    const parts = tableParts(n, seated)
+    return [
+      ...parts.plates.map((polygon, i): [string, Place[]] => [`plate ${i}`, polygon]),
+      ...parts.grids.map((polygon, i): [string, Place[]] => [`grid ${i}`, polygon]),
+      ["draw pile", parts.deck],
+      ["discard", parts.discard],
+      ["card in hand", parts.held],
+    ]
+  }
+
+  it("keeps every plate, grid, pile and the card in hand apart from the others, at every table of two to eight, for a player and for a spectator", () => {
+    const touching: string[] = []
     for (const seated of [true, false]) {
       for (const n of SIZES) {
-        // the last box is the strip of the middle, which holds the piles and the pads by design
-        const boxes = tableBoxes(n, seated).slice(0, -1)
-        for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) expect(boxesOverlap(boxes[i]!, boxes[j]!), `${n} players${seated ? "" : ", spectator"}: boxes ${i} and ${j}`).toBe(false)
+        const all = things(n, seated)
+        for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) if (polygonsOverlap(all[i]![1], all[j]![1])) touching.push(`${n} players${seated ? "" : ", spectator"}: ${all[i]![0]} and ${all[j]![0]}`)
+      }
+    }
+    expect(touching).toEqual([])
+  })
+
+  it("keeps the strip of the middle, with its counts and the room over the piles, clear of every plate and grid", () => {
+    const touching: string[] = []
+    for (const seated of [true, false]) {
+      for (const n of SIZES) {
+        const { plates, grids, strip } = tableParts(n, seated)
+        for (const [i, polygon] of [...plates, ...grids].entries()) if (polygonsOverlap(strip, polygon)) touching.push(`${n} players${seated ? "" : ", spectator"}: ${i < n ? `plate ${i}` : `grid ${i - n}`}`)
+      }
+    }
+    expect(touching).toEqual([])
+  })
+
+  it("stands every plate on the middle's side of its grid, centred on the axis of the seat", () => {
+    for (const n of SIZES) {
+      for (const seat of seatsOf(ids(n), "p0").values()) {
+        const plate = plateBox(seat)
+        // in the frame of the seat the top, the least z, is toward the middle: the plate is above the grid, clear of it
+        expect(plate.maxZ, `${n} players`).toBeLessThanOrEqual(seat.above.minZ)
+        expect(plate.minX + plate.maxX, `${n} players`).toBeCloseTo(0, 6)
       }
     }
   })
 
-  it("keeps the strip of the middle clear of every plate and grid", () => {
-    for (const n of SIZES) {
-      const boxes = tableBoxes(n)
-      const strip = boxes.at(-1) as Box
-      // the last four are the piles, the card in hand and the strip itself
-      const placed = boxes.slice(0, -4)
-      for (const [i, box] of placed.entries()) expect(boxesOverlap(strip, box), `${n} players, box ${i}`).toBe(false)
-    }
-  })
-
   it("has as many plates and grids as players, and the piles, the hand and the strip", () => {
-    for (const n of SIZES) expect(tableBoxes(n)).toHaveLength(2 * n + 4)
-  })
-
-  it("is a function of the seat order alone: renaming the players moves nothing", () => {
-    const a = grids(seatSpots(["a", "b", "c"], "b"), "b")
-    const b = grids(seatSpots(["x", "y", "z"], "y"), "y")
-    expect([...a.values()]).toEqual([...b.values()])
-  })
-
-  it("puts the viewer's grid in front, bigger than the opponents'", () => {
     for (const n of SIZES) {
-      const all = grids(seatSpots(ids(n), "p0"), "p0")
-      expect(all.get("p0")!.scale).toBeGreaterThan(all.get("p1")!.scale)
-      expect(all.get("p0")!.at).toEqual({ x: 0, z: LAYOUT_SETTINGS.viewerZ })
-      expect(gridBox(all.get("p0")!).yaw).toBe(0)
+      expect(tableParts(n).plates).toHaveLength(n)
+      expect(tableParts(n).grids).toHaveLength(n)
+      expect(tableQuads(n)).toHaveLength(2 * n + 4)
     }
   })
 
-  it("turns an opponent's grid to face its player, and not when `faceSeat` is 0", () => {
-    const spots = seatSpots(ids(4), "p0")
-    expect(Math.abs(grids(spots, "p0").get("p2")!.yaw)).toBeCloseTo(Math.PI)
-    LAYOUT_SETTINGS.faceSeat = 0
-    try {
-      expect(grids(spots, "p0").get("p2")!.yaw).toBe(0)
-    } finally {
-      LAYOUT_SETTINGS.faceSeat = 1
-    }
+  it("lays the corners of a seat's box where its frame turns them", () => {
+    const seat = seatsOf(ids(4), "p0").get("p2")!
+    const corners = cornersOfBox(seat.above, seat.frame)
+    const centre = corners.reduce((sum, c) => ({ x: sum.x + c.x / 4, z: sum.z + c.z / 4 }), { x: 0, z: 0 })
+    expect(centre.x).toBeCloseTo(seat.frame.x)
+    expect(centre.z).toBeCloseTo(seat.frame.z)
   })
 })
 
@@ -267,31 +240,22 @@ describe("the middle of the table", () => {
     const { deal } = floorPlan()
     const { deck, held, discard } = pilePlaces()
     const R = LAYOUT_SETTINGS
-    const card = (place: { x: number; z: number }, scale: number): Box => ({ x: place.x, z: place.z, halfWidth: (CARD.width * scale) / 2, halfDepth: (CARD.height * scale) / 2, yaw: 0 })
-    const pad: Box = { x: deal.x, z: deal.z, halfWidth: deal.width / 2, halfDepth: deal.depth / 2, yaw: 0 }
-    for (const c of [card(deck, R.pileScale), card(discard, R.pileScale), card(held, R.heldScale)]) expect(boxesOverlap(pad, c)).toBe(false)
+    const pad = rect(deal.x, deal.z, deal.width / 2, deal.depth / 2)
+    for (const [place, scale] of [[deck, R.pileScale], [discard, R.pileScale], [held, R.heldScale]] as const) expect(polygonsOverlap(pad, rect(place.x, place.z, (CARD.width * scale) / 2, (CARD.height * scale) / 2))).toBe(false)
   })
 
   it("holds in the strip the piles, the card in hand, the count under each pile and the room over them", () => {
     const { strip, above } = floorPlan()
     const { deck, held, discard } = pilePlaces()
     const R = LAYOUT_SETTINGS
-    const box = (place: { x: number; z: number }, scale: number): Box => ({ x: place.x, z: place.z, halfWidth: (CARD.width * scale) / 2, halfDepth: (CARD.height * scale) / 2, yaw: 0 })
-    const stripBox: Box = { x: strip.x, z: strip.z, halfWidth: strip.width / 2, halfDepth: strip.depth / 2, yaw: 0 }
-    const within = (inner: Box) => inner.x - inner.halfWidth >= stripBox.x - stripBox.halfWidth - 1e-9 && inner.x + inner.halfWidth <= stripBox.x + stripBox.halfWidth + 1e-9 && inner.z - inner.halfDepth >= stripBox.z - stripBox.halfDepth - 1e-9 && inner.z + inner.halfDepth <= stripBox.z + stripBox.halfDepth + 1e-9
-    for (const c of [box(deck, R.pileScale), box(discard, R.pileScale), box(held, R.heldScale)]) expect(within(c)).toBe(true)
-    expect(within({ x: above.x, z: above.z, halfWidth: strip.width / 2, halfDepth: above.depth / 2, yaw: 0 })).toBe(true)
+    const within = (inner: { x: number; z: number; halfWidth: number; halfDepth: number }) =>
+      inner.x - inner.halfWidth >= strip.x - strip.width / 2 - 1e-9 &&
+      inner.x + inner.halfWidth <= strip.x + strip.width / 2 + 1e-9 &&
+      inner.z - inner.halfDepth >= strip.z - strip.depth / 2 - 1e-9 &&
+      inner.z + inner.halfDepth <= strip.z + strip.depth / 2 + 1e-9
+    for (const [place, scale] of [[deck, R.pileScale], [discard, R.pileScale], [held, R.heldScale]] as const) expect(within({ x: place.x, z: place.z, halfWidth: (CARD.width * scale) / 2, halfDepth: (CARD.height * scale) / 2 })).toBe(true)
+    expect(within({ x: above.x, z: above.z, halfWidth: strip.width / 2, halfDepth: above.depth / 2 })).toBe(true)
     // the count of a pile lies under it, in the strip: its middle is the kit's gap under the edge of the pile
-    const count = { x: deck.x, z: deck.z + (CARD.height * R.pileScale) / 2 + PILE_LABEL_GAP, halfWidth: 0.4, halfDepth: PILE_LABEL_HEIGHT / 2, yaw: 0 }
-    expect(within({ ...count, z: count.z })).toBe(true)
-  })
-})
-
-describe("the plate of a seat", () => {
-  it("turns a plate back by half a turn when it would be more than a quarter turn from upright", () => {
-    expect(uprightYaw(0)).toBeCloseTo(0)
-    expect(uprightYaw(Math.PI)).toBeCloseTo(0)
-    expect(uprightYaw(-Math.PI / 2)).toBeCloseTo(-Math.PI / 2)
-    expect(uprightYaw((3 * Math.PI) / 4)).toBeCloseTo(-Math.PI / 4)
+    expect(within({ x: deck.x, z: deck.z + (CARD.height * R.pileScale) / 2 + PILE_LABEL_GAP, halfWidth: 0.4, halfDepth: PILE_LABEL_HEIGHT / 2 })).toBe(true)
   })
 })
