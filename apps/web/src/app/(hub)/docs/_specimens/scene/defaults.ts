@@ -1,6 +1,7 @@
 // What the light half of a specimen (its controls) and the heavy half (its scene) both need to know. Plain numbers only: this file imports no code (a type of the engine kit at the most), so the controls can read it without pulling in three.js.
 
 import type { Drawing, LaidTile } from "@pbgo/engine-kit"
+import type { Blend } from "@pbgo/table"
 import type { TileName } from "./landscape"
 
 /** The view the camera specimen starts from, and its reset returns to. The scene adds the point it looks at. */
@@ -28,6 +29,25 @@ export type LayoutName = (typeof LAYOUTS)[number]
 
 /** The pile specimen: the most cards the slider reaches, the count it starts at and the cards drawn from it. */
 export const PILE_CARDS = { max: 30, start: 14 }
+
+/** The colours the mat specimen tries: the colour of the table, the line of a lattice a hair off it, and the colour the middle of the pool lights it to. */
+export const MAT_COLORS = {
+  slate: { label: "Slate", base: "#0c0c0e", line: "#17171b", center: "#383840" },
+  teal: { label: "Teal", base: "#043039", line: "#07414d", center: "#094f5d" },
+  wine: { label: "Wine", base: "#2a0f17", line: "#3a1520", center: "#4d1c2b" },
+  indigo: { label: "Indigo", base: "#120b2c", line: "#1c1245", center: "#251760" },
+} as const
+export type MatColor = keyof typeof MAT_COLORS
+
+/** The patterns the mat specimen offers under the planks. */
+export const MAT_PATTERNS = { lattice: "Lattice", mosaic: "Mosaic", grain: "Grain", plain: "Plain" } as const
+export type MatPattern = keyof typeof MAT_PATTERNS
+
+/** The blends of the planks. */
+export const MAT_BLENDS: Record<Blend, string> = { normal: "Normal", multiply: "Multiply", screen: "Screen", overlay: "Overlay", "soft-light": "Soft light", "hard-light": "Hard light", lighten: "Lighten", darken: "Darken" }
+
+/** Everything the mat specimen's controls set, and its scene reads. */
+export type MatKnobs = { color: MatColor; pattern: MatPattern; picture: boolean; blend: Blend; light: boolean; glow: boolean; tile: number }
 
 /** The players the seats specimen rings, from two to eight. */
 export const SEAT_PLAYERS = { min: 2, max: 8, start: 4 }

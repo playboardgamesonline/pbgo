@@ -32,14 +32,13 @@ scene-table
 - Children are three.js objects drawn by react-three-fiber. DOM belongs to the HUD around the canvas, never inside the `Table`.
 - A game splits its scene in two, the component that renders `Table` and the one that renders what lies on it, so hooks like `useFrame` run under the canvas.
 
-From `template/src/components/board/scene.tsx`, where `World` is what lies on the table and the surface is a colour and a felt:
+From `template/src/components/board/scene.tsx`, where `World` is what lies on the table and the surface is a colour, a lattice laid over it and a pool of light:
 
 ```tsx
 export function Scene(props: SceneProps) {
   useCameraSettings()
-  const [mat] = useState(matTexture)
   return (
-    <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, map: mat }} held={props.held} onLoaded={props.onLoaded}>
+    <Table camera={CAMERA} photo={PHOTO} surface={{ color: MAT_COLOR, layers: MAT_LAYERS, resolution: MAT_RESOLUTION, light: MAT_LIGHT }} held={props.held} onLoaded={props.onLoaded}>
       <World {...props} />
     </Table>
   )
@@ -60,26 +59,61 @@ Every material the package draws is unlit, so the lights show only on a material
 
 ## Surface
 
-The table the cards lie on is an endless surface: one colour and, if the game gives one, a picture that repeats. It has no edge and no horizon, and it is never an oval or a rectangle. Shared: `packages/table/src/table/surface.tsx`; the component `Surface` is internal.
+The table the cards lie on is an endless surface: a colour and, if the game gives them, layers laid over it, which the table bakes into one picture that repeats. It has no edge and no horizon, and it is never an oval or a rectangle. Shared: `packages/table/src/table/surface.tsx`, with the layers in `mat.ts` and the numbers behind them in `mat-field.ts`; the component `Surface` is internal.
+
+A mat is data, and each game gives its own: a colour, a pattern, a material, a picture of its own, a pool of light. The table owns the mechanism (baking the layers, repeating the picture over a plane wider than the camera sees, fading it into the colour with distance, adding the pool of light), so a change to it changes the table of every game at once, and a game owns the data, so its table is dressed as it likes. Set a mat below: pick a colour and a pattern, lay planks of wood over it with a blend, and light it.
+
+```specimen
+scene-mat
+```
 
 | Field of `SurfaceProps` | Role |
 | --- | --- |
-| `color` | The colour of the table, and of everything beyond it. With a picture, give the picture's average colour, or the fade shows as a haze |
-| `map` | A seamless picture that repeats over the whole table: felt, linen, wood. The table repeats a copy of it, so the game's own texture keeps its wrapping and its `repeat`. It is shown as it is: no light and no tone mapping touch it |
-| `tile` | How many world units one repeat of the picture covers; `TILE` in `surface.tsx` when not given |
-| `light` | A pool of light on the table, as a vignette is ([A pool of light](#a-pool-of-light)): `{ color, radius, at }` |
+| `color` | The colour of the table, and of everything beyond it: the bottom of the mat, which the layers are laid over. With a picture on top, give the picture's average colour, or the fade shows as a haze |
+| `layers` | What lies on the table, from the bottom up, each laid over what is below it: `MatLayer`s ([Layers](#layers)). The table bakes them once into one seamless picture |
+| `resolution` | Pixels across the baked picture, a power of two (`MAT_SIZE`, 512, when not given): more for a picture with detail that is seen up close |
+| `tile` | How many world units one repeat of the picture covers (`SURFACE_TILE` in `surface.tsx`, 2, when not given) |
+| `light` | A pool of light on the table, as a vignette is ([A pool of light](#a-pool-of-light)): `{ color or center, radius, at, glow }` |
+| `map` | Deprecated. A seamless picture the game made and repeats over the table: say `layers`, so that the table bakes the picture itself and the game paints none |
 
-- Without a `map`, the surface is the colour the canvas is cleared to, not a shape in the scene. There is no edge to reach and no size to outgrow, so no camera sees an end of it: tilted to the horizon or pulled back (try both in [Camera](02-camera.md)), in the entrance or in the share photo.
-- With a `map`, the picture covers a plane `REACH` times wider than the camera's `far` and fades into `color` with distance, from `FOG_START` of `far` to `far`. The fade is the scene's fog: keep `far` well past the cards, or they fade too.
+- Without layers, the surface is the colour the canvas is cleared to, not a shape in the scene. There is no edge to reach and no size to outgrow, so no camera sees an end of it: tilted to the horizon or pulled back (try both in [Camera](02-camera.md)), in the entrance or in the share photo.
+- With layers, the picture covers a plane `REACH` times wider than the camera's `far` and fades into `color` with distance, from `FOG_START` of `far` to `far`. The fade is the scene's fog: keep `far` well past the cards, or they fade too.
 - The surface lies under everything and takes no clicks ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)). The cards and the seats lie over it, a card at `RESTING_HEIGHT` ([Poses](05-poses-and-motion.md)).
 - The surface is pushed back in the depth buffer (`POLYGON_OFFSET` in `surface.tsx`). It is one plane a thousand units wide, whose depth is not exact over such a size, and without the push what lies a hair above it, the plates of a board or the line of a zone, sank into it wherever the camera stood far from the table.
-- A grain made in code is a `map` that costs no picture in the repository: `grainTexture({ base, strength })` (`packages/table/src/table/grain.ts`) paints one 256-pixel square of felt on a canvas, the table's colour (`base`, a `#rrggbb`) with a fine speckle and a slow mottling in it, that wraps with no seam, from a seed (the same on every client, no `Math.random`). Give it to `Surface` as `map`, with `base` as `color`. `strength` is 0 to 1 (0.5 moves the finest speckle by about 6 % of the range): enough to see up close, quiet from the camera, so cards and plates keep their contrast. A mat that lies over it should **add** light (a plane with additive blending and a gradient from the colour difference to black) instead of covering it, so that the grain shows through the pool of light and the mat has no edge. A table with no grain at all is made so too, a flat colour with a pool of light added to it (Flip 7's `Mat` in `scene.tsx`: a gradient that eases away with no flat part and no knee, dithered by one level so that its 8 bits do not band). A grain is one 256-pixel texture and one extra plane, which a phone's graphics card does not feel. Give `Surface` a `tile` worked out from the camera, not a number of world units: a unit of the table is 120 px in a big window and 40 in a small one, so a tile in world units makes a speckle of 1 px in one and 3 px in the other. Ask for a texel of a pixel or so at the point the camera looks at (the size of the picture in texels times that, over the pixels a unit is), and the grain is as fine in every window. **A grain's repeat is seen when its picture is narrower than the window**, however fine the grain: 256 texels of 0.85 px are 218 px on the screen, six repeats across a window, and a pattern shows. The mottling is slight and fine on purpose: a coarse one reads as clouds laid on the table. A table need not have a grain: Flip 7 had one and its table is smooth now, a flat colour with a pool of light, which suits its dark, saturated teal.
-- A mat with a pattern, with no grain: `latticeTexture({ base, line, diamonds, width })` (`packages/table/src/table/lattice.ts`) paints thin lines that cross at an angle over the colour of the mat, as a printed playing mat has, on one 256-pixel square that wraps with no seam. Give it to `Surface` as `map`, with `base` as `color`. Keep `line` close to `base` (the template's is `#17171b` on `#0c0c0e`): a lattice that is seen is too loud for a table.
-- A mat, a board picture is a plane the game draws on the table. It has an edge, so it is the game's to place and to hide. A mat with a behaviour of its own, such as a shader that unrolls it, stays in the game.
+- A game may make its `layers` again on every render: the table keys the baked picture by what the layers say (`matKey`: the colour, the resolution, each layer's kind and parameters, a picture by the object it is) and bakes again only when that changed. The picture is let go when the mat is.
+- **No table needs a grain**, and the default is none: a flat colour, a pool of light, at the most a pattern a hair off the colour. A grain's repeat is seen when its picture is narrower than the window: 256 texels of 0.85 px are 218 px on the screen, six repeats across a window, and a pattern shows, however fine it is. The mottling is slight and fine on purpose, since a coarse one reads as clouds laid on the table.
+- Give `tile` a size that suits the camera, not a number picked by eye: a unit of the table is 120 px in a big window and 40 in a small one, so a tile in world units makes a speckle of 1 px in one and 3 px in the other. Ask for a texel of a pixel or so at the point the camera looks at (the resolution times that, over the pixels a unit is), and a fine pattern is as fine in every window.
+- A board picture is a plane the game draws on the table. It has an edge, so it is the game's to place and to hide. A mat with a behaviour of its own, such as a slab with an edge that unrolls, stays in the game until the table has one.
+
+### Layers
+
+A layer says what it is with its `kind`. The table starts as its colour, and each layer is laid over what is below it, in order. Every layer must repeat with no seam, since the table is one repeat of the mat over and over: the lattice, the mosaic and the grain are made to, and a picture is the game's to give so.
+
+| `kind` | Fields | What it lays |
+| --- | --- | --- |
+| `fill` | `color` | A flat colour over everything below. With the blend `multiply` it tints what is below with the colour and darkens it, with `screen` it lightens it |
+| `lattice` | `line`, `diamonds`, `width` | Thin lines that cross at an angle, `diamonds` of them across one repeat, as a printed playing mat has. Keep `line` close to the colour of the mat (`#17171b` on `#0c0c0e`): a lattice that is seen is too loud for a table |
+| `picture` | `picture`, `repeat` | A picture of the game's own: wood, stone, leather, cloth, as a texture it loaded or an image, a bitmap or a canvas. It is drawn `repeat` times across one repeat of the mat (default 1). It is the game's asset: the table makes none |
+| `mosaic` | `cells`, `shade`, `crack`, `grain`, `seed` | A cracked-glass mosaic, `cells` across one repeat (default 9): each cell a hair lighter or darker than what is below (`shade`, a share of the colour) and a fine light crack along every border (`crack`), with a fine grain over it all (`grain`). Low, so that it reads as a surface and not as a pattern. It changes what is below it in place |
+| `grain` | `strength`, `seed` | A felt-like grain: a fine speckle and a slow mottling that move the colour up or down. `strength` is 0 to 1, and 0.5 moves the finest speckle by about 6 % of the range. It changes what is below it in place |
+
+Every layer takes an `opacity`, 0 to 1 (default 1): the share of it that is laid, or for a mosaic and a grain how strong the effect is. A `fill`, a `lattice` and a `picture` take a `blend`, how they are laid over what is below: `normal` covers it, `multiply` darkens it by the layer, `screen` lightens it, `overlay`, `soft-light` and `hard-light` deepen its darks and its lights by the layer's, `lighten` and `darken` keep the lighter or the darker of the two (`BLENDS`, the names of CSS's `mix-blend-mode`, which a canvas knows by the same names). Wood or leather over a pattern with `multiply` leaves the pattern showing through the grain of the picture; with `normal` it covers it.
+
+Each layer is painted on a canvas of `resolution` pixels, the colour first, and the result is the texture that repeats (`bakeMat` of `mat.ts`, which is exported for a board that wants the picture itself). The numbers behind a layer are pure and tested without a canvas: the lines of the lattice, the cells of the mosaic and how a point lies in them (`mosaicAt`, which repeats every 1 across and down), the grain (`grainField`).
 
 ### A pool of light
 
-A table that is lit at its middle and darker toward its edges, as a vignette makes it, is `light` of the `Surface`: a plane with a radial gradient that is **added** to the table (additive blending, no fog), laid a hair over it and under everything that stands on it, so the cards and the plates are not darkened and the picture of the table shows through everywhere alike. `color` is the light that is added at the middle, a dark colour (a mat of `#0c0c0e` lit with `#2c2c31` reads as dark grey in the middle and black at the edges; a light that is seen is a spotlight and no vignette), `radius` how far it reaches (default `LIGHT_RADIUS`, 20, a little past the far seats of a table of eight) and `at` where its middle lies (the middle of the table). The falloff is smooth to nothing at the edge of the plane (`poolFalloff` and `poolStops` of `mat-field.ts`, tested in `mat-field.test.ts`), so the plane has no edge to see.
+A table that is lit at its middle and darker toward its edges, as a vignette makes it, is `light` of the `Surface`: a plane with a radial gradient that is **added** to the table (additive blending, no fog), laid a hair over it and under everything that stands on it, so the cards and the plates are not darkened and the picture of the table shows through everywhere alike.
+
+| Field of `SurfaceLight` | Role |
+| --- | --- |
+| `color` | The light that is added at the middle, a dark colour: a mat of `#0c0c0e` lit with `#2c2c31` reads as dark grey in the middle and black at the edges. A light that is seen is a spotlight and no vignette |
+| `center` | Instead of `color`: the colour the table has at the middle of the pool, which is what a game's settings say (`surface` in the middle, over `surfaceDark` beyond). The light is what it has more than the table's own colour, channel by channel (`lightBetween`) |
+| `radius` | How far it reaches (`LIGHT_RADIUS`, 20, a little past the far seats of a table of eight) |
+| `at` | Where its middle lies (the middle of the table) |
+| `glow` | A faint wheel of colours that turns through the pool, `{ colors, strength }`: the colours go round once, the first given again at the end so that the circle closes, and `strength` (0.14 when not given) is how bright it is where it is brightest, low so that the cards stay the brightest colours of the table |
+
+The falloff is smooth to nothing at the edge of the plane (`poolFalloff`), so the plane has no edge to see, and each level of the gradient is dithered by one level (`dithered`, `poolPixels`) so that its 8 bits do not band: a dark pool over a dark table is where the bands show, and where the eye looks. All of it is in `mat-field.ts`, tested in `mat-field.test.ts`.
 
 ## Share photo
 
