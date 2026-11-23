@@ -1,6 +1,6 @@
 "use client"
 
-import type { VisibleCard, Mission, PlayerView } from "@courtisans/engine"
+import { type VisibleCard, type Mission, type PlayerView, missionOf } from "@courtisans/engine"
 import { useCursor } from "@react-three/drei"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
@@ -740,9 +740,10 @@ function World({
   const seat = useSeatTheme()
   const { hostIcon } = useSkin()
   const it = useInteraction()
-  const missions = useMemo(() => view.me?.missions ?? [], [view.me?.missions])
+  // The view gives the ids of the missions: the rule of each (its colour) is the engine's, its text and picture are Sanity's
+  const missions = useMemo(() => (view.me?.missions ?? []).map(missionOf), [view.me?.missions])
   const allMissions = useMemo(
-    () => [...missions, ...view.players.flatMap((j) => (j.id === view.me?.id ? [] : (j.missions ?? [])))],
+    () => [...missions, ...view.players.flatMap((j) => (j.id === view.me?.id ? [] : (j.missions ?? []).map(missionOf)))],
     [missions, view.players, view.me?.id],
   )
   const tex = useTextures(catalog, allMissions)
@@ -1238,7 +1239,7 @@ function World({
             ))}
           {view.players.map((j) => {
             const zone = zones.get(j.id)
-            const list = j.id === meId ? missions : j.missions
+            const list = j.id === meId ? missions : j.missions?.map(missionOf)
             if (!zone || !list) return null
             const r = results.players.find((x) => x.playerId === j.id)
             return list.map((m, k) => {

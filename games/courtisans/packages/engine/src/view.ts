@@ -1,6 +1,6 @@
 import { activePlayerId, availableZones } from "./actions"
 import { type CourtisansResults, computeResults } from "./scoring"
-import type { Target, Courtier, Family, GameState, Mission, Level, Phase, Role, PlayZone } from "./types"
+import type { Target, Courtier, Family, GameState, Level, Phase, Role, PlayZone } from "./types"
 
 export type VisibleCard = {
   id: string
@@ -20,11 +20,13 @@ export type VisiblePlayer = {
   domain: VisibleCard[]
   handCount: number
   missionsRead: boolean
-  missions: Mission[] | null
+  /** The ids of their two missions: only once the game is over. */
+  missions: string[] | null
 }
 
 export type PlayerView = {
-  me: { id: string; hand: Courtier[]; missions: Mission[] } | null
+  /** The viewer, when they sit at the table: their hand and the ids of their two missions. */
+  me: { id: string; hand: Courtier[]; missions: string[] } | null
   players: VisiblePlayer[]
   table: { card: VisibleCard; level: Level }[]
   deckCount: number

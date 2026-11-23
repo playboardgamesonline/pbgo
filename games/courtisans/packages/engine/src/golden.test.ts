@@ -1,7 +1,7 @@
 import { type Rng, createRng } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
 import { GAME } from "./game"
-import type { Action, GameState, Mission, Target } from "./types"
+import type { Action, GameState, Target } from "./types"
 
 /**
  * Golden seeds: ten whole games, played by a scripted bot, and what each one ends on. They are written once, before the engine is rewritten on the kit, and they must
@@ -10,47 +10,9 @@ import type { Action, GameState, Mission, Target } from "./types"
  * The bot plays through the public view and the engine's `apply`, with a stream of its own, so that nothing of the engine's own automatic play (which the rewrite changes) is in
  * the result: only the deal (the seed), the missions and the rules. What the games end on is written as plain facts, a line for each player, never the ids of the cards.
  *
- * The missions are the twenty of the game's Sanity project, in the order the engine lists them (the white ones, then the blue ones), so that the draw of each player's two missions is
- * the one a game would make.
+ * The missions are the engine's own. The expected facts were written with the twenty missions as the game's Sanity project had them, in the order the engine now lists them, so that the
+ * draw of each player's two missions and what each one is worth are the ones the games had before the rules of the missions moved into the engine.
  */
-
-const MISSIONS: Mission[] = [
-  { id: "mission-light-1", color: "white", text: "", condition: { type: "playerComparison", filter: { family: "carp" }, comparator: "lt", opponent: "leftNeighbor", mode: "weight" } },
-  { id: "mission-light-2", color: "white", text: "", condition: { type: "playerComparison", filter: { family: "stag" }, comparator: "lt", opponent: "leftNeighbor", mode: "weight" } },
-  { id: "mission-light-3", color: "white", text: "", condition: { type: "playerComparison", filter: { family: "toad" }, comparator: "lt", opponent: "leftNeighbor", mode: "weight" } },
-  { id: "mission-light-4", color: "white", text: "", condition: { type: "playerComparison", filter: { family: "hare" }, comparator: "lt", opponent: "leftNeighbor", mode: "weight" } },
-  { id: "mission-light-5", color: "white", text: "", condition: { type: "playerComparison", filter: { family: "butterfly" }, comparator: "lt", opponent: "leftNeighbor", mode: "cards" } },
-  { id: "mission-light-6", color: "white", text: "", condition: { type: "playerComparison", filter: { family: "nightingale" }, comparator: "lt", opponent: "leftNeighbor", mode: "weight" } },
-  { id: "mission-light-7", color: "white", text: "", condition: { type: "domainCards", filter: { role: "spy" }, comparator: "gte", value: 3, mode: "cards" } },
-  { id: "mission-light-8", color: "white", text: "", condition: { type: "domainCards", filter: { role: "noble" }, comparator: "gte", value: 3, mode: "cards" } },
-  { id: "mission-light-9", color: "white", text: "", condition: { type: "domainCards", filter: { role: "assassin" }, comparator: "gte", value: 2, mode: "cards" } },
-  { id: "mission-light-10", color: "white", text: "", condition: { type: "domainCards", filter: { role: "guard" }, comparator: "gte", value: 4, mode: "cards" } },
-  { id: "mission-dark-1", color: "blue", text: "", condition: { type: "familyStatus", family: "carp", status: "disgrace" } },
-  { id: "mission-dark-2", color: "blue", text: "", condition: { type: "familyStatus", family: "stag", status: "disgrace" } },
-  { id: "mission-dark-3", color: "blue", text: "", condition: { type: "familyStatus", family: "toad", status: "disgrace" } },
-  { id: "mission-dark-4", color: "blue", text: "", condition: { type: "familyStatus", family: "hare", status: "disgrace" } },
-  { id: "mission-dark-5", color: "blue", text: "", condition: { type: "familyStatus", family: "butterfly", status: "disgrace" } },
-  { id: "mission-dark-6", color: "blue", text: "", condition: { type: "familyStatus", family: "nightingale", status: "disgrace" } },
-  { id: "mission-dark-7", color: "blue", text: "", condition: { type: "familiesWithStatus", status: "disgrace", comparator: "gte", value: 2 } },
-  { id: "mission-dark-8", color: "blue", text: "", condition: { type: "familiesWithStatus", status: "light", comparator: "lte", value: 3 } },
-  {
-    id: "mission-dark-9",
-    color: "blue",
-    text: "",
-    condition: {
-      type: "or",
-      conditions: (["butterfly", "toad", "nightingale", "hare", "stag", "carp"] as const).map((family) => ({
-        type: "tableCards" as const,
-        filter: { family },
-        comparator: "gte" as const,
-        value: 5,
-        mode: "weight" as const,
-        level: "down" as const,
-      })),
-    },
-  },
-  { id: "mission-dark-10", color: "blue", text: "", condition: { type: "tableCards", filter: {}, comparator: "gte", value: 1, mode: "cards", level: "down" } },
-]
 
 /** What a game ends on, as plain facts. */
 type Summary = {
@@ -88,7 +50,7 @@ function move(state: GameState, rng: Rng): Action {
 function play(seed: number, count: number): Summary {
   const rng = createRng(seed * 31 + count)
   const players = Array.from({ length: count }, (_, i) => ({ id: `p${i}`, nickname: `Player ${i}` }))
-  let state = GAME.setup({ players, options: {}, seed, data: MISSIONS })
+  let state = GAME.setup({ players, options: {}, seed })
   for (const { id } of players) state = GAME.apply(state, { type: "readMissions", playerId: id })
 
   let plays = 0

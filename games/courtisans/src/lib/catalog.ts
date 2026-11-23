@@ -59,10 +59,7 @@ export type ClientCatalog = {
   banquetStartText: string
   words: Vocabulary
   statusWords: StatusWords
-  /**
-   * Mission texts in the player's language (id → text), in every language including the default one.
-   * The text frozen into the game state (`Mission.text`) is only read for a mission since removed from Sanity.
-   */
+  /** Mission texts in the player's language (id → text): the language asked, else English, else the `[missing: …]` marker. The rule of a mission is the engine's (`MISSIONS`), never read from here. */
   missionTexts: Record<string, string>
 }
 

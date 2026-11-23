@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { autoMove } from "./debug"
 import { GAME } from "./game"
 import { setupGame } from "./setup"
-import { testMissions } from "./test-utils"
 import type { Action, GameState } from "./types"
 
 const players = [
@@ -18,7 +17,7 @@ const autoPlay = (state: GameState) => playFor(GAME, state, waitingPlayers(GAME,
 
 /** Plays a whole game for the absent players, recording the actions it took (rebuilt from the log). */
 function playToEnd(seed: number) {
-  let state = GAME.debug!.missions!(GAME.setup({ players, options: {}, seed, data: testMissions() }))
+  let state = GAME.debug!.missions!(GAME.setup({ players, options: {}, seed }))
   const actions: Action[] = []
   while (!GAME.isOver(state)) {
     const before = state.log.length
@@ -38,7 +37,7 @@ describe("determinism (GAM-5)", () => {
   afterEach(() => vi.restoreAllMocks())
 
   it("sets up the same game from the same seed, and another one from another seed", () => {
-    const setup = (seed: number) => GAME.setup({ players, options: {}, seed, data: testMissions() })
+    const setup = (seed: number) => GAME.setup({ players, options: {}, seed })
     expect(setup(SEED)).toEqual(setup(SEED))
     expect(setup(SEED).deck).not.toEqual(setup(SEED + 1).deck)
     expect(setup(SEED).seed).toBe(SEED)
@@ -46,13 +45,13 @@ describe("determinism (GAM-5)", () => {
 
   it("never calls Math.random once a seed is given (setup, autoPlayFor, debug)", () => {
     const random = vi.spyOn(Math, "random")
-    const state = GAME.setup({ players, options: {}, seed: SEED, data: testMissions() })
+    const state = GAME.setup({ players, options: {}, seed: SEED })
     GAME.debug!.over!(autoPlay(state))
     expect(random).not.toHaveBeenCalled()
   })
 
   it("autoPlayFor picks the same moves for the same state", () => {
-    const state = GAME.debug!.missions!(GAME.setup({ players, options: {}, seed: SEED, data: testMissions() }))
+    const state = GAME.debug!.missions!(GAME.setup({ players, options: {}, seed: SEED }))
     expect(autoPlay(state)).toEqual(autoPlay(structuredClone(state)))
     expect(playToEnd(SEED).state).toEqual(playToEnd(SEED).state)
   })
@@ -60,14 +59,14 @@ describe("determinism (GAM-5)", () => {
   it("same seed + same actions ⇒ identical final state", () => {
     const { state: expected, actions } = playToEnd(SEED)
     expect(actions.length).toBeGreaterThan(0)
-    let state = GAME.debug!.missions!(GAME.setup({ players, options: {}, seed: SEED, data: testMissions() }))
+    let state = GAME.debug!.missions!(GAME.setup({ players, options: {}, seed: SEED }))
     for (const action of actions) state = GAME.apply(state, action)
     expect(state).toEqual(expected)
   })
 
   it("keeps games saved before seeds existed playable and deterministic", () => {
     const legacy = (): GameState => {
-      const state = setupGame({ players, missions: testMissions(), seed: 9 })
+      const state = setupGame({ players, seed: 9 })
       delete state.seed
       return GAME.debug!.missions!(state)
     }

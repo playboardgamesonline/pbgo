@@ -3,7 +3,7 @@
 import { type VisibleCard, FAMILIES, type Mission, ROLES } from "@courtisans/engine"
 import { useEffect, useMemo, useState } from "react"
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace, type Texture, TextureLoader } from "three"
-import { isMissing } from "@pbgo/core/lib/missing"
+import { isMissing, missing } from "@pbgo/core/lib/missing"
 import { type ClientCatalog, cardKey, type StatusWords } from "../../lib/catalog"
 
 function textTexture(text: string, bg: string, ink: string, ratio: number) {
@@ -230,7 +230,7 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
         const key = cardKey(f, r)
         list.push({ key: `face:${key}`, url: catalog.cards[key] })
       }
-    for (const m of missions) list.push({ key: `mission:${m.id}`, url: catalog.missions[m.id], text: catalog.missionTexts?.[m.id] ?? m.text })
+    for (const m of missions) list.push({ key: `mission:${m.id}`, url: catalog.missions[m.id], text: catalog.missionTexts?.[m.id] ?? missing(`missions.${m.id}`) })
     return list
   }, [catalog, missions])
 
@@ -297,7 +297,7 @@ export function useTextures(catalog: ClientCatalog, missions: Mission[]): Textur
       mission: (m) =>
         loaded[`mission:${m.id}`] ??
         fallback(`m:${m.id}`, () =>
-          textTexture(catalog.missionTexts?.[m.id] ?? m.text, m.color === "blue" ? "#0d5c63" : "#efe1bf", m.color === "blue" ? "#fff" : "#10363c", 452 / 688),
+          textTexture(catalog.missionTexts?.[m.id] ?? missing(`missions.${m.id}`), m.color === "blue" ? "#0d5c63" : "#efe1bf", m.color === "blue" ? "#fff" : "#10363c", 452 / 688),
         ),
       missionBack: (m) =>
         (m.color === "blue" ? loaded.blueBack : loaded.whiteBack) ??

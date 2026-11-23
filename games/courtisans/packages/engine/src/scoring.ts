@@ -1,6 +1,6 @@
 import type { PlayerResult, Results } from "@pbgo/engine-kit"
 import { MISSION_POINTS, weight } from "./deck"
-import { evaluateCondition } from "./missions"
+import { evaluateCondition, missionOf } from "./missions"
 import { FAMILIES, type Courtier, type Family, type GameState, type Placement, type Status } from "./types"
 
 export type FamilyStatus = { up: number; down: number; status: Status }
@@ -45,9 +45,9 @@ export function computeResults(state: GameState): CourtisansResults {
   const statuses = computeStatuses(state.table)
   const players: CourtisansPlayerResult[] = state.players.map((player, index) => {
     const domain = domainPoints(player.domain, statuses)
-    const missions = player.missions.map((m) => {
-      const done = evaluateCondition(m.condition, { state, playerIndex: index, statuses })
-      return { missionId: m.id, done, points: done ? MISSION_POINTS : 0 }
+    const missions = player.missions.map((id) => {
+      const done = evaluateCondition(missionOf(id).condition, { state, playerIndex: index, statuses })
+      return { missionId: id, done, points: done ? MISSION_POINTS : 0 }
     })
     const total = domain.total + missions.reduce((sum, m) => sum + m.points, 0)
     const missionPoints = missions.reduce((sum, m) => sum + m.points, 0)

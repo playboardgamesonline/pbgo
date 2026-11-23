@@ -14,10 +14,4 @@ export const ROLES = [
   { title: "Guard", value: "guard", slug: "guard" },
 ]
 
-export const STATUSES = [
-  { title: "In the light", value: "light" },
-  { title: "In disgrace", value: "disgrace" },
-  { title: "Neutral", value: "neutral" },
-]
-
 export const titleOf = (list: { title: string; value: string }[], value: unknown) => list.find((i) => i.value === value)?.title

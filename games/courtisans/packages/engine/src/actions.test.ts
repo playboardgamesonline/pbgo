@@ -2,13 +2,13 @@ import { createRng } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
 import { activePlayerId, applyAction, waitingPlayerIds } from "./actions"
 import { setupGame } from "./setup"
-import { card, makeState, player, testMissions, place } from "./test-utils"
+import { card, makeState, player, place } from "./test-utils"
 import type { GameState } from "./types"
 import { playerView } from "./view"
 
 describe("readMissions", () => {
   const ids = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i}`, nickname: `P${i}` }))
-  const newGame = (n = 2) => setupGame({ players: ids(n), missions: testMissions(), rng: createRng(3) })
+  const newGame = (n = 2) => setupGame({ players: ids(n), rng: createRng(3) })
   const read = (state: GameState, playerId: string) => applyAction(state, { type: "readMissions", playerId })
 
   it("starts in the missions phase: nobody is up yet, but the first player is known", () => {
@@ -73,7 +73,7 @@ describe("readMissions", () => {
 
 describe("waitingPlayerIds", () => {
   const ids = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i}`, nickname: `P${i}` }))
-  const newGame = (n: number) => setupGame({ players: ids(n), missions: testMissions(), rng: createRng(4) })
+  const newGame = (n: number) => setupGame({ players: ids(n), rng: createRng(4) })
   const read = (state: GameState, playerId: string) => applyAction(state, { type: "readMissions", playerId })
 
   it("waits for every player to read their missions, in seat order", () => {

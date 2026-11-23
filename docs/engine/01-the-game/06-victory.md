@@ -92,8 +92,8 @@ export type Condition =
 ```
 
 - A leaf reads the player's domain, the cards on the table, the other players' domains or the status of the families (`computeStatuses`); a count is of cards, or of their weight with `mode`. `and` holds when every condition does, `or` when one does and `not` inverts one; `evaluateCondition` changes nothing.
-- The missions are Sanity documents (`mission`: a colour, a text, a card and a `condition`). `loadMissions` in `games/courtisans/src/server/missions.ts` checks them, skips and logs a mission with an invalid value, and `loadSetupData` hands the rest to `setup` as its `SetupData` ([Game data](08-game-data.md)).
-- `setupGame` deals each player a white and a blue mission, drawn with the seeded stream from the missions it is given, and throws `NOT_ENOUGH_MISSIONS` when a colour has fewer missions than players.
+- The missions are the engine's own: `MISSIONS` lists the twenty, each with a colour and a `Condition`. A mission is also a Sanity document (`mission`) that holds its text and its picture under the same id, and no rule ([Game data](08-game-data.md)).
+- `setupGame` deals each player a white and a blue mission, drawn with the seeded stream from `MISSIONS`.
 - A player sees their own missions in `me.missions`; `missions` of the other players is `null` until the game is over ([Hidden information](10-views.md#hidden-information)).
 - Nothing is checked while the game goes: `playerView` computes the results when the phase is `over`, and `computeResults` evaluates every mission against that final state.
 - A mission that holds is worth `MISSION_POINTS`, added to the domain points in `total`. `CourtisansPlayerResult.missions` lists each mission with `done` and its `points`, and the generic `detail` has one `missions` line with their sum.

@@ -1,6 +1,5 @@
 export type EngineErrorCode =
   | "INVALID_PLAYERS"
-  | "NOT_ENOUGH_MISSIONS"
   | "INVALID_PHASE"
   | "NOT_YOUR_TURN"
   | "UNKNOWN_CARD"
