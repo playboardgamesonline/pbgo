@@ -46,10 +46,9 @@ describe("the pace of a move", () => {
     expect(delays[2]).toBeCloseTo(PACE_SETTINGS.draw + PACE_SETTINGS.play)
   })
 
-  it("has no card to bring in for a card the viewer was not told, only the player who drew it and when: a card drawn by another player is a back", () => {
+  it("has no card to bring in for a card the viewer was not told: a card drawn by another player is a back, which has no id to come in under", () => {
     const timeline = timelineOf(lines(5, { kind: "draw", by: "b" }))
     expect(timeline.entrances.size).toBe(0)
-    expect(timeline.drawn.get("b")).toBe(0)
     expect(timeline.settle).toBeGreaterThanOrEqual(PACE_SETTINGS.landing)
   })
 

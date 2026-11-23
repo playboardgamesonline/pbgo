@@ -102,8 +102,6 @@ export type Timeline = {
   v: number
   /** Where each card that came in with that move comes in from, and when, by card id */
   entrances: Map<number, Arrival>
-  /** When each player who drew a card with that move drew it, by player: a card drawn by another player is a back, which has no id to come in under */
-  drawn: Map<string, number>
   /** What the move shows to be read, in order */
   reveals: Reveal[]
   /** Seconds until that move has played out: the last card has landed, the last thing has had its time */
@@ -116,7 +114,7 @@ export type Timeline = {
  */
 export function timelineOf(lines: readonly LogLine<LoveLetterEvent>[], instant = false): Timeline {
   const v = lines.reduce((greatest, line) => Math.max(greatest, line.v), 0)
-  const timeline: Timeline = { v, entrances: new Map(), drawn: new Map(), reveals: [], settle: 0 }
+  const timeline: Timeline = { v, entrances: new Map(), reveals: [], settle: 0 }
   if (instant || v === 0) return timeline
   const P = PACE_SETTINGS
   let at = 0
@@ -130,7 +128,6 @@ export function timelineOf(lines: readonly LogLine<LoveLetterEvent>[], instant =
     const { event } = line
     switch (event.kind) {
       case "draw":
-        timeline.drawn.set(event.by, at)
         landed = Math.max(landed, at + P.landing)
         if (event.card) arrive(event.card.id, "deck", event.by)
         break

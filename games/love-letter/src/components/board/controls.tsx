@@ -3,16 +3,15 @@
 import { FloorButton, mix, TableText } from "@pbgo/table"
 import type { Vocabulary } from "../../lib/words"
 import { TABLE_WEIGHT } from "./fonts"
-import { type Box, fitSentence, type Pad, padPlace, pairPlaces, STRIP } from "./layout"
+import { fitSentence, type Pad, padPlace, pairPlaces, STRIP } from "./layout"
 import type { Step } from "./turn"
 
-/** The tones of the pads and of the zones, from the settings' theme (`accent`, `foreground`): the pads are the accent, the Swap pad and the zones that choose a player are paler, so that the pad that sends reads first */
-export type Tones = { pad: string; quiet: string; zone: string }
+/** The tones of the pads, from the settings' theme (`accent`, `foreground`): the pads are the accent, the Swap pad is paler, so that the pad that sends reads first */
+export type Tones = { pad: string; quiet: string }
 
 export const tonesOf = ({ accent, foreground }: { accent: string; foreground: string }): Tones => ({
   pad: accent,
   quiet: mix(accent, foreground, 0.55),
-  zone: mix(accent, foreground, 0.3),
 })
 
 /** The fonts of the lettering on the pads and in the strip: the digits of a value are in the table's own font, since the display font's digit one is a capital I */
@@ -93,45 +92,6 @@ export function Strip({ step, note = "", words, tones, ink, accent, fonts, measu
           <PadButton pad={keep} label={words.keep} tone={tones.pad} font={fonts.display} disabled={busy} onPress={onKeep} />
         </>
       )}
-    </>
-  )
-}
-
-export type TargetZonesProps = {
-  /** The players that can be chosen, and the zone of every seat */
-  ids: readonly string[]
-  zones: ReadonlyMap<string, Box>
-  /** The player already chosen (a Guard names a character for them): their zone is lit more, and the others stay there to change one's mind */
-  chosen: string | null
-  tone: string
-  /** What a screen reader says of the zone of a player */
-  labelOf: (id: string) => string
-  disabled: boolean
-  onPress: (id: string) => void
-}
-
-/** The zone of each player that can be chosen: their play area, their hand and their plate in one rectangle, pressed anywhere. It lies only while a player is to be chosen, and tints the table under the cards without hiding them. */
-export function TargetZones({ ids, zones, chosen, tone, labelOf, disabled, onPress }: TargetZonesProps) {
-  return (
-    <>
-      {ids.map((id) => {
-        const box = zones.get(id)
-        if (!box) return null
-        return (
-          <FloorButton
-            key={id}
-            at={{ x: box.x, z: box.z, yaw: box.yaw }}
-            width={box.halfWidth * 2}
-            depth={box.halfDepth * 2}
-            tone={tone}
-            tint={chosen === null ? 0.3 : id === chosen ? 1.6 : 0.2}
-            hitY={0.35}
-            ariaLabel={labelOf(id)}
-            disabled={disabled}
-            onPress={() => onPress(id)}
-          />
-        )
-      })}
     </>
   )
 }

@@ -28,7 +28,6 @@ const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr
 
 /** No card waits for its turn to come in and nothing is shown: the cards of a table that was just opened are where they lie */
 const NO_ENTRANCES: ReadonlyMap<number, Arrival> = new Map()
-const NO_DRAWS: ReadonlyMap<string, number> = new Map()
 const NO_REVEALS: readonly Reveal[] = []
 
 /** `held` and `onLoaded` are the start screen's (PLT-107): behind it the board is drawn and loads, says so, and holds its opening (the camera's entrance, the start announcement) until the screen goes */
@@ -226,7 +225,6 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
         busy={sending}
         v={timeline.v}
         entrances={playing ? timeline.entrances : NO_ENTRANCES}
-        drawn={playing ? timeline.drawn : NO_DRAWS}
         reveals={playing ? timeline.reveals : NO_REVEALS}
         caption={caption}
         deal={openedAt === 0 || playing}
