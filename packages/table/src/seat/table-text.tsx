@@ -26,16 +26,26 @@ export type TextStyle = {
   strike?: boolean
 }
 
+/** A canvas context that measures lettering the way it is painted: `SIZE` pixels high, in the style's weight and spacing */
+function measuring(style: Pick<TextStyle, "weight" | "spacing">, font: string) {
+  const context = document.createElement("canvas").getContext("2d")!
+  context.font = `${style.weight ?? 900} ${SIZE}px ${font}`
+  context.letterSpacing = style.spacing ?? "0px"
+  return context
+}
+
 /**
- * Paints a lettering on a canvas and makes a texture of it: the texture, its aspect ratio, the scale that turns a `height` into the plane's height, and the width of the text alone, in canvas pixels (`TEXT_PX` of them make a `height`).
+ * Paints a lettering on a canvas and makes a texture of it: the texture, its aspect ratio, the scale that turns a `height` into the plane's height, the width of the text alone, in canvas pixels (`TEXT_PX` of them make a `height`), and how far below the canvas centre the middle of the font's capitals lies (`capShift`, in the same pixels).
  * `TableText` draws it on a plane; a block that tints the lettering itself, as the action label does, paints it white and colours the material.
  */
 export function paintText(text: string, style: TextStyle, font: string) {
-  const measure = document.createElement("canvas").getContext("2d")!
-  measure.font = `${style.weight ?? 900} ${SIZE}px ${font}`
-  measure.letterSpacing = style.spacing ?? "0px"
+  const measure = measuring(style, font)
   const margin = style.bloom || style.aura ? 110 : 60
   const textWidth = measure.measureText(text).width
+  // the capitals are not centred on the em-box's middle, which is where the text is anchored, in every font: this is how far below the canvas centre their own middle lies
+  measure.textBaseline = "middle"
+  const capitals = measure.measureText("H")
+  const capShift = (capitals.actualBoundingBoxDescent - capitals.actualBoundingBoxAscent) / 2
   const canvas = document.createElement("canvas")
   canvas.width = Math.ceil(textWidth + margin * 2)
   canvas.height = Math.ceil(SIZE * 1.35 + margin)
@@ -122,7 +132,7 @@ export function paintText(text: string, style: TextStyle, font: string) {
   const texture = new CanvasTexture(canvas)
   texture.colorSpace = SRGBColorSpace
   texture.anisotropy = 8
-  return { texture, ratio: canvas.width / canvas.height, scale: canvas.height / TEXT_PX, textWidth }
+  return { texture, ratio: canvas.width / canvas.height, scale: canvas.height / TEXT_PX, textWidth, capShift: Number.isFinite(capShift) ? capShift : 0 }
 }
 
 /** Whether `font` has loaded: a lettering is painted again when it has, so it never stays in the fallback's letters */
@@ -141,6 +151,24 @@ export function useFontReady(font: string) {
 }
 
 /**
+ * How wide the lettering that `TableText` draws for these props is, in world units, for a block that places things by the width of a text, as a plate does (the avatar before the name, the tokens after it, the whole centred). It measures the text the way `TableText` paints
+ * it and shrinks it by `maxWidth` the same way, so the two agree to the pixel, and it measures again once the font has loaded, as the lettering is painted again. An empty text is 0 wide.
+ */
+export function useTextWidth(text: string, style: Pick<TextStyle, "weight" | "spacing">, height: number, font: string, maxWidth?: number): number {
+  const fontReady = useFontReady(font)
+  const { weight, spacing } = style
+  return useMemo(
+    () => {
+      if (text === "") return 0
+      const pixels = measuring({ weight, spacing }, font).measureText(text).width
+      return (pixels * height * fitScale(pixels, height, maxWidth)) / TEXT_PX
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the font having loaded is what makes the same text measure differently
+    [text, weight, spacing, height, font, maxWidth, fontReady],
+  )
+}
+
+/**
  * Lettering lying on the table: the text is painted on a canvas and laid on a plane, then drawn again when the text, the style or the font changes.
  * `height` is the lettering's size in world units; the plane is a little larger so the effects fit.
  */
@@ -156,6 +184,7 @@ export function TableText({
   onHover,
   layer = 0,
   maxWidth,
+  capsCentred = false,
   children,
   trailing,
 }: {
@@ -173,6 +202,8 @@ export function TableText({
   layer?: number
   /** The widest the lettering may be, in world units: a text that is wider shrinks, with its proportions, to be this wide. What sits before and after it follows its edges. No limit by default */
   maxWidth?: number
+  /** The capital letters are centred on `position` instead of the middle of the font's own box, which sits higher or lower from one font to the next: lettering beside an avatar, or lines of lettering one under the other, stand level whichever font draws them. Off by default: the text is anchored on the font's middle */
+  capsCentred?: boolean
   /** What sits before the text, in a frame whose origin is the text's left edge (x grows to the right: `-0.2` is just left of the first letter) */
   children?: ReactNode
   /** What sits after the text, in a frame whose origin is the text's right edge (`0.2` is just right of the last letter) */
@@ -180,7 +211,7 @@ export function TableText({
 }) {
   const fontReady = useFontReady(font)
   const { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, strike } = style
-  const { texture, ratio, scale, textWidth } = useMemo(
+  const { texture, ratio, scale, textWidth, capShift } = useMemo(
     () => paintText(text, { color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, strike }, font),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [text, color, outline, glow, spacing, weight, bloom, holo, relief, aura, shadow, strike, font, fontReady],
@@ -202,6 +233,7 @@ export function TableText({
   return (
     <group position={position} rotation-y={yaw}>
       <mesh
+        position-z={capsCentred ? (-capShift * shown) / TEXT_PX : 0}
         rotation-x={-Math.PI / 2}
         renderOrder={layer}
         {...(onClick || onHover ? {} : { raycast: () => null })}

@@ -542,7 +542,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
                 viewer={i === 0}
                 active={state.turn === i}
                 line={`${state.score.total[i] ?? 0} pts`}
-                trailing={mark ? <TableText text={mark} style={{ color: colors.text, weight: 700 }} height={0.4} position={[0.35, 0, 0]} /> : undefined}
+                trailing={mark ? <TableText text={mark} style={{ color: colors.text, weight: 700 }} height={0.4} position={[0.55, 0, 0]} /> : undefined}
                 status={state.seat === i ? "Picked" : parts.scoreboard && points > 0 ? `+${points} this round` : undefined}
               />
               {i > 0 && heldHere.length > 0 && (

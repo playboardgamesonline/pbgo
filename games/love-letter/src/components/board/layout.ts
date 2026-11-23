@@ -162,12 +162,12 @@ export function revealedPoses(n: number, line: Line): Pose[] {
 const VIEWER_HAND: TableBox = { minX: -1, maxX: 1, minZ: 0, maxZ: 0 }
 
 /**
- * How much room the favor tokens take to the right of a name, a stack of discs and the count (`2 / 5`), in world units from the name's right edge: the plate is centred on the avatar and the name, so the tokens hang off its right, and what a plate covers of the table
- * reaches that far to the right of the player who sits there.
+ * How far the favor tokens reach beyond the right edge of the box a plate is taken to cover (`plateBoxOf`: the avatar and six letters): the lettering of a longer name goes on to the right of that box, up to twelve letters, and the stack of discs hangs off the
+ * right edge of the lettering, about 0.6 wide. What a plate covers of the table reaches that far to the right of the player who sits there, in world units.
  */
 export const PLATE_TRAILING = 1.45
 
-/** What a plate covers of the table, in the frame of its seat: the avatar, a name and the favor tokens beside it */
+/** What a plate covers of the table, in the frame of its seat: the avatar, the lettering and the favor tokens beside it */
 export function plateCover(plate: Plate): TableBox {
   const box = plateBoxOf(plate)
   return { ...box, maxX: box.maxX + PLATE_TRAILING }

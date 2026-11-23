@@ -6,7 +6,6 @@ import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import {
   type CardState,
   centreOf,
-  Counter,
   effectiveState,
   FloorButton,
   HELD_FAN_FIELDS,
@@ -39,7 +38,7 @@ import type { ClientCatalog } from "../../lib/catalog"
 import { holdHovered, holdPicked, releaseHovered, releaseHoveredUnless } from "../../lib/lens"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { areaPoses, CARD, dealPlace, dealtFrom, faceUpPoses, guessPoses, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, PLATE_TRAILING, revealedPoses } from "./layout"
+import { areaPoses, CARD, dealPlace, dealtFrom, faceUpPoses, guessPoses, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, revealedPoses } from "./layout"
 import { type Arrival, PACE_FIELDS, PACE_SETTINGS, type Reveal } from "./pacing"
 import { RevealView } from "./sequence"
 import { CARD_SIZE, useFaces } from "./textures"
@@ -82,15 +81,9 @@ function statusOf(player: PublicSeat, view: PlayerView, words: ClientCatalog["wo
   return undefined
 }
 
-/** The favor tokens of a player: a stack of discs and, beside it, what they hold over what wins (numbers only), at the right of their name, in the `PLATE_TRAILING` the layout keeps for them (the count is about nine tenths of a unit wide, centred a unit from the name). */
-function Tokens({ id, count, target, color, ink }: { id: string; count: number; target: number; color: string; ink: string }) {
-  const { weight } = useLettering()
-  return (
-    <>
-      <Stack id={`tokens-${id}`} count={count} cap={8} model="disc" size={0.32} at={{ x: 0.42, z: 0 }} color={color} />
-      <Counter value={count} at={{ x: PLATE_TRAILING - 0.45, z: 0 }} height={0.38} format={(tokens) => `${tokens} / ${target}`} style={{ color: ink, weight }} />
-    </>
-  )
+/** The favor tokens of a player: a stack of discs at the right of the plate, in the `PLATE_TRAILING` the layout keeps for them. A player who has none has no stack, so nothing stands there: the discs are the count */
+function Tokens({ id, count, color }: { id: string; count: number; color: string }) {
+  return <Stack id={`tokens-${id}`} count={count} cap={8} model="disc" size={0.32} at={{ x: 0.42, z: 0 }} color={color} />
 }
 
 function World({ view, catalog, onAction, busy, choice, step, onChoice, entrances, drawn, reveal, deal, held: onStartScreen }: SceneProps) {
@@ -241,7 +234,7 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
               font={lettering.display}
               nameStyle={{ weight: lettering.weight }}
               lineStyle={{ weight: lettering.weight }}
-              trailing={<Tokens id={player.id} count={player.tokens} target={view.target} color={theme.accent} ink={theme.foreground} />}
+              trailing={<Tokens id={player.id} count={player.tokens} color={theme.accent} />}
             />
             {/* What lies in front of the player: every card they played or discarded this round, face up, oldest first, in a row on the axis of their seat. A player who is out has them grey */}
             <Zone

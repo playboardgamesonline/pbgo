@@ -41,11 +41,14 @@ Text lies flat on the table as a texture painted on a canvas: nicknames, points,
 | `opacity` | How opaque the letters are, 0 to 1: a `Seat` fades the name, the line and the status of a player who is away or out |
 | `onClick`, `onHover` | Make the text a click target: it takes pointer events only with one of them, and shows a pointer cursor only with `onClick` ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)) |
 | `layer` | The render order |
+| `maxWidth` | The widest the text may be, in world units: a wider text shrinks to it, with its proportions, never cut. What sits before and after it follows its edges |
+| `capsCentred` | The capital letters are centred on `position` instead of the middle of the font's own box, which sits higher or lower from one font to the next: lettering beside an avatar, or lines one under the other, stand level whichever font draws them. A `Seat` sets it on both lines of its plate |
 | `children` | What sits before the text, in a frame whose origin is the text's left edge and whose x grows to the right, so a negative x is just left of the first letter |
 | `trailing` | What sits after the text, in a frame whose origin is its right edge |
 
 - A `Seat` draws its plate in the frame of its seat, so the plate turns with the seat: it reads as the player who sits there reads it. A text that is not on a plate and should follow a seat passes `yaw` to `TableText`.
 - A label painted on the table is still the game's text: it comes from the view, the skin or Sanity, never a literal in the scene.
+- A block that places things by the width of a text, as a plate does (the avatar before the name, the whole centred), reads it with `useTextWidth(text, style, height, font, maxWidth)`: the width in world units that `TableText` draws for the same props, measured the same way and again once the font has loaded, 0 for an empty text.
 
 ### Style
 

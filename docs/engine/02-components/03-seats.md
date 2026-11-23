@@ -1,6 +1,6 @@
 # Seats
 
-A seat is a place at the table where a player sits, and it faces the middle of the table. `seats` gives the places, each with the way it faces, and `Seat` draws the player who sits at one: the name with the avatar and the turn crown, and the score and a status under it, on a plate that stands on the side of the player's cards that faces the middle, turned as the seat is. Nothing lies under the plate, and it never reacts to the pointer: the crown says whose turn it is ([Whose turn it is](#whose-turn-it-is)), and a player is chosen by pressing their cards ([Choosing a player](25-floor-buttons.md#choosing-a-player)). What else stands at a seat, such as the cards the player holds, is the game's, laid in the frame of the seat. Shared: `seats` in `packages/table/src/layout.ts`, `Seat` and its pieces in `packages/table/src/seat/`.
+A seat is a place at the table where a player sits, and it faces the middle of the table. `seats` gives the places, each with the way it faces, and `Seat` draws the player who sits at one: the avatar with the turn crown, the name beside it and the score and a status under the name, on a plate that stands on the side of the player's cards that faces the middle, turned as the seat is. Nothing lies under the plate, and it never reacts to the pointer: the crown says whose turn it is ([Whose turn it is](#whose-turn-it-is)), and a player is chosen by pressing their cards ([Choosing a player](25-floor-buttons.md#choosing-a-player)). What else stands at a seat, such as the cards the player holds, is the game's, laid in the frame of the seat. Shared: `seats` in `packages/table/src/layout.ts`, `Seat` and its pieces in `packages/table/src/seat/`.
 
 ## The ring
 
@@ -76,10 +76,10 @@ The props are `SeatProps`:
 | `active` | The player of the turn: the crown shows on the avatar |
 | `away` | The player is away: the plate fades |
 | `line` | The info line under the name, already written in the visitor's language: the score ("132 pts") |
-| `status` | A word on the same info line, after the score ("132 pts · Stayed"), plain text, written the same way |
-| `trailing` | What stands to the right of the name, in a frame whose origin is the name's right edge (`0.2` is just right of the last letter): tokens, a count, an icon |
+| `status` | A word on the same info line, after the score ("132 pts · Stayed"), side by side, plain text, written the same way |
+| `trailing` | What stands to the right of the plate, in a frame whose origin is the right edge of its lettering (the wider of the two lines), level with the middle of the avatar (`0.2` is just right of the longer line): tokens, an icon. For a game whose players hold things; a player who holds none has nothing drawn |
 | `crownIcon` | The crown's icon, the skin's `hostIcon`; without one, a drawn crown |
-| `room` | The widest the name may be, in world units: a longer name shrinks to it with its proportions, never cut. `SEAT_SETTINGS.nameRoom` when not given, which only a name of wide capitals goes beyond ([Long names](#long-names)) |
+| `room` | The widest the name, and the info line, may be, in world units: a longer one shrinks to it with its proportions, never cut. `SEAT_SETTINGS.nameRoom` when not given, which only a name of wide capitals goes beyond ([Long names](#long-names)) |
 | `settings` | The settings the plate follows, `SEAT_SETTINGS` unless the board makes its plates smaller at a bigger table (`scaledSeat`, [Where the plate stands](#where-the-plate-stands)): the layout that places the plates is given the same |
 | `font` | The CSS font of the lettering; `PLATE_FONT` (Geist) by default. `PLATE_FONT` and `PLATE_WEIGHT` are exported: a game that uploaded its own display font to its Sanity project gives it from `useLettering()` (`lettering.display`, which is `"Site Title", ${PLATE_FONT}`, and `lettering.weight`: Flip 7's plates) so that the plates, and the buttons and counts of the table, are drawn in it, and the kit's own is what the lettering reads in until it has loaded |
 | `nameStyle`, `lineStyle` | What is changed in the `TextStyle` of the name and of the info line |
@@ -114,45 +114,46 @@ From `template/src/components/board/scene.tsx`, the line of an opponent of the t
 A plate is one block. A game fills the slots and does not place anything:
 
 ```
- ┌────────┬──────────────────────────┬──────────────┐
- │ avatar │ name                     │ trailing     │
- └────────┴──────────────────────────┴──────────────┘
-           info line: line · status
+ ┌────────┐
+ │ avatar │  name
+ │        │  score · status      trailing
+ └────────┘
 ```
 
-- **The avatar is always to the left of the name**, as the plate is read in the frame of its seat: the plate reads left to right for the player who sits there, and it turns with the seat as a whole, avatar and text together, so the avatar never goes above, below or to the right of the name for them. For the viewer, the plate of the seat across lies upside down, as its player's cards do. (The older rule that put the avatar after the name for a right-hand seat is gone: `rightFrom` and `Plate.after` with it.) The avatar and the name are centred as one block on the plate.
-- **The name** is as typed, in Geist (`PLATE_FONT`, the platform's variable font from `@fontsource-variable/geist`, so the weight asked for is the weight drawn) at the platform's weight 600 (`PLATE_WEIGHT`), in the seat colour.
-- **The info line** stands under the name: the `line` (the score, "132 pts"), then the `status` (Stayed, Bust, Frozen) as plain text after a "·". It is one `TableText`, centred under the block.
-- **`trailing`** stands to the right of the name for whatever a game's players hold: Love Letter's affection tokens, a count, an icon. Give it three.js elements in the frame of the name's right edge. Love Letter's board gives it a stack of discs and a count (`Tokens` of its `scene.tsx`), and its layout leaves them room to the right of the plate (`PLATE_TRAILING`, which the box of the plate does not count: a plate is centred on the avatar and the name).
+- **The avatar is always to the left of the lettering**, as the plate is read in the frame of its seat: the plate reads left to right for the player who sits there, and it turns with the seat as a whole, avatar and text together, so the avatar never goes above, below or to the right of the name for them. For the viewer, the plate of the seat across lies upside down, as its player's cards do. It stands level with the middle of the two lines of lettering (the middle of the plate, `Plate.z`), and with the name when the name stands alone, so that it is aligned with what is beside it.
+- **The name** is as typed, in Geist (`PLATE_FONT`, the platform's variable font from `@fontsource-variable/geist`, so the weight asked for is the weight drawn) at the platform's weight 600 (`PLATE_WEIGHT`), in the seat colour, at the top of the column of lettering. With no info line under it, it stands level with the avatar.
+- **The info line** stands under the name and starts where the name starts, left-aligned with it: the `line` (the score, "132 pts"), then the `status` (Stayed, Bust, Frozen) as plain text after a "·", the two side by side. It is one `TableText`.
+- **The block is centred.** From the avatar's left edge to the right edge of the wider of the two lines it is one block, centred on the plate, over the cards: `plateRow(plate, { name, info }, settings)` works out where the avatar and the column of lettering stand from the widths of the two lines, which `useTextWidth` measures the way `TableText` paints them. Both lines centre their capital letters on their line (`capsCentred`), so the avatar is level with the lettering whichever font a game's plates are drawn in.
+- **`trailing`** stands to the right of the plate for whatever a game's players hold: Love Letter's affection tokens, an icon. Give it three.js elements in the frame of the right edge of the lettering, level with the middle of the avatar. Love Letter's board gives it a stack of discs (`Tokens` of its `scene.tsx`, which draws nothing for a player who has none: the discs are the count), and its layout leaves them room to the right of the plate (`PLATE_TRAILING`, which the box of the plate does not count: a plate is centred on the avatar and the lettering).
 - **The plate never reacts to the pointer, and nothing lies under it.** There is no `onSelect`, no aura, no rim, no tint: a plate is read, not pressed. To choose a player, the game puts an invisible `Hotspot` over their cards and their plate, and lights the cards ([Choosing a player](25-floor-buttons.md#choosing-a-player)).
 
 ## Where the plate stands
 
-Everything of a player stands on one line, the axis of their seat: the line from the middle of the table through the seat, which is the z axis of the frame of the seat, its least z toward the middle. In this order from the middle of the table outward: the name, the info line just under it (the plate), the play area (a grid, a row of cards, a bid) and the hand. All of it is drawn in the frame of the seat, turned as the name is, at every seat, the viewer's included. A player sees their own name above their cards; the line of a seat across from the viewer lies as that player sees it, which is upside down for the viewer; a side seat is turned a quarter. A game gives the `Seat` the frame of the seat and the box of what stands under the plate, and places nothing by hand.
+Everything of a player stands on one line, the axis of their seat: the line from the middle of the table through the seat, which is the z axis of the frame of the seat, its least z toward the middle. In this order from the middle of the table outward: the plate (the name, and the info line just under it, with the avatar beside them), the play area (a grid, a row of cards, a bid) and the hand. All of it is drawn in the frame of the seat, turned as the name is, at every seat, the viewer's included. A player sees their own name above their cards; the line of a seat across from the viewer lies as that player sees it, which is upside down for the viewer; a side seat is turned a quarter. A game gives the `Seat` the frame of the seat and the box of what stands under the plate, and places nothing by hand.
 
 - `frame` is the seat's frame, the `Spot` that `seats` gives (or a place near it: the template stands the line of a player a little beyond the ring). The cards of the seat, the play area and the hand, are laid in it with a `Zone` given the same `frame`, so the plate and the cards turn together. Nothing is turned on its own: a hand that faces some other way than its player's name is a mistake of the board.
 - `above` is the box of everything of the player that lies on the table, in that frame: their hand and their play area, in one `TableBox`. It is made from the layout of the cards with `frameBoxOfPoses(poses, size, frame, { tilt })` (the poses are in the frame, as a `Zone` takes them, and the box is in it too), from a rectangle with `boxOfRect`, and joined with `joinBoxes` ([Boxes](08-layout-helpers.md#boxes)). The play area stands on the middle's side of the hand: `boxAbove(hand, size, gap)` is its box. `onAxis(box)` brings a box onto the axis, as far to the left of it as to the right, so that the plate, which is centred on the box, is centred on the line. `plateAbove(box)` is the plate it gives: on the box's side of the least z, which is toward the middle of the table, the foot of the plate (the bottom of the info line) `plateGap` beyond its edge.
 - A hand that leans toward its player, or stands up off the table, hides part of the table behind it as the camera sees it: its box must be what the camera sees, which reaches farther from the camera than where the cards lie. `frameBoxOfPoses` takes the camera's tilt (as `CameraSettings.tilt`) and gives that box, moved as the frame turns: the apparent shift of a card that stands `y` high is `y` times the tangent of the tilt, along the world's z, which is not along the frame's z for a seat that is turned. Cards that lie flat need no tilt.
 - A plate that moves as cards are dealt and played looks like a glitch. A board boxes the room of the biggest hand (`joinBoxes` of the boxes of the hands of every size, or of a nominal one), so the plate stands where it stood and clears every card that can be there. The template does it (`handBox`, `playBox` and `seatBox`).
 - The viewer's hand is held on the screen and takes no room on the table: its box is a nominal one, of no depth, at the foot of the line, where the seat is (`VIEWER_HAND` of the template), and the play area and the plate stand above it as at any seat. The frame of the line is a little farther out than the opponents' for this: the line is the room of the name and the play area above the foot of the screen.
-- The info line stands under the name, toward the cards, and the name `nameLift` toward the middle of the table from the centre of the plate; the avatar stands before the first letter and the crown on the avatar's upper-right corner, in the avatar's own frame.
+- The middle of the plate, where the avatar's centre lies, is the point the lettering is measured from: the info line stands `lineDrop` toward the cards from it and the name `nameLift` toward the middle of the table, so the two lines stand side by side with the avatar, which is a little shorter than they are together. The crown stands on the avatar's upper-right corner, in the avatar's own frame.
 - A `Seat` given no `above` stands out of the ring from its `spot` (`plateOf`): an opponent's at `reachX` and `reachZ` times the spot, the viewer's level with it and a little in front (`viewer`). It is the way of the boards that have not moved to the line of a seat yet, which draw the seat in a group of their own and place it by the middle of the group.
 - A player who is away keeps `awayOpacity` of the plate: the name, the avatar and the info line fade, and the crown does not.
-- `plateBoxOf(plate)` is what a plate covers of the table, in the frame (`plateWidth`, the width of the avatar and `PLATE_LETTERS` letters, by the height from the top of the name to the foot of the info line), and `cornersOfBox(box, frame)` puts the corners of a box of a frame on the table: a board checks with a pure test, on the shapes and not on a screenshot, that no plate lies over a card, another plate, the piles or the clock, that the line of a seat is in its order and on its axis, and that all of it is in the picture, for every table of its players, seated and as a spectator (`template/src/components/board/layout.test.ts` is the model). The cards are compared as the camera sees them, standing hands included.
+- `plateBoxOf(plate)` is what a plate covers of the table, in the frame (`plateWidth`, the width of the avatar and `PLATE_LETTERS` letters, by the height from the top of the name or the avatar to the foot of the info line or the avatar), and `cornersOfBox(box, frame)` puts the corners of a box of a frame on the table: a board checks with a pure test, on the shapes and not on a screenshot, that no plate lies over a card, another plate, the piles or the clock, that the line of a seat is in its order and on its axis, and that all of it is in the picture, for every table of its players, seated and as a spectator (`template/src/components/board/layout.test.ts` is the model). The cards are compared as the camera sees them, standing hands included.
 
 | Setting | Role |
 | --- | --- |
 | `plateGap` | The clear space between the edge of a player's cards that faces the middle and the foot of their plate |
 | `reachX`, `reachZ` | How far out of the ring an opponent's plate stands when it has no `above`, as factors of the spot |
 | `viewerReachX`, `viewerReachZ` | The same for the viewer's plate |
-| `nameHeight`, `nameLift` | The size of the name's letters, and how far toward the middle of the table it stands from the centre of the plate |
+| `nameHeight`, `nameLift` | The size of the name's letters, and how far toward the middle of the table it stands from the middle of the plate, the middle of the avatar |
 | `nameRoom` | The widest a name may be: a longer one shrinks to this width, with its proportions, instead of reaching the plate of the next seat. Twelve letters of the platform's font make about 3.1, so only a name of wide capitals is touched |
-| `lineHeight`, `lineDrop` | The same for the info line, which drops toward the cards |
-| `avatarSize`, `avatarGap` | The avatar's diameter and its gap to the first letter |
+| `lineHeight`, `lineDrop` | The same for the info line, which drops toward the cards from the middle of the plate |
+| `avatarSize`, `avatarGap` | The avatar's diameter and its gap to the lettering beside it |
 | `crownSize`, `crownRight`, `crownBack` | The crown's size, and how far its foot stands from the avatar's centre: to the right and toward the middle of the table |
 | `awayOpacity` | How opaque the plate of a player who is away stays |
 
-`SEAT_SETTINGS` is a plain object (its type is `SeatSettings`) that the Seat folder of the table's debug panel edits (`SEAT_FIELDS` lists its knobs, and a `Seat` follows them as they move). With the panel's View folder on, every `Seat` also marks the middle of its plate, the box the plate covers and the box of the cards it stands beyond, in its frame. `plateAbove`, `plateOf`, `plateBoxOf` and `seatStateOf` are the same numbers and rules as pure functions: `placement.test.ts` checks them (the plate is on the middle's side of the cards, clear of them, and the places a plate placed from its spot has had since the template wrote them), and `state.test.ts` checks the states.
+`SEAT_SETTINGS` is a plain object (its type is `SeatSettings`) that the Seat folder of the table's debug panel edits (`SEAT_FIELDS` lists its knobs, and a `Seat` follows them as they move). With the panel's View folder on, every `Seat` also marks the middle of its plate, the box the plate covers and the box of the cards it stands beyond, in its frame. `plateAbove`, `plateOf`, `plateBoxOf`, `plateRow` and `seatStateOf` are the same numbers and rules as pure functions: `placement.test.ts` checks them (the plate is on the middle's side of the cards, clear of them, the places a plate placed from its spot has, and the block of the avatar and the lettering centred on the plate for every width), and `state.test.ts` checks the states.
 
 A board whose plates should be smaller at a bigger table gives `Seat` the `settings` of `scaledSeat(factor)`, a copy of `SEAT_SETTINGS` with every size and every gap multiplied (the reach factors and the opacity are not), and gives its layout the same (`plateAbove`, `plateBoxOf` and `plateWidth` take them), so that the plate that is drawn and the room that is left for it agree. The kit has no rule for the factor of a table of eight: it is the board's.
 
@@ -164,11 +165,11 @@ The crown on the avatar says which player has the turn, and it is all the table 
 
 | Piece | Component | Page |
 | --- | --- | --- |
-| The nickname | `TableText` | [Text on the table](09-score.md#text-on-the-table) |
-| The avatar to its left | `SeatAvatarMesh` | [The avatar](#the-avatar) |
+| The avatar, at the left | `SeatAvatarMesh` | [The avatar](#the-avatar) |
+| The nickname, beside it | `TableText` | [Text on the table](09-score.md#text-on-the-table) |
 | The turn marker | `TurnCrown` | [Crown and the turn marker](../01-the-game/03-turns.md#crown-and-the-turn-marker) |
-| The info line (score, then status) | `TableText` | [Text on the table](09-score.md#text-on-the-table) |
-| What stands to the right of the name | `trailing`, the game's | [The layout of a plate](#the-layout-of-a-plate) |
+| The info line under it (score, then status) | `TableText` | [Text on the table](09-score.md#text-on-the-table) |
+| What stands to the right of the lettering | `trailing`, the game's | [The layout of a plate](#the-layout-of-a-plate) |
 | The cards held there | A `Zone` framed on the seat, a child of the `Seat` | [Zone](07-zones.md#zone) |
 
 - Each piece is exported on its own too.
@@ -186,7 +187,7 @@ A nickname is typed by its player, so it can be any length, and a plate, a list 
 - Characters are counted as the eye counts them, not as JavaScript does: an emoji, a letter with its accent written as a combining mark and a family joined by zero-width joiners are each one character, so a name is never cut in the middle of one. `Intl.Segmenter` does it; a runtime without it counts code points.
 - The full name stays the accessible one: the DOM that draws a short name carries the whole of it in `title`. The canvas of a `Seat` has no DOM, so the plate's name reads as drawn there; the full name is in the list of the players beside the board.
 - Only what is drawn is cut. The state, the log, the chat and the profile keep the name the player typed. To change the limit, change `NAME_LIMIT`: `short-name.test.ts` follows it.
-- A name of twelve wide capitals (a `W` is nearly as wide as it is tall) is wider than twelve letters of an ordinary name, and a plate cannot grow with it: past `SEAT_SETTINGS.nameRoom` (or the `room` of a `Seat`) the name is drawn smaller, with the avatar and what stands after it following its edges (`maxWidth` of `TableText`, which any lettering of the table can take). A name that fits is drawn as it was.
+- A name of twelve wide capitals (a `W` is nearly as wide as it is tall) is wider than twelve letters of an ordinary name, and a plate cannot grow with it: past `SEAT_SETTINGS.nameRoom` (or the `room` of a `Seat`) the name is drawn smaller (`maxWidth` of `TableText`, which any lettering of the table can take), and the info line is held to the same room. The plate is placed from the widths that are drawn, so the avatar and what stands after the lettering follow its edges. A name that fits is drawn as it was.
 
 ## The avatar
 
@@ -205,4 +206,4 @@ The seat avatar is the picture that stands for a player next to their nickname. 
 - It draws nothing until the canvas is ready (a font or a picture may still be loading), then lies flat on the table.
 - The plane is larger than the avatar by `AVATAR_FILL` of core, the share of the canvas the avatar fills, so the ring and the shadow fit. `size` is the avatar's own diameter.
 - The texture is disposed when it changes or when the component goes, and it takes no pointer events ([Clicks and hover](../01-the-game/05-actions.md#clicks-and-hover)).
-- A `Seat` places it with the nickname: a child of the `TableText` (left of the first letter) or its `trailing` (right of the last) ([Text on the table](09-score.md#text-on-the-table)).
+- A `Seat` places it at the left of the lettering, level with the middle of the plate ([The layout of a plate](#the-layout-of-a-plate)).

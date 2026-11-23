@@ -184,7 +184,7 @@ The turn marker is a crown that stands on the upper-right corner of the avatar o
 | `size` | How big it grows |
 
 - Every seat has its own crown, and `show`, set from the view, says which one is up. The crown does not travel around the table, so it never crosses the cards.
-- A `Seat` places it with the avatar, in the avatar's own frame (a child of the nickname's `TableText`, or its `trailing` for a right-hand seat), at the corner that `crownRight` and `crownBack` give it ([Where the plate stands](../02-components/03-seats.md#where-the-plate-stands)).
+- A `Seat` places it with the avatar, in the avatar's own frame, at the corner that `crownRight` and `crownBack` give it ([Where the plate stands](../02-components/03-seats.md#where-the-plate-stands)).
 - It is a plane that turns to face the camera about the vertical axis only, so it stays upright. While it is up it bobs and its gold pulses. It takes no pointer events ([Clicks and hover](05-actions.md#clicks-and-hover)).
 
 ## Whose turn it is on the screen
