@@ -1,30 +1,6 @@
 "use client"
 
-import { CanvasTexture, RepeatWrapping } from "three"
-
-/** Glints on a sweeping band of light. One per card that sparkles: each draws its own sparks */
-export function sparkleTexture() {
-  const c = document.createElement("canvas")
-  c.width = c.height = 256
-  const g = c.getContext("2d")!
-  const grad = g.createLinearGradient(0, 256, 256, 0)
-  grad.addColorStop(0.42, "rgba(255,255,255,0)")
-  grad.addColorStop(0.5, "rgba(255,250,230,0.8)")
-  grad.addColorStop(0.58, "rgba(255,255,255,0)")
-  g.fillStyle = grad
-  g.fillRect(0, 0, 256, 256)
-  for (let i = 0; i < 26; i++) {
-    const x = Math.random() * 256
-    const y = Math.random() * 256
-    const r = 2 + Math.random() * 4
-    g.fillStyle = "rgba(255,255,255,0.9)"
-    g.fillRect(x - r, y - 0.6, r * 2, 1.2)
-    g.fillRect(x - 0.6, y - r, 1.2, r * 2)
-  }
-  const t = new CanvasTexture(c)
-  t.wrapS = RepeatWrapping
-  return t
-}
+import { CanvasTexture } from "three"
 
 let gloss: CanvasTexture | null = null
 /** The shine that follows the pointer over a hovered card. One for all: the card under the pointer slides its offset */

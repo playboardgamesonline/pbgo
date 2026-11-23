@@ -15,7 +15,6 @@ import {
   circleShape,
   Counter,
   Cup,
-  defineGlows,
   DiceTray,
   Die,
   type Drop,
@@ -113,15 +112,6 @@ const CITIES = PLAY_MAP.names.map((_, i) => ({ x: PLAY_MAP.at.x + PLAY_MAP.radiu
 
 /** The boxes of the sheet: a grid of cells under its title. */
 const SHEET_CELLS = gridCells({ columns: PLAY_SHEET.columns, rows: PLAY_SHEET.rows, x: 0.06, y: 0.26, width: 0.88, height: 0.68, gapX: 0.014, gapY: 0.03 })
-
-/** The glows a picked card can wear: one part each, and all four. */
-const GLOWS = defineGlows({
-  halo: { halo: {} },
-  outline: { outline: {} },
-  frame: { frame: {} },
-  sparkle: { sparkle: {} },
-  all: { halo: {}, outline: {}, frame: {}, sparkle: {} },
-})
 
 /** The slots of the hand in its own frame, whose middle is (0, 0): the layout helpers of the package. */
 function slotsOf(layout: LayoutName, n: number): Pose[] {
@@ -309,11 +299,10 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
               back={cardBack}
               size={CARD_SIZE}
               from={thing.from !== undefined ? topOfDraw(thing.from, draw) : undefined}
-              // The table raises and lights a picked card; `glow` adds one of the parts of a glow on top, for the panel's choice
+              // The table raises and lights a picked card
               state={chosen ? "selected" : "interactive"}
               ariaLabel={`Card ${thing.card}`}
               onPress={() => actions.select(chosen ? null : thing.id)}
-              glow={chosen && state.glow !== "none" ? GLOWS[state.glow] : null}
               draggable
               onDrop={letGo(thing)}
             />

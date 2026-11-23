@@ -27,7 +27,6 @@ export function roundedRect(width: number, height: number, radius: number) {
 
 const faces = new Map<string, ShapeGeometry>()
 const slices = new Map<string, ExtrudeGeometry>()
-const frames = new Map<string, ShapeGeometry>()
 
 /** The side of a card: the rounded rectangle, its UVs laid so the picture covers it edge to edge. One geometry per size, shared by every card */
 export function cardGeometry(width: number, height: number, radius = Math.min(width, height) * ROUNDING) {
@@ -57,15 +56,3 @@ export function edgeGeometry(width: number, height: number, thickness: number, r
   return geo
 }
 
-/** A ring around the card: `gap` away from its edge, `thickness` wide */
-export function frameGeometry(width: number, height: number, gap: number, thickness: number, radius = Math.min(width, height) * ROUNDING) {
-  const key = `${width.toFixed(3)}:${height.toFixed(3)}:${gap.toFixed(3)}:${thickness.toFixed(3)}:${radius.toFixed(3)}`
-  let geo = frames.get(key)
-  if (!geo) {
-    const outer = roundedRect(width + 2 * (gap + thickness), height + 2 * (gap + thickness), radius + gap + thickness)
-    outer.holes.push(roundedRect(width + 2 * gap, height + 2 * gap, radius + gap))
-    geo = new ShapeGeometry(outer, 8)
-    frames.set(key, geo)
-  }
-  return geo
-}

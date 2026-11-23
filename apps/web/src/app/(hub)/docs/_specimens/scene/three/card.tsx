@@ -36,10 +36,7 @@ export function CardScene({ side, gloss, shadow, shadowOpacity, onFlip }: { side
         size={CARD_SIZE}
         gloss={gloss}
         shadow={shadow}
-        onClick={(event) => {
-          event.stopPropagation()
-          onFlip()
-        }}
+        onPress={onFlip}
       />
     </Stage>
   )

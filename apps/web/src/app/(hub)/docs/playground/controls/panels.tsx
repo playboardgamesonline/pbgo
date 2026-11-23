@@ -3,7 +3,7 @@
 import { Button } from "@pbgo/ui/platform/button"
 import { cn } from "@pbgo/ui/utils"
 import { Choice, Knob, Option } from "../../_specimens/scene/controls"
-import { PLAY_GLOWS, PLAY_LIMITS, PLAY_NAMES, PLAY_PIECES, type PlayPiece } from "../../_specimens/scene/defaults"
+import { PLAY_LIMITS, PLAY_NAMES, PLAY_PIECES, type PlayPiece } from "../../_specimens/scene/defaults"
 import { PRESET_IDS, PRESETS } from "../../_specimens/scene/play/presets"
 import { addPoints, endRound, leader, nextTurn, resetScores } from "../../_specimens/scene/play/state"
 import { TRANSITION_IDS, TRANSITIONS, type TransitionId } from "../../_specimens/scene/play/transitions"
@@ -90,12 +90,9 @@ export function AddPanel({ controls, shape, onShape }: { controls: Controls; sha
           <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
             <span className="basis-full text-sm text-muted-foreground">A {picked.kind === "card" ? "card" : picked.shape}, picked.</span>
             {picked.kind === "card" && (
-              <>
-                <Button variant="outline" size="sm" onClick={() => actions.flip()}>
-                  Turn it over <Kbd>F</Kbd>
-                </Button>
-                <Choice label="Glow" value={state.glow} options={PLAY_GLOWS.map((value) => ({ value, label: value }))} onChange={(glow) => set({ glow })} />
-              </>
+              <Button variant="outline" size="sm" onClick={() => actions.flip()}>
+                Turn it over <Kbd>F</Kbd>
+              </Button>
             )}
             <Button variant="outline" size="sm" onClick={() => actions.remove(picked.id)}>
               Remove it <Kbd>Del</Kbd>
@@ -105,7 +102,7 @@ export function AddPanel({ controls, shape, onShape }: { controls: Controls; sha
             </Button>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Press a card or a piece on the table to pick it: it lifts, and a card can wear a glow.</p>
+          <p className="text-sm text-muted-foreground">Press a card or a piece on the table to pick it: it lifts and lights.</p>
         )}
       </section>
     </div>

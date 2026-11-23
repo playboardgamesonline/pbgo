@@ -1,6 +1,6 @@
 # Tuning
 
-A scene is tuned live. Every visual value is a field of a plain object that a frame reads, and the debug panel edits that object. The shared tools take such objects: `CARD_SETTINGS`, `DIE_SETTINGS`, `SEAT_SETTINGS`, the camera's settings and the entrance, the glows. The shared `Table` makes the folders for them; a game binds the objects of its own (its layout) to folders with `useSettings`.
+A scene is tuned live. Every visual value is a field of a plain object that a frame reads, and the debug panel edits that object. The shared tools take such objects: `CARD_SETTINGS`, `DIE_SETTINGS`, `SEAT_SETTINGS`, the camera's settings and the entrance. The shared `Table` makes the folders for them; a game binds the objects of its own (its layout) to folders with `useSettings`.
 
 ## The panel
 
@@ -44,11 +44,10 @@ The `Table` mounts its own tools while the panel is open (`packages/table/src/de
 | Seat | `SEAT_SETTINGS` (`SEAT_FIELDS`); the plates follow the knobs as they move |
 | Lights | With a `lights` prop only: `ambient`, `sun` and where the sun stands. The lights are props, not an object a frame reads, so the folder lays what it changed over them |
 | Floor | The colour of the surface and the size of one repeat of its picture, laid over the `surface` prop the same way |
-| Glow · name | One folder for each glow `defineGlows` made, a sub-folder for each of its parts: the colours, opacities and speeds a frame reads (`spread` and `blend` are read when the card is drawn) |
 | Share Photo | The `photo` prop, with the "Download test photo" button of `captureGamePhoto` |
 | View | What to draw over the table: the axes at its middle, the frame and the slots of every `Zone`, the spot and the plate of every `Seat`. And whether to inspect the card under the pointer |
-| Inspector | With the inspection on: the id, the place, the target, the size, the flight and the glow of the card under the pointer, read live |
-| Time | A slow motion (`speed ×`) and a `freeze`: the frame's delta and the clock of the canvas are stretched, so cards, glows and everything damped slow down together. The camera's entrance counts real time and does not |
+| Inspector | With the inspection on: the id, the place, the target, the size and the flight of the card under the pointer, read live |
+| Time | A slow motion (`speed ×`) and a `freeze`: the frame's delta and the clock of the canvas are stretched, so cards and everything damped slow down together. The camera's entrance counts real time and does not |
 
 Closing the panel takes the folders away, and puts the view and the time back to normal. What was tuned stays in the objects until the page is reloaded.
 

@@ -16,7 +16,7 @@ import { Zone, type ZoneCard } from "./zone"
 /** The text colour of a table that has no game's settings above it (the specimens of the docs): the plates' own */
 const INK = "#f5f2ea"
 
-/** The top card of a pile once it is turned up: its front, and whatever else a `Card` takes (glow, onClick...) */
+/** The top card of a pile once it is turned up: its front, and whatever else a `Card` takes (state, onPress...) */
 export type PileTop = Partial<Omit<ZoneCard, "key" | "back">>
 
 /** What pressing a pile does, said over it: the word with its arrow (`ActionLabel`), and the pile's top card that does it */

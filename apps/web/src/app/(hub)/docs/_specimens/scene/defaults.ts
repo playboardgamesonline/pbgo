@@ -246,9 +246,6 @@ export const PLAY_LOG_MAX = 40
 export type PlayCard = { id: number; card: number; from?: number }
 /** Where a card can be sent: the hand, the discard pile, a place on the table, or away. */
 export type PlayPlace = "hand" | "discard" | "table" | "gone"
-/** The glows a picked card can wear: one part each, and all four. */
-export const PLAY_GLOWS = ["none", "halo", "outline", "frame", "sparkle", "all"] as const
-export type PlayGlow = (typeof PLAY_GLOWS)[number]
 /** The playground's cards: how many the draw pile starts with, and the most the hand holds. */
 export const PLAY_DECK = { size: 30, hand: 10 }
 /** The playground's stack of pieces: the most it holds and where its count starts. */
@@ -282,8 +279,6 @@ export type PlayState = {
   face: number | null
   /** The sketch: what is drawn on its paper, as the engine would keep it, and the pen */
   sketch: { strokes: Drawing; color: number; width: number }
-  /** The glow of the picked card */
-  glow: PlayGlow
   /** The hand: its cards, and how they are laid out */
   hand: { cards: PlayCard[]; layout: LayoutName }
   /** The draw pile counts how many cards were drawn from its deck; the discard pile holds the cards let go on it */

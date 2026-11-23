@@ -101,7 +101,7 @@ function pressable(view: PlayerView): ReadonlySet<number> {
 }
 
 function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, onThrow, onFlip, onDeal, entrances, columns, busy, held }: SceneProps) {
-  // The table's own folders (camera, cards, seats, glows, lights...) are made by the shared `Table`; the game binds the knobs of its layout and of its pace
+  // The table's own folders (camera, cards, seats, lights...) are made by the shared `Table`; the game binds the knobs of its layout and of its pace
   useSettings("Layout", LAYOUT_SETTINGS, LAYOUT_FIELDS, { order: 1 })
   useSettings("Pace", PACE_SETTINGS, PACE_FIELDS, { order: 2 })
   const faces = useFaces(catalog)
