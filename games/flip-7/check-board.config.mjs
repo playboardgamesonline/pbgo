@@ -79,7 +79,8 @@ const config = {
       const at = (low, high) => (pressable) => strip(pressable) && pressable.world[0] > low && pressable.world[0] < high
       if (label === "hit") return pressables.find(at(-4, -2))
       if (label === "stay" || label === "deal") return pressables.find(at(-0.5, 0.5))
-      if (label === "target") return pressables.find((pressable) => pressable.reachable) ?? pressables[0]
+      // a target that arises as a round begins lies under the announcement of the round for a few seconds: no area is reachable yet, and the tool waits for one rather than pressing what it cannot reach
+      if (label === "target") return pressables.find((pressable) => pressable.reachable)
       return undefined
     },
   },
