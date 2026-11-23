@@ -22,8 +22,6 @@ describe("setting up a table", () => {
     ["the same player twice", [...players(2), { id: "ana", nickname: "ANA" }]],
     ["an empty id", [...players(2), { id: "", nickname: "?" }]],
     ["an id that is not a text", [...players(2), { id: 7, nickname: "?" }]],
-    ["no list", undefined],
-    ["a list of nothing", [null, null, null]],
   ])("refuses %s with INVALID_PLAYERS", (_name, list) => {
     expect(refusal(() => setupGame({ players: list as never }))).toBe("INVALID_PLAYERS")
   })

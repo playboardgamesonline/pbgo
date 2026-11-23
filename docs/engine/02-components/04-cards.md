@@ -6,21 +6,17 @@ A card has two sides. The engine keeps an id in one place of the state, and the 
 
 - The state holds the id and nothing that can be looked up: no name, text, picture or colour ([Lean state](../01-the-game/09-state.md#lean-state)). In Flip 7, `ids[card]` of `State` in `games/flip-7/packages/engine/src/types.ts` is the id the card at index `card` of the catalogue holds ([Opaque ids](../01-the-game/10-views.md#opaque-ids)).
 - What a card is comes from the catalogue: its index gives a face key, and `CARDS` gives the key its `kind`. In Flip 7 the catalogue is `CATALOGUE` in `games/flip-7/packages/engine/src/catalogue.ts`; Exploding Kittens builds its own from the options of the table with `buildCatalogue`. The name, the text and the picture of a key are Sanity's.
-- An id is in one place at a time: exactly one in Flip 7, and one or none in Exploding Kittens, where a card set aside at setup is nowhere. `removeFrom` of `machine.ts` throws for an id that is not where it should be.
-- The view names a card with a `Face`, `{ id, type }`, only to a viewer who may see it (`playerView` in `games/flip-7/packages/engine/src/view.ts`; [Hidden information](../01-the-game/10-views.md#hidden-information)). The cards of a hand or a deck the viewer cannot see are a count, never a list of ids: `cardCount` in the template, `handCount` and `deckCount` in Courtisans, `cards` and `deck` in Exploding Kittens.
+- An id is in one place at a time: exactly one in Flip 7, and one or none in Exploding Kittens, where a card set aside at setup is nowhere. `removeFrom` of the kit throws for an id that is not where it should be.
+- The view names a card with a `CardFace` of the kit, `{ id, type }`, only to a viewer who may see it (`playerView` in `games/flip-7/packages/engine/src/view.ts`; [Hidden information](../01-the-game/10-views.md#hidden-information)). The cards of a hand or a deck the viewer cannot see are a count, never a list of ids: `cardCount` in the template, `handCount` and `deckCount` in Courtisans, `cards` and `deck` in Exploding Kittens.
 
-From `games/flip-7/packages/engine/src/machine.ts`, an id looked up in the catalogue, and the face the view shows for it:
+`keyOfId`, `faceOfId` and `facesOfIds` of the kit look an id up in the catalogue and give the face the view shows for it. From `games/flip-7/packages/engine/src/machine.ts` and `view.ts`, what a card is for the rules, and a line of the view:
 
 ```ts
-export function keyOf(s: Pick<State, "ids">, id: number): CardKey {
-  const key = CATALOGUE[cardOf(s.ids, id)]
-  // …
-  return key
+export function typeOf(s: Pick<State, "ids">, id: number): CardType {
+  return CARDS[keyOfId(s.ids, CATALOGUE, id)]
 }
 // …
-export function faceOf(s: Pick<State, "ids">, id: number): Face {
-  return { id, type: keyOf(s, id) }
-}
+cards: facesOfIds(s.ids, CATALOGUE, lineOf(s, seat)),
 ```
 
 ## Kinds of cards
@@ -29,8 +25,8 @@ A game can hold cards of different kinds, and its board paints each kind its own
 
 | Example | Kinds | Defined in | What the view calls a card |
 | --- | --- | --- | --- |
-| Flip 7 | `number`, `modifier`, `action` | `CardType` and `CARDS` in `games/flip-7/packages/engine/src/catalogue.ts` | A `Face`: the id and a key of `CARDS`, such as `number-7` or `freeze` |
-| Exploding Kittens | `kitten`, `defuse`, `nope`, `action`, `cat` | `CardKind` and `CARDS` in `games/exploding-kittens/packages/engine/src/catalogue.ts` | A `Face`, the same |
+| Flip 7 | `number`, `modifier`, `action` | `CardType` and `CARDS` in `games/flip-7/packages/engine/src/catalogue.ts` | A `CardFace` of the kit: the id and a key of `CARDS`, such as `number-7` or `freeze` |
+| Exploding Kittens | `kitten`, `defuse`, `nope`, `action`, `cat` | `CardKind` and `CARDS` in `games/exploding-kittens/packages/engine/src/catalogue.ts` | A `Face` of its own, the same shape |
 | Courtisans, courtiers | A family and a role | `FAMILIES`, `ROLES` and `Courtier` in `games/courtisans/packages/engine/src/types.ts`; the pictures are in Sanity | A `VisibleCard`: the id, the family and the role; a hidden spy has no family |
 | Courtisans, missions | A color and a `Condition` | `Mission` in the same `types.ts`; the missions come from Sanity as setup data ([Game data](../01-the-game/08-game-data.md)) | A `Mission`, to its holder; to the others `null` until the game is over |
 | La Plus Haute, the template's demo | A color and a value | `Card` in `template/packages/engine/src/demo/types.ts` | The `Card` itself; an opponent's hand is `cardCount` |

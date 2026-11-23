@@ -1,4 +1,4 @@
-import type { Face, Flip7Event } from "@flip-7/engine"
+import type { CardFace, Flip7Event } from "@flip-7/engine"
 import { describe, expect, it } from "vitest"
 import { MISSING_CATALOG } from "./catalog"
 import { actorsOf, type HistoryContext, sentenceOf } from "./history"
@@ -26,7 +26,7 @@ const context: HistoryContext = {
   names: { ...MISSING_CATALOG.names, freeze: "Freeze", "second-chance": "Second Chance" },
   nickname: (id) => ({ a: "Alex", s: "Sam" })[id] ?? "?",
 }
-const face = (type: string, id = 1): Face => ({ id, type })
+const face = (type: string, id = 1): CardFace => ({ id, type })
 const say = (event: Flip7Event) => sentenceOf(event, context)
 
 describe("the sentence of an event", () => {

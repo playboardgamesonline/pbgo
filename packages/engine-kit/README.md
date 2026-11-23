@@ -81,7 +81,7 @@ The seats run clockwise and the array of the ids of the table is the only source
 | `playerAt(seats, seat)` | The id of the player in `seat`. A seat that does not exist is a bug of the engine, a `RangeError`. |
 | `nextSeat(count, from, skip?)` | The seat that plays after `from`, going round clockwise, that `skip` does not rule out (a player who is out, one who has stayed). `from` itself comes last; `null` when every seat is ruled out. |
 | `openStep(state, streams?)` | A step starts here: a private copy of the state (`structuredClone`) and the streams the state keeps picked up where the last step left them, each under the name of the field that saves it (`["rng"]` unless the game keeps others, `["rng", "idsRng"]`). Returns a `StepContext`: `s`, `events` and the streams. |
-| `closeStep(ctx)` | A step ends here: every stream the step opened is saved back into the state, which comes out with what happened, as a `Step`. |
+| `closeStep(ctx)` | A step ends here: every stream the step opened is saved back into the state, which comes out with what happened, as a `Step`. It reads only `s` and `events` from the context, so it takes a context the game names with an alias (`type Context = StepContext<State, MyEvent>`) as it takes the one `openStep` made, and needs no type argument. |
 | `noteEvent(ctx, event, hidden?)` | Notes what happened, for everybody; `hidden` is `{ to, masked }` when only some players may read it in full (see Log). |
 
 ```ts
