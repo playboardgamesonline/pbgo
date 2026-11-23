@@ -1,5 +1,5 @@
-import { EngineError, noteEvent, playerAt, seatOf } from "@pbgo/engine-kit"
-import { type Ctx, close, faceOf, gridOf, open, refuse, revealedCount, waitingFor } from "./machine"
+import { EngineError, closeStep, noteEvent, playerAt, seatOf } from "@pbgo/engine-kit"
+import { type Ctx, faceOf, gridOf, open, refuse, revealedCount, waitingFor } from "./machine"
 import { afterOpening, dropColumn, drawCard, endTurn, startRound } from "./round"
 import { columnOf, isPosition } from "./scoring"
 import { type Action, CLIENT_ACTIONS, type Cell, OPENING_FLIPS, type SkyjoStep, type State } from "./types"
@@ -149,5 +149,5 @@ export function perform(ctx: Ctx, input: unknown): void {
 export function step(state: State, action: Action): SkyjoStep {
   const ctx = open(state)
   perform(ctx, action)
-  return close(ctx)
+  return closeStep(ctx)
 }
