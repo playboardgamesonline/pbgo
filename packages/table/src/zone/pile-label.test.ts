@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
+import { reachAlong } from "../floor/label-look"
 import { RESTING_HEIGHT } from "../pose"
-import { PILE_LABEL_GAP, pileAboveAt, pileLabelAt } from "./pile-label"
+import { PILE_LABEL_GAP, pileAboveAt, pileFootprint, pileLabelAt } from "./pile-label"
 
 const CARD = { width: 1.2, height: 1.7 }
 
@@ -38,29 +39,37 @@ describe("where the count of a pile is written", () => {
   })
 })
 
-describe("where the arrow of the action label over a pile points", () => {
-  it("is the middle of the pile's far edge, away from the viewer, centred on it", () => {
-    expect(pileAboveAt({ x: -3, z: 0.5 }, CARD)).toEqual({ x: -3, y: RESTING_HEIGHT, z: 0.5 - CARD.height / 2 })
+describe("where the action label over a pile stands", () => {
+  it("is the middle of the pile, so the label is centred on it", () => {
+    expect(pileAboveAt({ x: -3, z: 0.5 })).toEqual({ x: -3, y: RESTING_HEIGHT, z: 0.5 })
   })
 
-  it("is the middle of the table's far edge when the pile has no frame", () => {
-    expect(pileAboveAt(undefined, CARD)).toEqual({ x: 0, y: RESTING_HEIGHT, z: -CARD.height / 2 })
-  })
-
-  it("is as far from the middle of the pile as the count is, less the count's gap, on the other side, whatever way the pile is turned", () => {
-    for (let turn = 0; turn < 16; turn++) {
-      const frame = { x: 1, z: 2, yaw: (turn * Math.PI) / 8 }
-      const under = pileLabelAt(frame, CARD, 0.8).z - frame.z - PILE_LABEL_GAP
-      expect(frame.z - pileAboveAt(frame, CARD, 0.8).z).toBeCloseTo(under)
-    }
-  })
-
-  it("takes the scale of the cards of the pile", () => {
-    expect(pileAboveAt({ x: 0, z: 0 }, CARD, 0.5).z).toBeCloseTo(-(CARD.height * 0.5) / 2)
+  it("is the middle of the table when the pile has no frame", () => {
+    expect(pileAboveAt(undefined)).toEqual({ x: 0, y: RESTING_HEIGHT, z: 0 })
   })
 
   it("is at the height of the top of the pile that is given, the table's when none is", () => {
-    expect(pileAboveAt({ x: 0, z: 0 }, CARD, 1, 0.29).y).toBe(0.29)
-    expect(pileAboveAt({ x: 0, z: 0 }, CARD).y).toBe(RESTING_HEIGHT)
+    expect(pileAboveAt({ x: 0, z: 0 }, 0.29).y).toBe(0.29)
+    expect(pileAboveAt({ x: 0, z: 0 }).y).toBe(RESTING_HEIGHT)
+  })
+})
+
+describe("the room a pile takes, which the action label keeps clear of", () => {
+  it("is the width and the depth of its cards, at the scale of the pile", () => {
+    expect(pileFootprint({ x: 0, z: 0 }, CARD)).toEqual({ width: CARD.width, depth: CARD.height, yaw: 0 })
+    expect(pileFootprint({ x: 0, z: 0 }, CARD, 0.5)).toEqual({ width: CARD.width * 0.5, depth: CARD.height * 0.5, yaw: 0 })
+  })
+
+  it("is turned as the pile's frame turns it, and not at all when the pile has no frame", () => {
+    expect(pileFootprint({ x: 1, z: 2, yaw: 1.2 }, CARD).yaw).toBe(1.2)
+    expect(pileFootprint(undefined, CARD).yaw).toBe(0)
+  })
+
+  it("reaches away from the viewer as far as the count is under the pile, less the count's gap, whatever way the pile is turned", () => {
+    for (let turn = 0; turn < 16; turn++) {
+      const frame = { x: 1, z: 2, yaw: (turn * Math.PI) / 8 }
+      const under = pileLabelAt(frame, CARD, 0.8).z - frame.z - PILE_LABEL_GAP
+      expect(reachAlong(pileFootprint(frame, CARD, 0.8), 0, -1)).toBeCloseTo(under)
+    }
   })
 })

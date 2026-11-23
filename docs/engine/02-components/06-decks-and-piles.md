@@ -48,7 +48,7 @@ const { hands, pile: deck } = deal(rest, count, HAND_SIZE)
 
 `PileTop` is the props of a [Card](04-cards.md#card), all optional, but `target`, `size` and `back`: its `front`, and whatever else a card takes, such as a `state` or an `onPress`. A pile that can be pressed, a deck to draw from, gives its top card `state: "interactive"`, an `onPress` and an `ariaLabel`: the table lights it and lifts it under the pointer, face down as it is ([States](04-cards.md#states)). A `glow` and a `gloss` show on a card that lies face up only ([Glows](04-cards.md#glows)).
 
-- **The word.** A pile that can be pressed says what that does with an action label floating over its far edge: "Draw", with a small arrow that points down at the pile, pressed like the pile. The count is under the pile, so the two never meet.
+- **The word.** A pile that can be pressed says what that does with an action label floating over it, centred on it as the camera sees it and clear of its far edge: "Draw", with a small arrow that points down at the pile, pressed like the pile. The count is under the pile, so the two never meet.
 - **The count.** The pile writes how many cards it holds under it, on the viewer's side, centred, in the lettering of the plates (the display font of the game and the weight of the table's lettering, `useLettering`): the number it holds, not the number it draws. Nothing is written while it holds none. A board writes no count of its own. Where it lies is `pileLabelAt`, which keeps clear of the pile whatever way its frame turns it.
 
 Turn the top card up, draw one, and push the count past the limit: a taller pile looks no different, and the number under it is the real one.

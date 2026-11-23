@@ -14,8 +14,22 @@ export const LABEL_ROOM = 3
 /** The arrow, a rounded triangle that points down at the object: its width, its length and the radius of its corners, in world units */
 export const ARROW = { width: 0.44, length: 0.3, round: 0.07 } as const
 
-/** Between the tip of the arrow and the top of the object, and between the base of the arrow and the lettering, in world units */
-export const LABEL_GAP = { tip: 0.16, lettering: 0.08 } as const
+/** Between the tip of the arrow and the far edge of the object as the camera sees it, and between the base of the arrow and the lettering, in world units */
+export const LABEL_GAP = { tip: 0.12, lettering: 0.08 } as const
+
+/** The room an object takes on the table, which the label stands clear of: its width (along its own x), its depth (along its own z), in world units, and how far it is turned about the vertical axis (`yaw`, in radians, the turn of a `Spot`) */
+export type Footprint = { width: number; depth: number; yaw?: number }
+
+/**
+ * How far a footprint reaches from its middle along a direction of the table, `(dx, dz)`: the largest of the distances to its four corners measured along that direction. The direction need not be a unit one, and the answer grows with its length.
+ * The label reads it along the camera's up, whose horizontal part is what an object lying on the table can reach up the screen: that is how far the label stands from the middle of the object to clear its far edge.
+ */
+export function reachAlong({ width, depth, yaw = 0 }: Footprint, dx: number, dz: number): number {
+  const c = Math.cos(yaw)
+  const s = Math.sin(yaw)
+  // A turn of `yaw` about the vertical axis takes the footprint's own x to (cos, -sin) and its own z to (sin, cos), on the table's (x, z)
+  return (Math.abs(dx * c - dz * s) * width + Math.abs(dx * s + dz * c) * depth) / 2
+}
 
 /** How far the arrow bobs down toward the object, in world units, and how fast, in radians a second. It never goes past the gap that is left between its tip and the object */
 export const BOB = { reach: 0.08, speed: 3.4 } as const

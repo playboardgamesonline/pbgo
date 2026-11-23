@@ -10,7 +10,7 @@ import { pile, type PileOptions, type Spot } from "../layout"
 import { useLettering } from "../lettering"
 import type { Pose } from "../pose"
 import { TableText } from "../seat/table-text"
-import { PILE_LABEL_HEIGHT, pileAboveAt, pileLabelAt } from "./pile-label"
+import { PILE_LABEL_HEIGHT, pileAboveAt, pileFootprint, pileLabelAt } from "./pile-label"
 import { Zone, type ZoneCard } from "./zone"
 
 /** The text colour of a table that has no game's settings above it (the specimens of the docs): the plates' own */
@@ -97,7 +97,8 @@ export function Pile({ frame, count, size, back, top, limit = LIMIT, enter, stag
       <Zone frame={frame} layout={layout} size={size} enter={enter} stagger={stagger} cards={cards} />
       {acting && action && (
         <ActionLabel
-          at={pileAboveAt(frame, size, options.scale, layout[n - 1]?.position.y)}
+          at={pileAboveAt(frame, layout[n - 1]?.position.y)}
+          over={pileFootprint(frame, size, options.scale)}
           label={action.label}
           onPress={action.onPress}
           touch={{ hovered: over, focused: false, pressed: false }}

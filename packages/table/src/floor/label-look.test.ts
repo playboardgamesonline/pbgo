@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { NO_TOUCH } from "../card/states"
 import { TEXT_PX } from "../seat/text-px"
-import { ARROW, arrowOffset, arrowOutline, BOB, fitHeight, LABEL_GAP, LABEL_HEIGHT, LABEL_ROOM, labelColour, labelPlan, labelScale, pointerTouch, touchOf } from "./label-look"
+import { ARROW, arrowOffset, arrowOutline, BOB, fitHeight, LABEL_GAP, LABEL_HEIGHT, LABEL_ROOM, labelColour, labelPlan, labelScale, pointerTouch, reachAlong, touchOf } from "./label-look"
 
 describe("how large the lettering is", () => {
   it("is the size asked for when the word fits the room", () => {
@@ -48,14 +48,57 @@ describe("the plan of a label", () => {
     }
   })
 
-  it("never reaches the object it names: the pointer stops short of its top", () => {
+  it("never reaches the object it names: the pointer stops short of its far edge", () => {
     const { hit } = labelPlan(4 * TEXT_PX, LABEL_ROOM)
-    // the origin is the tip, which is a gap above the top of the object
+    // the origin is the tip, which is a gap past the far edge of the object
     expect(hit.y - hit.height / 2).toBeGreaterThan(-LABEL_GAP.tip)
   })
 
   it("is centred across the label, over the object", () => {
     expect(labelPlan(4 * TEXT_PX, LABEL_ROOM).hit.x).toBe(0)
+  })
+})
+
+describe("how far an object reaches from its middle", () => {
+  const CARD = { width: 1.2, depth: 1.7 }
+
+  it("is half its depth along the table's z and half its width along x", () => {
+    expect(reachAlong(CARD, 0, 1)).toBeCloseTo(0.85)
+    expect(reachAlong(CARD, 0, -1)).toBeCloseTo(0.85)
+    expect(reachAlong(CARD, 1, 0)).toBeCloseTo(0.6)
+  })
+
+  it("swaps them for an object turned a quarter, and keeps them for a half turn", () => {
+    expect(reachAlong({ ...CARD, yaw: Math.PI / 2 }, 0, 1)).toBeCloseTo(0.6)
+    expect(reachAlong({ ...CARD, yaw: Math.PI / 2 }, 1, 0)).toBeCloseTo(0.85)
+    expect(reachAlong({ ...CARD, yaw: Math.PI }, 0, 1)).toBeCloseTo(0.85)
+  })
+
+  it("is the farthest of its four corners along the direction, whatever way it is turned and whatever the direction", () => {
+    for (let turn = 0; turn < 12; turn++) {
+      for (let way = 0; way < 12; way++) {
+        const yaw = (turn * Math.PI) / 6
+        const dx = Math.sin((way * Math.PI) / 6)
+        const dz = Math.cos((way * Math.PI) / 6)
+        // the corners of the footprint, turned about the vertical axis by `yaw` (three.js': x goes to (cos, -sin), z to (sin, cos))
+        const corners = [
+          [-CARD.width / 2, -CARD.depth / 2],
+          [CARD.width / 2, -CARD.depth / 2],
+          [-CARD.width / 2, CARD.depth / 2],
+          [CARD.width / 2, CARD.depth / 2],
+        ].map(([x, z]) => [x! * Math.cos(yaw) + z! * Math.sin(yaw), -x! * Math.sin(yaw) + z! * Math.cos(yaw)] as const)
+        const farthest = Math.max(...corners.map(([x, z]) => x * dx + z * dz))
+        expect(reachAlong({ ...CARD, yaw }, dx, dz)).toBeCloseTo(farthest)
+      }
+    }
+  })
+
+  it("grows with the length of the direction, which is the horizontal part of the camera's up and not a unit vector", () => {
+    expect(reachAlong({ ...CARD, yaw: 0.7 }, 0, -0.77)).toBeCloseTo(0.77 * reachAlong({ ...CARD, yaw: 0.7 }, 0, -1))
+  })
+
+  it("is nothing for no direction: the up of a camera that looks along the table has no part along the table, so the object reaches no higher up the screen than it is high", () => {
+    expect(reachAlong(CARD, 0, 0)).toBe(0)
   })
 })
 

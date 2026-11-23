@@ -1,6 +1,6 @@
 "use client"
 
-import { ActionLabel, type CameraSettings, cardRise, effectiveState, NO_TOUCH, Pile, pile, pileAboveAt, type Spot, type Touch, Zone } from "@pbgo/table"
+import { ActionLabel, type CameraSettings, cardRise, effectiveState, NO_TOUCH, Pile, pile, pileAboveAt, pileFootprint, type Spot, type Touch, Zone } from "@pbgo/table"
 import { useState } from "react"
 import { back, CARD_SIZE, face } from "./art"
 import { Stage } from "./parts"
@@ -31,7 +31,18 @@ export function ActionLabelScene({ count, can, discard, onDraw, onTake }: { coun
         size={CARD_SIZE}
         cards={[{ key: "discard", front: face(discard), back: cardBack, state: can ? effectiveState("interactive", touch) : "base", onPress: onTake, ariaLabel: "Take the discard", onHover: setOver }]}
       />
-      {can && <ActionLabel at={pileAboveAt(DISCARD, CARD_SIZE, SCALE, DISCARD_LAYOUT[0]?.position.y)} label="Take the discard" onPress={onTake} touch={{ ...NO_TOUCH, hovered: over }} onTouch={setTouch} rise={cardRise(CARD_SIZE, SCALE)} room={ROOM} />}
+      {can && (
+        <ActionLabel
+          at={pileAboveAt(DISCARD, DISCARD_LAYOUT[0]?.position.y)}
+          over={pileFootprint(DISCARD, CARD_SIZE, SCALE)}
+          label="Take the discard"
+          onPress={onTake}
+          touch={{ ...NO_TOUCH, hovered: over }}
+          onTouch={setTouch}
+          rise={cardRise(CARD_SIZE, SCALE)}
+          room={ROOM}
+        />
+      )}
     </Stage>
   )
 }

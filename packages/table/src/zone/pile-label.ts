@@ -1,4 +1,5 @@
 import type { CardSize } from "../card/geometry"
+import type { Footprint } from "../floor/label-look"
 import type { Spot } from "../layout"
 import { RESTING_HEIGHT } from "../pose"
 
@@ -23,9 +24,14 @@ export function pileLabelAt(frame: Spot | undefined, size: CardSize, scale = 1):
 }
 
 /**
- * Where the action label over a pile hangs from: the middle of the pile's far edge, the one away from the viewer, which is where the count is not, at the height of the top of the pile (`y`, the height of its top card: the table's for one card). The label
- * floats a gap above it and faces the camera, so this is the room the pile takes away from the viewer, whatever way its frame turns it. `scale` is the scale of the cards of the pile.
+ * Where the action label over a pile stands: the middle of the pile, at the height of its top (`y`, the height of its top card: the table's for one card). The label is set up the screen from it, as far as the pile reaches up the screen (`pileFootprint` says how
+ * far, whatever way the camera and the pile are turned), so it is centred over the pile as the camera sees it and clear of it, over its far edge, where the count is not.
  */
-export function pileAboveAt(frame: Spot | undefined, size: CardSize, scale = 1, y: number = RESTING_HEIGHT): { x: number; y: number; z: number } {
-  return { x: frame?.x ?? 0, y, z: (frame?.z ?? 0) - halfDepth(frame, size, scale) }
+export function pileAboveAt(frame: Spot | undefined, y: number = RESTING_HEIGHT): { x: number; y: number; z: number } {
+  return { x: frame?.x ?? 0, y, z: frame?.z ?? 0 }
+}
+
+/** The room a pile takes on the table, which the action label stands clear of: the width and the depth of its cards, turned as its frame turns them. `scale` is the scale of the cards of the pile */
+export function pileFootprint(frame: Spot | undefined, size: CardSize, scale = 1): Footprint {
+  return { width: size.width * scale, depth: size.height * scale, yaw: frame?.yaw ?? 0 }
 }

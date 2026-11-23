@@ -4,18 +4,20 @@ import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Billboard, useCursor } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { type Group, type Mesh, type MeshBasicMaterial, Shape, ShapeGeometry, Vector2 } from "three"
+import { type Group, type Mesh, type MeshBasicMaterial, Shape, ShapeGeometry, Vector2, Vector3 } from "three"
 import { NO_TOUCH, type Touch } from "../card/states"
 import { useCardBlooms } from "../card/theme"
 import { useLettering } from "../lettering"
 import { RESTING_HEIGHT } from "../pose"
 import { paintText, useFontReady } from "../seat/table-text"
-import { arrowOffset, arrowOutline, LABEL_GAP, LABEL_HEIGHT, LABEL_ROOM, labelColour, labelPlan, labelScale, pointerTouch, touchOf } from "./label-look"
+import { arrowOffset, arrowOutline, type Footprint, LABEL_GAP, LABEL_HEIGHT, LABEL_ROOM, labelColour, labelPlan, labelScale, pointerTouch, reachAlong, touchOf } from "./label-look"
 import { liftTarget, stepLift } from "./lift"
 
 export type ActionLabelProps = {
-  /** Where the label hangs from: the middle of the edge of the object that is farthest from the viewer, at the height of its top (`y`, the table's when not given). `pileAboveAt` gives it for a pile. The label floats a gap above that point with its arrow pointing down at it, so from the camera it stands over the object and never over its face */
+  /** The middle of the object, at the height of its top (`y`, the table's when not given): the label stands over it, centred on it as the camera sees it, with its arrow pointing down at the object. `pileAboveAt` gives it for a pile */
   at: { x: number; y?: number; z: number }
+  /** The room the object takes on the table (`pileFootprint` gives it for a pile): the label is set up the screen from the middle of the object as far as the object reaches up the screen, so it stands clear of it, over its far edge, and never over its face. Without it the label hangs from `at` itself, a point */
+  over?: Footprint
   /** What pressing the object does, in the game's words and the visitor's language: one word or two ("Draw", "Take the discard"). Not a sentence: what to do now is the `prompt` of the ticker */
   label: string
   /** Pressing the label (a click, a tap) does the same as pressing the object. Without it the label is drawn and takes no press */
@@ -35,6 +37,8 @@ export type ActionLabelProps = {
 }
 
 const SHADOW = "rgba(0,0,0,0.7)|14|4"
+/** The camera's up in the table's frame, kept between frames so that a frame allocates nothing */
+const UP = new Vector3()
 /** How dim a label that cannot be pressed is */
 const DIM = 0.5
 
@@ -42,13 +46,14 @@ const DIM = 0.5
  * The word that says what pressing an object does: "Draw" over the draw pile, "Take the discard" over the discard. It floats above the object, facing the camera (`Billboard`), with a small arrow under it that points down at the object and bobs toward it, and it is
  * pressed like the object: a click on the word does what a click on the object does, the object lights when the word is under the pointer and the word when the object is. It is the one text a board writes on the table: what to do now is a sentence, and the ticker says it (`prompt`).
  *
- * It hangs from the far edge of the object, at the height of its top, so that from the camera it stands over the object and not over its face; and it rises as far as the object does when that lifts under the pointer, so the object never covers its arrow.
+ * It stands centred over the object as the camera sees it, set up the screen from the middle of the object as far as the object reaches up the screen (`over`), so it is over its far edge and not over its face, whatever the camera and the object turn to; and it rises as far as
+ * the object does when that lifts under the pointer, so the object never covers its arrow.
  * The lettering is the table's (`useLettering`) and its colour the object's own: the colour of the `interactive` bloom of a card (`UI_THEME.card`), lightened to read on the table, and the `hover` one as the word lifts, so a board types none. The lettering is painted white once
  * and tinted, so a change of state never paints it again. It grows into place as it appears and a little more under the pointer, and a visitor who asks for less motion gets it still and in place, with no bob.
  *
  * The keyboard reaches the object, not the label: the object keeps the one hidden button in the page (`ariaLabel` of the card), so a screen reader reads one entry for one action.
  */
-export function ActionLabel({ at, label, onPress, disabled = false, touch = NO_TOUCH, onTouch, labelHeight = LABEL_HEIGHT, room = LABEL_ROOM, rise = 0 }: ActionLabelProps) {
+export function ActionLabel({ at, over, label, onPress, disabled = false, touch = NO_TOUCH, onTouch, labelHeight = LABEL_HEIGHT, room = LABEL_ROOM, rise = 0 }: ActionLabelProps) {
   const letters = useLettering()
   const blooms = useCardBlooms()
   const reduced = usePrefersReducedMotion()
@@ -86,19 +91,26 @@ export function ActionLabel({ at, label, onPress, disabled = false, touch = NO_T
   const target = liftTarget({ ...touchOf(own, touch), disabled })
 
   const root = useRef<Group>(null)
+  const hang = useRef<Group>(null)
   const arrow = useRef<Mesh>(null)
   const arrowMaterial = useRef<MeshBasicMaterial>(null)
   const letteringMaterial = useRef<MeshBasicMaterial>(null)
   const appear = useRef(0)
   const lift = useRef(0)
   const painted = useRef("")
-  useFrame(({ clock }, dt) => {
+  useFrame(({ clock, camera }, dt) => {
     const group = root.current
-    if (!group) return
+    const tip = hang.current
+    if (!group || !tip) return
     appear.current = stepLift(appear.current, 1, dt, reduced)
     lift.current = stepLift(lift.current, target, dt, reduced)
-    group.scale.setScalar(labelScale(appear.current, lift.current))
+    // The object's lift: the label rises as far as the object does
     group.position.y = lift.current * rise
+    // The tip of the arrow stands up the screen from the middle of the object: as far as the object reaches up the screen (the horizontal part of the camera's up, along which the footprint on the table is measured) and a gap more. The offset is along the camera's up, so it
+    // keeps the screen's own column: the label is centred over the object as the camera sees it, which a point on the object's far edge, skewed by the perspective, is not. It grows about the tip, so it never leans into the object
+    UP.set(0, 1, 0).applyQuaternion(camera.quaternion)
+    tip.position.y = (over ? reachAlong(over, UP.x, UP.z) : 0) + LABEL_GAP.tip
+    tip.scale.setScalar(labelScale(appear.current, lift.current))
     // The arrow bobs down toward the object
     if (arrow.current) arrow.current.position.y = disabled ? 0 : -arrowOffset(clock.elapsedTime, lift.current, reduced)
     const opacity = appear.current * (disabled ? DIM : 1)
@@ -113,44 +125,47 @@ export function ActionLabel({ at, label, onPress, disabled = false, touch = NO_T
   })
 
   return (
-    <group position={[at.x, (at.y ?? RESTING_HEIGHT) + LABEL_GAP.tip, at.z]}>
-      {/* Everything grows about the tip of the arrow, so it never leans into the object, and rises with the object when it is lifted */}
-      <group ref={root} scale={labelScale(0, 0)}>
-        {/* The tip of the arrow is the origin, the label hangs above it and faces the camera */}
+    <group position={[at.x, at.y ?? RESTING_HEIGHT, at.z]}>
+      {/* The object's lift: the label rises with the object when it is lifted */}
+      <group ref={root}>
+        {/* The label faces the camera, so its own up is the screen's up */}
         <Billboard>
-          <mesh ref={arrow} geometry={outline} renderOrder={6} raycast={() => null}>
-            <meshBasicMaterial ref={arrowMaterial} transparent opacity={0} depthWrite={false} toneMapped={false} />
-          </mesh>
-          <mesh position={[0, plan.letteringY, 0]} renderOrder={6} raycast={() => null}>
-            <planeGeometry args={[planeHeight * lettering.ratio, planeHeight]} />
-            <meshBasicMaterial ref={letteringMaterial} map={lettering.texture} transparent opacity={0} depthWrite={false} toneMapped={false} />
-          </mesh>
-          {/* What the pointer reaches: the arrow, the lettering and a margin round them, and never the object */}
-          {pressable && (
-            <mesh
-              position={[plan.hit.x, plan.hit.y, 0.01]}
-              onClick={(e) => {
-                e.stopPropagation()
-                onPress()
-              }}
-              onPointerOver={(e) => {
-                e.stopPropagation()
-                setHovered(true)
-              }}
-              onPointerOut={() => {
-                setHovered(false)
-                setPressed(false)
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation()
-                setPressed(true)
-              }}
-              onPointerUp={() => setPressed(false)}
-            >
-              <planeGeometry args={[plan.hit.width, plan.hit.height]} />
-              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+          {/* The tip of the arrow is the origin of this group: it is set up the screen from the middle of the object and the label hangs above it and grows about it */}
+          <group ref={hang} scale={labelScale(0, 0)}>
+            <mesh ref={arrow} geometry={outline} renderOrder={6} raycast={() => null}>
+              <meshBasicMaterial ref={arrowMaterial} transparent opacity={0} depthWrite={false} toneMapped={false} />
             </mesh>
-          )}
+            <mesh position={[0, plan.letteringY, 0]} renderOrder={6} raycast={() => null}>
+              <planeGeometry args={[planeHeight * lettering.ratio, planeHeight]} />
+              <meshBasicMaterial ref={letteringMaterial} map={lettering.texture} transparent opacity={0} depthWrite={false} toneMapped={false} />
+            </mesh>
+            {/* What the pointer reaches: the arrow, the lettering and a margin round them, and never the object */}
+            {pressable && (
+              <mesh
+                position={[plan.hit.x, plan.hit.y, 0.01]}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onPress()
+                }}
+                onPointerOver={(e) => {
+                  e.stopPropagation()
+                  setHovered(true)
+                }}
+                onPointerOut={() => {
+                  setHovered(false)
+                  setPressed(false)
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation()
+                  setPressed(true)
+                }}
+                onPointerUp={() => setPressed(false)}
+              >
+                <planeGeometry args={[plan.hit.width, plan.hit.height]} />
+                <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+              </mesh>
+            )}
+          </group>
         </Billboard>
       </group>
     </group>
