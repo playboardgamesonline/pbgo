@@ -1,11 +1,12 @@
 import { createRng, defaultOptions, playStepFor, progressOf, stepOf, viewLog } from "@pbgo/engine-kit"
+import { reorderKeys } from "@pbgo/engine-kit/testing"
 import { describe, expect, it } from "vitest"
 import { step } from "./actions"
 import { GAME } from "./game"
 import { OPTIONS } from "./options"
 import { setupGame } from "./setup"
 import { CLIENT_ACTIONS, FLIP7_ERROR_CODES } from "./types"
-import { kinds, layout, newState, playRandomly, players, problems, randomAction, reorderKeys, seedOf, waiting } from "./test-utils"
+import { kinds, layout, newState, playRandomly, players, problems, randomAction, seedOf, waiting } from "./test-utils"
 import { playerView } from "./view"
 
 // The game as the platform reads it: the `GameDefinition` of @pbgo/engine-kit.

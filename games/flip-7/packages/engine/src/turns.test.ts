@@ -1,6 +1,7 @@
+import { deepFreeze } from "@pbgo/engine-kit/testing"
 import { describe, expect, it } from "vitest"
 import { step } from "./actions"
-import { deepFreeze, deckTitles, deal, discardTitles, hit, kinds, layout, lineTitles, problems, refusal, statusOf, stay, viewOf, waiting } from "./test-utils"
+import { deckTitles, deal, discardTitles, hit, kinds, layout, lineTitles, problems, refusal, statusOf, stay, viewOf, waiting } from "./test-utils"
 
 // "How to play" (booklet pages 4 and 5): the dealer offers each player in turn the option to Hit (get dealt another card) or Stay (exit the
 // round and bank their points). You may Stay as long as you have a card in front of you. A busted or staying player is out of the round.
