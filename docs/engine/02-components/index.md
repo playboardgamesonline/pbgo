@@ -49,6 +49,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 | Sheet | Paper with boxes that players mark and fill: the scorecard of a dice game, the sheet of a roll-and-write. The boxes that can be chosen are ringed, and pressing one names it | An array of what each box holds, and `cleanChoice` for the box a player names | `Sheet`, `gridCells`, `cellAt` | Built: [Sheets](23-sheets.md) |
 | Tiles | A thing with an edge on each side, laid next to the others where the sides match, in one of its turns: the tiles of Carcassonne, dominoes. The roads and cities of the whole layout are joined across them | The tiles that are laid as `{ at, tile, turns }`, `tiling`, `placements`, `turnEdges`, `distinctTurns`, `features` | `Piece` of the model `square` or `hex`, `tileYaw`, a `Board` over the free cells, `anchor` and `opacity` | Built: [Tiles](24-tiles.md) |
 | Drag | Picking a card or a piece up and dropping it on a zone or a cell | Nothing new: a drop is an action, checked like a click | `draggable`, `dropOn` and `onDrop` of `Card` and `Piece`, `DropZone`, `useDrag`, and `drops` of a `Board` | Built: [Dragging](19-dragging.md) |
+| Sound | The effects a game declares and the moments they play at: a card under the pointer, pressed, flying off and landing, and a line of the log that no card shows | Nothing: the log says what happened | `Card`, `useLogSounds`, `SHARED_EFFECTS` of core | Built: [Sounds](28-sounds.md) |
 
 ## The pages
 
@@ -78,6 +79,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 - [Sheets](23-sheets.md): boxes to fill on a sheet of paper, kept as an array in the engine, and the sheet on the table that rings the boxes that can be chosen and writes what each holds.
 - [Tiles](24-tiles.md): tiles with an edge on each side, laid where the sides match in the engine, with where each one fits and the roads and cities of the whole layout, and the tiles on the table with the cells they go on.
 - [Floor buttons](25-floor-buttons.md): buttons drawn flat on the table, whose borders lift under the pointer or the keyboard focus, with a keyboard stand-in and a reduced-motion state, and the invisible hotspot that chooses a player.
+- [Sounds](28-sounds.md): the effects a game declares, the sounds a card makes by itself and the sounds of the lines of the log.
 - [Rules of the board](26-rules-of-the-board.md): what holds for every board, whatever the game.
 
 What no tool draws or holds yet is on [Not built yet](../03-not-built-yet.md), with what holds instead. The players and the turn are in [The game](../01-the-game/index.md).

@@ -11,6 +11,7 @@ export { type BoardCell, type Coord, type Corner, hexCells, type PlaceOptions, s
 export { CARD_FIELDS, CARD_SETTINGS } from "./card/settings"
 export { CARD_STATE_FIELDS, CARD_STATE_SETTINGS, CARD_STATES, type CardState, effectiveState, haloSide, isPressable, NO_TOUCH, stateLook, type StateLook, type Touch } from "./card/states"
 export { LightPool } from "./card/light-pool"
+export { CARD_SOUND, flightCues, soundOfTransition } from "./card/sounds"
 export { type Bloom, bloomColor, cardBlooms, useCardBlooms } from "./card/theme"
 export { Counter, type CounterProps } from "./counter/counter"
 export { LETTERING_WEIGHT, type Lettering, lettering, letteringOf, useLettering } from "./lettering"

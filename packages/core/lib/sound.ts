@@ -229,11 +229,11 @@ function warnNoFile(name: string) {
 
 /**
  * Plays an effect declared in `SOUNDS.effects`. `delay` (s) is scheduled on the audio clock, to sync a sound with an animation.
- * Skipped if the same sound was scheduled less than `minGap` ago; quieter if the previous one is less than 0.4 s old.
+ * Skipped if the same sound was scheduled less than `minGap` ago; quieter if the previous one is less than 0.4 s old. `optional` is for a sound that the table's own blocks play and a game may not have declared (a card's `hover`): nothing is said when it is not.
  */
-export function playSound(name: string, { volume = 1, delay = 0, bus = "effects" }: { volume?: number; delay?: number; bus?: "effects" | "alerts" } = {}) {
+export function playSound(name: string, { volume = 1, delay = 0, bus = "effects", optional = false }: { volume?: number; delay?: number; bus?: "effects" | "alerts"; optional?: boolean } = {}) {
   const def = SOUNDS.effects[name]
-  if (!def) warnUnknownSound(name)
+  if (!def && !optional) warnUnknownSound(name)
   if (!ctx || !effectsBus || !alertsBus || !enabled || !def) return
   if (!def.url) return warnNoFile(name)
   const c = ctx

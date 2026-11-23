@@ -1,5 +1,6 @@
 "use client"
 
+import { playSound } from "@pbgo/core/lib/sound"
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { useCursor } from "@react-three/drei"
 import { type ThreeEvent, useFrame } from "@react-three/fiber"
@@ -21,6 +22,7 @@ import { applyFold, foldable } from "./fold"
 import { type CardSize, cardGeometry, cornerRadius, edgeGeometry, frameGeometry } from "./geometry"
 import { type Glow, glowNameOf } from "./glows"
 import { CARD_SETTINGS } from "./settings"
+import { flightCues, soundOfTransition } from "./sounds"
 import { CARD_STATE_SETTINGS, type BloomKey, type CardState, effectiveState, haloSide, isPressable, stateLook } from "./states"
 import { glossTexture, haloTexture, shadowTexture, sparkleTexture } from "./textures"
 import { useCardBlooms } from "./theme"
@@ -257,6 +259,13 @@ export function Card({
       console.warn("A Card that can be pressed has no `ariaLabel`, so no key reaches it: give it the game's word and the card's name")
     }
   })
+  // What the visitor does to the card makes a sound, for a game that declares it: under the pointer, pressed, picked. Not the first time the card is drawn, which is no change
+  const lastDrawn = useRef<CardState>(drawn)
+  useEffect(() => {
+    const name = soundOfTransition(lastDrawn.current, drawn)
+    lastDrawn.current = drawn
+    if (name) playSound(name, { optional: true })
+  }, [drawn])
   useEffect(() => () => inspector.leave(inspectKey), [inspectKey])
   const reading = (): CardReading => {
     const { id: named, target: to, glow: lit } = latest.current
@@ -275,6 +284,8 @@ export function Card({
 
   const start = (g: Group, delay = 0) => {
     flight.current = startFlight(g, target, delay, CARD_SETTINGS)
+    // A card that flies makes a sound as it leaves and another as it lands, on the audio clock so that they keep time with the flight, for a game that declares them (`SHARED_EFFECTS`)
+    for (const cue of flightCues(delay, flight.current.duration)) playSound(cue.name, { delay: cue.delay, optional: true })
   }
 
   useLayoutEffect(() => {
