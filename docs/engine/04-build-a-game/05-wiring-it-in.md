@@ -52,7 +52,7 @@ export * from "./lib/site"
 
 - `loadSetupData` gives `GAME.setup` its `data`; `loadGameData` gives the board its `data` prop; `ROUTES` are the game's own routes, at `/api/<slug>/games/<code>/<route>`. Each is optional and server only.
 - A new mutating route starts with `await rateLimit(game.slug, request, "<rule>")`.
-- The engine never reads Sanity: what its rules need from outside arrives as `SetupData` ([What an engine never does](../01-the-game/11-the-contract.md#what-an-engine-never-does)). Courtisans loads its missions that way ([Setup data](../05-examples/02-an-engine-with-setup-data.md#setup-data)).
+- The engine never reads Sanity: what its rules need from outside arrives as `SetupData` ([What an engine never does](../01-the-game/11-the-contract.md#what-an-engine-never-does)). The rules themselves are the engine's: Courtisans' missions are in its engine, and Sanity holds their texts and pictures ([Missions](../05-examples/02-an-engine-with-setup-data.md#missions)).
 
 ## The registry
 

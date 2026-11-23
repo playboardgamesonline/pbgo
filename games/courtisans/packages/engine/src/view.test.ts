@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { applyAction } from "./actions"
 import { autoMove } from "./debug"
 import { setupGame } from "./setup"
-import { card, makeState, player, testMissions } from "./test-utils"
+import { card, makeState, player } from "./test-utils"
 import { FAMILIES, ROLES, type GameState } from "./types"
 import { type PlayerView, playerView } from "./view"
 
@@ -96,7 +96,7 @@ describe("playerView leaks (full games)", () => {
   }
 
   it.each([2, 3, 4, 5])("never leaks hidden information to any viewer during a %i-player game", (n) => {
-    let state = setupGame({ players: players(n), missions: testMissions(), seed: 1000 + n })
+    let state = setupGame({ players: players(n), seed: 1000 + n })
     for (const j of state.players) state = applyAction(state, { type: "readMissions", playerId: j.id })
     let steps = 0
     while (true) {
@@ -110,7 +110,7 @@ describe("playerView leaks (full games)", () => {
   it("does not tie an id to a family across games", () => {
     const families = new Map<string, Set<string>>()
     for (let seed = 1; seed <= 30; seed++) {
-      const state = setupGame({ players: players(5), missions: testMissions(), seed })
+      const state = setupGame({ players: players(5), seed })
       for (const c of [...state.deck, ...state.players.flatMap((j) => j.hand)]) {
         families.set(c.id, (families.get(c.id) ?? new Set()).add(c.family))
       }

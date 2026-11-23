@@ -39,10 +39,12 @@ export type Condition =
 
 export type MissionColor = "white" | "blue"
 
+/**
+ * A mission, as a rule: what has to hold at the end for it to be worth `MISSION_POINTS`. Its text and its picture are not here: they are the game's, in its Sanity, under the same `id`.
+ */
 export type Mission = {
   id: string
   color: MissionColor
-  text: string
   condition: Condition
 }
 
@@ -52,7 +54,8 @@ import type { PlayerInfo } from "@pbgo/engine-kit"
 export type Player = PlayerInfo & {
   hand: Courtier[]
   domain: Courtier[]
-  missions: Mission[]
+  /** The ids of the player's two missions, the white one then the blue one (`MISSIONS`). Secret until the end of the game. */
+  missions: string[]
   missionsRead: boolean
 }
 

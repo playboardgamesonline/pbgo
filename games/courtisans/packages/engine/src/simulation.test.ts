@@ -2,7 +2,6 @@ import { type Rng, createRng } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
 import { applyAction, availableZones } from "./actions"
 import { setupGame } from "./setup"
-import { testMissions } from "./test-utils"
 import type { Target, GameState } from "./types"
 import { playerView } from "./view"
 
@@ -30,7 +29,6 @@ describe("simulation", () => {
       const rng = createRng(seed * 31 + n)
       let state = setupGame({
         players: Array.from({ length: n }, (_, i) => ({ id: `p${i}`, nickname: `P${i}` })),
-        missions: testMissions(),
         rng,
       })
       for (const j of state.players) state = applyAction(state, { type: "readMissions", playerId: j.id })

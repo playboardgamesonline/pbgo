@@ -15,34 +15,6 @@
 export declare const internalGroqTypeReferenceTo: unique symbol;
 
 // Source: schema.json
-export type Condition = {
-  _type: "condition";
-  type?:
-    | "familyStatus"
-    | "familiesWithStatus"
-    | "domainCards"
-    | "tableCards"
-    | "playerComparison"
-    | "and"
-    | "or"
-    | "not";
-  family?: "butterfly" | "toad" | "nightingale" | "hare" | "stag" | "carp";
-  status?: "light" | "disgrace" | "neutral";
-  familyFilter?:
-    "butterfly" | "toad" | "nightingale" | "hare" | "stag" | "carp";
-  roleFilter?: "noble" | "spy" | "assassin" | "guard" | "noRole";
-  level?: "up" | "down";
-  comparator?: "gte" | "lte" | "eq" | "gt" | "lt";
-  value?: number;
-  opponent?: "leftNeighbor" | "rightNeighbor" | "allOpponents" | "anyOpponent";
-  mode?: "cards" | "weight";
-  conditions?: Array<
-    {
-      _key: string;
-    } & Condition
-  >;
-};
-
 export type SanityImageAssetReference = {
   _ref: string;
   _type: "reference";
@@ -56,7 +28,6 @@ export type Mission = {
   _createdAt: string;
   _updatedAt: string;
   _rev: string;
-  color?: "white" | "blue";
   text?: LocaleText;
   card?: {
     asset?: SanityImageAssetReference;
@@ -65,7 +36,6 @@ export type Mission = {
     crop?: SanityImageCrop;
     _type: "image";
   };
-  condition?: Condition;
 };
 
 export type SanityImageCrop = {
@@ -186,16 +156,7 @@ export type Texts = {
   homeIntro?: LocaleText;
   victoryPhrases?: LocaleStringList;
   ui_home?: {
-    nicknamePlaceholder?: LocaleString;
-    createButton?: LocaleString;
-    joinButton?: LocaleString;
-    chooseNickname?: LocaleString;
-    codeLength?: LocaleString;
-    linkCopied?: LocaleString;
-    linkCopiedHint?: LocaleString;
-    gameCreated?: LocaleString;
     codeLabel?: LocaleString;
-    copyLink?: LocaleString;
     feedbackButton?: LocaleString;
     feedbackTitle?: LocaleString;
     feedbackType?: LocaleString;
@@ -210,10 +171,6 @@ export type Texts = {
     feedbackSend?: LocaleString;
     feedbackThanks?: LocaleString;
     homeLink?: LocaleString;
-    linkCopyFailed?: LocaleString;
-    comingSoon?: LocaleString;
-    comingSoonHint?: LocaleString;
-    allGames?: LocaleString;
     pageNotFound?: LocaleString;
     creditsAdaptation?: LocaleString;
     creditsBy?: LocaleString;
@@ -251,27 +208,13 @@ export type Texts = {
     rulesVideoTitle?: LocaleString;
   };
   ui_lobby?: {
-    joinGameButton?: LocaleString;
     gameNotFound?: LocaleString;
     alreadyStarted?: LocaleString;
     backHome?: LocaleString;
-    shareInvite?: LocaleString;
-    playerCount?: LocaleString;
     you?: LocaleString;
     host?: LocaleString;
-    startButton?: LocaleString;
-    waitingPlayers?: LocaleString;
-    waitingHost?: LocaleString;
-    gameOptions?: LocaleString;
     gameParameters?: LocaleString;
     gameExtensions?: LocaleString;
-    gamePresets?: LocaleString;
-    optionNeeds?: LocaleString;
-    optionConflicts?: LocaleString;
-    optionPlayers?: LocaleString;
-    optionLess?: LocaleString;
-    optionMore?: LocaleString;
-    chosenByHost?: LocaleString;
   };
   ui_game?: {
     yourTurn?: LocaleString;
@@ -317,18 +260,32 @@ export type Texts = {
     missionsSkipButton?: LocaleString;
     winsWith?: LocaleString;
     shareHeadline?: LocaleString;
+    defeatTitle?: LocaleString;
+    shareHeadlineDefeat?: LocaleString;
+    lostWith?: LocaleString;
     pointsShort?: LocaleString;
     players?: LocaleString;
+    me?: LocaleString;
     playersReady?: LocaleString;
     seatDone?: LocaleString;
     seatWaiting?: LocaleString;
     seatAway?: LocaleString;
     history?: LocaleString;
+    addFriend?: LocaleString;
+    reportPlayer?: LocaleString;
+    viewProfile?: LocaleString;
+    guest?: LocaleString;
   };
   errorMessages?: Array<{
     code?: string;
     message?: LocaleString;
     _type: "errorMessage";
+    _key: string;
+  }>;
+  engineTexts?: Array<{
+    key?: string;
+    text?: LocaleText;
+    _type: "engineText";
     _key: string;
   }>;
   missionsButton?: LocaleString;
@@ -753,7 +710,6 @@ export type Slug = {
 };
 
 export type AllSanitySchemaTypes =
-  | Condition
   | SanityImageAssetReference
   | Mission
   | SanityImageCrop
@@ -784,7 +740,7 @@ export type AllSanitySchemaTypes =
 
 // Source: ../../src/sanity/queries.ts
 // Variable: CATALOG_QUERY
-// Query: {  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, arrowUp, arrowDown },  "texts": *[_id == "texts"][0]{    missionsButton, banquetStarts, homeHeading, genres, courtier, statusLight, statusDisgrace,    zoneTable, zoneYours, zoneTheirs, zoneOther,    youPlay, youEliminate, youDrawOne, youDrawMany, theyPlay, theyEliminate, theyDrawOne, theyDrawMany,    gameOverLog, missionsSucceeded, noAssassination, skip  },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, color, text, card, condition }}
+// Query: {  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, arrowUp, arrowDown },  "texts": *[_id == "texts"][0]{    missionsButton, banquetStarts, homeHeading, genres, courtier, statusLight, statusDisgrace,    zoneTable, zoneYours, zoneTheirs, zoneOther,    youPlay, youEliminate, youDrawOne, youDrawMany, theyPlay, theyEliminate, theyDrawOne, theyDrawMany,    gameOverLog, missionsSucceeded, noAssassination, skip  },  "families": *[_type == "family"]{ _id, name, key, color, pictogram },  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, "lettering": lettering.asset->url },  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },  "missions": *[_type == "mission"]{ _id, text, card }}
 export type CATALOG_QUERY_RESULT = {
   game:
     | {
@@ -943,7 +899,6 @@ export type CATALOG_QUERY_RESULT = {
   }>;
   missions: Array<{
     _id: string;
-    color: "blue" | "white" | null;
     text: LocaleText | null;
     card: {
       asset?: SanityImageAssetReference;
@@ -952,14 +907,13 @@ export type CATALOG_QUERY_RESULT = {
       crop?: SanityImageCrop;
       _type: "image";
     } | null;
-    condition: Condition | null;
   }>;
 };
 
 // Query TypeMap
 declare global {
   interface SanityQueries {
-    '{\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, arrowUp, arrowDown },\n  "texts": *[_id == "texts"][0]{\n    missionsButton, banquetStarts, homeHeading, genres, courtier, statusLight, statusDisgrace,\n    zoneTable, zoneYours, zoneTheirs, zoneOther,\n    youPlay, youEliminate, youDrawOne, youDrawMany, theyPlay, theyEliminate, theyDrawOne, theyDrawMany,\n    gameOverLog, missionsSucceeded, noAssassination, skip\n  },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, color, text, card, condition }\n}': CATALOG_QUERY_RESULT;
+    '{\n  "game": *[_id == "game"][0]{ mat, matTexture, courtierBack, whiteMissionBack, blueMissionBack, arrowUp, arrowDown },\n  "texts": *[_id == "texts"][0]{\n    missionsButton, banquetStarts, homeHeading, genres, courtier, statusLight, statusDisgrace,\n    zoneTable, zoneYours, zoneTheirs, zoneOther,\n    youPlay, youEliminate, youDrawOne, youDrawMany, theyPlay, theyEliminate, theyDrawOne, theyDrawMany,\n    gameOverLog, missionsSucceeded, noAssassination, skip\n  },\n  "families": *[_type == "family"]{ _id, name, key, color, pictogram },\n  "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, "lettering": lettering.asset->url },\n  "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },\n  "missions": *[_type == "mission"]{ _id, text, card }\n}': CATALOG_QUERY_RESULT;
   }
 }
 // Lets @sanity/client releases that predate the global registry read it too

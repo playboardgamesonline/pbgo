@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { computeResults, computeStatuses } from "./scoring"
 import { card, makeState, player, place } from "./test-utils"
-import type { Mission } from "./types"
 
 function bookletTable() {
   return [
@@ -41,13 +40,9 @@ describe("computeStatuses", () => {
 
 describe("computeResults", () => {
   it("gives Noëmie 11 points like in the rulebook", () => {
-    const mission: Mission = {
-      id: "m1",
-      color: "white",
-      text: "Les lièvres doivent être en disgrâce à la cour.",
-      condition: { type: "familyStatus", family: "hare", status: "disgrace" },
-    }
-    const failed: Mission = { ...mission, id: "m2", condition: { type: "familyStatus", family: "carp", status: "light" } }
+    // the hares are in disgrace at the table (it holds), the carp are neutral there (it fails)
+    const holds = "mission-dark-4"
+    const fails = "mission-dark-1"
     const domain = [
       card("butterfly", "noble"),
       card("butterfly"),
@@ -65,14 +60,14 @@ describe("computeResults", () => {
     const state = makeState({
       phase: "over",
       table: bookletTable(),
-      players: [player("noemie", { domain, missions: [mission, failed] }), player("b", { domain: [card("hare")] })],
+      players: [player("noemie", { domain, missions: [holds, fails] }), player("b", { domain: [card("hare")] })],
     })
     const results = computeResults(state)
     const noemie = results.players.find((j) => j.playerId === "noemie")!
     expect(noemie.domainPoints).toBe(8)
     expect(noemie.missions).toEqual([
-      { missionId: "m1", done: true, points: 3 },
-      { missionId: "m2", done: false, points: 0 },
+      { missionId: holds, done: true, points: 3 },
+      { missionId: fails, done: false, points: 0 },
     ])
     expect(noemie.total).toBe(11)
     expect(results.winners).toEqual(["noemie"])

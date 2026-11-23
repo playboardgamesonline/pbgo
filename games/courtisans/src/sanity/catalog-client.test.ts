@@ -30,7 +30,7 @@ function project(missions: { _id: string; text: Record<string, string> }[]) {
     families: FAMILIES.map((key) => ({ _id: key, key, name: words({ fr: `${key} (fr)`, en: `${key} (en)` }), color: "#336699", pictogram: null })),
     roles: ROLES.map((key) => ({ _id: key, key, name: words({ fr: `${key} (fr)`, en: `${key} (en)` }), countPerFamily: 1, pictogram: null })),
     courtiers: [],
-    missions: missions.map((m) => ({ ...m, color: "white", text: { _type: "localeText", ...m.text }, card: null, condition: {} })),
+    missions: missions.map((m) => ({ ...m, text: { _type: "localeText", ...m.text }, card: null })),
   }
 }
 

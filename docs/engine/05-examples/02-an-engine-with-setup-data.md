@@ -1,6 +1,6 @@
-# An engine with setup data and secrets
+# An engine with objectives and secrets
 
-Courtisans is live, and its engine, `games/courtisans/packages/engine/src`, shows what Flip 7 does not need: data loaded from Sanity, a simultaneous opening, a card whose family stays hidden and results with the game's own detail. Its state predates the lean-state rule (it keeps nicknames and a log), so for the state take [Flip 7](01-a-lean-engine.md). The rules as coded are in `games/courtisans/CLAUDE.md`.
+Courtisans is live, and its engine, `games/courtisans/packages/engine/src`, shows what Flip 7 does not need: objectives dealt as data, a simultaneous opening, a card whose family stays hidden and results with the game's own detail. Its state predates the lean-state rule (it keeps nicknames and a log), so for the state take [Flip 7](01-a-lean-engine.md). The rules as coded are in `games/courtisans/CLAUDE.md`.
 
 ## The files
 
@@ -9,25 +9,27 @@ Courtisans is live, and its engine, `games/courtisans/packages/engine/src`, show
 | `types.ts` | `FAMILIES`, `ROLES`, `Courtier`, the `Condition` tree, `Mission`, `Player`, `GameState`, `GameEvent`, `Action`, `Phase` |
 | `errors.ts` | `EngineErrorCode` and the engine's own `EngineError` class |
 | `deck.ts` | `createCourtiers`, `assignOpaqueIds`, `weight`, and the constants `FAMILY_COMPOSITION`, `SET_ASIDE_CARDS`, `HAND_SIZE`, `MISSION_POINTS` |
-| `setup.ts` | `setupGame`: the missions drawn, the deck shuffled, the ids assigned, the hands dealt |
+| `setup.ts` | `setupGame`: the missions drawn from `MISSIONS`, the deck shuffled, the ids assigned, the hands dealt |
 | `actions.ts` | `applyAction` (`readMissions`, `playCard`), `waitingPlayerIds`, `availableZones`, `activePlayerId` |
-| `missions.ts` | `evaluateCondition`: a mission's `Condition` against the state |
+| `missions.ts` | `MISSIONS`, the twenty missions with their rules, `missionOf`, and `evaluateCondition`: a mission's `Condition` against the state |
 | `scoring.ts` | `computeStatuses`, `domainPoints`, `computeResults`, `CourtisansPlayerResult` |
 | `view.ts` | `playerView`, `visibleCard`, `PlayerView` |
 | `debug.ts` | `applyDebug`, `autoMove`, `autoMoveRng`, `autoPlayFor` |
 | `game.ts` | `GAME` |
 | `index.ts` | The exports of every file above; the kit is not re-exported |
-| `test-utils.ts` | Helpers of the tests, not exported: `card`, `player`, `makeState`, `testMissions` |
+| `test-utils.ts` | Helpers of the tests, not exported: `card`, `player`, `makeState` |
 | `*.test.ts` | `actions`, `determinism`, `game`, `missions`, `scoring`, `setup`, `simulation` and `view` |
 
-## Setup data
+## Missions
 
-- `GAME` is a `GameDefinition<GameState, Action, PlayerView, Mission[]>`: `Mission[]` is its `SetupData`, so the engine never reads Sanity ([What an engine never does](../01-the-game/11-the-contract.md#what-an-engine-never-does)).
-- `setupGame` draws a white and a blue mission for each player and throws `NOT_ENOUGH_MISSIONS` when a colour has too few.
-- `loadMissions` keeps the valid missions of Sanity and skips the others ([Data for the engine and the board](../04-build-a-game/05-wiring-it-in.md#data-for-the-engine-and-the-board)); `loadSetupData`, from `games/courtisans/src/server.ts`:
+- The missions are the engine's own: `MISSIONS` lists the twenty, each with its colour and its `Condition`, so `GAME` takes no `SetupData` and the engine never reads Sanity ([What an engine never does](../01-the-game/11-the-contract.md#what-an-engine-never-does)). Sanity holds the text and the picture of each mission under the same id.
+- `setupGame` draws a white and a blue mission for each player from `MISSIONS` with the seeded stream, and the state keeps their ids. From `games/courtisans/packages/engine/src/missions.ts`:
 
 ```ts
-export const loadSetupData = ({ sanity }: LoaderContext) => loadMissions(sanity)
+export const MISSIONS: readonly Mission[] = [
+  { id: "mission-dark-1", color: "blue", condition: { type: "familyStatus", family: "carp", status: "disgrace" } },
+  // …
+]
 ```
 
 ## Determinism from the seed

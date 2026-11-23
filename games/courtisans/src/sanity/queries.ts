@@ -11,5 +11,5 @@ export const CATALOG_QUERY = defineQuery(`{
   "families": *[_type == "family"]{ _id, name, key, color, pictogram },
   "roles": *[_type == "role"]{ _id, name, key, countPerFamily, pictogram, "lettering": lettering.asset->url },
   "courtiers": *[_type == "courtier"]{ _id, quantity, card, "family": family->key, "role": role->key },
-  "missions": *[_type == "mission"]{ _id, color, text, card, condition }
+  "missions": *[_type == "mission"]{ _id, text, card }
 }`)
