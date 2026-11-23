@@ -22,7 +22,7 @@ import { timelineOf } from "../board/pacing"
 import { type ClientCatalog, MISSING_CATALOG } from "../../lib/catalog"
 import { actorsOf, sentenceOf } from "../../lib/history"
 import { cuesOf, FLIP_7_SOUND } from "../../lib/sounds"
-import { fill } from "../../lib/words"
+import { fill, targetPromptOf } from "../../lib/words"
 
 const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
 
@@ -100,6 +100,8 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   const turn = phase.kind === "turn" ? phase.player : null
   const myTurn = !!meId && turn === meId
   const ended = phase.kind === "over"
+  // What the viewer has to do, said in the ticker under whose turn it is, since the table writes no sentence: the holder of an action card is told to give it. A turn to hit or stay and the deal are said by the draw pile and the button
+  const prompt = !ended && phase.kind === "target" && phase.player === meId ? targetPromptOf(phase.card.type, words) : null
   // The players shown with an announcement: the viewer for "your turn", the winners for the victory
   const seatsFor = (ids: readonly string[]) => seatsOf(game.players, ids, playerColors)
 
@@ -211,7 +213,7 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   return (
     <GameHud
       onLeave={onLeave}
-      ticker={<Ticker activePlayerId={ended ? null : turn} waitingFor={ended ? undefined : game.waitingFor} status={!ended && <RoundStatus catalog={catalog} />} history={history} />}
+      ticker={<Ticker activePlayerId={ended ? null : turn} waitingFor={ended ? undefined : game.waitingFor} prompt={prompt} status={!ended && <RoundStatus catalog={catalog} />} history={history} />}
       overlay={
         <>
           {announcement}
