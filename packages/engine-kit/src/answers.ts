@@ -46,15 +46,20 @@ export function cleanChoice<V extends ChoiceValue>(input: unknown, options: read
   return input as V
 }
 
-/** How many options may be chosen at once: at least `min` (none by default) and at most `max` (all by default) */
-export type ChoicesRules = { min?: number; max?: number }
+/** How many options may be chosen at once: at least `min` (none by default) and at most `max` (all by default), and whether the order they are chosen in is part of the answer */
+export type ChoicesRules = {
+  min?: number
+  max?: number
+  /** The order they were sent in is the answer (default false: the order of `options`, so that the same choice is the same state). For a choice whose order is the point: the cards that go under a deck, first to last */
+  ordered?: boolean
+}
 
 /**
  * The options a player chose when they may choose several: an array of options with no option twice, as many as the rules allow. They are returned in the order of `options`, whatever the order they were sent in, so that the same
- * choice is the same state. Throws `EngineError("INVALID_CHOICE")` for anything that is not such an array.
+ * choice is the same state, unless the rules say the choice is `ordered`: then they come back in the order they were sent in. Throws `EngineError("INVALID_CHOICE")` for anything that is not such an array.
  */
 export function cleanChoices<V extends ChoiceValue>(input: unknown, options: readonly V[], rules: ChoicesRules = {}): V[] {
-  const { min = 0, max = options.length } = rules
+  const { min = 0, max = options.length, ordered = false } = rules
   if (min > max) throw new RangeError(`No choice has at least ${min} and at most ${max} options`)
   if (!Array.isArray(input) || input.length > options.length) throw new EngineError("INVALID_CHOICE", "A list of options was expected")
   const chosen = new Set<unknown>()
@@ -63,5 +68,5 @@ export function cleanChoices<V extends ChoiceValue>(input: unknown, options: rea
     chosen.add(item)
   }
   if (chosen.size < min || chosen.size > max) throw new EngineError("INVALID_CHOICE", "That is not the number of options asked for")
-  return options.filter((option) => chosen.has(option))
+  return ordered ? (input as V[]).slice() : options.filter((option) => chosen.has(option))
 }

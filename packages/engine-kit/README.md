@@ -122,7 +122,7 @@ What a player answers in a window other than text: a number (a bet, a quantity, 
 | --- | --- |
 | `cleanNumber(input, rules)` | The number chosen, checked against `min`, `max`, `step` (counted from `min`) and `integer` (whole by default). `EngineError("INVALID_NUMBER")` for anything that is not a finite number, one outside the range or off the steps; `RangeError` for rules no number could meet. A string is not a number. |
 | `cleanChoice(input, options)` | The option chosen, one of `options` (strings or numbers, compared strictly). `EngineError("INVALID_CHOICE")` for anything else. |
-| `cleanChoices(input, options, rules)` | Several options: a list with none twice, between `min` and `max`, returned in the order of `options`. `EngineError("INVALID_CHOICE")`. |
+| `cleanChoices(input, options, rules)` | Several options: a list with none twice, between `min` and `max`, returned in the order of `options`, or in the order sent when the choice is `ordered`. `EngineError("INVALID_CHOICE")`. |
 
 ### Counters (`counters.ts`)
 

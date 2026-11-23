@@ -112,4 +112,27 @@ describe("cleanChoices", () => {
   it("throws a plain error for rules no choice could meet", () => {
     expect(() => cleanChoices([], options, { min: 3, max: 1 })).toThrow(RangeError)
   })
+
+  it("keeps the order they were sent in when the order is the answer", () => {
+    expect(cleanChoices(["c", "a", "d"], options, { ordered: true })).toEqual(["c", "a", "d"])
+    expect(cleanChoices([], options, { ordered: true })).toEqual([])
+    // not the same array as the one that was sent: the engine keeps what it returns
+    const sent = ["b", "a"]
+    expect(cleanChoices(sent, options, { ordered: true })).not.toBe(sent)
+  })
+
+  it("refuses the same things whether or not the order matters, and keeps to the same numbers", () => {
+    const ordered = { ordered: true } as const
+    expect(refusal(() => cleanChoices(["a", "a"], options, ordered))).toBe("INVALID_CHOICE")
+    expect(refusal(() => cleanChoices(["a", "z"], options, ordered))).toBe("INVALID_CHOICE")
+    expect(refusal(() => cleanChoices("a", options, ordered))).toBe("INVALID_CHOICE")
+    expect(refusal(() => cleanChoices(["a"], options, { ...ordered, min: 2 }))).toBe("INVALID_CHOICE")
+    expect(refusal(() => cleanChoices(["a", "b", "c"], options, { ...ordered, max: 2 }))).toBe("INVALID_CHOICE")
+    expect(cleanChoices(["b", "a"], options, { ...ordered, min: 2, max: 2 })).toEqual(["b", "a"])
+  })
+
+  it("says the same state for the same choice when the order does not matter, whichever order it was sent in", () => {
+    expect(cleanChoices(["b", "a"], options)).toEqual(cleanChoices(["a", "b"], options))
+    expect(cleanChoices(["b", "a"], options, { ordered: true })).not.toEqual(cleanChoices(["a", "b"], options, { ordered: true }))
+  })
 })

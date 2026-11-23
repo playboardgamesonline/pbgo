@@ -1,4 +1,4 @@
-import { EngineError, cleanChoice, faceOfId, facesOfIds, keyOfId, noteEvent, playerAt, reissueIds, removeFrom, seatOf } from "@pbgo/engine-kit"
+import { EngineError, cleanChoice, cleanChoices, faceOfId, facesOfIds, keyOfId, noteEvent, playerAt, reissueIds, removeFrom, seatOf } from "@pbgo/engine-kit"
 import { CARDS, CATALOGUE, type CharacterKey, GUESSES } from "./catalogue"
 import { EFFECTS } from "./effects"
 import { type Ctx, areaOf, close, handOf, open, playableOf, refuse, targetsOf, waitingFor } from "./machine"
@@ -69,10 +69,8 @@ export function keep(ctx: Ctx, by: string, fields: { card?: unknown; bottom?: un
   const hand = handOf(s, seat)
   if (!hand.includes(card)) throw new EngineError("UNKNOWN_CARD", "That card is not in your hand")
   const others = hand.filter((id) => id !== card)
-  const back = bottom as number[]
-  if (back.length !== others.length || new Set(back).size !== back.length || back.some((id) => !others.includes(id))) {
-    throw new EngineError("INVALID_CHOICE", "Put back the other cards of your hand, each once")
-  }
+  // the other cards of the hand, each once, in the order the player put them back: the order is the point of the choice, and the kit keeps it (`ordered`)
+  const back = cleanChoices(bottom, others, { ordered: true, min: others.length })
   const returned = facesOfIds(s.ids, CATALOGUE, back)
   const { ids, fresh } = reissueIds(s.ids, back, ctx.idsRng)
   s.ids = ids

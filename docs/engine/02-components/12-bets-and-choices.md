@@ -14,10 +14,10 @@ scene-bets
 | --- | --- | --- |
 | `cleanNumber(input, rules)` | The number a player chose, checked against the rules: the least (`min`) and the most (`max`), the steps it goes by (`step`, counted from `min`), a whole number unless `integer` is turned off | `EngineError("INVALID_NUMBER")` for anything that is not a finite number, one outside the range or off the steps; `RangeError` for rules no number could meet |
 | `cleanChoice(input, options)` | The option a player chose, which must be one of `options` | `EngineError("INVALID_CHOICE")` for anything else, a string where a number is wanted included |
-| `cleanChoices(input, options, rules)` | Several options: a list with none twice, between the least and the most the rules allow, given back in the order of `options` whatever the order they were sent in | `EngineError("INVALID_CHOICE")` |
+| `cleanChoices(input, options, rules)` | Several options: a list with none twice, between the least and the most the rules allow, given back in the order of `options` whatever the order they were sent in, or in the order they were sent in when the rules say the choice is `ordered` | `EngineError("INVALID_CHOICE")` |
 
 - Call them in `apply`, on the field of the action, and keep what they return. A missing field is `INVALID_ACTION`; a value that does not pass is `INVALID_NUMBER` or `INVALID_CHOICE`, shared codes that the platform words for the player ([The shared codes](../01-the-game/05-actions.md#the-shared-codes)).
-- The rules are typed: `NumberRules` (`min`, `max`, `step` and `integer`, every field optional) and `ChoicesRules` (`min` and `max`, how many options may be chosen at once); an option is a `ChoiceValue`, a string or a number.
+- The rules are typed: `NumberRules` (`min`, `max`, `step` and `integer`, every field optional) and `ChoicesRules` (`min` and `max`, how many options may be chosen at once, and `ordered`, for a choice whose order is the point: the cards that go under a deck, first to last); an option is a `ChoiceValue`, a string or a number.
 - The rules of the window and the rules of the engine are the same: the window is given the `min`, `max` and `step` that `cleanNumber` checks with, and the options that `cleanChoice` checks against, and it checks them again when the player confirms, so that the engine refuses nothing the window accepted. Only the engine's answer counts.
 - A bet whose rules depend on the state (a bid that must beat the last one, a bet of 0 up to the tricks of the round) has them worked out from the state, in the engine for the check and in the view for the window: the view gives the board the `min`, the `max` and the options it asks with, never a guess of its own.
 - A bid is two fields of one action: `cleanNumber` for how many and `cleanChoice` for which face, then the game's own rule that it beats the last bid, with its own code.
@@ -31,6 +31,7 @@ cleanNumber(15, { min: 5, max: 50, step: 5 })     // 15
 cleanNumber(16, { min: 5, max: 50, step: 5 })     // throws INVALID_NUMBER
 cleanChoice("green", ["red", "green", "blue"])    // "green"
 cleanChoices(["c", "a"], ["a", "b", "c", "d"])    // ["a", "c"]
+cleanChoices(["c", "a"], ["a", "b", "c", "d"], { ordered: true })    // ["c", "a"]
 ```
 
 ## Fields that open a window
