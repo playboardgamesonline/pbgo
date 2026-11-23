@@ -1,9 +1,9 @@
 import { spawnSync } from "node:child_process"
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { describe, expect, it } from "vitest"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { BOARD_DIR } from "./board-kit.ts"
 import { GAMES } from "./registry"
 
@@ -133,14 +133,11 @@ describe("pnpm check:game on the games of the repository", () => {
   }
   const withBoard = ["template", ...readdirSync(join(REPO, "games")).filter((slug) => existsSync(join(REPO, "games", slug, BOARD_DIR)))]
 
-  it("says what a board is built on and what it draws with three.js itself, and a warning is no failure", () => {
-    const clean = game("skyjo", "--only", "board")
-    expect(clean.status).toBe(0)
-    expect(clean.out).toMatch(/✓ kit: the board is built on @pbgo\/table: \d+ pieces, which load \d+ files of it/)
-    expect(clean.out).toContain("✓ own drawing: nothing is drawn with three.js outside the kit")
-    const own = game("flip-7", "--only", "board")
-    expect(own.status).toBe(0)
-    expect(own.out).toContain("• own drawing: the board draws with three.js itself (mesh, meshBasicMaterial, planeGeometry, useFrame)")
+  it("says what a board is built on and that it draws nothing with three.js outside the kit", () => {
+    const run = game("skyjo", "--only", "board")
+    expect(run.status).toBe(0)
+    expect(run.out).toMatch(/✓ kit: the board is built on @pbgo\/table: \d+ pieces, which load \d+ files of it/)
+    expect(run.out).toContain("✓ own drawing: nothing is drawn with three.js outside the kit")
   })
 
   it("passes the board stage for every game that has a board", () => {
@@ -163,5 +160,46 @@ describe("pnpm check:game on the games of the repository", () => {
     expect(game("courtisans", "--only", "engine").out).not.toContain("no `standings` in the view")
     expect(game("flip-7", "--only", "engine").out).not.toContain("no `standings` in the view")
     expect(game("template", "--only", "engine").out).toContain("no `step` in the definition")
+  })
+})
+
+describe("pnpm check:game on a board of a repository of its own", () => {
+  // The script reads the repository `PBGO_REPO_DIR` names, so the two ways a board can be judged that no board of this repository takes today are run on boards written here: one that draws with three.js itself, which is
+  // a warning and no failure, and one that does not take the `Table` of the kit, which fails the stage.
+  let repo = ""
+  const write = (path: string, text: string) => {
+    mkdirSync(dirname(join(repo, path)), { recursive: true })
+    writeFileSync(join(repo, path), text)
+  }
+  const board = (slug: string) => {
+    const run = spawnSync(process.execPath, ["scripts/check-game.mjs", slug, "--only", "board"], { cwd: REPO, encoding: "utf8", timeout: 60_000, env: { ...process.env, PBGO_REPO_DIR: repo } })
+    return { status: run.status, out: run.stdout }
+  }
+
+  beforeAll(() => {
+    repo = mkdtempSync(join(tmpdir(), "check-game-board-"))
+    write("packages/games/src/registry.ts", ["export const GAMES = [", "  {", '    slug: "raw",', '    sanityProjectId: "abc12345",', "    live: false,", "    indexable: false,", "  },", "  {", '    slug: "nokit",', '    sanityProjectId: "abc12345",', "    live: false,", "    indexable: false,", "  },", "]", ""].join("\n"))
+    write("packages/table/src/index.ts", 'export { Table } from "./table"\nexport { PlayerSeat } from "./seat"\n')
+    write("packages/table/src/table.tsx", "export const Table = () => null\n")
+    write("packages/table/src/seat.tsx", "export const PlayerSeat = () => null\n")
+    write(
+      "games/raw/src/components/board/scene.tsx",
+      ['import { PlayerSeat, Table } from "@pbgo/table"', 'import { useFrame } from "@react-three/fiber"', "export const Scene = () => {", "  useFrame(() => {})", "  return (", "    <Table>", "      <mesh>", "        <planeGeometry />", "      </mesh>", "      <PlayerSeat />", "    </Table>", "  )", "}", ""].join("\n"),
+    )
+    write("games/nokit/src/components/board/scene.tsx", 'import { PlayerSeat } from "@pbgo/table"\nexport const Scene = () => <PlayerSeat />\n')
+  })
+  afterAll(() => rmSync(repo, { recursive: true, force: true }))
+
+  it("warns of the three.js a board draws itself and passes the stage: a warning is no failure", () => {
+    const run = board("raw")
+    expect(run.out).toContain("✓ kit: the board is built on @pbgo/table: 2 pieces")
+    expect(run.out).toContain("• own drawing: the board draws with three.js itself (mesh, planeGeometry, useFrame)")
+    expect(run.status).toBe(0)
+  })
+
+  it("fails the stage for a board that takes no `Table` from the kit, and says which piece it lacks", () => {
+    const run = board("nokit")
+    expect(run.out).toContain("✗ kit: the board takes no `Table` from @pbgo/table")
+    expect(run.status).toBe(1)
   })
 })

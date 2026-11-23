@@ -40,8 +40,6 @@ const OWN_DRAWING: Record<string, { elements: string[]; hooks: string[] }> = {
   // Flat pictures that lie on the mat and a round backdrop under a counter (the ending), a plane under everything that takes a press on the empty table (`Table` passes none on), and the opening, which holds the
   // missions in front of the camera and follows the pointer: no kit piece draws a flat picture or holds anything in the camera's frame but a hand
   courtisans: { elements: ["circleGeometry", "mesh", "meshBasicMaterial", "planeGeometry"], hooks: ["useFrame", "useThree"] },
-  // The stickers: a picture that lies on the mat with its own proportions and drops onto it when it appears
-  "flip-7": { elements: ["mesh", "meshBasicMaterial", "planeGeometry"], hooks: ["useFrame"] },
 }
 
 describe("the boards of the games", () => {

@@ -17,7 +17,8 @@ import { fileURLToPath } from "node:url"
 // Run by Node, which strips the types: the reading of a board (which pieces of the kit it loads, which three.js it writes itself) is the one `pnpm check:kit` prints and the tests of the boards keep
 import { readBoard } from "../packages/games/src/board-kit.ts"
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
+// `PBGO_REPO_DIR` moves the repository it reads (a test's own world); it is this checkout's root otherwise
+const ROOT = process.env.PBGO_REPO_DIR ?? join(dirname(fileURLToPath(import.meta.url)), "..")
 const STAGES = ["scaffold", "engine", "binding", "board", "content", "live"]
 
 /** The games of the registry, as the data the hub reads: slug, the project id, and whether the game is live and indexable. */
