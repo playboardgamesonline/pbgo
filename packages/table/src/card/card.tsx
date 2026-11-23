@@ -41,7 +41,10 @@ export type CardProps = {
   back: Texture
   /** Width, height and corner radius, in world units. The same for every card of a game: cards of one size share their geometry */
   size: CardSize
-  /** The glow around the card, one of the game's `defineGlows`. None when null */
+  /**
+   * The glow around the card, one of the game's `defineGlows`. None when null.
+   * @deprecated Say a `state`: the table draws the bloom, the lift and the dark itself, in the game's colours (`UI_THEME.card`), and a card has no outline and no frame. The glows of a board go with the next pass over the boards
+   */
   glow?: Glow | null
   /** The shine that follows the pointer over the front: `true` for the usual strength, a number (0 to 1) for a given one */
   gloss?: boolean | number
@@ -49,7 +52,10 @@ export type CardProps = {
   shadow?: boolean
   /** Drawn over everything else, glows of other cards included */
   above?: boolean
-  /** The card can no longer play (its player is out of the round): a grey filter over its picture and its edge, darker and with no colour. It lifts when `out` turns false. The state `out` does the same */
+  /**
+   * The card can no longer play (its player is out of the round): a grey filter over its picture and its edge, darker and with no colour. It lifts when `out` turns false.
+   * @deprecated Say `state="out"`, which does the same
+   */
   out?: boolean
   /**
    * How the card stands for the player: `base`, `interactive` (can be chosen now), `selected` (picked), `disabled`, `out`, or `hover` and `pressed` to force them. The table draws the state itself: a bloom of light in the game's colours (`UI_THEME.card`), the lift and the growth of
@@ -63,6 +69,7 @@ export type CardProps = {
   ariaLabel?: string
   /** Seconds the card takes to settle on a new `target`, about: the smaller, the snappier (default 0.16) */
   speed?: number
+  /** @deprecated Say `onPress` and a `state` that can be pressed: a card in a state takes the press itself, and keeps a keyboard stand-in, which a click handler has not */
   onClick?: (e: ThreeEvent<MouseEvent>) => void
   onHover?: (hovered: boolean) => void
   /** Called when a flight ends */

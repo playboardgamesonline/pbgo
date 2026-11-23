@@ -61,7 +61,7 @@ export type SettingsDefaults = Partial<Omit<SiteSettings, "theme" | "logo" | "fa
  * defaults of `lib/ui-theme.ts`, the look the games had before they could tune it, drawn with the game's skin (`--surface`,
  * `--accent-game`, `--font-title`, `--font-accent`…).
  */
-/** The colour of a card's bloom of light: a key of the game's theme (`"accent"`, `"foreground"`…), which the settings can change in the gamemaster, or `#rrggbb` */
+/** The colour of a card's bloom of light, or of a button on the table: a key of the game's theme (`"accent"`, `"foreground"`…), which the settings can change in the gamemaster, or `#rrggbb` */
 export type CardColor = keyof ThemeColors | `#${string}`
 
 /** The bloom a card wears in one state: its colour, and a strength that multiplies the table's own for that state (default 1) */
@@ -108,6 +108,13 @@ export type UiTheme = {
     pressed?: CardBloomTheme
     /** Picked: it stays raised */
     selected?: CardBloomTheme
+  }
+  /** The buttons on the table (`FloorButton` of `@pbgo/table`): the colour of the one that goes on and of the quieter ones. Not set: the accent of the game's theme, and its text colour */
+  button?: {
+    /** The action that goes on: Hit, Deal, Play */
+    primary?: CardColor
+    /** The quieter ones: Stay, Keep, Swap */
+    neutral?: CardColor
   }
   /** The end-of-game card (the podium, how it ended, the buttons): its surface, line, corners and colours */
   gameOver?: {

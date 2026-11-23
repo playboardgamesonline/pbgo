@@ -75,7 +75,7 @@ import {
 } from "@pbgo/table"
 import { useEffect, useMemo, useState } from "react"
 import { AdditiveBlending, CanvasTexture, SRGBColorSpace } from "three"
-import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SHEET, PLAY_TILES, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_FLOOR_TONES, PLAY_NAMES, PLAY_SEAT_COLORS, PLAY_TABLE, SKETCH_BRUSHES } from "../defaults"
+import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SHEET, PLAY_TILES, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_NAMES, PLAY_SEAT_COLORS, PLAY_TABLE, SKETCH_BRUSHES } from "../defaults"
 import { cssColor, pageFont } from "../color"
 import { cellAt, cellCentres, coordsOf, floorPads, heldFrame, LOOP_CELLS, PILE_PLACES_AT, planOf, ringOf, ringRadius } from "../play/geometry"
 import { leader, nameOf } from "../play/state"
@@ -614,15 +614,13 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
         <>
           {(() => {
             const pads = floorPads(draw)
-            const hitTone = PLAY_FLOOR_TONES.hit
-            const stayTone = PLAY_FLOOR_TONES.stay
             const off = state.floor.disabled
             const empty = state.piles.drawn >= PLAY_DECK.size
             return (
               <>
-                <FloorButton at={pads.hit} width={pads.hit.width} depth={pads.hit.depth} tone={hitTone} label="Hit" onPress={actions.hit} disabled={off || empty} />
-                <FloorButton at={pads.stay} width={pads.stay.width} depth={pads.stay.depth} tone={stayTone} label="Stay" onPress={actions.stay} disabled={off} />
-                <FloorButton at={pads.deal} width={pads.deal.width} depth={pads.deal.depth} tone={hitTone} label="Deal" labelHeight={0.45} onPress={actions.dealRound} disabled={off || empty} />
+                <FloorButton at={pads.hit} width={pads.hit.width} depth={pads.hit.depth} label="Hit" onPress={actions.hit} disabled={off || empty} />
+                <FloorButton at={pads.stay} width={pads.stay.width} depth={pads.stay.depth} tone="neutral" label="Stay" onPress={actions.stay} disabled={off} />
+                <FloorButton at={pads.deal} width={pads.deal.width} depth={pads.deal.depth} label="Deal" labelHeight={0.45} onPress={actions.dealRound} disabled={off || empty} />
               </>
             )
           })()}
