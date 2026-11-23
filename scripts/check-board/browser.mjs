@@ -3,6 +3,8 @@ import { spawn } from "node:child_process"
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs"
 import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
+// The platform's own definition of an answer to the cookie banner (pure, no import: Node strips its types)
+import { CONSENT_KEY, CONSENT_REVISION, makeConsent } from "../../packages/analytics/src/consent.ts"
 import { installProbe } from "./probe.mjs"
 import { sleep, waitFor } from "./util.mjs"
 
@@ -118,7 +120,7 @@ const pathOf = (url) => {
  * Starts a headless browser with one page and gives it back. What happens in the page is kept in `page.issues`: console errors and warnings, exceptions, resources that failed and answers of `/api/` that are errors, each with the
  * `page.phase` it happened in, so that a check reads what is its own.
  */
-export async function launchBrowser({ reducedMotion = false, liftCors = false } = {}) {
+export async function launchBrowser({ reducedMotion = false, liftCors = false, banner = false } = {}) {
   const found = findBrowser()
   if (!found) throw new Error("no Chromium in Playwright's cache")
   const profile = mkdtempSync(join(tmpdir(), "check-board-"))
@@ -240,6 +242,12 @@ export async function launchBrowser({ reducedMotion = false, liftCors = false } 
       })
     }
     await send("Page.addScriptToEvaluateOnNewDocument", { source: `(${installProbe.toString()})()` })
+    // The cookie banner floats over the bottom of every board until the visitor answers it (docs/design/01-guidelines/04-in-game-rules.md): a control under it is not a fault of the board, only of a first visit. So the page is
+    // opened as a visitor who has answered, refusing what is optional, and the measures are those of the board; `banner` leaves it up, to look at a first visit
+    if (!banner) {
+      const answer = JSON.stringify({ ...makeConsent("refused"), rev: CONSENT_REVISION })
+      await send("Page.addScriptToEvaluateOnNewDocument", { source: `try { localStorage.setItem(${JSON.stringify(CONSENT_KEY)}, ${JSON.stringify(answer)}) } catch {}` })
+    }
     if (reducedMotion) await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] })
 
     let loaded = null
