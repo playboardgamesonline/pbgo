@@ -1,6 +1,7 @@
+import { playOn, playUntil, removeFrom } from "@pbgo/engine-kit"
 import { autoPlayFor } from "./autoplay"
 import type { CardType } from "./catalogue"
-import { type Ctx, close, isOver, numbersOf, open, removeFrom, typeOf, waitingFor } from "./machine"
+import { type Ctx, close, isOver, numbersOf, open, typeOf, waitingFor } from "./machine"
 import { FLIP_7 } from "./scoring"
 import type { State } from "./types"
 
@@ -15,26 +16,18 @@ import type { State } from "./types"
 const TURN_STEPS = 100
 const GAME_STEPS = 10_000
 
-/** The game goes one step further: the player it waits for is played for. */
-function playOne(state: State): State {
-  const [first] = waitingFor(state)
-  return first === undefined ? state : autoPlayFor(state, first)
-}
+/** What the kit's `playUntil` and `playOn` read: who the game waits for and how to play for them (`GAME` is not built yet, it is made of these commands). */
+const HOOKS = { isOver, waitingFor, autoPlayFor }
 
 /** Plays on until another player is waited for, or the round is over. */
 function finishTurn(state: State): State {
   const [who] = waitingFor(state)
-  if (who === undefined) return state
   const rounds = state.rounds.length
-  let s = state
-  for (let i = 0; i < TURN_STEPS && waitingFor(s)[0] === who && s.rounds.length === rounds; i++) s = playOne(s)
-  return s
+  return playUntil(HOOKS, state, (s) => waitingFor(s)[0] !== who || s.rounds.length !== rounds, TURN_STEPS)
 }
 
 function finishGame(state: State): State {
-  let s = state
-  for (let i = 0; i < GAME_STEPS && !isOver(s); i++) s = playOne(s)
-  return s
+  return playOn(HOOKS, state, GAME_STEPS)
 }
 
 /** Runs `change` on a copy of the state, for the player whose turn it is, between two plays only. */

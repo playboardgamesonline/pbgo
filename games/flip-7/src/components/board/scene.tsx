@@ -1,6 +1,6 @@
 "use client"
 
-import type { Face, PlayerView, PublicSeat } from "@flip-7/engine"
+import type { CardFace, PlayerView, PublicSeat } from "@flip-7/engine"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import { FloorButton, onTable, Pile, pile, PlayerSeat, Table, TableText, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
@@ -112,7 +112,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
 
   // A card the last move turned over comes in from above the draw pile after the time the timeline gives it, so that they come one after the other. Every other card is where it was, or flies from where it lay: the table remembers
   // where a card with the same id was a moment ago. The cards of the opening deal wait for the start screen to go
-  const cardsOf = (list: readonly Face[], out = false): ZoneCard[] =>
+  const cardsOf = (list: readonly CardFace[], out = false): ZoneCard[] =>
     (held ? [] : list).map((face) => {
       const delay = entrances.get(face.id)
       return { key: face.id, id: face.id, front: faces.face(face.type), back: faces.back, out, from: delay === undefined ? null : { ...dealt, delay } }
