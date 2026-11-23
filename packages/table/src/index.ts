@@ -101,3 +101,5 @@ export { PILE_LABEL_GAP, PILE_LABEL_HEIGHT, pileAboveAt, pileFootprint, pileLabe
 export { Zone, type ZoneCard, type ZoneProps } from "./zone/zone"
 export { ActionLabel, type ActionLabelProps } from "./floor/action-label"
 export { type Footprint, LABEL_HEIGHT, LABEL_ROOM } from "./floor/label-look"
+export { Playmat, type PlaymatCloth, type PlaymatProps } from "./table/playmat"
+export { PLAYMAT, type Unroll, type UnrollTiming } from "./table/playmat-look"

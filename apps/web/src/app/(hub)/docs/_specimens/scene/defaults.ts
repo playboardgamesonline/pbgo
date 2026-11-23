@@ -1,7 +1,7 @@
 // What the light half of a specimen (its controls) and the heavy half (its scene) both need to know. Plain numbers only: this file imports no code (a type of the engine kit at the most), so the controls can read it without pulling in three.js.
 
 import type { Drawing, LaidTile } from "@pbgo/engine-kit"
-import type { Blend } from "@pbgo/table"
+import type { Blend, Unroll } from "@pbgo/table"
 import type { TileName } from "./landscape"
 
 /** The view the camera specimen starts from, and its reset returns to. The scene adds the point it looks at. */
@@ -48,6 +48,12 @@ export const MAT_BLENDS: Record<Blend, string> = { normal: "Normal", multiply: "
 
 /** Everything the mat specimen's controls set, and its scene reads. */
 export type MatKnobs = { color: MatColor; pattern: MatPattern; picture: boolean; blend: Blend; light: boolean; glow: boolean; tile: number }
+
+/** The ways the playmat of its specimen can be: rolled up, rolling out, laid flat. */
+export const PLAYMAT_MODES: Record<Unroll, string> = { rolled: "Rolled up", unrolling: "Rolling out", flat: "Laid flat" }
+
+/** The seconds the playmat of its specimen takes to roll out: a little quicker than a board would have it, so that it is not waited for. */
+export const PLAYMAT_SECONDS = { min: 0.5, max: 6, step: 0.1, start: 2.4 }
 
 /** The players the seats specimen rings, from two to eight. */
 export const SEAT_PLAYERS = { min: 2, max: 8, start: 4 }
