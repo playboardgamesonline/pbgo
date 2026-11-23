@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { autoPlayFor } from "./autoplay"
 import { GAME } from "./game"
 import { deepFreeze } from "@pbgo/engine-kit/testing"
-import { discard, draw, gridUp, gridValues, layout, newState, opened, problems, refusal, seatOf, seedOf, up, waiting } from "./test-utils"
+import { discard, draw, gridUp, gridValues, layout, newState, opened, problems, refusal, seatIn, seedOf, up, waiting } from "./test-utils"
 import type { State } from "./types"
 
 // Playing for a player who is away: legal, deterministic, complete.
@@ -139,7 +139,7 @@ describe("playing for an absent player", () => {
       state = autoPlayFor(state, waits[Math.floor(rng() * waits.length)]!)
     }
     expect(GAME.isOver(state)).toBe(true)
-    expect(seatOf(state, "ana")).toBe(0)
+    expect(seatIn(state, "ana")).toBe(0)
   })
 })
 

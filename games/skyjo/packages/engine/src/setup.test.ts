@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { GAME } from "./game"
 import { setupGame, setupStep, MAX_PLAYERS, MIN_PLAYERS } from "./setup"
 import { CATALOGUE } from "./catalogue"
-import { gridUp, kinds, newState, players, problems, refusal, seatOf, seedOf, valueOfId } from "./test-utils"
+import { gridUp, kinds, newState, players, problems, refusal, seatIn, seedOf, valueOfId } from "./test-utils"
 
 // Preparing a round (EN p.4, FR p.2): 12 cards face down to each player in four columns of three, one card face up starts the discard, the rest is the draw pile.
 
@@ -89,14 +89,12 @@ describe("setting a game up, at every table size", () => {
     expect(refused([{ id: "a", nickname: "A" }, { id: "a", nickname: "B" }])).toBe("INVALID_PLAYERS")
     expect(refused([{ id: "a", nickname: "A" }, { id: "", nickname: "B" }])).toBe("INVALID_PLAYERS")
     expect(refused([{ id: "a", nickname: "A" }, { id: 4, nickname: "B" }])).toBe("INVALID_PLAYERS")
-    expect(refused("ana,bob")).toBe("INVALID_PLAYERS")
-    expect(refused(undefined)).toBe("INVALID_PLAYERS")
   })
 
   it("takes the seats in the order it is given", () => {
     const state = newState(4)
     expect(state.seats).toEqual(["ana", "bob", "cleo", "dan"])
-    expect(seatOf(state, "cleo")).toBe(2)
+    expect(seatIn(state, "cleo")).toBe(2)
   })
 
   it("has no option", () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { closeStep, noteEvent, openStep } from "./step"
+import { closeStep, noteEvent, openStep, type StepContext } from "./step"
+import type { LogEntry } from "./log"
 import { createSaveableRng, restoreRng } from "./rng"
 
 type State = { rng: number; idsRng: number; count: number; nested: { list: number[] } }
@@ -81,6 +82,50 @@ describe("closing a step", () => {
     const { state: after } = closeStep(ctx)
     expect(after.rng).not.toBe(state.rng)
     expect(after.idsRng).toBe(state.idsRng)
+  })
+})
+
+describe("a context a game names", () => {
+  // A game gives the kit its types with an alias, as the docs ask it to, and closes the context with no type argument: the alias must be enough for `closeStep` to read the state and the events from
+  type Main = StepContext<State, Event>
+  type Both = StepContext<State, Event, "rng" | "idsRng">
+  const closeMain = (ctx: Main) => closeStep(ctx)
+  const closeBoth = (ctx: Both) => closeStep(ctx)
+  // and the one-liner of the README, which keeps the generics of the function
+  const close = closeStep
+
+  it("closes a context of the main stream, whatever it is named", () => {
+    const ctx: Main = openStep<State, Event>(start())
+    ctx.s.count = 5
+    noteEvent(ctx, { kind: "draw", card: 1 })
+    const step = closeMain(ctx)
+    expect(step.state.count).toBe(5)
+    expect(step.events).toEqual([{ event: { kind: "draw", card: 1 } }])
+  })
+
+  it("closes a context of two streams, and saves both back", () => {
+    const state = start()
+    const ctx: Both = openStep<State, Event, "rng" | "idsRng">(state, ["rng", "idsRng"])
+    ctx.rng()
+    ctx.idsRng()
+    const { state: after } = closeBoth(ctx)
+    expect(after.rng).not.toBe(state.rng)
+    expect(after.idsRng).not.toBe(state.idsRng)
+  })
+
+  it("closes a context that is only known by its shape, as one that an alias has lost is", () => {
+    // TypeScript keeps what an alias says only while the type comes from the alias: a context that went through a few of them is read by its fields, and `s` and `events` are fields
+    const ctx = { s: start(), events: [] as LogEntry<Event>[], rng: createSaveableRng(5) }
+    ctx.s.count = 2
+    expect(closeStep(ctx).state.count).toBe(2)
+  })
+
+  it("is the same function whether it is called, kept as it is or given a type", () => {
+    const ctx: Both = openStep<State, Event, "rng" | "idsRng">(start(), ["rng", "idsRng"])
+    ctx.rng()
+    const step = close(ctx)
+    expect(step.state.count).toBe(0)
+    expect(restoreRng(step.state.rng)()).not.toBeNaN()
   })
 })
 

@@ -1,18 +1,15 @@
-import type { LogEntry, OptionValues, Results, Standing } from "@pbgo/engine-kit"
+import type { CardFace, LogEntry, OptionValues, Results, Standing, Step } from "@pbgo/engine-kit"
 
 /**
  * Flip 7: the types the engine and the board share.
  *
  * A card is a number in the state: the opaque id it holds right now (`ids` of the engine-kit). What it is (its face) comes from the
- * catalogue of the game (`catalogue.ts`), which is constant and never stored (lean state, PLT-45). The views show a card as a `Face`:
- * its id and its face key.
+ * catalogue of the game (`catalogue.ts`), which is constant and never stored (lean state, PLT-45). The views show a card as a `CardFace` of
+ * the kit: its id and its face key (a key of `CARDS`, e.g. "number-7" or "freeze").
  *
  * Almost everything is public in Flip 7: every card is turned face up the moment it is drawn. The one hidden thing is the order of
  * the draw pile, so the views only say how big it is and which faces it still holds.
  */
-
-/** A card a viewer sees: the id it holds now and what it is (a key of `CARDS`, e.g. "number-7" or "freeze"). */
-export type Face = { id: number; type: string }
 
 /**
  * Where a player stands in the round.
@@ -122,7 +119,7 @@ export type Flip7ErrorCode = (typeof FLIP7_ERROR_CODES)[number]
  */
 export type PublicPhase =
   | { kind: "turn"; player: string; canStay: boolean }
-  | { kind: "target"; player: string; card: Face; targets: string[] }
+  | { kind: "target"; player: string; card: CardFace; targets: string[] }
   | { kind: "between"; dealer: string }
   | { kind: "over" }
 
@@ -130,9 +127,9 @@ export type PublicPhase =
 export type PublicSeat = {
   id: string
   /** In front of them, in the order the cards came. */
-  cards: Face[]
+  cards: CardFace[]
   /** Freeze and Flip Three cards flipped during their Flip Three, set aside until it is done. The one they are deciding on, if any, is in `phase`. */
-  held: Face[]
+  held: CardFace[]
   status: Status
   /** What the cards in front of them are worth now: nothing once busted. */
   score: number
@@ -153,7 +150,7 @@ export type PlayerView = {
   /** The draw pile: its size, and how many of each face it still holds (what is not in front of anyone nor on the discard). */
   deck: { size: number; counts: { type: string; count: number }[] }
   /** Top first. */
-  discard: Face[]
+  discard: CardFace[]
   /** The number of the round going on, or of the last one once it is over. */
   round: number
   /** What each seat scored in every finished round, `rounds[round][seat]`. */
@@ -175,12 +172,12 @@ export type PlayerView = {
  */
 export type Flip7Event =
   | { kind: "round"; number: number; dealer: string }
-  | { kind: "draw"; by: string; card: Face; how: "deal" | "hit" | "flip" }
+  | { kind: "draw"; by: string; card: CardFace; how: "deal" | "hit" | "flip" }
   | { kind: "stay"; by: string; points: number }
-  | { kind: "bust"; by: string; card: Face }
-  | { kind: "saved"; by: string; card: Face; secondChance: Face }
-  | { kind: "play"; by: string; target: string; card: Face }
-  | { kind: "discarded"; by: string; card: Face }
+  | { kind: "bust"; by: string; card: CardFace }
+  | { kind: "saved"; by: string; card: CardFace; secondChance: CardFace }
+  | { kind: "play"; by: string; target: string; card: CardFace }
+  | { kind: "discarded"; by: string; card: CardFace }
   | { kind: "reshuffle" }
   | { kind: "flip7"; by: string }
   | { kind: "end"; scores: number[] }
@@ -189,4 +186,4 @@ export type Flip7Event =
 export type Flip7LogEntry = LogEntry<Flip7Event>
 
 /** What a step gives back: the new state and what happened, for the platform to keep (the state keeps no log). */
-export type Flip7Step = { state: State; events: Flip7LogEntry[] }
+export type Flip7Step = Step<State, Flip7Event>

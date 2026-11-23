@@ -1,5 +1,6 @@
-import { deal, draw, shuffle } from "@pbgo/engine-kit"
-import { type Ctx, areaOf, emit, faceOf, facesOf, handOf, inRound, isOver, keyOf, nextInRound, playerAt, soleCard, valueOf, winnersOf } from "./machine"
+import { deal, draw, faceOfId, facesOfIds, keyOfId, noteEvent, playerAt, shuffle } from "@pbgo/engine-kit"
+import { CATALOGUE } from "./catalogue"
+import { type Ctx, areaOf, handOf, inRound, isOver, nextInRound, soleCard, valueOf, winnersOf } from "./machine"
 
 /** How a round goes, from the deal to the count. */
 
@@ -28,7 +29,7 @@ export function startRound(ctx: Ctx): void {
   s.out = s.seats.map(() => false)
   s.shielded = s.seats.map(() => false)
   s.round += 1
-  emit(ctx, { kind: "round", number: s.round, first: playerAt(s, s.turn), faceUp: facesOf(s, s.faceUp) })
+  noteEvent(ctx, { kind: "round", number: s.round, first: playerAt(s.seats, s.turn), faceUp: facesOfIds(s.ids, CATALOGUE, s.faceUp) })
   startTurn(ctx, s.turn)
 }
 
@@ -40,12 +41,12 @@ export function startTurn(ctx: Ctx, seat: number): void {
   const { s } = ctx
   const [card] = s.deck.splice(0, 1)
   if (card === undefined) throw new RangeError("A turn begins with a card left in the deck")
-  const player = playerAt(s, seat)
+  const player = playerAt(s.seats, seat)
   s.turn = seat
   s.shielded[seat] = false
   handOf(s, seat).push(card)
   s.stage = { kind: "play" }
-  emit(ctx, { kind: "draw", by: player, card: faceOf(s, card) }, { to: [player], masked: { kind: "draw", by: player } })
+  noteEvent(ctx, { kind: "draw", by: player, card: faceOfId(s.ids, CATALOGUE, card) }, { to: [player], masked: { kind: "draw", by: player } })
 }
 
 /**
@@ -68,10 +69,10 @@ export function endTurn(ctx: Ctx): void {
 export function endRound(ctx: Ctx, how: "deck" | "last"): void {
   const { s } = ctx
   const left = inRound(s)
-  if (how === "deck") emit(ctx, { kind: "reveal", hands: left.map((seat) => ({ player: playerAt(s, seat), card: faceOf(s, soleCard(s, seat)) })) })
+  if (how === "deck") noteEvent(ctx, { kind: "reveal", hands: left.map((seat) => ({ player: playerAt(s.seats, seat), card: faceOfId(s.ids, CATALOGUE, soleCard(s, seat)) })) })
   const best = how === "deck" ? Math.max(...left.map((seat) => valueOf(s, soleCard(s, seat)))) : null
   const winners = best === null ? left : left.filter((seat) => valueOf(s, soleCard(s, seat)) === best)
-  const withSpy = left.filter((seat) => areaOf(s, seat).some((id) => keyOf(s, id) === "spy"))
+  const withSpy = left.filter((seat) => areaOf(s, seat).some((id) => keyOfId(s.ids, CATALOGUE, id) === "spy"))
   const spy = withSpy.length === 1 ? (withSpy[0] ?? null) : null
   for (const seat of winners) s.won[seat] = (s.won[seat] ?? 0) + 1
   if (spy !== null) s.spies[spy] = (s.spies[spy] ?? 0) + 1
@@ -79,6 +80,6 @@ export function endRound(ctx: Ctx, how: "deck" | "last"): void {
   if (first === undefined) throw new RangeError("A round has a winner")
   s.turn = first
   s.stage = { kind: "between", revealed: how === "deck", winners, spy }
-  emit(ctx, { kind: "end", how, winners: winners.map((seat) => playerAt(s, seat)), spy: spy === null ? null : playerAt(s, spy) })
-  if (isOver(s)) emit(ctx, { kind: "over", winners: winnersOf(s) })
+  noteEvent(ctx, { kind: "end", how, winners: winners.map((seat) => playerAt(s.seats, seat)), spy: spy === null ? null : playerAt(s.seats, spy) })
+  if (isOver(s)) noteEvent(ctx, { kind: "over", winners: winnersOf(s) })
 }

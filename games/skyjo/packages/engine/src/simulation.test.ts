@@ -30,14 +30,14 @@ const report = (): string[] => [...found].map(([name, { count, examples }]) => `
 // --- The booklets' count, written again from the names of the faces
 
 const valueOfFace = (face: string): number => Number(face.replace("card-minus-", "-").replace("card-", ""))
-const faceOfId = (state: State, id: number): string => CATALOGUE[state.ids.indexOf(id)]!
+const keyHeldBy = (state: State, id: number): string => CATALOGUE[state.ids.indexOf(id)]!
 
 /** What a grid is worth when every card is face up, columns of three equal cards thrown away. */
 function bookletCount(state: State, seat: number): number {
   let total = 0
   for (let column = 0; column < 4; column++) {
     const cells = state.grids[seat]!.slice(column * 3, column * 3 + 3)
-    const faces = cells.flatMap((cell) => (cell ? [valueOfFace(faceOfId(state, cell.card))] : []))
+    const faces = cells.flatMap((cell) => (cell ? [valueOfFace(keyHeldBy(state, cell.card))] : []))
     if (faces.length === 3 && new Set(faces).size === 1) continue
     total += faces.reduce((a, b) => a + b, 0)
   }
@@ -129,7 +129,7 @@ function checkMove({ at, before, action, after, events }: Move): void {
     ok("a round began outside its opening", opening !== null)
     if (opening !== null) {
       const starter = before.seats.indexOf(started.by)
-      const sums = after.grids.map((grid) => grid.flatMap((cell) => (cell?.up ? [valueOfFace(faceOfId(after, cell.card))] : [])).reduce((a, b) => a + b, 0))
+      const sums = after.grids.map((grid) => grid.flatMap((cell) => (cell?.up ? [valueOfFace(keyHeldBy(after, cell.card))] : [])).reduce((a, b) => a + b, 0))
       ok("the round was not begun by the player the opening names", opening.starter === null || starter === opening.starter)
       ok("the start does not say how the round's first player was found", started.how === (opening.starter === null ? "sum" : "ender"))
       ok("the first round was not begun by the highest sum", opening.starter !== null || sums[starter] === Math.max(...sums))

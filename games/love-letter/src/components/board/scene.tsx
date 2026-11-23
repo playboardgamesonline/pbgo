@@ -6,7 +6,6 @@ import { shortName } from "@pbgo/core/lib/short-name"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import { Counter, inFrame, onTable, Pile, type Pose, PlayerSeat, Stack, Table, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useEffect, useMemo, useState } from "react"
-import { AdditiveBlending } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
 import { holdHovered, holdPicked, releaseHovered, releaseHoveredUnless } from "../../lib/lens"
 import { fill } from "../../lib/words"
@@ -15,25 +14,13 @@ import { OrderMarker, Strip, TargetZones, tonesOf } from "./controls"
 import { nameMeasure, sentenceMeasure, TABLE_WEIGHT, tableFonts } from "./fonts"
 import { GLOWS, lightGlows } from "./glows"
 import { areaPoses, areas, backsPoses, dealtFrom, fanPoses, faceUpPoses, guessPoses, handOf, LAYOUT_FIELDS, LAYOUT_SETTINGS, middlePlaces, nameWidth, PLATE_TRAILING, plateAt, plateFit, revealedPoses, seatSpots, zones } from "./layout"
-import { matTexture } from "./mat"
 import { type Arrival, PACE_FIELDS, PACE_SETTINGS, type Reveal } from "./pacing"
 import { RevealView, useReveal } from "./sequence"
 import { CARD_SIZE, useFaces } from "./textures"
 import { type Choice, type ClientAction, keepAction, NO_CHOICE, playAction, pressable, pressCard, pressTarget, lensIds, noteOf, type Step, stepOf, swapOrder, validChoice } from "./turn"
 
-/** The pool of light of the mat: how far across it spreads, in world units. Past it the table is the plain colour it fades into. */
-const MAT_SIZE = 30
-
-/** The pool of light the cards lie on: `surface` of the game's settings in the middle, falling away to `surfaceDark`, which is the colour of the endless table around it. It is added to the table (additive blending), not laid over it, so at its rim it adds nothing and it has no edge. */
-function Mat({ inner, outer }: { inner: string; outer: string }) {
-  const map = useMemo(() => matTexture(inner, outer), [inner, outer])
-  return (
-    <mesh rotation-x={-Math.PI / 2} position-y={0.001} renderOrder={-1} raycast={() => null}>
-      <planeGeometry args={[MAT_SIZE, MAT_SIZE]} />
-      <meshBasicMaterial map={map} blending={AdditiveBlending} transparent toneMapped={false} depthWrite={false} />
-    </mesh>
-  )
-}
+/** How far the pool of light of the table reaches, in world units: past it the table is its plain edge colour */
+const POOL_RADIUS = 22
 
 export type SceneProps = {
   view: PlayerView
@@ -326,10 +313,9 @@ export function Scene(props: SceneProps) {
   const viewport = useDeferredValue(useViewport())
   const seated = props.view.me !== null
   const camera = useMemo(() => cameraFor(players, viewport, seated), [players, viewport, seated])
-  // The table is its edge colour, flat and endless, with no grain and no picture; the pool of light the cards lie on is the only thing on it that changes
+  // The mat is data, the kit lays it: the table is its edge colour, flat and endless, with no grain and no picture, and the pool of light the cards lie on, `surface` in the middle falling away to `surfaceDark`, is the only thing on it that changes
   return (
-    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark }} held={props.held} onLoaded={props.onLoaded}>
-      <Mat inner={theme.surface} outer={theme.surfaceDark} />
+    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, light: { center: theme.surface, radius: POOL_RADIUS } }} held={props.held} onLoaded={props.onLoaded}>
       <World {...props} />
     </Table>
   )

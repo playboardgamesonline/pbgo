@@ -63,8 +63,8 @@ export function step(state: State, action: Action): Flip7Step {
 ```ts
 export function waitingFor(s: State): string[] {
   const top = s.stack.at(-1)
-  if (top === undefined) return isOver(s) ? [] : [playerAt(s, s.dealer)]
-  if (top.kind === "turn" || top.kind === "target") return [playerAt(s, top.seat)]
+  if (top === undefined) return isOver(s) ? [] : [playerAt(s.seats, s.dealer)]
+  if (top.kind === "turn" || top.kind === "target") return [playerAt(s.seats, top.seat)]
   return []
 }
 ```
