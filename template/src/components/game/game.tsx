@@ -118,6 +118,8 @@ function Table({ onUpdate, onLeave, held = false, onLoaded, deadlineAt = null }:
   const meId = view.me?.id ?? null
   const myTurn = view.phase === "playing" && !!meId && view.activePlayerId === meId
   const ended = view.phase === "over"
+  // What the viewer has to do now: the table writes no sentence, the ticker says it. The demo's words are written here; a game's live in its Sanity
+  const prompt = !meId || ended ? null : view.phase === "bidding" ? (view.me?.bid == null ? "Combien de plis allez-vous remporter ?" : "Vous pouvez encore changer votre annonce.") : myTurn ? "Jouez une carte." : null
   // The players shown with an announcement: the viewer for "your turn", the winners for the victory
   const seatsFor = (ids: readonly string[]) => seatsOf(game.players, ids, playerColors)
 
@@ -215,6 +217,7 @@ function Table({ onUpdate, onLeave, held = false, onLoaded, deadlineAt = null }:
         <Ticker
           activePlayerId={ended ? null : view.activePlayerId}
           waitingFor={ended ? undefined : game.waitingFor}
+          prompt={prompt}
           status={!ended && <RoundStatus />}
           history={history}
         />
