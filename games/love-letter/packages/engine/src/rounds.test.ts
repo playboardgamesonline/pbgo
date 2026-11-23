@@ -3,7 +3,7 @@ import { step } from "./actions"
 import { CATALOGUE } from "./catalogue"
 import { GAME } from "./game"
 import { tokensToWin } from "./options"
-import { type Layout, areaNames, cardIn, deal, handNames, kinds, layout, names, newState, problems, refusal, seatOf, seedOf, tokens, viewOf, waiting } from "./test-utils"
+import { type Layout, areaNames, cardIn, deal, handNames, kinds, layout, names, newState, problems, refusal, seatIn, seedOf, tokens, viewOf, waiting } from "./test-utils"
 
 // Rulebook, pp. 6-7 and 13: the end of a round, the favor tokens, the Spy's token, the next round and the end of the game.
 //
@@ -284,6 +284,6 @@ describe("who is where at the end of a round", () => {
     }
     expect(handNames(state, "cleo")).toEqual(["baron"])
     expect(areaNames(state, "bob")).toEqual(["handmaid"])
-    expect(seatOf(state, "cleo")).toBe(2)
+    expect(seatIn(state, "cleo")).toBe(2)
   })
 })

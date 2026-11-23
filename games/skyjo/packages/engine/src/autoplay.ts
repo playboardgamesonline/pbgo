@@ -1,4 +1,4 @@
-import { EngineError } from "@pbgo/engine-kit"
+import { EngineError, seatOf } from "@pbgo/engine-kit"
 import { dealRound, discard, draw, flip, place, reveal, take } from "./actions"
 import { type Ctx, close, gridOf, open, revealedCount, valueOf, waitingFor } from "./machine"
 import { columnCells } from "./scoring"
@@ -75,7 +75,7 @@ export function autoPlay(ctx: Ctx, playerId: string): void {
   const { stage } = s
   switch (stage.kind) {
     case "reveal": {
-      const seat = s.seats.indexOf(playerId)
+      const seat = seatOf(s.seats, playerId)
       for (const position of OPENING_ORDER) {
         if (revealedCount(s, seat) >= OPENING_FLIPS) break
         if (gridOf(s, seat)[position]?.up === false) reveal(ctx, playerId, position)
@@ -108,7 +108,7 @@ export function autoPlay(ctx: Ctx, playerId: string): void {
     else discard(ctx, playerId)
   }
   const after = ctx.s.stage
-  if (after.kind === "flip" && after.seat === ctx.s.seats.indexOf(playerId)) flip(ctx, playerId, firstHidden(ctx.s, after.seat))
+  if (after.kind === "flip" && after.seat === seatOf(ctx.s.seats, playerId)) flip(ctx, playerId, firstHidden(ctx.s, after.seat))
 }
 
 /** `GAME.autoPlayStep`: the state once `playerId` has been played for, and what happened. */

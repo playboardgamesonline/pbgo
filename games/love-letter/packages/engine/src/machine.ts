@@ -1,83 +1,33 @@
-import { EngineError, type SaveableRng, cardOf, restoreRng } from "@pbgo/engine-kit"
-import { CARDS, CATALOGUE, type CharacterKey } from "./catalogue"
+import { EngineError, type StepContext, closeStep, keyOfId, nextSeat, openStep, playerAt } from "@pbgo/engine-kit"
+import { CARDS, CATALOGUE } from "./catalogue"
 import { tokensToWin } from "./options"
-import type { Face, LoveLetterEvent, LoveLetterStep, State } from "./types"
+import type { LoveLetterEvent, LoveLetterStep, State } from "./types"
 
 /**
- * The machinery every rule is written with: one step of the game is `open` (a private copy of the state), a few mutations, then `close`
- * (the new state and what happened). Nothing mutates the state that came in, and nothing draws from `Math.random`.
+ * The machinery every rule is written with: one step of the game is `open` (a private copy of the state), a few mutations, then `closeStep` of the kit (the new
+ * state and what happened); what happened is noted with `noteEvent`. Nothing mutates the state that came in, and nothing draws from `Math.random`.
  */
 
-/** What a step works on. `s` is a copy of the state: mutate it freely, the state that came in is never touched. */
-export type Ctx = {
-  s: State
-  /** Shuffles and the pick of a first player. */
-  rng: SaveableRng
-  /** The ids of the cards (a side stream: drawing from it never moves `rng`). */
-  idsRng: SaveableRng
-  events: LoveLetterStep["events"]
-}
+/**
+ * What a step works on: the kit's context for this game. `s` is a copy of the state: mutate it freely, the state that came in is never touched. `rng` is the stream of
+ * the shuffles and of the pick of a first player, `idsRng` the one of the ids of the cards (a side stream: drawing from it never moves `rng`).
+ */
+export type Ctx = StepContext<State, LoveLetterEvent, "rng" | "idsRng">
 
-/** A step starts here: a copy of the state to mutate, with the streams picked up where the last step left them. */
-export function open(state: State): Ctx {
-  const s = structuredClone(state)
-  return { s, rng: restoreRng(s.rng), idsRng: restoreRng(s.idsRng), events: [] }
-}
+/** A step starts here: a copy of the state to mutate, with the two streams picked up where the last step left them. */
+export const open = (state: State): Ctx => openStep<State, LoveLetterEvent, "rng" | "idsRng">(state, ["rng", "idsRng"])
 
-/** A step ends here: the streams are saved back into the state, which comes out with what happened. */
-export function close(ctx: Ctx): LoveLetterStep {
-  ctx.s.rng = ctx.rng.save()
-  ctx.s.idsRng = ctx.idsRng.save()
-  return { state: ctx.s, events: ctx.events }
-}
-
-/** Notes what happened, for everybody; `to` and `masked` when only some may read it in full (the others read `masked`: the fact, never the card). */
-export function emit(ctx: Ctx, event: LoveLetterEvent, hidden?: { to: string[]; masked: LoveLetterEvent }): void {
-  ctx.events.push(hidden ? { event, ...hidden } : { event })
-}
+/** A step ends here: the two streams are saved back into the state, which comes out with what happened. The context is written out in full, since `closeStep` cannot read the streams it saves through the alias `Ctx` */
+export const close = (ctx: StepContext<State, LoveLetterEvent, "rng" | "idsRng">): LoveLetterStep => closeStep(ctx)
 
 // --- Cards
 
-/** The character of the card that holds `id`. An id nobody holds is a bug of the engine: no player can name a card that is not in their hand. */
-export function keyOf(s: Pick<State, "ids">, id: number): CharacterKey {
-  const key = CATALOGUE[cardOf(s.ids, id)]
-  if (key === undefined) throw new RangeError(`No card holds the id ${id}`)
-  return key
-}
-
 /** The number printed on the card that holds `id`. */
 export function valueOf(s: Pick<State, "ids">, id: number): number {
-  return CARDS[keyOf(s, id)].value
-}
-
-export function faceOf(s: Pick<State, "ids">, id: number): Face {
-  return { id, type: keyOf(s, id) }
-}
-
-export function facesOf(s: Pick<State, "ids">, ids: readonly number[]): Face[] {
-  return ids.map((id) => faceOf(s, id))
-}
-
-/** Takes `id` out of `list`. It must be there: a card is always in exactly one place. */
-export function removeFrom(list: number[], id: number): void {
-  const index = list.indexOf(id)
-  if (index < 0) throw new RangeError(`The card ${id} is not where it should be`)
-  list.splice(index, 1)
+  return CARDS[keyOfId(s.ids, CATALOGUE, id)].value
 }
 
 // --- Players and what they hold
-
-/** Seat of a player; -1 when they are not at the table. */
-export function seatOf(s: State, playerId: string): number {
-  return s.seats.indexOf(playerId)
-}
-
-/** Id of the player in `seat`. */
-export function playerAt(s: State, seat: number): string {
-  const id = s.seats[seat]
-  if (id === undefined) throw new RangeError(`There is no seat ${seat}`)
-  return id
-}
 
 /** The hand of a seat: the array of the state, to mutate in a step. */
 export function handOf(s: State, seat: number): number[] {
@@ -104,12 +54,9 @@ export function inRound(s: State): number[] {
 
 /** The seat that plays after `from`: the next one clockwise that is still in the round (rulebook, p. 5: a player who is out is skipped). `from` itself comes last. */
 export function nextInRound(s: State, from: number): number {
-  const n = s.seats.length
-  for (let i = 1; i <= n; i++) {
-    const seat = (from + i) % n
-    if (!isOut(s, seat)) return seat
-  }
-  throw new RangeError("Nobody is left in the round")
+  const seat = nextSeat(s.seats.length, from, (other) => isOut(s, other))
+  if (seat === null) throw new RangeError("Nobody is left in the round")
+  return seat
 }
 
 /** The only card of a seat's hand: what a player in the round holds between turns, or once they played the card of their turn. */
@@ -133,8 +80,8 @@ export function targetsOf(s: State, seat: number): number[] {
 export function playableOf(s: State, seat: number): number[] {
   if (s.stage.kind !== "play" || s.turn !== seat) return []
   const hand = handOf(s, seat)
-  const countess = hand.find((id) => keyOf(s, id) === "countess")
-  const forcing = hand.some((id) => keyOf(s, id) === "king" || keyOf(s, id) === "prince")
+  const countess = hand.find((id) => keyOfId(s.ids, CATALOGUE, id) === "countess")
+  const forcing = hand.some((id) => ["king", "prince"].includes(keyOfId(s.ids, CATALOGUE, id)))
   return countess !== undefined && forcing ? [countess] : [...hand]
 }
 
@@ -170,7 +117,7 @@ export function progress(s: State): number {
  */
 export function waitingFor(s: State): string[] {
   if (isOver(s)) return []
-  return [playerAt(s, s.turn)]
+  return [playerAt(s.seats, s.turn)]
 }
 
 /** Gives the engine's own refusal for a step the current state does not allow. */
