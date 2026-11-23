@@ -1,27 +1,23 @@
 "use client"
 
 import { type Family, type Mission, type PlayerView, type Role, type VisibleCard, missionOf } from "@courtisans/engine"
-import { useCursor } from "@react-three/drei"
 import { useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Color, Euler, type Group, type Mesh, MeshBasicMaterial, Quaternion, Shape, ShapeGeometry, Vector3 } from "three"
+import { Color, Euler, type Group, type Mesh, type MeshBasicMaterial, Quaternion, Vector3 } from "three"
 import { useCourtisans } from "../game/context"
 import { useInteraction } from "../game/interaction"
-import { Aura, AURA_FIELDS, WINNER_AURA_SETTINGS, ZONE_AURA_SETTINGS } from "./aura"
-import { CrownMark } from "./crown"
-import { SeatAvatarMesh } from "./seat-avatar-mesh"
+import { Aura, WINNER_AURA_SETTINGS } from "./aura"
 import type { EndingState } from "./ending"
+import { LETTERING_FONT } from "./font"
 import { Counters, MissionSign, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
 import { copyButton, debugTab, useControls } from "@pbgo/core/components/game/debug-controls"
-import { useSeatTheme } from "@pbgo/core/components/game/seat-label"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { Card, FACE_DOWN, lean, onTable, Pile, type Pose, Playmat, SCREEN_HAND_FIELDS, ScreenHand, screenHandLayout, type SurfaceProps, Table, useSettings, useSettingsVersion, Zone, type ZoneCard } from "@pbgo/table"
-import { useSkin } from "@pbgo/core/components/skin-provider"
-import { type TextStyle, TableText } from "./table-text"
+import { Card, type CardState, effectiveState, FACE_DOWN, HELD_FAN_FIELDS, HELD_FAN_SETTINGS, HeldHand, Hotspot, lean, LightPool, NO_TOUCH, onTable, Pile, type Pose, Playmat, PlayerSeat, SCREEN_HAND_FIELDS, ScreenHand, screenHandLayout, type SurfaceProps, Table, type Touch, useSettings, useSettingsVersion, Zone, type ZoneCard } from "@pbgo/table"
 import {
   CARD_SIZE,
-  DOMAIN_SCALE,
+  DH,
+  DL,
   MISSION_H,
   MISSION_SIZE,
   MISSION_W,
@@ -39,8 +35,14 @@ import {
   groupKey,
   arrangeDomain,
   deckTopPose,
+  heldFrame,
+  heldFrom,
+  heldLayout,
+  HELD_SHADOW,
+  hotspotOf,
   tablePose,
   type Seat,
+  seatBox,
   seats,
   missionRestPose,
 } from "./layout"
@@ -80,24 +82,6 @@ function arrange(view: PlayerView, places: Map<string, Seat>, unfolded: string |
   }
   return { map, ranks, zones }
 }
-
-const underTablePose = (zone: DomainZone): Pose => {
-  const outside = new Vector3(zone.center.x, 0, zone.center.z).normalize()
-  return {
-    position: zone.center
-      .clone()
-      .addScaledVector(outside, zone.depth / 2 + 1.2)
-      .setY(-1.6),
-    quaternion: new Quaternion().setFromEuler(new Euler(0, zone.labelYaw, 0)).multiply(FACE_DOWN),
-    scale: DOMAIN_SCALE * 0.8,
-  }
-}
-
-const seatPose = (zone: DomainZone): Pose => ({
-  position: new Vector3(zone.labelPos.x, 3.5, zone.labelPos.z),
-  quaternion: new Quaternion().setFromEuler(new Euler(0, zone.labelYaw, 0)).multiply(FACE_DOWN),
-  scale: DOMAIN_SCALE * 0.7,
-})
 
 type Transient = {
   id: string
@@ -139,150 +123,14 @@ function Veil({ active, opacity, fade = 0.2 }: { active: boolean; opacity: numbe
   )
 }
 
-export const ZONE_SETTINGS = {
-  restOpacity: 0.12,
-  playableOpacity: 0.12,
-  hoverOpacity: 0.22,
-  playableAura: 0.55,
-  hoverAura: 1,
-  rounding: 0.35,
-  nicknameSize: 0.62,
-  nicknameOffset: 0.45,
-  avatarSize: 0.7,
-  avatarGap: 0.2,
-}
-
 /** Where the cards of a pile come in from, above it, when the pile is put on the mat */
 const PILE_ENTRY = (x: number, z: number) => onTable(x, z, { y: 3, face: "down" })
 
-function ZoneSettings() {
-  // The viewer's hand is held at the bottom left of the screen: the Hand folder tunes it, as the Held hands and the layout have theirs
+function LayoutSettings() {
+  // The viewer's hand is held at the bottom left of the screen: the Hand folder tunes it, as the Held hands folder tunes the small fans of the others
   useSettings("Hand", HAND_SETTINGS, SCREEN_HAND_FIELDS, { order: 2 })
-  useSettings(
-    "Player Zone",
-    ZONE_SETTINGS,
-    {
-      restOpacity: ["idle opacity", 0, 1, 0.01],
-      playableOpacity: ["playable opacity", 0, 1, 0.01],
-      hoverOpacity: ["hover opacity", 0, 1, 0.01],
-      playableAura: ["playable aura", 0, 2, 0.01],
-      hoverAura: ["hover aura", 0, 2, 0.01],
-      rounding: ["corner radius", 0, 1.5, 0.01],
-      nicknameSize: ["name size", 0.2, 2, 0.01],
-      nicknameOffset: ["name offset", -2, 2, 0.01],
-      avatarSize: ["avatar size", 0.2, 2, 0.01],
-      avatarGap: ["avatar gap", 0, 1.5, 0.01],
-    },
-    { order: 6 },
-  )
-  useSettings("Player Zone", ZONE_AURA_SETTINGS, AURA_FIELDS as never, { order: 6 })
+  useSettings("Held hands", HELD_FAN_SETTINGS, HELD_FAN_FIELDS, { order: 3 })
   return null
-}
-
-/** A rounded rectangle lying on the table, for the background of a domain (it goes with the backgrounds, when the seats are the shared ones) */
-function roundedPlane(width: number, depth: number, radius: number) {
-  const x = -width / 2
-  const y = -depth / 2
-  const shape = new Shape()
-  shape.moveTo(x + radius, y)
-  shape.lineTo(x + width - radius, y)
-  shape.quadraticCurveTo(x + width, y, x + width, y + radius)
-  shape.lineTo(x + width, y + depth - radius)
-  shape.quadraticCurveTo(x + width, y + depth, x + width - radius, y + depth)
-  shape.lineTo(x + radius, y + depth)
-  shape.quadraticCurveTo(x, y + depth, x, y + depth - radius)
-  shape.lineTo(x, y + radius)
-  shape.quadraticCurveTo(x, y, x + radius, y)
-  return new ShapeGeometry(shape, 6)
-}
-
-function DomainBackground({ zone, playable, hover, color }: { zone: DomainZone; playable: boolean; hover: boolean; color: string }) {
-  const bright = useMemo(() => `#${new Color(color).lerp(new Color("#ffffff"), 0.65).getHexString()}`, [color])
-  const ref = useRef<MeshBasicMaterial>(null)
-  const rounding = ZONE_SETTINGS.rounding
-  const geo = useMemo(() => roundedPlane(zone.width, zone.depth, rounding), [zone.width, zone.depth, rounding])
-  useFrame((_, dt) => {
-    const m = ref.current
-    if (!m) return
-    easing.damp(m, "opacity", playable ? (hover ? ZONE_SETTINGS.hoverOpacity : ZONE_SETTINGS.playableOpacity) : ZONE_SETTINGS.restOpacity, 0.15, dt)
-    easing.dampC(m.color, color, 0.2, dt)
-  })
-  return (
-    <>
-      <mesh geometry={geo} position={zone.center} rotation={[-Math.PI / 2, 0, zone.yaw]} raycast={() => null}>
-        <meshBasicMaterial ref={ref} color="#ffffff" transparent opacity={0.05} depthWrite={false} toneMapped={false} />
-      </mesh>
-      <Aura
-        width={zone.width}
-        depth={zone.depth}
-        position={[zone.center.x, 0.014, zone.center.z]}
-        yaw={zone.yaw}
-        strength={() => (playable ? (hover ? ZONE_SETTINGS.hoverAura : ZONE_SETTINGS.playableAura) : 0)}
-        settings={ZONE_AURA_SETTINGS}
-        color={color}
-        bright={bright}
-      />
-    </>
-  )
-}
-
-function Badge({
-  zone,
-  text,
-  style,
-  onClick,
-  onHover,
-  children,
-}: {
-  zone: DomainZone
-  text: string
-  style: TextStyle
-  onClick?: () => void
-  onHover?: (s: boolean) => void
-  /** What sits left of the nickname (the seat avatar, the turn crown), in a frame whose origin is the first letter's left edge */
-  children?: React.ReactNode
-}) {
-  return (
-    <group position={zone.labelPos} rotation-y={zone.labelYaw}>
-      <TableText
-        text={text}
-        style={style}
-        elevation={ZONE_SETTINGS.nicknameSize}
-        position={[0, 0, -ZONE_SETTINGS.nicknameOffset]}
-        onClick={onClick}
-        onHover={onHover}
-      >
-        {children}
-      </TableText>
-    </group>
-  )
-}
-
-function ClickableZone({ zone, onClick, onHover }: { zone: DomainZone; onClick: () => void; onHover: (s: boolean) => void }) {
-  const [hover, setHover] = useState(false)
-  useCursor(hover)
-  return (
-    <mesh
-      position={[zone.center.x, 0.016, zone.center.z]}
-      rotation={[-Math.PI / 2, 0, zone.yaw]}
-      onClick={(e) => {
-        e.stopPropagation()
-        onClick()
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation()
-        setHover(true)
-        onHover(true)
-      }}
-      onPointerOut={() => {
-        setHover(false)
-        onHover(false)
-      }}
-    >
-      <planeGeometry args={[zone.width, zone.depth + 0.8]} />
-      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-    </mesh>
-  )
 }
 
 function Target({ column, level, onClick }: { column: Column_; level: "up" | "down"; onClick: () => void }) {
@@ -311,7 +159,6 @@ function EmptyClick({ onClick }: { onClick: () => void }) {
 }
 
 const HAND_DISTANCE = 6
-const SPACING = "18px"
 const QUAT_GROUP = new Quaternion()
 const QUAT_LOCAL = new Quaternion()
 const EULER_TMP = new Euler()
@@ -344,9 +191,7 @@ function World({
 }) {
   useEffect(() => onReady(), [onReady])
   const { theme } = useSiteSettings()
-  const { view, catalog, log, nickname, color, avatarUrl } = useCourtisans()
-  const seat = useSeatTheme()
-  const { hostIcon } = useSkin()
+  const { view, catalog, log, nickname } = useCourtisans()
   const it = useInteraction()
   // The view gives the ids of the missions: the rule of each (its colour) is the engine's, its text and picture are Sanity's
   const missions = useMemo(() => (view.me?.missions ?? []).map(missionOf), [view.me?.missions])
@@ -404,10 +249,14 @@ function World({
     const latest = log.at(-1)?.v ?? 0
     if (latest >= prevV) {
       const before = arrange(prevView, seats(prevView)).map
+      // How many cards each opponent held before the move that is being drawn: the card they play leaves from the left end of that hand
+      const held = new Map(prevView.players.map((j) => [j.id, j.handCount]))
       log.filter((line) => line.v > prevV).forEach(({ v, event: e }, n) => {
         if (e.type === "cardPlayed" && e.playerId !== meId) {
-          const zone = zones.get(e.playerId)
-          if (zone) newOnes.set(e.card.id, seatPose(zone))
+          const seat = places.get(e.playerId)
+          const count = held.get(e.playerId) ?? 0
+          held.set(e.playerId, Math.max(0, count - 1))
+          if (seat) newOnes.set(e.card.id, heldFrom(seat, count))
         }
         if (e.type === "cardEliminated") {
           const p = before.get(e.card.id)
@@ -425,17 +274,6 @@ function World({
             })
           }
         }
-        if (e.type === "draw" && e.playerId !== meId) {
-          const zone = zones.get(e.playerId)
-          if (zone)
-            for (let i = 0; i < e.count; i++)
-              added.push({
-                id: `p-${v}-${n}-${i}`,
-                card: null,
-                origin: { ...deckTopPose(prevView.deckCount - i), delay: 0.35 + i * 0.28 },
-                target: underTablePose(zone),
-              })
-        }
       })
       const beforeHand = new Set(prevView.me?.hand.map((c) => c.id))
       let rank = 0
@@ -450,8 +288,10 @@ function World({
 
   const [prevStep, setPrevStep] = useState<OpeningStep>(openingStep)
   const flow = openingStep === "unroll"
-  // The piles are put on the mat once it is out, and are there from the start for a table that is opened or reloaded
-  const [piled, setPiled] = useState(!flow)
+  // The piles are put on the mat once it is out, and are there from the start for a table that is opened or reloaded. A slow machine can still be rolling the mat out when the opening moves on (the opening is a timer, the mat a clock of its own): the
+  // piles are then put on it as the opening moves on, never left off
+  const [rolledOut, setRolledOut] = useState(!flow)
+  const piled = rolledOut || openingStep !== "unroll"
   const [deal, setDeal] = useState<Map<number, Pose>>(new Map())
   const [missionOrigins, setMissionOrigins] = useState<Map<string, Pose>>(new Map())
   const cameraOuverture = useThree((s) => s.camera)
@@ -461,21 +301,13 @@ function World({
       const n = view.players.length
       const total = n * 3
       const dist = new Map<number, Pose>()
-      const added: Transient[] = []
       for (let r = 0; r < 3; r++)
         view.players.forEach((j, idx) => {
           const k = r * n + idx
-          const origin = { ...deckTopPose(view.deckCount + total - k), delay: 0.1 + k * settings.dealStep }
-          if (j.id === meId) {
-            const card = hand[r]
-            if (card) dist.set(card.id, origin)
-          } else {
-            const zone = zones.get(j.id)
-            if (zone) added.push({ id: `d-${j.id}-${r}`, card: null, origin, target: underTablePose(zone) })
-          }
+          const card = j.id === meId ? hand[r] : undefined
+          if (card) dist.set(card.id, { ...deckTopPose(view.deckCount + total - k), delay: 0.1 + k * settings.dealStep })
         })
       setDeal(dist)
-      if (added.length) setTransients((t) => [...t, ...added])
     }
     if (openingStep === "missions") {
       cameraOuverture.updateMatrixWorld()
@@ -554,7 +386,13 @@ function World({
     if (prevFocus && !missionFocus) setFocusReturn(prevFocus)
   }
   if (focusReturn && hover === `mission:${focusReturn}`) setFocusReturn(null)
-  const [hoverPlayer, setHoverPlayer] = useState<string | null>(null)
+  // What the visitor does to the area of each domain that can be chosen: the cards under it are lit from it
+  const [touches, setTouches] = useState<Record<string, Touch>>({})
+  const touchOf = (playerId: string, touch: Touch) =>
+    setTouches((all) => {
+      const was = all[playerId] ?? NO_TOUCH
+      return was.hovered === touch.hovered && was.focused === touch.focused && was.pressed === touch.pressed ? all : { ...all, [playerId]: touch }
+    })
   const cameraPose = (id: string | number) => {
     let p = cameraPoses.get(id)
     if (!p) {
@@ -626,14 +464,6 @@ function World({
     })
   })
 
-  const crownPlayer =
-    openingStep === "unroll" || openingStep === "deal"
-      ? null
-      : view.phase === "playing"
-        ? view.activePlayerId
-        : view.phase === "missions"
-          ? (view.firstPlayerId ?? null)
-          : null
   const results = view.results
   const winnerCenters = useWinnerCenters(results?.winners ?? EMPTY, zones)
 
@@ -646,7 +476,7 @@ function World({
   return (
     <>
       <EndingSettings />
-      <ZoneSettings />
+      <LayoutSettings />
       <MatLines results={results ?? null} ending={ending} />
       <EmptyClick onClick={onEmpty} />
       <Playmat
@@ -658,13 +488,13 @@ function World({
         unroll={flow ? (held ? "rolled" : "unrolling") : "flat"}
         duration={settings.matDuration}
         roller={theme.surface}
-        onUnrolled={() => setPiled(true)}
+        onUnrolled={() => setRolledOut(true)}
       />
 
       {[...board.values()].map(({ card, pose, playerId }) => {
         const candidate = candidates.has(card.id)
-        const domainTarget = !!playerId && targetDomain(playerId)
-        const press = candidate ? () => it.eliminate(card.id) : domainTarget ? () => playDomain(playerId) : undefined
+        // A domain that can be chosen is lit, and brighter under the pointer: the area over it takes the pointer, and says what is done to it
+        const state: CardState = candidate ? "interactive" : playerId && targetDomain(playerId) ? effectiveState("interactive", touches[playerId] ?? NO_TOUCH) : "base"
         return (
           <Card
             key={card.id}
@@ -674,17 +504,10 @@ function World({
             front={tex.face(card)}
             back={tex.back}
             size={CARD_SIZE}
-            state={press ? "interactive" : "base"}
-            onPress={press}
-            ariaLabel={candidate ? `${catalog.words.youEliminate} ${nameOf(card)}` : domainTarget ? `${catalog.words.youPlay} ${playerId === meId ? catalog.words.zoneYours : nickname(playerId)}` : undefined}
-            onHover={
-              playerId
-                ? (over) => {
-                    if (it.assassination) hoverGroup(`${playerId}:${groupKey(card)}`, over)
-                    if (domainTarget) setHoverPlayer(over ? playerId : null)
-                  }
-                : undefined
-            }
+            state={state}
+            onPress={candidate ? () => it.eliminate(card.id) : undefined}
+            ariaLabel={candidate ? `${catalog.words.youEliminate} ${nameOf(card)}` : undefined}
+            onHover={playerId && it.assassination ? (over) => hoverGroup(`${playerId}:${groupKey(card)}`, over) : undefined}
           />
         )
       })}
@@ -830,39 +653,25 @@ function World({
         />
       )}
 
-      {view.players.map((j) => {
-        const zone = zones.get(j.id)
-        if (!zone) return null
-        return <DomainBackground key={`fond-${j.id}`} zone={zone} playable={targetDomain(j.id)} hover={hoverPlayer === j.id} color={color(j.id)} />
-      })}
-
-      {/* every player's nickname (one's own included), shown from the start; its color does not change on their turn: only the crown shows it */}
-      {view.players.map((j) => {
-        const zone = zones.get(j.id)
-        if (!zone) return null
+      {/* Every player is a line along the axis of their seat, turned as their name is, from the middle of the table outward: the plate (the name), the domain and the hand. The hands of the others are a small fan of backs, a card played leaves from its left end and a card drawn comes in at its right end; the viewer's is held on the screen */}
+      {view.players.map((j, order) => {
+        const seat = places.get(j.id)
+        if (!seat) return null
         return (
-          <Badge
-            key={j.id}
-            zone={zone}
-            text={nickname(j.id).toUpperCase()}
-            style={
-              hoverPlayer === j.id && targetDomain(j.id)
-                ? { color: "#fff4dc", relief: color(j.id), aura: color(j.id), spacing: SPACING }
-                : { color: color(j.id), spacing: SPACING }
-            }
-            onClick={targetDomain(j.id) ? () => playDomain(j.id) : undefined}
-            onHover={targetDomain(j.id) ? (s) => setHoverPlayer(s ? j.id : null) : undefined}
-          >
-            <SeatAvatarMesh
-              nickname={nickname(j.id)}
-              color={color(j.id)}
-              imageUrl={avatarUrl(j.id)}
-              theme={seat}
-              size={ZONE_SETTINGS.avatarSize}
-              position={[-(ZONE_SETTINGS.avatarGap + ZONE_SETTINGS.avatarSize / 2), 0, 0]}
-            />
-            <CrownMark show={crownPlayer === j.id} offset={[-(ZONE_SETTINGS.avatarGap + ZONE_SETTINGS.avatarSize + 0.8), 0]} icon={hostIcon} />
-          </Badge>
+          <group key={j.id}>
+            <PlayerSeat id={j.id} frame={seat.frame} above={seatBox(seat)} font={LETTERING_FONT} />
+            {!seat.viewer && (
+              <HeldHand
+                count={openingStep === "unroll" ? 0 : j.handCount}
+                frame={heldFrame(seat)}
+                layout={(n) => heldLayout(n, seat)}
+                size={CARD_SIZE}
+                back={tex.back}
+                enter={openingStep === "deal" ? { ...deckTopPose(view.deckCount + 3), delay: 0.1 + order * settings.dealStep } : deckTopPose(view.deckCount + 1)}
+                shadow={HELD_SHADOW}
+              />
+            )}
+          </group>
         )
       })}
 
@@ -871,10 +680,25 @@ function World({
           <Target key={level} column={targetColumn} level={level} onClick={() => it.play({ zone: "table", level })} />
         ))}
 
+      {/* A domain is chosen by pressing it, its cards and the plate over it: an invisible area, and the cards are lit by their states, or a pool of light where there are none */}
       {view.players.map((j) => {
+        const seat = places.get(j.id)
         const zone = zones.get(j.id)
-        if (!zone || !targetDomain(j.id)) return null
-        return <ClickableZone key={j.id} zone={zone} onClick={() => playDomain(j.id)} onHover={(s) => setHoverPlayer(s ? j.id : null)} />
+        if (!seat || !zone || !targetDomain(j.id)) return null
+        const area = hotspotOf(seat, zone.width)
+        return (
+          <group key={j.id}>
+            {j.domain.length === 0 && (
+              <LightPool size={{ width: DL, height: DH }} state={effectiveState("interactive", touches[j.id] ?? NO_TOUCH)} position={[zone.center.x, 0.012, zone.center.z]} yaw={zone.yaw} />
+            )}
+            <Hotspot
+              {...area}
+              ariaLabel={`${catalog.words.youPlay} ${j.id === meId ? catalog.words.zoneYours : nickname(j.id)}`}
+              onPress={() => playDomain(j.id)}
+              onTouch={(touch) => touchOf(j.id, touch)}
+            />
+          </group>
+        )
       })}
     </>
   )
