@@ -16,7 +16,7 @@ An engine is tested in layers, from one rule to a whole game with absent players
 | Junk actions | Wrong types, missing fields and strangers are refused with a code of the game's list | Flip 7: `simulation.test.ts`, `turns.test.ts` |
 | Absent players | `playFor` plays each player the game waits for and refuses anybody else with `NOT_WAITING`; a table of absent players ends | Flip 7: `autoplay.test.ts`, `simulation.test.ts`; Courtisans: `game.test.ts` |
 | The commands | Each debug command, and that a command that rigs the draw pile changes nothing outside its moment | Flip 7: `debug.test.ts` |
-| The takeover in the binding | A whole game in which players never come back, with the real voting rules of core | The template: `src/takeover.test.ts` |
+| The takeover in the binding | A whole game in which players never come back, with the real voting rules of core, on the rig of core (`takeoverRig`: the table, the clock, `jsonb`, the glue of the route and a player who plays to the end alone) | The template: `src/takeover.test.ts` |
 | The whole contract in the binding | The contract of an engine, played the way the server plays it, with the checks of every step | The template: `src/conformance.test.ts` |
 | The error vocabulary in the binding | Every code the engine throws is a shared one or one that `ERROR_CODES` lists, and the list holds the game's own only (`thrownErrorCodes(dir)` reads the codes from the sources of the engine: each with the files that throw it, and the calls whose code is not a string literal) | The template: `src/error-codes.test.ts` |
 
@@ -27,7 +27,7 @@ An engine is tested in layers, from one rule to a whole game with absent players
 - Vary both halves of a seed in a test over seeds: the deal and the card ids use different bits of it (`seedOf` of `test-utils.ts`; [Random numbers](../01-the-game/09-state.md#random-numbers)).
 - Write the expected score again in the test, from the names of the faces, and compare it with the engine's, as `simulation.test.ts` does for the booklet's scoring.
 - Assert a refusal by its code. A thing that throws without one is a bug of the game, and `refusal()` rethrows it.
-- Test absent players in the engine with `playFor`, and in the binding with `src/takeover.test.ts`, adapted to the new engine (`humanMove` is the one part that knows the game).
+- Test absent players in the engine with `playFor`, and in the binding with `src/takeover.test.ts`, adapted to the new engine: it is `takeoverRig` of `@pbgo/core/server/takeover-rig` given the game, the players and a `humanMove`, the one part that knows the game, and the game's own assertions.
 
 From `games/flip-7/packages/engine/src/test-utils.ts`:
 

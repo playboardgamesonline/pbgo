@@ -81,3 +81,23 @@ export function reissueIds(ids: readonly number[], held: readonly number[], rng:
 export function cardOf(ids: readonly number[], id: number): number {
   return ids.indexOf(id)
 }
+
+/** A card as a view shows it to a player who may see it: the id it holds and what it is, a key of the game's catalogue */
+export type CardFace<K extends string = string> = { id: number; type: K }
+
+/** What the card that holds `id` is: its key in the catalogue. An id that nobody holds is a bug of the engine, since no player can name a card, so it is a `RangeError` */
+export function keyOfId<K extends string>(ids: readonly number[], catalogue: readonly K[], id: number): K {
+  const key = catalogue[cardOf(ids, id)]
+  if (key === undefined) throw new RangeError(`No card holds the id ${id}`)
+  return key
+}
+
+/** The face of the card that holds `id`: the id and its key */
+export function faceOfId<K extends string>(ids: readonly number[], catalogue: readonly K[], id: number): CardFace<K> {
+  return { id, type: keyOfId(ids, catalogue, id) }
+}
+
+/** The faces of the cards that hold `held`, in that order */
+export function facesOfIds<K extends string>(ids: readonly number[], catalogue: readonly K[], held: readonly number[]): CardFace<K>[] {
+  return held.map((id) => faceOfId(ids, catalogue, id))
+}
