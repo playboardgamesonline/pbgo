@@ -1,4 +1,4 @@
-import { type CameraSettings, type Fit, fitCamera, hudBoxes, PLATFORM_HUD, type Rect, type Viewport } from "@pbgo/table"
+import { type CameraSettings, type Fit, fitCamera, hudBoxes, type Viewport } from "@pbgo/table"
 import { tableQuads } from "./layout"
 
 /**
@@ -9,19 +9,6 @@ export const CAMERA: CameraSettings = { tilt: 46, yaw: 0, distance: 23, fov: 34,
 
 /** Where the share photo of the game over is taken from. The Share Photo folder edits this object, the photo reads it when it is taken */
 export const PHOTO: CameraSettings = { tilt: 40, yaw: 0, distance: 44, fov: 28, targetX: 0, targetZ: 0 }
-
-/**
- * The message box at the bottom right of the window, in pixels from its edges: 352 wide and 44 high, 20 above the bottom. It is the platform's, which the kit's `hudBoxes` (the log and the list of the players) does not list, and the cards at the foot of the viewer's grid must not
- * run under it.
- */
-const CHAT = { right: 24, width: 352, bottom: 20, height: 44 }
-
-/** What the platform draws over a window for `players` players: the log, the list of the players and the message box. The table is kept clear of them, and of a `gap` of air around them */
-export function overlays(viewport: Viewport, players: number): Rect[] {
-  const { width, height } = viewport
-  const { gap } = PLATFORM_HUD
-  return [...hudBoxes(viewport, players), { left: width - CHAT.right - CHAT.width - gap, top: height - CHAT.bottom - CHAT.height - gap, right: width, bottom: height }]
-}
 
 /**
  * The least a unit of the table may be at the point the camera looks at, in pixels (the kit's is 38): twelve cards a seat and eight seats must fit a tablet held across (1024 by 768), so the cards of the seats at the far side are small there (about 15 to 20 px wide at eight
@@ -35,7 +22,7 @@ const LEAST_UNIT = 30
  * and, while it can, clear of what the platform draws over it. A spectator has no seat in front.
  */
 export const fitFor = (players: number, viewport: Viewport, base: CameraSettings = CAMERA, seated = true): Fit =>
-  fitCamera(viewport, base, { seen: tableQuads(players, seated), avoid: overlays(viewport, players), leastUnit: LEAST_UNIT, dodgeUnit: LEAST_UNIT })
+  fitCamera(viewport, base, { seen: tableQuads(players, seated), avoid: hudBoxes(viewport, players), leastUnit: LEAST_UNIT, dodgeUnit: LEAST_UNIT })
 
 /** The camera of `fitFor`, for the board */
 export const cameraFor = (n: number, viewport: Viewport, seated = true): CameraSettings => fitFor(n, viewport, CAMERA, seated).camera

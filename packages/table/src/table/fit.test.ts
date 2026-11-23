@@ -145,6 +145,17 @@ describe("the camera fitted to a window", () => {
     expect(big).toBeLessThanOrEqual(small + 1e-9)
   })
 
+  it("lists the message box at the foot of the window with the log and the players: the table is kept clear of it as of them", () => {
+    const viewport = { width: 1280, height: 800 }
+    const boxes = hudBoxes(viewport, 4)
+    expect(boxes).toHaveLength(3)
+    const chat = boxes.at(-1)!
+    expect(chat).toMatchObject({ right: viewport.width, bottom: viewport.height })
+    // 352 by 42 pixels, at 20 from the right and the bottom, with the air kept round the boxes
+    expect(viewport.width - chat.left).toBe(PLATFORM_HUD.chat.right + PLATFORM_HUD.chat.width + PLATFORM_HUD.gap)
+    expect(viewport.height - chat.top).toBe(PLATFORM_HUD.chat.bottom + PLATFORM_HUD.chat.height + PLATFORM_HUD.gap)
+  })
+
   it("stands farther, and never off to a side, when the platform's boxes would cover more of the table than a corner of it", () => {
     const viewport = { width: 1440, height: 900 }
     const over: Rect[] = hudBoxes(viewport, 8)
