@@ -64,5 +64,5 @@ The Play tab and the keys trigger the motion of the table's blocks: a card dealt
 ## Left out
 
 - Core's `TablePlayers` and ticker read a running game (`useGame`), so the scoreboard is a look-alike drawn in the hub's own look, with `SeatLabel`.
-- The camera does not frame the seats by their turned boxes as Flip 7's board does (`tableBoxes`): the playground picks a distance for each number of players (`ringZoom`).
+- The camera does not frame the seats by their turned boxes as Flip 7's board does (`tableShapes`): the playground picks a distance for each number of players (`ringZoom`).
 - Hex and ring boards have no rules of the board ([Rules of the board](02-components/26-rules-of-the-board.md)): the hop walks to the next free neighbour.

@@ -12,7 +12,7 @@ const away = (yaw: number) => (Math.abs(Math.atan2(Math.sin(yaw), Math.cos(yaw))
 
 describe("the stickers of a seat", () => {
   for (const n of SIZES) {
-    it(`lie by the line of each seat of a table of ${n}, upright from the viewer's side, the badge toward the middle`, () => {
+    it(`lie by the line of each seat of a table of ${n}, upright from the viewer's side, the badge away from the middle`, () => {
       const placed = lines(seatSpots(ids(n), "p0"), "p0")
       for (const [id, line] of placed) {
         const { bust, bonus } = stickerPlaces(line, BUST, BONUS)
@@ -22,8 +22,8 @@ describe("the stickers of a seat", () => {
         // neither is ever read upside down
         expect(away(bust.yaw), id).toBeLessThanOrEqual(90 + 1e-6)
         expect(away(bonus.yaw), id).toBeLessThanOrEqual(90 + 1e-6)
-        // the badge lies nearer to the middle of the table than the line does, by about the room it takes
-        expect(Math.hypot(bonus.x, bonus.z), id).toBeLessThan(Math.hypot(line.at.x, line.at.z))
+        // the badge lies farther from the middle of the table than the line does, by about the room it takes: the plate stands on the other side
+        expect(Math.hypot(bonus.x, bonus.z), id).toBeGreaterThan(Math.hypot(line.at.x, line.at.z))
       }
     })
   }
@@ -36,10 +36,10 @@ describe("the stickers of a seat", () => {
     expect(stickerPlaces(mine, BUST, BONUS).bust.width / (CARD.width * mine.scale)).toBeGreaterThan(2)
   })
 
-  it("put the badge above the viewer's own line, on the side of the middle, and clear of the plate below it", () => {
+  it("put the badge below the viewer's own line, on their side of it, and clear of the plate above it", () => {
     const line = lines(seatSpots(ids(5), "p0"), "p0").get("p0")!
     const { bonus } = stickerPlaces(line, BUST, BONUS)
     expect(bonus.x).toBeCloseTo(line.at.x, 9)
-    expect(bonus.z).toBeLessThan(line.at.z - (CARD.height * line.scale) / 2 * 0.99)
+    expect(bonus.z).toBeGreaterThan(line.at.z + ((CARD.height * line.scale) / 2) * 0.99)
   })
 })

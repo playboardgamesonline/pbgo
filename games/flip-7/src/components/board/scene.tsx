@@ -9,7 +9,7 @@ import type { ClientCatalog } from "../../lib/catalog"
 import { madeFlip7 } from "../../lib/flip7-line"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { dealtFrom, floorPlan, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, plateAt, seatSpots, stickerPlaces, zones } from "./layout"
+import { areaPlace, cardsBox, dealtFrom, floorPlan, frameOf, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, seatSpots, stickerPlaces, zones } from "./layout"
 import { PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { Sticker } from "./stickers"
 import { CARD_SIZE, useFaces } from "./textures"
@@ -59,7 +59,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the ids
   const spots = useMemo(() => seatSpots(ids, meId), [key, meId])
   const placed = useMemo(() => lines(spots, meId), [spots, meId])
-  const pressZones = useMemo(() => zones(spots, placed, meId), [spots, placed, meId])
+  const areas = useMemo(() => zones(placed), [placed])
   const { nickname } = useGame()
   const R = LAYOUT_SETTINGS
   const { deck, discard } = pilePlaces()
@@ -92,48 +92,44 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
     <>
       {view.players.map((player) => {
         const line = placed.get(player.id)!
-        const viewer = player.id === meId
+        // Everything of the player lies in the frame of their seat, which faces the middle of the table: from the middle outward, the plate, the line, the cards set aside
+        const frame = frameOf(line)
         const pickable = choosing && phase.targets.includes(player.id)
-        const heldAt = heldPlace(line, viewer)
         const seat = said.get(player.id) ?? now.get(player.id)!
         // A busted player can no longer play: all their cards go grey and dark until the next round (a frozen or a stayed one has banked their points and keeps the colour of their cards; the word under the name says which)
         const out = seat.status === "busted"
         // A player who can get the action card the viewer holds has their cards in the state `interactive`, and the table raises it to `hover` and `pressed` from what the visitor does to their area
         const touch = touches[player.id] ?? NO_TOUCH
         const state: CardState = out ? "out" : pickable ? effectiveState("interactive", touch) : "base"
-        const zone = pressZones.get(player.id)!
-        const spot = spots.get(player.id)!
-        const plate = plateAt(spot, line)
+        const area = areaPlace(areas.get(player.id)!)
         // The BUST! stamp and the "+15 point bonus" badge lie on the table when the table says so, that is once the move has played out (`said`), and stay until the next round. A stamp is drawn only if the game document has its picture
         const { bust, bonus } = faces.stickers
         const places = stickerPlaces(line, bust?.aspect ?? 1.8, bonus?.aspect ?? 1.65)
         const bonusEarned = seat.status === "stayed" && madeFlip7(player.cards)
         return (
           <group key={player.id}>
-            {/* The plate stands beyond its line, turned the way its text reads (never upside down): the seat is drawn in its own frame, with its centre at the plate's */}
-            <group position={[plate.x, 0, plate.z]} rotation-y={plate.yaw}>
-              <PlayerSeat
-                id={player.id}
-                spot={{ x: 0, z: 0, yaw: 0 }}
-                viewer={false}
-                line={pointsText(seat.total)}
-                status={statusOf(seat.status, words)}
-                font={lettering.display}
-                nameStyle={{ weight: lettering.weight }}
-                lineStyle={{ weight: lettering.weight }}
-              />
-            </group>
-            {/* What lies in front of the player: every card is face up, and the line turns to face its player (`faceSeat`) */}
-            <Zone frame={{ x: line.at.x, z: line.at.z, yaw: line.yaw }} layout={linePoses(player.cards.length, line)} size={CARD_SIZE} cards={cardsOf(player.cards, state)} />
-            {/* The Freeze and Flip Three cards flipped during a Flip Three wait, face up, until its three cards are done */}
-            <Zone frame={{ x: heldAt.x, z: heldAt.z, yaw: line.yaw }} layout={heldPoses(player.held.length, line)} size={CARD_SIZE} cards={cardsOf(player.held, state)} />
+            {/* The plate stands on the side of the line that faces the middle of the table, in the frame of the seat, turned as the cards are: the name is read over the cards by the player who sits there */}
+            <PlayerSeat
+              id={player.id}
+              frame={frame}
+              above={cardsBox(line)}
+              line={pointsText(seat.total)}
+              status={statusOf(seat.status, words)}
+              font={lettering.display}
+              nameStyle={{ weight: lettering.weight }}
+              lineStyle={{ weight: lettering.weight }}
+            />
+            {/* What lies in front of the player: every card is face up, in the frame of the seat */}
+            <Zone frame={frame} layout={linePoses(player.cards.length, line)} size={CARD_SIZE} cards={cardsOf(player.cards, state)} />
+            {/* The Freeze and Flip Three cards flipped during a Flip Three wait, face up, beyond the line on the side of the player, until its three cards are done */}
+            <Zone frame={frame} layout={heldPoses(player.held.length, line)} size={CARD_SIZE} cards={cardsOf(player.held, state)} />
             {/* The area of the table that is pressed to give this player the card the viewer holds: their cards with their plate, and a little room round them. It is invisible, the cards say that it can be pressed; a player with no card yet is lit by a pool of light where their cards will lie */}
             {pickable && (
               <>
                 <Hotspot
-                  at={{ x: zone.x, z: zone.z, yaw: zone.yaw }}
-                  width={zone.halfWidth * 2}
-                  depth={zone.halfDepth * 2}
+                  at={area.at}
+                  width={area.width}
+                  depth={area.depth}
                   ariaLabel={fill(words.targetPlayer, { target: nickname(player.id) })}
                   onPress={() => onTarget(player.id)}
                   onTouch={(next) => setTouches((all) => ({ ...all, [player.id]: next }))}
