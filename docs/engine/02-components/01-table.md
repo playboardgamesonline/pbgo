@@ -83,7 +83,7 @@ scene-mat
 - A game may make its `layers` again on every render: the table keys the baked picture by what the layers say (`matKey`: the colour, the resolution, each layer's kind and parameters, a picture by the object it is) and bakes again only when that changed. The picture is let go when the mat is.
 - **No table needs a grain**, and the default is none: a flat colour, a pool of light, at the most a pattern a hair off the colour. A grain's repeat is seen when its picture is narrower than the window: 256 texels of 0.85 px are 218 px on the screen, six repeats across a window, and a pattern shows, however fine it is. The mottling is slight and fine on purpose, since a coarse one reads as clouds laid on the table.
 - Give `tile` a size that suits the camera, not a number picked by eye: a unit of the table is 120 px in a big window and 40 in a small one, so a tile in world units makes a speckle of 1 px in one and 3 px in the other. Ask for a texel of a pixel or so at the point the camera looks at (the resolution times that, over the pixels a unit is), and a fine pattern is as fine in every window.
-- A board picture is a plane the game draws on the table. It has an edge, so it is the game's to place and to hide. A mat with a behaviour of its own, such as a slab with an edge that unrolls, stays in the game until the table has one.
+- A board picture is a plane the game draws on the table. It has an edge, so it is the game's to place and to hide. A bounded mat with an edge, such as the playmat a card game has on its table, is a `Playmat` ([Playmat](#playmat)), which lies on the surface and rolls out.
 
 ### Layers
 
@@ -114,6 +114,35 @@ A table that is lit at its middle and darker toward its edges, as a vignette mak
 | `glow` | A faint wheel of colours that turns through the pool, `{ colors, strength }`: the colours go round once, the first given again at the end so that the circle closes, and `strength` (0.14 when not given) is how bright it is where it is brightest, low so that the cards stay the brightest colours of the table |
 
 The falloff is smooth to nothing at the edge of the plane (`poolFalloff`), so the plane has no edge to see, and each level of the gradient is dithered by one level (`dithered`, `poolPixels`) so that its 8 bits do not band: a dark pool over a dark table is where the bands show, and where the eye looks. All of it is in `mat-field.ts`, tested in `mat-field.test.ts`.
+
+## Playmat
+
+A playmat is a bounded mat laid on the table: a rounded rectangle with a rim, a picture on its face and, over the picture, a cloth, that can be rolled up and roll out. It is the mat of a game that has one on its table, as a card game has its playmat, and the endless [Surface](#surface) is the cloth under it. Shared: `packages/table/src/table/playmat.tsx`, with what is pure (the clock of the roll-out, the roll of cloth, the blends) in `playmat-look.ts` and `playmat-look.test.ts`. The picture and the cloth are the game's own, as any picture of a table is: the table makes none.
+
+```specimen
+scene-playmat
+```
+
+| Prop of `PlaymatProps` | Role |
+| --- | --- |
+| `size` | `{ width, depth, radius? }` in world units: its width along x, its depth along z, and the radius of its corners (`PLAYMAT.rounding` of its shorter side when not given) |
+| `frame` | Where it lies and which way it faces, a `Spot` (the middle, unturned, when not given). It rolls out from its left edge toward its right one, in its own frame |
+| `picture` | The picture on its face, a texture of the game's, stretched over the whole playmat edge to edge. Null draws `color` |
+| `color` | The colour of its face when it has no picture, which the roll of cloth takes too when `roller` says no other |
+| `cloth` | `{ picture, blend?, strength?, tile? }`: a seamless colour picture repeated across the playmat and laid over the face's, with a blend (`PLAYMAT.blend`, soft light), how strongly (`PLAYMAT.strength`, 0.8) and how many world units one repeat covers (`PLAYMAT.tile`, 2, as the table's mat). Give `picture: null` while the cloth loads. It is read every frame, so a game can tune its blend and its strength live |
+| `desaturate` | How much colour the picture is stripped of, 0 to 1 (0): a picture made for a screen is a touch loud for a table |
+| `thickness` | The thickness of the rim, which is also how high the playmat lies above the table (`PLAYMAT.thickness`) |
+| `unroll` | How it is: `rolled`, `unrolling` or `flat` (default). See below |
+| `delay`, `duration` | Seconds it waits before it begins to roll out, and takes to do it (`PLAYMAT.delay` and `PLAYMAT.duration`) |
+| `roller` | The colour of the roll of cloth at the front of the part that has rolled out (the colour of the face when not given) |
+| `onUnrolled` | Called once when a roll-out ends |
+
+- **Rolling out.** `rolled` holds the playmat at nothing, still rolled up and waiting: a roll lies at its left edge. `unrolling` rolls it out toward the right and then leaves it out: it waits `delay`, goes fast at first and slows as it settles (a cubic ease-out, `unrollProgress`), and the roll of cloth at its front shrinks as the cloth is let out (`rollerAt`). `flat` is laid out. A board holds it `rolled` while its start screen is up, asks `unrolling` when its opening begins and `flat` once the opening is over. The clock starts the first time the playmat is asked to roll out, whatever the time of the page, and begins again after a `rolled` (`unrollClock`). A visitor who asks for less motion gets a playmat that is asked to roll out laid flat at once, and `onUnrolled` is called at once for them, so that the opening goes on.
+- **Cut, not folded.** What is not yet rolled out is cut away: the picture is discarded beyond the share that has rolled out, and the rim with it. The roll of cloth is a cylinder along the depth of the playmat, whose size is a share of that depth, so a small playmat has a small roll. It is unlit like the rest of the table, and shaded by a gradient painted round it (bright on top, dark where the cloth turns away), so it reads as a roll on a board that has no lights.
+- **The cloth.** The cloth is laid over the face in the shader, per pixel, in the space the screen shows (`blendCloth`), with one blend for each of the table's `BLENDS` (normal, multiply, screen, overlay, soft light, hard light, lighten, darken), whose formulas are also in `blendChannel` for a test or a reader. Soft light is the formula of Pegtop, smooth where the W3C's has a corner, as the playmat of Courtisans has always been laid: the mat of the surface bakes its layers with the canvas's blends, which are the W3C's, so one name is a hair apart between the two.
+- **The rim.** It is the thickness of the playmat, extruded from its outline, and it reads the border of the picture, so it is the colour of the edge of the playmat and rolls out with it.
+- **What lies under and on it.** The playmat lies at `thickness` above the table and under what is on it: a card lies at `RESTING_HEIGHT`, higher than the rim of a playmat of the usual thickness. The pool of light of the surface is drawn under it and does not light it: a game that wants the playmat lit paints the light in its picture. It takes no click: the playmat is the table's, and what lies on it is the game's.
+- **Pictures.** The picture and the cloth are sRGB colour textures. The table copies the cloth, so the game's texture keeps its wrapping, and lets the copy go with the playmat; a face with no picture is its colour, as a picture of one texel.
 
 ## Share photo
 

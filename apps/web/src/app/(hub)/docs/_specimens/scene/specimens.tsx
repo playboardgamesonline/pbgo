@@ -8,10 +8,10 @@ import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Button } from "@pbgo/ui/platform/button"
 import { Choice, Knob, Option } from "./controls"
 import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
-import type { Blend } from "@pbgo/table"
-import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, ISLAND_BUILDS, ISLAND_PLAYERS, type IslandBuild, type IslandPlayer, SHEET, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, MAT_BLENDS, MAT_COLORS, MAT_PATTERNS, type MatColor, type MatPattern, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, SKETCH_BRUSHES, SKETCH_COLORS, SKETCH_PEN, SKETCH_RULES, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
+import type { Blend, Unroll } from "@pbgo/table"
+import { BAG_SEED, BAG_START, BET_MOST, BID, BID_FACES, BID_PLAYERS, type Bid, type BidPlayer, type BidView, BOARD_HAND, BOARD_PLAYERS, CAMERA_VIEW, COUNTER_RANGE, COUNTER_TIME, CUP_DICE, CUP_TIMES, DICE_COUNT, DICE_SHAPES, DICE_SIDES, DICE_START, type DiceKnobs, type DiceShape, DRAG_HAND, DRAG_START, ISLAND_BUILDS, ISLAND_PLAYERS, type IslandBuild, type IslandPlayer, SHEET, type DragCards, type DragZone, type Drawn, FIELD_LENGTH, type FlightKnobs, GRID, GRID_START, GRID_WALLS, type GridKind, LAYOUT_CARDS, LAYOUTS, type LayoutName, MAT_BLENDS, MAT_COLORS, MAT_PATTERNS, type MatColor, type MatPattern, PLAYMAT_MODES, PLAYMAT_SECONDS, NUMBERS, PIECE_STACK, MEMORY_CARDS, PILE_CARDS, SEAT_PLAYERS, SEAT_TURNS, type SeatTurn, SHADOW_START, SKETCH_BRUSHES, SKETCH_COLORS, SKETCH_PEN, SKETCH_RULES, TIMER_SECONDS, TRACK_LINE, TRACK_LOOP, TRACK_START, type PourPose } from "./defaults"
 import { SceneFrame } from "./frame"
-import { MatScene } from "./lazy"
+import { MatScene, PlaymatScene } from "./lazy"
 import { ISLAND_CORNERS } from "./island"
 import { deal, lay, nextFitting, SEED, START, TABLE, TILES, type TileName, view } from "./landscape"
 import { BONUS, CATEGORIES, CATEGORY_OF, ROW_OF, scoreOf, totalOf, upperOf } from "./yahtzee"
@@ -1027,6 +1027,33 @@ export function SceneMatSpecimen() {
       }
     >
       <MatScene color={color} pattern={pattern} picture={picture} blend={blend} light={light} glow={glow} tile={tile} />
+    </SceneFrame>
+  )
+}
+
+export function ScenePlaymatSpecimen() {
+  const [unroll, setUnroll] = useState<Unroll>("unrolling")
+  const [cloth, setCloth] = useState(true)
+  const [blend, setBlend] = useState<Blend>("soft-light")
+  const [strength, setStrength] = useState(0.8)
+  const [desaturate, setDesaturate] = useState(0.06)
+  const [duration, setDuration] = useState(PLAYMAT_SECONDS.start)
+  return (
+    <SceneFrame
+      label="A card table seen from above with a few cards on it, and a bounded mat laid on it with a rounded rim, a teal picture with a gold frame and a cloth over it, which is rolled up at the left edge, rolls out toward the right with a roll of cloth at the front, and stays laid flat"
+      controls={
+        <>
+          <Choice label="Playmat" value={unroll} options={Object.entries(PLAYMAT_MODES).map(([value, label]) => ({ value, label, description: label }))} onChange={(value) => setUnroll(value as Unroll)} />
+          <Knob label="Seconds to roll out" value={duration} min={PLAYMAT_SECONDS.min} max={PLAYMAT_SECONDS.max} step={PLAYMAT_SECONDS.step} onChange={setDuration} />
+          <Option label="Cloth over the picture" checked={cloth} onChange={setCloth} />
+          <Choice label="Blend of the cloth" value={blend} options={Object.entries(MAT_BLENDS).map(([value, label]) => ({ value, label, description: label }))} onChange={(value) => setBlend(value as Blend)} />
+          <Knob label="Strength of the cloth" value={strength} min={0} max={1} step={0.05} onChange={setStrength} />
+          <Knob label="Colour taken out" value={desaturate} min={0} max={1} step={0.05} onChange={setDesaturate} />
+        </>
+      }
+    >
+      {/* The roll-out ends by itself: the playmat is laid flat and the control says so */}
+      <PlaymatScene unroll={unroll} cloth={cloth} blend={blend} strength={strength} desaturate={desaturate} duration={duration} onUnrolled={() => setUnroll("flat")} />
     </SceneFrame>
   )
 }

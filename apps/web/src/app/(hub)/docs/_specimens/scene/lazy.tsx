@@ -17,6 +17,7 @@ export const LayoutsScene = dynamic(() => import("./three/layouts").then((m) => 
 export const ZonesScene = dynamic(() => import("./three/zones").then((m) => m.ZonesScene), { ssr: false })
 export const PileScene = dynamic(() => import("./three/pile").then((m) => m.PileScene), { ssr: false })
 export const MatScene = dynamic(() => import("./three/mat").then((m) => m.MatScene), { ssr: false })
+export const PlaymatScene = dynamic(() => import("./three/playmat").then((m) => m.PlaymatScene), { ssr: false })
 export const SeatsScene = dynamic(() => import("./three/seats").then((m) => m.SeatsScene), { ssr: false })
 export const SeatScene = dynamic(() => import("./three/seat").then((m) => m.SeatScene), { ssr: false })
 export const DiceScene = dynamic(() => import("./three/dice").then((m) => m.DiceScene), { ssr: false })

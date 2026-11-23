@@ -38,6 +38,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 | Seat | A player's place, facing the middle of the table, and their line along its axis, turned with the seat: the plate (name, info line), the play area and the hand | The players, `waitingFor` | `Seat`, `PlayerSeat` | Built: [Seats](03-seats.md) |
 | Text on the table | Words and numbers written flat | A number or a word in the view | `TableText` | Built: [Score](09-score.md) |
 | Table and camera | The surface everything lies on, and the way it is seen | | `Table` | Built: [Table](01-table.md), [Camera](02-camera.md) |
+| Playmat | A bounded mat laid on the table: a rounded rectangle with a rim, a picture on its face and a cloth over it, that can be rolled up and roll out | Whether the opening has begun | `Playmat`, `PlaymatProps`, `PlaymatCloth`, `PLAYMAT`, `Unroll` | Built: [Playmat](01-table.md#playmat) |
 | Piece and stack | A token, coin, tile, cube, pawn or meeple: a shape, a colour, pictures and a place that changes; pieces of one kind in a pile | A place in the state, a count | `Piece`, `Stack`, `PieceModel` | Built: [Pieces](13-pieces.md) |
 | Counter | A number that goes up and down: life, coins, points. It counts to each new value and shows what changed | A number in the state, `changeCounter` | `Counter`, alone, written on a piece or beside a `Stack` | Built: [Counters](14-counters.md) |
 | Track | A row of spaces that a marker walks along: a score track, a board that runs round, the steps of a climb | A position in the state for each marker, `moveAlong` | `Track`, `TrackMarker`, and the helpers that lay the spaces out | Built: [Tracks](15-tracks.md) |
@@ -55,7 +56,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 ## The pages
 
 - [Words and names](00-words-and-names.md): what sits in what on a board, and the word each part goes by.
-- [Table](01-table.md): the canvas, the lights, the endless surface, the share photo and the coordinates.
+- [Table](01-table.md): the canvas, the lights, the endless surface, the playmat laid on it, the share photo and the coordinates.
 - [Camera](02-camera.md): the settings, the entrance, the rig.
 - [Seats](03-seats.md): the ring of seats around the table, each facing the middle, the plate of the player who sits at one (name, avatar, crown, score), standing above their play area and their hand on one line along the axis of the seat, and the picture beside a nickname.
 - [Cards](04-cards.md): a card in the state and on the table, its faces, its kinds and its glows.
