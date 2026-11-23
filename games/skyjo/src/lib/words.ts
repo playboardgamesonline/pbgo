@@ -1,4 +1,4 @@
-// The words of Skyjo's board, plain data with no import: read by the board (through the catalog), and by the tests that keep it equal to the Studio's `texts` and to the seed.
+// The words of Skyjo's board, plain data and the Studio kit's `fill` (a module with no import, which Node resolves as the browser does): read by the board (through the catalog), and by the tests that keep it equal to the Studio's `texts` and to the seed.
 
 /**
  * The fields of the "Board" tab of the `texts` document in Sanity, under the same names: the words of the buttons and the labels over the piles (Draw, Take, Throw away, Deal), what the ticker says the viewer has to do (`prompt…`), the accessible name of a
@@ -44,8 +44,5 @@ export const WORD_FIELDS = [
 export type WordField = (typeof WORD_FIELDS)[number]
 export type Vocabulary = Record<WordField, string>
 
-/** What a word of the board takes in its `{placeholders}`: the name of a player (`{player}`), a card (`{card}`, `{replaced}`: the figure on it), a number (`{number}`, `{column}`, `{row}`, `{value}`, `{sum}`) or a count of points (`{points}`). */
-export type Values = Record<string, string | number>
-
-/** A word with its placeholders filled in. A placeholder with no value stays as written, so a mistake shows on the table instead of hiding. */
-export const fill = (text: string, values: Values = {}) => text.replace(/\{(\w+)\}/g, (match, name: string) => (name in values ? String(values[name]) : match))
+/** A word with its placeholders filled in, and what it takes: the Studio kit's, the one function that the board and the Node-only content project of the game both read */
+export { fill, type Values } from "@pbgo/studio-kit/fill"
