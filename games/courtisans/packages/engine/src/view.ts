@@ -30,6 +30,7 @@ export function playerView(state: State, viewer: string | null): PlayerView {
     firstPlayerId: playerAt(s.seats, s.active),
     availableZones: availableZones(s),
     phase: phaseOf(s),
+    // standings: none, the points are secret until the end (the missions are hidden), so `results` is null until the game is over
     results: results(s),
   }
 }

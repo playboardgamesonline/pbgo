@@ -53,7 +53,8 @@ Start from `template/src/components/board/` (`scene.tsx`, `layout.ts`, `camera.t
 The rules of a board (the last page of [Components](../../../docs/engine/02-components/index.md), "Rules of the board", and the in-game rules in `docs/design/01-guidelines/04-in-game-rules.md`):
 
 - A block exists for it: use it. A thing no block holds is a gap for the engine lane, written in the plan, not a copy in the game ([Not built yet](../../../docs/engine/03-not-built-yet.md)).
-- `@pbgo/table` and three.js are imported from the board folder only (`check:game` fails on it), and `src/ui.tsx` loads `Game` with `dynamic`, so the hub carries none of it.
+- `@pbgo/table` and three.js are imported from the board folder only (`check:game` fails on it, and so does the lint, which also refuses a `Canvas` in a board: the `Table` is the canvas), and `src/ui.tsx` loads `Game` with `dynamic`, so the hub carries none of it.
+- Draw with the kit's pieces and write no three.js of your own: a scene element other than `group`, or a hook of react-three-fiber (`useFrame`, `useThree`), in the board is a copy of a piece or a gap of the kit. `check:game` warns of it and the test of the boards (`packages/games/src/boards.test.ts`, `OWN_DRAWING`) fails on one that is not listed with its reason. `pnpm check:kit Card` says which boards an edit of a kit file changes.
 - The scene is a function of the view: the same view gives the same poses on every client, and a pose never calls `Math.random`.
 - No word in code: texts, translations and labels come from Sanity. No picture, sound or text kept in `apps/web/public`.
 - The screen around the table (HUD, players, chat, the menu) is core's: do not redraw it. In the board, only what lies on the table.
