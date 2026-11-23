@@ -3,13 +3,12 @@
 import type { Face, PlayerView, PublicSeat } from "@flip-7/engine"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { FloorButton, onTable, Pile, pile, PlayerSeat, Table, TableText, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
+import { FloorButton, onTable, Pile, pile, PlayerSeat, Table, TableText, useLettering, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useMemo, useState } from "react"
 import { AdditiveBlending } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
 import { FLOOR_TONES } from "../../lib/floor-tones"
 import { madeFlip7 } from "../../lib/flip7-line"
-import { TABLE_WEIGHT, tableFonts } from "../../lib/table-fonts"
 import { fill, type Vocabulary } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
 import { GLOWS } from "./glows"
@@ -56,9 +55,6 @@ export type SceneProps = {
   onLoaded?: () => void
 }
 
-/** What a plate changes in the kit's lettering: the table's lettering is all at 700 (`TABLE_WEIGHT`), where the kit's plates are at 600 */
-const LETTERING = { weight: TABLE_WEIGHT }
-
 /** The word under a player's line when they are out of the round: bust, frozen or stayed. A player still in has none. */
 const statusOf = (status: PublicSeat["status"], words: ClientCatalog["words"]) =>
   status === "busted" ? words.busted : status === "frozen" ? words.frozen : status === "stayed" ? words.stayed : undefined
@@ -67,12 +63,13 @@ const statusOf = (status: PublicSeat["status"], words: ClientCatalog["words"]) =
 const promptOf = (type: string, words: Vocabulary) => (type === "freeze" ? words.targetFreeze : type === "flip-three" ? words.targetFlipThree : words.targetSecondChance)
 
 /** A sentence written flat on the table, in the room beside the action card: broken into lines that fit it, the lines centred in the room */
-function Prompt({ text, plan, color, font }: { text: string; plan: { x: number; z: number; width: number; depth: number }; color: string; font?: string }) {
+function Prompt({ text, plan, color }: { text: string; plan: { x: number; z: number; width: number; depth: number }; color: string }) {
+  const { body, weight } = useLettering()
   const { lines, height, step } = fitPrompt(text, plan.width, plan.depth)
   return (
     <>
       {lines.map((line, i) => (
-        <TableText key={i} text={line} style={{ color, weight: TABLE_WEIGHT, shadow: "rgba(0,0,0,0.6)|10|3" }} height={height} position={[plan.x, 0.02, plan.z + (i - (lines.length - 1) / 2) * step]} font={font} />
+        <TableText key={i} text={line} style={{ color, weight, shadow: "rgba(0,0,0,0.6)|10|3" }} height={height} position={[plan.x, 0.02, plan.z + (i - (lines.length - 1) / 2) * step]} font={body} />
       ))}
     </>
   )
@@ -82,9 +79,9 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
   // The table's own folders (camera, cards, seats, glows, lights...) are made by the shared `Table`; the game binds the knobs of its layout and of its pace
   useSettings("Layout", LAYOUT_SETTINGS, LAYOUT_FIELDS, { order: 1 })
   useSettings("Pace", PACE_SETTINGS, PACE_FIELDS, { order: 2 })
-  const { theme, files } = useSiteSettings()
-  // The lettering on the table is drawn in the fonts the game uploaded to its Sanity project (the display font for names, buttons and counts, the body font for the sentences); a game with none keeps the table's own
-  const fonts = tableFonts(files)
+  const { theme } = useSiteSettings()
+  // The lettering on the table is the kit's (`useLettering`): the fonts the game uploaded to its Sanity project, the display font for names, buttons and counts, the body font for the sentences, else the kit's own
+  const lettering = useLettering()
   const faces = useFaces(catalog)
   const { words } = catalog
   const meId = view.me
@@ -146,9 +143,9 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
                 viewer={false}
                 line={pointsText(seat.total)}
                 status={statusOf(seat.status, words)}
-                font={fonts.display}
-                nameStyle={LETTERING}
-                lineStyle={LETTERING}
+                font={lettering.display}
+                nameStyle={{ weight: lettering.weight }}
+                lineStyle={{ weight: lettering.weight }}
               />
             </group>
             {/* What lies in front of the player: every card is face up, and the line turns to face its player (`faceSeat`) */}
@@ -208,15 +205,13 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
       {/* On the viewer's turn Hit and Stay lie to the right of the draw pile, side by side and as deep as the pile: floor buttons, one blue-green and one grey with a hint of the same. Stay is there but dim when the viewer holds nothing to bank */}
       {myTurn && (
         <>
-          <FloorButton at={plan.hit} width={plan.hit.width} depth={plan.hit.depth} tone={FLOOR_TONES.hit} label={words.hit} font={fonts.display} weight={TABLE_WEIGHT} onPress={onHit} />
+          <FloorButton at={plan.hit} width={plan.hit.width} depth={plan.hit.depth} tone={FLOOR_TONES.hit} label={words.hit} onPress={onHit} />
           <FloorButton
             at={plan.stay}
             width={plan.stay.width}
             depth={plan.stay.depth}
             tone={FLOOR_TONES.stay}
             label={words.stay}
-            font={fonts.display}
-            weight={TABLE_WEIGHT}
             disabled={!phase.canStay}
             onPress={onStay}
           />
@@ -224,13 +219,13 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
       )}
 
       {/* Between two rounds the dealer deals the next one, from one pad across the room of the two */}
-      {dealing && <FloorButton at={plan.deal} width={plan.deal.width} depth={plan.deal.depth} tone={FLOOR_TONES.hit} label={words.deal} font={fonts.display} weight={TABLE_WEIGHT} onPress={onDeal} />}
+      {dealing && <FloorButton at={plan.deal} width={plan.deal.width} depth={plan.deal.depth} tone={FLOOR_TONES.hit} label={words.deal} onPress={onDeal} />}
 
       {/* An action card drawn lies face up in the place of Hit, for everybody, and for the one who holds it the words beside it, written flat on the table, say what to do: press the zone of a player */}
       {phase.kind === "target" && (
         <>
           <Zone frame={{ x: plan.card.x, z: plan.card.z }} layout={[onTable(0, 0, { y: 0.05, scale: plan.card.scale })]} size={CARD_SIZE} cards={cardsOf([phase.card]).map((card) => ({ ...card, glow: choosing ? GLOWS.selection : null }))} />
-          {choosing && <Prompt text={promptOf(phase.card.type, words)} plan={plan.prompt} color={theme.accent} font={fonts.body} />}
+          {choosing && <Prompt text={promptOf(phase.card.type, words)} plan={plan.prompt} color={theme.accent} />}
         </>
       )}
     </>
