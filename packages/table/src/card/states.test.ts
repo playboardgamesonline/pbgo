@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { CARD_STATE_FIELDS, CARD_STATE_SETTINGS, CARD_STATES, type CardState, effectiveState, haloSide, isPressable, stateLook, type Touch } from "./states"
+import { CARD_STATE_FIELDS, CARD_STATE_SETTINGS, CARD_STATES, type CardState, cardRise, effectiveState, haloSide, isPressable, stateLook, type Touch } from "./states"
 
 const NONE: Touch = { hovered: false, focused: false, pressed: false }
 
@@ -108,5 +108,19 @@ describe("which side of a card its bloom lies on", () => {
   it("does not care how far the card is turned about the vertical", () => {
     const yaw = Math.PI * 0.75
     expect(haloSide({ x: 0, y: 1, z: 0 }, { x: Math.sin(yaw) * 5, y: 8, z: Math.cos(yaw) * 5 })).toBe("back")
+  })
+})
+
+describe("how far a card rises under the pointer", () => {
+  it("is the share of its height that the hover lift says", () => {
+    expect(cardRise({ height: 2 })).toBeCloseTo(CARD_STATE_SETTINGS.hoverLift * 2)
+  })
+
+  it("grows with the scale the card lies at, as the card does", () => {
+    expect(cardRise({ height: 2 }, 1.5)).toBeCloseTo(1.5 * cardRise({ height: 2 }))
+  })
+
+  it("follows the settings it is given: a debug panel that tunes the lift tunes what names the card too", () => {
+    expect(cardRise({ height: 2 }, 1, { ...CARD_STATE_SETTINGS, hoverLift: 0.3 })).toBeCloseTo(0.6)
   })
 })

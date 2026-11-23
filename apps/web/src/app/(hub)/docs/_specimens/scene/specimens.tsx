@@ -15,7 +15,7 @@ import { MatScene } from "./lazy"
 import { ISLAND_CORNERS } from "./island"
 import { deal, lay, nextFitting, SEED, START, TABLE, TILES, type TileName, view } from "./landscape"
 import { BONUS, CATEGORIES, CATEGORY_OF, ROW_OF, scoreOf, totalOf, upperOf } from "./yahtzee"
-import { FloorButtonsScene, TilesScene, BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CardStatesScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
+import { ActionLabelScene, FloorButtonsScene, TilesScene, BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CardStatesScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
 
 // The light half of the 3D specimens of the engine docs: each is the state and the controls of one scene, laid out in a `SceneFrame`, and the scene itself (`lazy.tsx`), which is drawn only when the frame is near the window. The controls
 // are the platform's own and hold every value the scene is given, so they are there, and still, before the scene is and after it is let go; the scene is a function of them and sends back what the pointer did in it.
@@ -1296,6 +1296,50 @@ export function SceneDragSpecimen() {
       }
     >
       <DragScene cards={cards} picked={picked} above={above} mayPlay={mayPlay} onDrop={drop} onPick={(card) => setPicked((now) => (now === card ? null : card))} onZone={zone} />
+    </SceneFrame>
+  )
+}
+
+export function SceneActionLabelSpecimen() {
+  const [can, setCan] = useState(true)
+  const [count, setCount] = useState(PILE_CARDS.start)
+  const [discard, setDiscard] = useState(7)
+  const [last, setLast] = useState<string | null>(null)
+  const [presses, setPresses] = useState(0)
+  const press = (name: string) => {
+    setLast(name)
+    setPresses((total) => total + 1)
+  }
+  return (
+    <SceneFrame
+      label="A card table seen from above with a draw pile on the left and a discard on the right: floating over each, facing the camera, the word that says what pressing it does, Draw and Take the discard, with a small arrow under it that points down at the pile and bobs toward it. The word and the pile light each other under the pointer, and pressing either does the same"
+      controls={
+        <>
+          <Option label="The player can act" checked={can} onChange={setCan} />
+          <Knob label="Cards in the pile" value={count} min={0} max={PILE_CARDS.max} step={1} onChange={setCount} />
+          <p className="basis-full text-sm text-muted-foreground" aria-live="polite">
+            {last === null ? "Nothing pressed yet." : (
+              <>
+                Last press: <span className="text-foreground">{last}</span>, <span className="text-foreground tabular-nums">{presses}</span> {presses === 1 ? "press" : "presses"} in all.
+              </>
+            )}
+          </p>
+        </>
+      }
+    >
+      <ActionLabelScene
+        count={count}
+        can={can}
+        discard={discard}
+        onDraw={() => {
+          press("Draw")
+          setCount((total) => Math.max(0, total - 1))
+        }}
+        onTake={() => {
+          press("Take the discard")
+          setDiscard((n) => (n + 5) % 36)
+        }}
+      />
     </SceneFrame>
   )
 }
