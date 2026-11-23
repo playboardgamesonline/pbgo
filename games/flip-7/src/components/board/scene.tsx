@@ -1,11 +1,10 @@
 "use client"
 
-import type { Face, PlayerView, PublicSeat } from "@flip-7/engine"
+import type { CardFace, PlayerView, PublicSeat } from "@flip-7/engine"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import { FloorButton, onTable, Pile, pile, PlayerSeat, Table, TableText, useLettering, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useMemo, useState } from "react"
-import { AdditiveBlending } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
 import { FLOOR_TONES } from "../../lib/floor-tones"
 import { madeFlip7 } from "../../lib/flip7-line"
@@ -15,21 +14,10 @@ import { GLOWS } from "./glows"
 import { dealtFrom, fitPrompt, floorPlan, heldPlace, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, plateAt, seatSpots, stickerPlaces, zones } from "./layout"
 import { PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { Sticker } from "./stickers"
-import { CARD_SIZE, matTexture, useFaces } from "./textures"
+import { CARD_SIZE, useFaces } from "./textures"
 
-/** The pool of light of the mat: how far across it spreads, in world units. Past it the table is the plain colour it fades into. */
-const MAT_SIZE = 44
-
-/** The pool of light the cards lie on: `surface` of the game's settings in the middle, falling away to `surfaceDark`, which is the colour of the endless table around it. It is added to the table (additive blending), not laid over it, so at its rim it adds nothing and it has no edge. */
-function Mat({ inner, outer }: { inner: string; outer: string }) {
-  const map = useMemo(() => matTexture(inner, outer), [inner, outer])
-  return (
-    <mesh rotation-x={-Math.PI / 2} position-y={0.001} renderOrder={-1} raycast={() => null}>
-      <planeGeometry args={[MAT_SIZE, MAT_SIZE]} />
-      <meshBasicMaterial map={map} blending={AdditiveBlending} transparent toneMapped={false} depthWrite={false} />
-    </mesh>
-  )
-}
+/** How far the pool of light of the mat reaches, in world units: a little past the far seats of a table of eight. Past it the table is the plain colour it fades into */
+const POOL_RADIUS = 22
 
 export type SceneProps = {
   view: PlayerView
@@ -109,7 +97,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
 
   // A card the last move turned over comes in from above the draw pile after the time the timeline gives it, so that they come one after the other. Every other card is where it was, or flies from where it lay: the table remembers
   // where a card with the same id was a moment ago. The cards of the opening deal wait for the start screen to go
-  const cardsOf = (list: readonly Face[], out = false): ZoneCard[] =>
+  const cardsOf = (list: readonly CardFace[], out = false): ZoneCard[] =>
     (held ? [] : list).map((face) => {
       const delay = entrances.get(face.id)
       return { key: face.id, id: face.id, front: faces.face(face.type), back: faces.back, out, from: delay === undefined ? null : { ...dealt, delay } }
@@ -216,10 +204,10 @@ export function Scene(props: SceneProps) {
   const viewport = useDeferredValue(useViewport())
   const seated = props.view.me !== null
   const camera = useMemo(() => cameraFor(players, viewport, seated), [players, viewport, seated])
-  // The table is its edge colour, flat and endless, with no grain and no picture; the pool of light the cards lie on is the only thing on it that changes
+  // The mat is data: the table is its edge colour, flat and endless, with no grain and no picture, and the pool of light the cards lie on is the only thing on it that changes: `surface` of the game's settings in the middle, falling away to `surfaceDark`
+  const surface = useMemo(() => ({ color: theme.surfaceDark, light: { center: theme.surface, radius: POOL_RADIUS } }), [theme.surfaceDark, theme.surface])
   return (
-    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark }} held={props.held} onLoaded={props.onLoaded}>
-      <Mat inner={theme.surface} outer={theme.surfaceDark} />
+    <Table camera={camera} photo={PHOTO} surface={surface} held={props.held} onLoaded={props.onLoaded}>
       <World {...props} />
     </Table>
   )

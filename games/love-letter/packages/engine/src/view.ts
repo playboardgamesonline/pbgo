@@ -1,14 +1,16 @@
-import { areaOf, faceOf, facesOf, handOf, isOut, isOver, playableOf, playerAt, seatOf, targetsOf, tokensOf } from "./machine"
+import { faceOfId, facesOfIds, playerAt, seatOf } from "@pbgo/engine-kit"
+import { CATALOGUE } from "./catalogue"
+import { areaOf, handOf, isOut, isOver, playableOf, targetsOf, tokensOf } from "./machine"
 import { tokensToWin } from "./options"
 import { results } from "./results"
 import type { Me, PlayerView, PublicPhase, PublicSeat, State } from "./types"
 
 function publicPhase(s: State): PublicPhase {
   const { stage } = s
-  if (stage.kind === "keep") return { kind: "keep", player: playerAt(s, s.turn) }
-  if (stage.kind === "play") return { kind: "turn", player: playerAt(s, s.turn), targets: targetsOf(s, s.turn).map((seat) => playerAt(s, seat)) }
+  if (stage.kind === "keep") return { kind: "keep", player: playerAt(s.seats, s.turn) }
+  if (stage.kind === "play") return { kind: "turn", player: playerAt(s.seats, s.turn), targets: targetsOf(s, s.turn).map((seat) => playerAt(s.seats, seat)) }
   if (isOver(s)) return { kind: "over" }
-  return { kind: "between", next: playerAt(s, s.turn), winners: stage.winners.map((seat) => playerAt(s, seat)), spy: stage.spy === null ? null : playerAt(s, stage.spy), revealed: stage.revealed }
+  return { kind: "between", next: playerAt(s.seats, s.turn), winners: stage.winners.map((seat) => playerAt(s.seats, seat)), spy: stage.spy === null ? null : playerAt(s.seats, stage.spy), revealed: stage.revealed }
 }
 
 /**
@@ -21,18 +23,18 @@ function publicPhase(s: State): PublicPhase {
 export function playerView(state: State, viewer: string | null): PlayerView {
   const s = state
   const tokens = tokensOf(s)
-  const seat = viewer === null ? -1 : seatOf(s, viewer)
+  const seat = viewer === null ? -1 : seatOf(s.seats, viewer)
   const revealed = s.stage.kind === "between" && s.stage.revealed
   const players: PublicSeat[] = s.seats.map((id, i) => ({
     id,
     cards: handOf(s, i).length,
-    hand: revealed && !isOut(s, i) ? facesOf(s, handOf(s, i)) : null,
-    area: facesOf(s, areaOf(s, i)),
+    hand: revealed && !isOut(s, i) ? facesOfIds(s.ids, CATALOGUE, handOf(s, i)) : null,
+    area: facesOfIds(s.ids, CATALOGUE, areaOf(s, i)),
     out: isOut(s, i),
     shielded: s.shielded[i] === true,
     tokens: tokens[i] ?? 0,
   }))
-  const me: Me | null = viewer !== null && seat >= 0 ? { id: viewer, hand: facesOf(s, handOf(s, seat)), playable: playableOf(s, seat) } : null
+  const me: Me | null = viewer !== null && seat >= 0 ? { id: viewer, hand: facesOfIds(s.ids, CATALOGUE, handOf(s, seat)), playable: playableOf(s, seat) } : null
   return {
     options: { ...s.options },
     me,
@@ -40,7 +42,7 @@ export function playerView(state: State, viewer: string | null): PlayerView {
     standings: s.seats.map((playerId, i) => ({ playerId, score: tokens[i] ?? 0 })),
     deck: { size: s.deck.length },
     aside: s.aside === null ? 0 : 1,
-    faceUp: s.faceUp.map((id) => faceOf(s, id)),
+    faceUp: s.faceUp.map((id) => faceOfId(s.ids, CATALOGUE, id)),
     round: s.round,
     target: tokensToWin(s.seats.length),
     phase: publicPhase(s),

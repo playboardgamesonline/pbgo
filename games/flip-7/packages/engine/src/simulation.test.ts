@@ -1,12 +1,11 @@
 import { isDeepStrictEqual } from "node:util"
-import { type Rng, createRng, isEngineError, playFor, waitingPlayers } from "@pbgo/engine-kit"
+import { type Rng, createRng, isEngineError, nextSeat, playFor, waitingPlayers } from "@pbgo/engine-kit"
 import { beforeAll, describe, expect, it } from "vitest"
 import { step } from "./actions"
 import { autoPlay } from "./autoplay"
-import { CATALOGUE } from "./catalogue"
 import { GAME } from "./game"
 import { close, open } from "./machine"
-import { newState, deepFreeze, problems, randomAction, reorderKeys, seedOf, viewOf } from "./test-utils"
+import { newState, deepFreeze, problems, randomAction, reorderKeys, seedOf, titles, viewOf } from "./test-utils"
 import { type Action, CLIENT_ACTIONS, FLIP7_ERROR_CODES, type Flip7Event, type State } from "./types"
 
 /**
@@ -51,13 +50,9 @@ function bookletScore(faces: readonly string[], busted: boolean): number {
   return doubled + bonus + (new Set(numbers).size >= 7 ? 15 : 0)
 }
 
-const facesOf = (state: State, ids: readonly number[]): string[] => ids.map((id) => CATALOGUE[state.ids.indexOf(id)]!)
 
 /** The seat that plays after `seat`: the next one clockwise still in, `seat` itself last. */
-function nextIn(status: readonly string[], seat: number): number | null {
-  for (let i = 1; i <= status.length; i++) if (status[(seat + i) % status.length] === "active") return (seat + i) % status.length
-  return null
-}
+const nextIn = (status: readonly string[], seat: number): number | null => nextSeat(status.length, seat, (other) => status[other] !== "active")
 
 // --- One accepted move
 
@@ -106,7 +101,7 @@ function checkMove(move: Move): void {
       const now = after.lines[seat]!
       const removed = line.filter((id) => !now.includes(id))
       for (const id of removed) {
-        const face = facesOf(before, [id])[0]
+        const face = titles(before, [id])[0]
         // a spent Second Chance goes to the discard, which a later flip of the same step may shuffle into a new pile
         const spent = eventsOf(events, "saved").some((saved) => saved.secondChance.id === id)
         ok("a card left a line that was not a spent Second Chance", face === "second-chance" && spent && (kinds.includes("reshuffle") || after.discard.includes(id)), () => `${who}: ${face}`)
@@ -136,7 +131,7 @@ function checkMove(move: Move): void {
   }
   for (const flip7 of eventsOf(events, "flip7")) {
     ok("a Flip 7 that does not end the round", ended && kinds.indexOf("flip7") < kinds.indexOf("end"))
-    ok("a Flip 7 without seven numbers", new Set(facesOf(after, after.lines[after.seats.indexOf(flip7.by)]!).flatMap((face) => numberOf(face) ?? [])).size >= 7)
+    ok("a Flip 7 without seven numbers", new Set(titles(after, after.lines[after.seats.indexOf(flip7.by)]!).flatMap((face) => numberOf(face) ?? [])).size >= 7)
   }
 
   // the end of a round: the booklet's scores, the dealer passed on, the totals kept
@@ -145,8 +140,8 @@ function checkMove(move: Move): void {
     const scores = after.rounds.at(-1)!
     ok("the end event does not carry the scores", isDeepStrictEqual(eventsOf(events, "end")[0]!.scores, scores))
     after.seats.forEach((who, seat) => {
-      const expected = bookletScore(facesOf(after, after.lines[seat]!), after.status[seat] === "busted")
-      ok("a score is not the booklet's", scores[seat] === expected, () => `${who}: ${scores[seat]} for ${facesOf(after, after.lines[seat]!).join(" ")} (${after.status[seat]}), expected ${expected}`)
+      const expected = bookletScore(titles(after, after.lines[seat]!), after.status[seat] === "busted")
+      ok("a score is not the booklet's", scores[seat] === expected, () => `${who}: ${scores[seat]} for ${titles(after, after.lines[seat]!).join(" ")} (${after.status[seat]}), expected ${expected}`)
     })
     ok("the dealer did not pass to the left", after.dealer === (before.dealer + 1) % n)
     ok("a round ended with somebody in", !after.status.includes("active"))
@@ -161,7 +156,7 @@ function checkMove(move: Move): void {
   // a stay says what it banks
   for (const stay of eventsOf(events, "stay")) {
     const seat = before.seats.indexOf(stay.by)
-    ok("a stay with the wrong points", stay.points === bookletScore(facesOf(before, before.lines[seat]!), false))
+    ok("a stay with the wrong points", stay.points === bookletScore(titles(before, before.lines[seat]!), false))
   }
 
   // the turn goes to the next player in
