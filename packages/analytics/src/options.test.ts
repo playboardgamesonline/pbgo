@@ -98,4 +98,14 @@ describe("beforeSend", () => {
     expect(output?.properties).toEqual({ $snapshot_data: data, $session_id: "s1" })
     expect(output?.properties.$snapshot_data).toBe(data)
   })
+
+  it("drops the browser's ResizeObserver notice, and keeps every other exception", () => {
+    const exception = (value: string) => capture("$exception", { $exception_list: [{ type: "Error", value }] })
+    const send = beforeSend("production")
+    expect(send(exception("ResizeObserver loop completed with undelivered notifications."))).toBeNull()
+    expect(send(exception("ResizeObserver loop limit exceeded"))).toBeNull()
+    expect(send(exception("Cannot read properties of undefined (reading 'x')"))?.properties.env).toBe("production")
+    expect(send(capture("$exception", {}))?.properties.env).toBe("production")
+    expect(send(capture("$pageview", { $exception_list: [{ value: "ResizeObserver loop limit exceeded" }] }))).not.toBeNull()
+  })
 })
