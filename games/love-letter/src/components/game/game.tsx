@@ -10,6 +10,7 @@ import { DebugSlot } from "@pbgo/core/components/game/debug-controls"
 import { useDebugFolder } from "@pbgo/core/components/game/debug-folders"
 import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-over"
 import { GameHud, groupTurns, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
+import { useLogSounds } from "@pbgo/core/components/game/use-log-sounds"
 import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
 import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import type { ClientDebugCommand } from "@pbgo/core/lib/api"
@@ -19,6 +20,7 @@ import { seatsOf } from "@pbgo/core/lib/seat-avatar"
 import { useMotion } from "@pbgo/core/lib/use-motion"
 import { type ClientCatalog, MISSING_CATALOG } from "../../lib/catalog"
 import { actorsOf, sentenceOf } from "../../lib/history"
+import { cuesOf } from "../../lib/sounds"
 import { fill } from "../../lib/words"
 import { type Arrival, type Reveal, timelineOf } from "../board/pacing"
 import { useReveal } from "../board/sequence"
@@ -76,6 +78,8 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   const { words } = catalog
   // What happened, as the platform keeps it for the table and sends it to this player: the state and the view hold no log
   const log = useGameLog<LoveLetterEvent>()
+  // What no card shows is a line of the log, which makes its sound: a player is knocked out of the round. The sounds of a card that moves or is touched are the card's own
+  useLogSounds<LoveLetterEvent>({ cues: cuesOf })
   // How long the last move takes to play out (`timelineOf`). The board draws the view at once; what it holds back waits for that time: the cards that come in one after the other, the reveals to read, the announcements and the end screen.
   // A table that is opened, or reloaded, is drawn as it is and plays nothing (`openedAt`), but for the opening deal, which is drawn when the start screen goes
   const motion = useMotion()
