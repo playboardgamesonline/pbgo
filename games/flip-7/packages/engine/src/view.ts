@@ -1,22 +1,23 @@
-import { CARDS } from "./catalogue"
-import { faceOf, facesOf, isOver, keyOf, lineOf, playerAt, roundScore, targetOf, targetsOf, totalsOf } from "./machine"
+import { faceOfId, facesOfIds, keyOfId, playerAt } from "@pbgo/engine-kit"
+import { CARDS, CATALOGUE } from "./catalogue"
+import { isOver, lineOf, roundScore, targetOf, targetsOf, totalsOf } from "./machine"
 import { results } from "./results"
 import type { PlayerView, PublicPhase, PublicSeat, State } from "./types"
 
 function publicPhase(s: State): PublicPhase {
   const top = s.stack.at(-1)
-  if (top?.kind === "turn") return { kind: "turn", player: playerAt(s, top.seat), canStay: lineOf(s, top.seat).length > 0 }
+  if (top?.kind === "turn") return { kind: "turn", player: playerAt(s.seats, top.seat), canStay: lineOf(s, top.seat).length > 0 }
   if (top?.kind === "target") {
-    return { kind: "target", player: playerAt(s, top.seat), card: faceOf(s, top.card), targets: targetsOf(s, top).map((seat) => playerAt(s, seat)) }
+    return { kind: "target", player: playerAt(s.seats, top.seat), card: faceOfId(s.ids, CATALOGUE, top.card), targets: targetsOf(s, top).map((seat) => playerAt(s.seats, seat)) }
   }
-  return isOver(s) ? { kind: "over" } : { kind: "between", dealer: playerAt(s, s.dealer) }
+  return isOver(s) ? { kind: "over" } : { kind: "between", dealer: playerAt(s.seats, s.dealer) }
 }
 
 /** The faces the draw pile still holds, in the order of `CARDS`: public, since it is what is not in front of anyone nor on the discard. */
 function deckCounts(s: State): { type: string; count: number }[] {
   const counts = new Map<string, number>()
   for (const id of s.deck) {
-    const face = keyOf(s, id)
+    const face = keyOfId(s.ids, CATALOGUE, id)
     counts.set(face, (counts.get(face) ?? 0) + 1)
   }
   return Object.keys(CARDS).map((type) => ({ type, count: counts.get(type) ?? 0 }))
@@ -34,9 +35,10 @@ export function playerView(state: State, viewer: string | null): PlayerView {
   const phase = publicPhase(s)
   const players: PublicSeat[] = s.seats.map((id, seat) => ({
     id,
-    cards: facesOf(s, lineOf(s, seat)),
-    held: facesOf(
-      s,
+    cards: facesOfIds(s.ids, CATALOGUE, lineOf(s, seat)),
+    held: facesOfIds(
+      s.ids,
+      CATALOGUE,
       s.stack.flatMap((frame) => (frame.kind === "flip" && frame.seat === seat ? frame.held : [])),
     ),
     status: s.status[seat]!,
@@ -48,9 +50,9 @@ export function playerView(state: State, viewer: string | null): PlayerView {
     me: viewer !== null && s.seats.includes(viewer) ? viewer : null,
     players,
     standings: s.seats.map((playerId, seat) => ({ playerId, score: totals[seat]! })),
-    dealer: playerAt(s, s.dealer),
+    dealer: playerAt(s.seats, s.dealer),
     deck: { size: s.deck.length, counts: deckCounts(s) },
-    discard: facesOf(s, s.discard),
+    discard: facesOfIds(s.ids, CATALOGUE, s.discard),
     round: phase.kind === "turn" || phase.kind === "target" ? s.rounds.length + 1 : s.rounds.length,
     rounds: s.rounds.map((scores) => [...scores]),
     target: targetOf(s),

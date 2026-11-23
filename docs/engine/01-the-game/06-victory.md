@@ -69,7 +69,7 @@ export function rulesOf(s: State): RoundsRule {
 // …
 export function winnersOf(s: State): string[] {
   const outcome = roundsOutcome(totalsOf(s), rulesOf(s))
-  return outcome.over ? outcome.winners.map((seat) => playerAt(s, seat)) : []
+  return outcome.over ? outcome.winners.map((seat) => playerAt(s.seats, seat)) : []
 }
 ```
 
