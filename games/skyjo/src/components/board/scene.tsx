@@ -2,7 +2,7 @@
 
 import type { CardFace, PlayerView, PublicCell, PublicSeat } from "@skyjo/engine"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { ActionLabel, cardRise, effectiveState, FloorButton, NO_TOUCH, onTable, Pile, pileAboveAt, pileFootprint, PlayerSeat, type Pose, type Spot, Table, type Touch, useSettings, Zone, type ZoneCard } from "@pbgo/table"
+import { ActionLabel, cardRise, effectiveState, FloorButton, NO_TOUCH, onTable, Pile, pileAboveAt, pileFootprint, PlayerSeat, type Pose, type Spot, Table, type Touch, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useMemo, useState } from "react"
 import type { ClientCatalog } from "../../lib/catalog"
 import { fill, type Vocabulary } from "../../lib/words"
@@ -10,7 +10,6 @@ import { cameraFor, PHOTO } from "./camera"
 import { cellPlace, cellPose, floorPlan, type Grid, grids, LAYOUT_FIELDS, LAYOUT_SETTINGS, pilePlaces, plateAt, seatSpots } from "./layout"
 import { cardKey, cellKey, type Entrance, HELD_KEY, type Origin, PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { CARD_SIZE, matOf, useFaces } from "./textures"
-import { useViewport } from "./viewport"
 
 /** The most cards under the top of the discard that are drawn: a deeper pile looks no different */
 const DISCARD_DEPTH = 8
