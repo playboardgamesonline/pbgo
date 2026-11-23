@@ -46,7 +46,7 @@ const codeLines = (text) => text.split("\n").flatMap((line, index) => (/^\s*(\/\
 const list = (items, more = 3) => items.slice(0, more).join(", ") + (items.length > more ? ` and ${items.length - more} more` : "")
 
 /** The board folders of a game: where `@pbgo/table` and three.js may be imported, so that the hub and the screens around the board load none of it. */
-const BOARD_DIRS = ["src/components/board", "src/components/game3d"]
+const BOARD_DIRS = ["src/components/board"]
 const inBoard = (file) => BOARD_DIRS.some((dir) => file.startsWith(dir))
 
 const IMPURE = [

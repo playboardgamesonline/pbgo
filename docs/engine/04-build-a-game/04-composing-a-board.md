@@ -40,7 +40,7 @@ The shared tools supply the rest: the canvas, the camera and its entrance, the e
 3. A click calls the handler. `game.tsx` posts the action and gives the answer to `onUpdate`, and the next view moves the cards.
 
 - An opponent's hand is a count in the view, so the scene draws a `HeldHand` from `cardCount`: the cards are named by a rule (the one played leaves from the left end, the one drawn comes in at the right end), not by position ([Held hands](../02-components/07-zones.md#held-hands)). The cards the view names are keyed by their ids.
-- A card the view does not name, such as an opponent's draw, is drawn as a card of its own that flies to a pose and goes away on `onArrive`: `Ephemeral` in `games/courtisans/src/components/game3d/scene.tsx`.
+- A card the view does not name, such as an opponent's draw, is drawn as a card of its own that flies to a pose and goes away on `onArrive`: `Ephemeral` in `games/courtisans/src/components/board/scene.tsx`.
 - The scene reads the view, never the state: it draws what the viewer may see ([What is public](../01-the-game/10-views.md#what-is-public)).
 
 ## Lazy loading
