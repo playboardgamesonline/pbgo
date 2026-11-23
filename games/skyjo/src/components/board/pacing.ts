@@ -1,5 +1,6 @@
 import type { CardFace, SkyjoEvent } from "@skyjo/engine"
 import type { LogLine } from "@pbgo/core/lib/game-types"
+import { type Pace, paceOf } from "@pbgo/core/lib/move-pace"
 import type { Field } from "@pbgo/table"
 
 /**
@@ -90,76 +91,62 @@ function beatOf(event: SkyjoEvent): number {
   }
 }
 
-export type Timeline = {
-  /** The greatest version of the log, the move that was played last (0 for an empty log) */
-  v: number
+export type Timeline = Pace & {
   /** Where what the last move brought comes from, and the seconds it waits before it sets out, by key (`cellKey`, `cardKey`, `HELD_KEY`) */
   entrances: Map<string, Entrance>
   /** The cards of the columns the last move threw away: they stay on the discard, one on the other, until the move has played out */
   columns: CardFace[]
-  /** Seconds until that move has played out: the last card has landed and the last thing has had its time */
-  settle: number
 }
 
 /**
- * When each thing of the last move happens, from the lines of the log (`useGameLog`): the log says what happened and in what order, the board decides how long each takes. The view is drawn at once and is what is there; this is what the board waits with:
+ * When each thing of the last move happens, from the lines of the log (`useGameLog`): the log says what happened and in what order, the board decides how long each takes (`paceOf`). The view is drawn at once and is what is there; this is what the board waits with:
  * the cards come in one after the other, and the words that say how the move ended wait for it to end. `players` are the ids in seat order, for the cells of a deal. With `instant` (the visitor asks for less motion) nothing waits.
  */
 export function timelineOf(lines: readonly LogLine<SkyjoEvent>[], players: readonly string[], instant = false): Timeline {
-  const v = lines.reduce((greatest, line) => Math.max(greatest, line.v), 0)
   const entrances = new Map<string, Entrance>()
   const columns: Timeline["columns"] = []
-  if (instant || v === 0) return { v, entrances, columns, settle: 0 }
   const P = PACE_SETTINGS
-  let at = 0
-  let landed = 0
-  const come = (key: string, origin: Origin, delay: number) => {
-    entrances.set(key, { origin, delay })
-    landed = Math.max(landed, delay + P.landing)
-  }
-  for (const line of lines) {
-    if (line.v !== v) continue
-    const { event } = line
+  const pace = paceOf(lines, { beat: beatOf, landing: P.landing, instant }, (event, cursor) => {
+    const come = (key: string, origin: Origin, delay = cursor.at) => void entrances.set(key, { origin, delay: cursor.land(delay) })
     switch (event.kind) {
       case "reveal":
         // the card turns over where it lies: it comes in from its own cell, face down
-        come(cellKey(event.by, event.position), { kind: "cell", player: event.by, position: event.position, up: false }, at)
+        come(cellKey(event.by, event.position), { kind: "cell", player: event.by, position: event.position, up: false })
         break
       case "round": {
         // every card of every grid comes from the draw pile, one after the other, a row of the table at a time
         const each = Math.min(P.deal, P.dealTotal / Math.max(1, players.length * 12))
         players.forEach((player, seat) => {
-          for (let position = 0; position < 12; position++) come(cellKey(player, position), { kind: "deck" }, at + (position * players.length + seat) * each)
+          for (let position = 0; position < 12; position++) come(cellKey(player, position), { kind: "deck" }, cursor.at + (position * players.length + seat) * each)
         })
-        at += Math.min(P.dealTotal, players.length * 12 * each)
+        cursor.hold(Math.min(P.dealTotal, players.length * 12 * each))
         break
       }
       case "take":
-        come(HELD_KEY, { kind: "discard" }, at)
+        come(HELD_KEY, { kind: "discard" })
         break
       case "draw":
-        come(HELD_KEY, { kind: "deck" }, at)
+        come(HELD_KEY, { kind: "deck" })
         break
       case "place":
         // the card in hand goes into the cell, and the card it replaces goes to the discard, together
-        come(cellKey(event.by, event.position), { kind: "held" }, at)
-        come(cardKey(event.replaced.id), { kind: "cell", player: event.by, position: event.position, up: event.replacedUp }, at)
+        come(cellKey(event.by, event.position), { kind: "held" })
+        come(cardKey(event.replaced.id), { kind: "cell", player: event.by, position: event.position, up: event.replacedUp })
         break
       case "discard":
-        come(cardKey(event.card.id), { kind: "held" }, at)
+        come(cardKey(event.card.id), { kind: "held" })
         break
       case "column": {
         // the three cards fly from their cells to the discard, one after the other
         event.cards.forEach((card, row) => {
           columns.push(card)
-          come(cardKey(card.id), { kind: "cell", player: event.by, position: event.column * 3 + row, up: true }, at + row * 0.12)
+          come(cardKey(card.id), { kind: "cell", player: event.by, position: event.column * 3 + row, up: true }, cursor.at + row * 0.12)
         })
         break
       }
       default:
         break
     }
-    at += beatOf(event)
-  }
-  return { v, entrances, columns, settle: Math.max(at, landed) }
+  })
+  return { ...pace, entrances, columns }
 }

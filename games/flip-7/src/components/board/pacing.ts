@@ -1,5 +1,6 @@
 import type { Flip7Event } from "@flip-7/engine"
 import type { LogLine } from "@pbgo/core/lib/game-types"
+import { type Pace, paceOf } from "@pbgo/core/lib/move-pace"
 import type { Field } from "@pbgo/table"
 
 /**
@@ -75,33 +76,19 @@ function beatOf(event: Flip7Event): number {
   }
 }
 
-export type Timeline = {
-  /** The greatest version of the log, the move that was played last (0 for an empty log) */
-  v: number
+export type Timeline = Pace & {
   /** Seconds that each card that was turned over by that move waits before it comes in, by id: one after the other, in the order the engine said */
   entrances: Map<number, number>
-  /** Seconds until that move has played out: the last card has landed and the last thing has had its time */
-  settle: number
 }
 
 /**
- * When each thing of the last move happens, from the lines of the log (`useGameLog`): the log says what happened and in what order, the board decides how long each takes. The view is drawn at once and is what is there; this is
+ * When each thing of the last move happens, from the lines of the log (`useGameLog`): the log says what happened and in what order, the board decides how long each takes (`paceOf`). The view is drawn at once and is what is there; this is
  * what the board waits with: the cards come in one after the other, and the words that say how the move ended wait for it to end. With `instant` (the visitor asks for less motion) nothing waits.
  */
 export function timelineOf(lines: readonly LogLine<Flip7Event>[], instant = false): Timeline {
-  const v = lines.reduce((greatest, line) => Math.max(greatest, line.v), 0)
   const entrances = new Map<number, number>()
-  if (instant || v === 0) return { v, entrances, settle: 0 }
-  let at = 0
-  let landed = 0
-  for (const line of lines) {
-    if (line.v !== v) continue
-    const { event } = line
-    if (event.kind === "draw") {
-      entrances.set(event.card.id, at)
-      landed = Math.max(landed, at + PACE_SETTINGS.landing)
-    }
-    at += beatOf(event)
-  }
-  return { v, entrances, settle: Math.max(at, landed) }
+  const pace = paceOf(lines, { beat: beatOf, landing: PACE_SETTINGS.landing, instant }, (event, cursor) => {
+    if (event.kind === "draw") entrances.set(event.card.id, cursor.land())
+  })
+  return { ...pace, entrances }
 }
