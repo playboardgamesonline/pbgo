@@ -13,12 +13,12 @@ export const SEAT_SETTINGS = {
   viewerReachX: 1,
   viewerReachZ: 1.18,
   /** The height of the name's lettering, and how far toward the middle of the table it stands from the plate's centre */
-  nameHeight: 0.55,
+  nameHeight: 0.48,
   nameLift: 0.25,
   /** The height of the info line's lettering (the score, then the status), and how far toward the cards it stands from the plate's centre */
   lineHeight: 0.4,
   lineDrop: 0.4,
-  /** The widest a name may be: a longer one (twelve wide capitals) shrinks to this width, with its proportions, instead of reaching the plate of the next seat. Twelve letters of the platform's font make about 3.5, so a name that is not wide is never touched */
+  /** The widest a name may be: a longer one (twelve wide capitals) shrinks to this width, with its proportions, instead of reaching the plate of the next seat. Twelve letters of the platform's font make about 3.1, so a name that is not wide is never touched */
   nameRoom: 3.8,
   /** The avatar's diameter and its gap to the first or the last letter */
   avatarSize: 0.56,
