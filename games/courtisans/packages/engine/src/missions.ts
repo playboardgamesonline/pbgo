@@ -1,6 +1,6 @@
-import { weight } from "./deck"
-import type { Statuses } from "./scoring"
-import { FAMILIES, type Comparator, type Condition, type Courtier, type CardFilter, type GameState, type CountMode, type Mission } from "./types"
+import { FAMILIES, type CardType } from "./catalogue"
+import { typeOf, weightOf } from "./machine"
+import type { CardFilter, Comparator, Condition, CountMode, Mission, State, Statuses } from "./types"
 
 /**
  * The twenty missions of the game, as rules. Each player is dealt a white one and a blue one, and each that holds at the end is worth `MISSION_POINTS`. What a player reads on a mission card, its text and its
@@ -50,9 +50,10 @@ export function missionOf(id: string): Mission {
   return mission
 }
 
+/** What a mission is read against: the state, the seat of the player whose mission it is, and where the Queen's table leaves each family. */
 export type MissionContext = {
-  state: GameState
-  playerIndex: number
+  s: State
+  seat: number
   statuses: Statuses
 }
 
@@ -71,48 +72,48 @@ export function compare(a: number, comparator: Comparator, b: number): boolean {
   }
 }
 
-export function matches(card: Courtier, filter: CardFilter): boolean {
-  if (filter.family && card.family !== filter.family) return false
-  if (filter.role === "noRole") return card.role === null
-  if (filter.role && card.role !== filter.role) return false
+export function matches(type: CardType, filter: CardFilter): boolean {
+  if (filter.family && type.family !== filter.family) return false
+  if (filter.role === "noRole") return type.role === null
+  if (filter.role && type.role !== filter.role) return false
   return true
 }
 
-export function countCards(cards: Courtier[], filter: CardFilter, mode: CountMode = "cards"): number {
-  return cards.filter((c) => matches(c, filter)).reduce((sum, c) => sum + (mode === "weight" ? weight(c) : 1), 0)
+/** How many of the cards `ids` match the filter: as cards, or by weight (a noble counts twice). */
+export function countCards(s: Pick<State, "ids">, ids: readonly number[], filter: CardFilter, mode: CountMode = "cards"): number {
+  return ids.filter((id) => matches(typeOf(s, id), filter)).reduce((sum, id) => sum + (mode === "weight" ? weightOf(s, id) : 1), 0)
 }
 
 export function evaluateCondition(condition: Condition, ctx: MissionContext): boolean {
-  const { state, playerIndex, statuses } = ctx
-  const players = state.players
-  const me = players[playerIndex]!
+  const { s, seat, statuses } = ctx
+  const count = s.seats.length
 
   switch (condition.type) {
     case "familyStatus":
       return statuses[condition.family].status === condition.status
 
     case "familiesWithStatus": {
-      const n = FAMILIES.filter((f) => statuses[f].status === condition.status).length
+      const n = FAMILIES.filter((family) => statuses[family].status === condition.status).length
       return compare(n, condition.comparator, condition.value)
     }
 
     case "domainCards":
-      return compare(countCards(me.domain, condition.filter, condition.mode), condition.comparator, condition.value)
+      return compare(countCards(s, s.domains[seat]!, condition.filter, condition.mode), condition.comparator, condition.value)
 
     case "tableCards": {
-      const cards = state.table.filter((p) => !condition.level || p.level === condition.level).map((p) => p.card)
-      return compare(countCards(cards, condition.filter, condition.mode), condition.comparator, condition.value)
+      const cards = s.table.filter((placement) => !condition.level || placement.level === condition.level).map((placement) => placement.card)
+      return compare(countCards(s, cards, condition.filter, condition.mode), condition.comparator, condition.value)
     }
 
     case "playerComparison": {
-      const mine = countCards(me.domain, condition.filter, condition.mode)
-      const other = (i: number) => countCards(players[(i + players.length) % players.length]!.domain, condition.filter, condition.mode)
-      const opponents = players.map((_, i) => i).filter((i) => i !== playerIndex)
+      const mine = countCards(s, s.domains[seat]!, condition.filter, condition.mode)
+      const other = (i: number) => countCards(s, s.domains[(i + count) % count]!, condition.filter, condition.mode)
+      const opponents = s.seats.map((_, i) => i).filter((i) => i !== seat)
       switch (condition.opponent) {
         case "leftNeighbor":
-          return compare(mine, condition.comparator, other(playerIndex + 1))
+          return compare(mine, condition.comparator, other(seat + 1))
         case "rightNeighbor":
-          return compare(mine, condition.comparator, other(playerIndex - 1))
+          return compare(mine, condition.comparator, other(seat - 1))
         case "allOpponents":
           return opponents.every((i) => compare(mine, condition.comparator, other(i)))
         case "anyOpponent":

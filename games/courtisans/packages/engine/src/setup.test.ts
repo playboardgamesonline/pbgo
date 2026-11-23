@@ -1,77 +1,101 @@
-import { createRng } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
-import { createCourtiers } from "./deck"
-import { setupGame } from "./setup"
+import { CARDS, CATALOGUE, COMPOSITION, FAMILIES, ROLES, SET_ASIDE_CARDS, cardKey, weight } from "./catalogue"
+import { phaseOf } from "./machine"
 import { missionOf } from "./missions"
+import { setupGame } from "./setup"
+import { kinds, newState, players, problems, seedOf } from "./test-utils"
+import { playerView } from "./view"
 
-const players = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p${i}`, nickname: `P${i}` }))
+describe("the box", () => {
+  it("holds 90 cards, 15 per family with the right roles", () => {
+    expect(CATALOGUE).toHaveLength(90)
+    for (const family of FAMILIES) {
+      const held = CATALOGUE.filter((key) => CARDS[key].family === family)
+      expect(held).toHaveLength(15)
+      for (const { role, count } of COMPOSITION) expect(held.filter((key) => CARDS[key].role === role)).toHaveLength(count)
+    }
+  })
 
-describe("createCourtiers", () => {
-  it("builds 90 cards, 15 per family with the right roles", () => {
-    const cards = createCourtiers()
-    expect(cards).toHaveLength(90)
-    expect(new Set(cards.map((c) => c.id)).size).toBe(90)
-    const hares = cards.filter((c) => c.family === "hare")
-    expect(hares).toHaveLength(15)
-    expect(hares.filter((c) => c.role === "noble")).toHaveLength(4)
-    expect(hares.filter((c) => c.role === "spy")).toHaveLength(2)
-    expect(hares.filter((c) => c.role === "assassin")).toHaveLength(2)
-    expect(hares.filter((c) => c.role === "guard")).toHaveLength(3)
-    expect(hares.filter((c) => c.role === null)).toHaveLength(4)
+  it("keys every kind of card by its role and its family, `base` standing for no role", () => {
+    expect(Object.keys(CARDS)).toHaveLength(FAMILIES.length * (ROLES.length + 1))
+    expect(cardKey("hare", "noble")).toBe("noble-hare")
+    expect(cardKey("hare", null)).toBe("base-hare")
+    expect(CARDS["spy-carp"]).toEqual({ family: "carp", role: "spy" })
+  })
+
+  it("makes a noble count twice and every other card once", () => {
+    expect(weight("noble")).toBe(2)
+    for (const role of [null, "spy", "assassin", "guard"] as const) expect(weight(role)).toBe(1)
   })
 })
 
 describe("setupGame", () => {
-  it.each([
-    [2, 30],
-    [3, 18],
-    [4, 6],
-    [5, 0],
-  ])("with %i players sets aside %i cards", (n, setAside) => {
-    const state = setupGame({ players: players(n), rng: createRng(1) })
+  it.each([2, 3, 4, 5])("with %i players sets aside what the table asks and deals three cards to each", (n) => {
+    const state = newState(n, seedOf(n))
+    const setAside = SET_ASIDE_CARDS[n]!
     expect(state.setAside).toHaveLength(setAside)
     expect(state.deck).toHaveLength(90 - setAside - 3 * n)
-    for (const j of state.players) {
-      expect(j.hand).toHaveLength(3)
-      expect(j.missions.map((id) => missionOf(id).color)).toEqual(["white", "blue"])
+    for (const hand of state.hands) expect(hand).toHaveLength(3)
+    for (const own of state.missions) expect(own.map((id) => missionOf(id).color)).toEqual(["white", "blue"])
+    expect(new Set(state.missions.flat()).size).toBe(2 * n)
+    expect(phaseOf(state)).toBe("missions")
+    expect(state.read.every((flag) => !flag)).toBe(true)
+    expect(state.active).toBeGreaterThanOrEqual(0)
+    expect(state.active).toBeLessThan(n)
+    expect(problems(state)).toEqual([])
+  })
+
+  it("gives every card an opaque id, a number that says nothing of its kind, the same for a given seed", () => {
+    const state = newState(5, 2 ** 33 + 5)
+    expect(new Set(state.ids).size).toBe(90)
+    for (const id of state.ids) expect(Number.isInteger(id)).toBe(true)
+    expect(newState(5, 2 ** 33 + 5)).toEqual(state)
+    expect(newState(5, 2 ** 33 + 6)).not.toEqual(state)
+  })
+
+  it("keeps the deal a seed has always given (pinned before the engine moved onto the kit)", () => {
+    const five = newState(5, 2 ** 33 + 5)
+    expect(five.hands.map((hand) => kinds(five, hand))).toEqual([
+      ["base-nightingale", "noble-carp", "guard-carp"],
+      ["base-nightingale", "guard-butterfly", "base-butterfly"],
+      ["noble-hare", "noble-nightingale", "base-hare"],
+      ["noble-stag", "guard-toad", "guard-toad"],
+      ["base-butterfly", "spy-butterfly", "guard-hare"],
+    ])
+    expect(kinds(five, five.deck.slice(0, 3))).toEqual(["noble-nightingale", "guard-nightingale", "noble-hare"])
+    expect(kinds(five, five.deck.slice(-1))).toEqual(["assassin-stag"])
+    expect(five.active).toBe(2)
+
+    const two = newState(2, 7 * 2 ** 32 + 99)
+    expect(two.hands.map((hand) => kinds(two, hand))).toEqual([
+      ["guard-toad", "base-hare", "noble-butterfly"],
+      ["base-carp", "spy-toad", "spy-toad"],
+    ])
+    expect(kinds(two, two.deck.slice(0, 3))).toEqual(["base-hare", "base-toad", "noble-butterfly"])
+    expect(kinds(two, two.deck.slice(-1))).toEqual(["base-nightingale"])
+    expect(kinds(two, two.setAside.slice(0, 3))).toEqual(["noble-toad", "assassin-butterfly", "guard-toad"])
+    expect(two.active).toBe(0)
+  })
+
+  it("refuses a table it cannot play with INVALID_PLAYERS: too few, too many, the same id twice, an empty id", () => {
+    const code = (table: { id: string; nickname: string }[]) => {
+      try {
+        setupGame({ players: table, seed: 1 })
+      } catch (error) {
+        return (error as { code?: string }).code
+      }
+      return null
     }
-    expect(state.phase).toBe("missions")
-    expect(state.players.every((j) => !j.missionsRead)).toBe(true)
-    expect(state.activePlayer).toBeGreaterThanOrEqual(0)
-    expect(state.activePlayer).toBeLessThan(n)
+    expect(code([])).toBe("INVALID_PLAYERS")
+    expect(code(players(1))).toBe("INVALID_PLAYERS")
+    expect(code([...players(5), { id: "fay", nickname: "FAY" }])).toBe("INVALID_PLAYERS")
+    expect(code([players(2)[0]!, players(2)[0]!])).toBe("INVALID_PLAYERS")
+    expect(code([{ id: "", nickname: "Nobody" }, ...players(2)])).toBe("INVALID_PLAYERS")
+    expect(code(players(2))).toBeNull()
   })
 
-  it("gives every card a unique opaque id, stable for a given seed", () => {
-    const state = setupGame({ players: players(5), seed: 2 ** 33 + 5 })
-    const cards = [...state.deck, ...state.setAside, ...state.players.flatMap((j) => j.hand)]
-    expect(new Set(cards.map((c) => c.id)).size).toBe(90)
-    for (const c of cards) expect(c.id).toMatch(/^c[0-9a-z]{6}$/)
-    expect(setupGame({ players: players(5), seed: 2 ** 33 + 5 })).toEqual(state)
-  })
-
-  it("keeps the deal and the ids a seed has always given (pinned before the kit's helpers took over)", () => {
-    const state = setupGame({ players: players(5), seed: 2 ** 33 + 5 })
-    expect(state.players.map((j) => j.hand.map((c) => c.id))).toEqual([
-      ["ccezkce", "cjcgncg", "co6djcu"],
-      ["cw37s9w", "ccge9vu", "cosf4v1"],
-      ["celzpd8", "ccb4w2x", "clq54j1"],
-      ["cvqgcto", "cubdukn", "c52ix66"],
-      ["ck0lhuh", "cap91cr", "cvymkyq"],
-    ])
-    expect(state.deck.slice(0, 3).map((c) => c.id)).toEqual(["cywoqmz", "cz55q6q", "cfcyxim"])
-    expect(state.deck.at(-1)?.id).toBe("c6nh4mz")
-    expect(state.activePlayer).toBe(2)
-
-    const two = setupGame({ players: players(2), seed: 7 * 2 ** 32 + 99 })
-    expect(two.setAside.slice(0, 3).map((c) => c.id)).toEqual(["cz5nb7d", "cu63hgq", "ca98wdh"])
-    expect(two.players.map((j) => j.hand.map((c) => c.id))).toEqual([
-      ["c3p6tk5", "cd9pkgh", "conyht0"],
-      ["cbi769y", "cu2shnj", "ccgzqmv"],
-    ])
-  })
-
-  it("rejects invalid player counts", () => {
-    expect(() => setupGame({ players: players(1) })).toThrow()
-    expect(() => setupGame({ players: players(6) })).toThrow()
+  it("keeps no name in the state: the nicknames are the table's", () => {
+    expect(JSON.stringify(newState(3))).not.toMatch(/ANA|BOB|CLEO/)
+    expect(JSON.stringify(playerView(newState(3), "ana"))).not.toMatch(/ANA|BOB|CLEO/)
   })
 })

@@ -1,6 +1,6 @@
 "use client"
 
-import type { Target, Courtier, PlayerView, PlayZone, VisibleEvent } from "@courtisans/engine"
+import type { CourtisansEvent, Courtier, PlayerView, PlayZone, Target } from "@courtisans/engine"
 import { Loader2Icon } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import dynamic from "next/dynamic"
@@ -19,7 +19,7 @@ import type { PublicGame } from "@pbgo/core/lib/game-types"
 import { seatsOf } from "@pbgo/core/lib/seat-avatar"
 import { Button } from "@pbgo/ui/game/button"
 import { MISSING_CATALOG, type ClientCatalog } from "../../lib/catalog"
-import { CourtisansProvider } from "./context"
+import { CourtisansProvider, useCourtisans } from "./context"
 import { renderFamilyCards } from "./score-details"
 import { Message } from "./message"
 import { useEndingSequence } from "../game3d/ending"
@@ -73,15 +73,7 @@ export function Game({ game, data, onUpdate, onLeave, held = false, onLoaded, on
   )
 }
 
-function Board({
-  game,
-  catalog,
-  onUpdate,
-  onLeave,
-  held,
-  onLoaded,
-  onProgress,
-}: {
+type BoardProps = {
   game: PublicGame
   catalog: ClientCatalog
   onUpdate: (p: PublicGame) => void
@@ -89,15 +81,39 @@ function Board({
   held: boolean
   onLoaded?: () => void
   onProgress?: (progress: number) => void
-}) {
-  const t = useText()
-  const api = useApi()
-  const { victoryPhrases, playerColors } = useSkin()
+}
+
+/** The providers of the table: the game and its view (the debug tool that makes a winner changes the view), the game's catalog. The screen is `BoardContent`, which reads them and the log of the table. */
+function Board(props: BoardProps) {
+  const { game, catalog } = props
   const nicknameOf = useCallback((id: string) => game.players.find((j) => j.id === id)?.nickname ?? "?", [game.players])
   const view = useCheat(game.view as PlayerView, nicknameOf)
   const gameView = useMemo(() => ({ ...game, view }), [game, view])
-  // The players shown with an announcement (the viewer for "your turn", the winners for the victory). `GameProvider` is mounted below,
-  // so `useGame()` is not available here: the seats come straight from the players and the skin's palette.
+  return (
+    <GameProvider game={gameView} view={view}>
+      <CourtisansProvider catalog={catalog} game={gameView} view={view}>
+        <BoardContent {...props} view={view} />
+      </CourtisansProvider>
+    </GameProvider>
+  )
+}
+
+function BoardContent({
+  game,
+  view,
+  catalog,
+  onUpdate,
+  onLeave,
+  held,
+  onLoaded,
+  onProgress,
+}: BoardProps & { view: PlayerView }) {
+  const t = useText()
+  const api = useApi()
+  const { victoryPhrases, playerColors } = useSkin()
+  // What happened at the table, as the platform keeps it for this player: the state and the view hold no log
+  const { log } = useCourtisans()
+  // The players shown with an announcement (the viewer for "your turn", the winners for the victory)
   const seatsFor = (ids: readonly string[]) => seatsOf(game.players, ids, playerColors)
   const [rawSelection, setSelection] = useState<Courtier | null>(null)
   const [assassination, setAssassination] = useState<Assassination | null>(null)
@@ -212,7 +228,7 @@ function Board({
   const meId = view.me?.id
   const myTurn = view.phase === "playing" && !!meId && view.activePlayerId === meId
   const selection = rawSelection && view.me?.hand.some((c) => c.id === rawSelection.id) && myTurn ? rawSelection : null
-  useGameSounds(view, ending, selection?.id ?? null, missionFocus)
+  useGameSounds(log, ending, selection?.id ?? null, missionFocus)
 
   function debugCommand(command: "start" | "missions" | "turn" | "over") {
     api
@@ -255,7 +271,7 @@ function Board({
   }
 
   const interaction = useMemo<Interaction>(() => {
-    async function send(cardId: string, target: Target, victimId?: string) {
+    async function send(cardId: number, target: Target, victimId?: number) {
       setSending(true)
       try {
         onUpdate(
@@ -302,109 +318,108 @@ function Board({
 
   const history = useMemo(
     () =>
-      groupTurns<VisibleEvent>(view.log, {
-        actor: (e) => (e.type === "gameOver" ? null : e.playerId),
-        closes: (e) => e.type === "draw",
-        render: (e) => (e.type === "cardPlayed" || e.type === "cardEliminated" ? <Message event={e} className="justify-start" /> : null),
-      }),
-    [view.log],
+      groupTurns<CourtisansEvent>(
+        log.map((line) => line.event),
+        {
+          actor: (e) => (e.type === "gameOver" ? null : e.playerId),
+          closes: (e) => e.type === "draw",
+          render: (e) => (e.type === "cardPlayed" || e.type === "cardEliminated" ? <Message event={e} className="justify-start" /> : null),
+        },
+      ),
+    [log],
   )
   const victory = ending?.text && !ending.scoreboard ? winnerAnnouncement(game, view, victoryPhrases, (points) => t("pointsShort", { points })) : null
 
   return (
-    <GameProvider game={gameView} view={view}>
-      <CourtisansProvider catalog={catalog} game={gameView} view={view}>
-        <InteractionContext.Provider value={interaction}>
-          <GameHud
-            onLeave={onLeave}
-            ticker={<Ticker activePlayerId={shownTurn} waitingFor={openingHolds ? undefined : game.waitingFor} history={history} sentences />}
-            overlay={
-              <>
-                {(waitingOthers || (intro && showMissionsButton)) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 40 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ type: "spring", stiffness: 160, damping: 20 }}
-                    className="absolute inset-x-0 bottom-[14%] z-20 flex justify-center"
-                  >
-                    <PrimaryButton onClick={confirmMissions} busy={confirming} waiting={waitingOthers} className="w-auto max-w-none px-10 whitespace-nowrap">
-                      {waitingOthers ? t("missionsWaiting", { read: readCount, total: playerCount }) : catalog.missionsButtonText}
-                    </PrimaryButton>
-                  </motion.div>
-                )}
+    <InteractionContext.Provider value={interaction}>
+      <GameHud
+        onLeave={onLeave}
+        ticker={<Ticker activePlayerId={shownTurn} waitingFor={openingHolds ? undefined : game.waitingFor} history={history} sentences />}
+        overlay={
+          <>
+            {(waitingOthers || (intro && showMissionsButton)) && (
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 160, damping: 20 }}
+                className="absolute inset-x-0 bottom-[14%] z-20 flex justify-center"
+              >
+                <PrimaryButton onClick={confirmMissions} busy={confirming} waiting={waitingOthers} className="w-auto max-w-none px-10 whitespace-nowrap">
+                  {waitingOthers ? t("missionsWaiting", { read: readCount, total: playerCount }) : catalog.missionsButtonText}
+                </PrimaryButton>
+              </motion.div>
+            )}
 
-                {announcementElement}
+            {announcementElement}
 
-                <StalledTurn
-                  onUpdate={onUpdate}
-                  labels={view.phase === "missions" ? { prompt: t("missionsSkipPrompt"), button: t("missionsSkipButton") } : undefined}
-                />
-
-                <DebugSlot />
-
-                <AnimatePresence>
-                  {assassination && (
-                    <motion.div
-                      initial={{ y: 80, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: 80, opacity: 0 }}
-                      className="absolute inset-x-0 bottom-8 z-30 mx-auto w-fit"
-                    >
-                      <Button
-                        size="lg"
-                        disabled={sending}
-                        onClick={() => interaction.eliminate(null)}
-                        className="h-12 rounded-full border border-[#ff4d4d]/70 bg-[#3a0d12] px-8 font-display text-base text-foreground shadow-[0_0_24px_rgb(255_77_77/35%)] hover:bg-[#5a1219]"
-                      >
-                        {catalog.words.noAssassination}
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <AnimatePresence>
-                  {victory && (
-                    <Announcement
-                      key="victory"
-                      text={victory.phrase}
-                      subtitle={victory.detail}
-                      sound="victory"
-                      seats={seatsFor(victory.winners)}
-                      settings={announcementSettings.victory}
-                    />
-                  )}
-                </AnimatePresence>
-                {ending && !ending.scoreboard && (
-                  <button
-                    type="button"
-                    className="absolute right-6 bottom-6 z-40 h-10 cursor-pointer rounded-xl bg-foreground px-6 font-display text-base tracking-wide text-background shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_color-mix(in_oklab,var(--foreground)_30%,transparent)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98]"
-                    onClick={skip}
-                  >
-                    {catalog.words.skip}
-                  </button>
-                )}
-                {ending?.scoreboard && <GameOver onUpdate={onUpdate} renderDetail={renderFamilyCards} history={history} sentences />}
-              </>
-            }
-          >
-            <Scene3D
-              openingStep={openingStep}
-              onReady={sceneReady}
-              held={held}
-              onLoaded={onLoaded ?? noop}
-              onProgress={onProgress ?? noop}
-              settings={openingSettings}
-              missionFocus={missionFocus}
-              ending={ending}
-              onMission={(id) => setMissionFocus((f) => (f === id ? null : id))}
-              onEmpty={() => {
-                setMissionFocus(null)
-                if (!assassination) setSelection(null)
-              }}
+            <StalledTurn
+              onUpdate={onUpdate}
+              labels={view.phase === "missions" ? { prompt: t("missionsSkipPrompt"), button: t("missionsSkipButton") } : undefined}
             />
-          </GameHud>
-        </InteractionContext.Provider>
-      </CourtisansProvider>
-    </GameProvider>
+
+            <DebugSlot />
+
+            <AnimatePresence>
+              {assassination && (
+                <motion.div
+                  initial={{ y: 80, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 80, opacity: 0 }}
+                  className="absolute inset-x-0 bottom-8 z-30 mx-auto w-fit"
+                >
+                  <Button
+                    size="lg"
+                    disabled={sending}
+                    onClick={() => interaction.eliminate(null)}
+                    className="h-12 rounded-full border border-[#ff4d4d]/70 bg-[#3a0d12] px-8 font-display text-base text-foreground shadow-[0_0_24px_rgb(255_77_77/35%)] hover:bg-[#5a1219]"
+                  >
+                    {catalog.words.noAssassination}
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {victory && (
+                <Announcement
+                  key="victory"
+                  text={victory.phrase}
+                  subtitle={victory.detail}
+                  sound="victory"
+                  seats={seatsFor(victory.winners)}
+                  settings={announcementSettings.victory}
+                />
+              )}
+            </AnimatePresence>
+            {ending && !ending.scoreboard && (
+              <button
+                type="button"
+                className="absolute right-6 bottom-6 z-40 h-10 cursor-pointer rounded-xl bg-foreground px-6 font-display text-base tracking-wide text-background shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_color-mix(in_oklab,var(--foreground)_30%,transparent)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98]"
+                onClick={skip}
+              >
+                {catalog.words.skip}
+              </button>
+            )}
+            {ending?.scoreboard && <GameOver onUpdate={onUpdate} renderDetail={renderFamilyCards} history={history} sentences />}
+          </>
+        }
+      >
+        <Scene3D
+          openingStep={openingStep}
+          onReady={sceneReady}
+          held={held}
+          onLoaded={onLoaded ?? noop}
+          onProgress={onProgress ?? noop}
+          settings={openingSettings}
+          missionFocus={missionFocus}
+          ending={ending}
+          onMission={(id) => setMissionFocus((f) => (f === id ? null : id))}
+          onEmpty={() => {
+            setMissionFocus(null)
+            if (!assassination) setSelection(null)
+          }}
+        />
+      </GameHud>
+    </InteractionContext.Provider>
   )
 }

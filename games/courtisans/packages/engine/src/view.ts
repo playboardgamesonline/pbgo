@@ -1,74 +1,35 @@
-import { activePlayerId, availableZones } from "./actions"
-import { type CourtisansResults, computeResults } from "./scoring"
-import type { Target, Courtier, Family, GameState, Level, Phase, Role, PlayZone } from "./types"
+import { playerAt, seatOf } from "@pbgo/engine-kit"
+import { activePlayerId, availableZones, courtierOf, domainOf, handOf, isOver, phaseOf, visibleCard } from "./machine"
+import { results } from "./results"
+import type { PlayerView, State, VisiblePlayer } from "./types"
 
-export type VisibleCard = {
-  id: string
-  family: Family | null
-  role: Role | null
-}
-
-export type VisibleEvent =
-  | { type: "cardPlayed"; playerId: string; card: VisibleCard; target: Target }
-  | { type: "cardEliminated"; playerId: string; card: VisibleCard; target: Target }
-  | { type: "draw"; playerId: string; count: number }
-  | { type: "gameOver" }
-
-export type VisiblePlayer = {
-  id: string
-  nickname: string
-  domain: VisibleCard[]
-  handCount: number
-  missionsRead: boolean
-  /** The ids of their two missions: only once the game is over. */
-  missions: string[] | null
-}
-
-export type PlayerView = {
-  /** The viewer, when they sit at the table: their hand and the ids of their two missions. */
-  me: { id: string; hand: Courtier[]; missions: string[] } | null
-  players: VisiblePlayer[]
-  table: { card: VisibleCard; level: Level }[]
-  deckCount: number
-  activePlayerId: string | null
-  firstPlayerId: string | null
-  availableZones: PlayZone[]
-  turnNumber: number
-  phase: Phase
-  log: VisibleEvent[]
-  results: CourtisansResults | null
-}
-
-/** A card as others see it: a hidden spy keeps its opaque id (stable when it is revealed) but loses its family. */
-export function visibleCard(card: Courtier, revealed: boolean): VisibleCard {
-  if (card.role === "spy" && !revealed) return { id: card.id, family: null, role: "spy" }
-  return { id: card.id, family: card.family, role: card.role }
-}
-
-export function playerView(state: GameState, playerId: string | null): PlayerView {
-  const ending = state.phase === "over"
-  const me = state.players.find((j) => j.id === playerId)
-
+/**
+ * What `viewer` sees of the game. Public: every domain and the Queen's table, the size of the hands and of the deck, who has read their missions. A spy that was played keeps its family hidden from everybody,
+ * its owner included, until the game is over; it keeps the same id when it is revealed, so a board can follow the card. The viewer's own hand and their two missions are theirs alone: the other
+ * missions are shown at the end, with the results. The nicknames are the table's, never the view's.
+ *
+ * The viewer only decides `me`: a spectator, or a player who is not at the table, gets `me: null` and the same view of everything else.
+ */
+export function playerView(state: State, viewer: string | null): PlayerView {
+  const s = state
+  const over = isOver(s)
+  const seat = viewer === null ? -1 : seatOf(s.seats, viewer)
+  const players: VisiblePlayer[] = s.seats.map((id, i) => ({
+    id,
+    domain: domainOf(s, i).map((card) => visibleCard(s, card, over)),
+    handCount: handOf(s, i).length,
+    missionsRead: s.read[i] === true,
+    missions: over ? [...s.missions[i]!] : null,
+  }))
   return {
-    me: me ? { id: me.id, hand: me.hand, missions: me.missions } : null,
-    players: state.players.map((j) => ({
-      id: j.id,
-      nickname: j.nickname,
-      domain: j.domain.map((c) => visibleCard(c, ending)),
-      handCount: j.hand.length,
-      missionsRead: j.missionsRead,
-      missions: ending ? j.missions : null,
-    })),
-    table: state.table.map(({ card, level }) => ({ card: visibleCard(card, ending), level })),
-    deckCount: state.deck.length,
-    activePlayerId: activePlayerId(state),
-    firstPlayerId: state.players[state.activePlayer]?.id ?? null,
-    availableZones: availableZones(state),
-    turnNumber: state.turnNumber,
-    phase: state.phase,
-    log: state.log.map((e) =>
-      e.type === "cardPlayed" || e.type === "cardEliminated" ? { ...e, card: visibleCard(e.card, ending) } : e,
-    ),
-    results: ending ? computeResults(state) : null,
+    me: viewer !== null && seat >= 0 ? { id: viewer, hand: handOf(s, seat).map((card) => courtierOf(s, card)), missions: [...s.missions[seat]!] } : null,
+    players,
+    table: s.table.map(({ card, level }) => ({ card: visibleCard(s, card, over), level })),
+    deckCount: s.deck.length,
+    activePlayerId: activePlayerId(s),
+    firstPlayerId: playerAt(s.seats, s.active),
+    availableZones: availableZones(s),
+    phase: phaseOf(s),
+    results: results(s),
   }
 }

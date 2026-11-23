@@ -1,24 +1,24 @@
 # An engine with objectives and secrets
 
-Courtisans is live, and its engine, `games/courtisans/packages/engine/src`, shows what Flip 7 does not need: objectives dealt as data, a simultaneous opening, a card whose family stays hidden and results with the game's own detail. Its state predates the lean-state rule (it keeps nicknames and a log), so for the state take [Flip 7](01-a-lean-engine.md). The rules as coded are in `games/courtisans/CLAUDE.md`.
+Courtisans is live, and its engine, `games/courtisans/packages/engine/src`, shows what Flip 7 does not need: objectives dealt as data, a simultaneous opening, a card whose family stays hidden and results with the game's own detail. Its state is lean like Flip 7's, so for the state and the step take [Flip 7](01-a-lean-engine.md). The rules as coded are in `games/courtisans/CLAUDE.md`.
 
 ## The files
 
 | File | What it holds |
 | --- | --- |
-| `types.ts` | `FAMILIES`, `ROLES`, `Courtier`, the `Condition` tree, `Mission`, `Player`, `GameState`, `GameEvent`, `Action`, `Phase` |
-| `errors.ts` | `EngineErrorCode` and the engine's own `EngineError` class |
-| `deck.ts` | `createCourtiers`, `assignOpaqueIds`, `weight`, and the constants `FAMILY_COMPOSITION`, `SET_ASIDE_CARDS`, `HAND_SIZE`, `MISSION_POINTS` |
-| `setup.ts` | `setupGame`: the missions drawn from `MISSIONS`, the deck shuffled, the ids assigned, the hands dealt |
-| `actions.ts` | `applyAction` (`readMissions`, `playCard`), `waitingPlayerIds`, `availableZones`, `activePlayerId` |
+| `types.ts` | `State`, `Action` (`CLIENT_ACTIONS`), `COURTISANS_ERROR_CODES`, the `Condition` tree, `Mission`, the events (`CourtisansEvent`), the views (`PlayerView`, `Courtier`, `VisibleCard`) and the results |
+| `catalogue.ts` | `FAMILIES`, `ROLES`, `CARDS` (the kinds of card, keyed `noble-hare` and `base-stag`), `CATALOGUE` (the 90 cards of the box), `weight`, and the constants `SET_ASIDE_CARDS`, `HAND_SIZE`, `MISSION_POINTS` |
 | `missions.ts` | `MISSIONS`, the twenty missions with their rules, `missionOf`, and `evaluateCondition`: a mission's `Condition` against the state |
-| `scoring.ts` | `computeStatuses`, `domainPoints`, `computeResults`, `CourtisansPlayerResult` |
-| `view.ts` | `playerView`, `visibleCard`, `PlayerView` |
-| `debug.ts` | `applyDebug`, `autoMove`, `autoMoveRng`, `autoPlayFor` |
-| `game.ts` | `GAME` |
-| `index.ts` | The exports of every file above; the kit is not re-exported |
-| `test-utils.ts` | Helpers of the tests, not exported: `card`, `player`, `makeState` |
-| `*.test.ts` | `actions`, `determinism`, `game`, `missions`, `scoring`, `setup`, `simulation` and `view` |
+| `machine.ts` | `open`, `close` and `emit` of a step, the cards (`typeOf`, `courtierOf`, `visibleCard`), `phaseOf`, `waitingFor`, `isOver`, `progress` |
+| `scoring.ts` | `computeStatuses`, `domainPoints` |
+| `results.ts` | `results`: the points of each player, the ranks and the winners |
+| `actions.ts` | `step`: `readMissions` and `playCard`, with its assassination and the end of the turn |
+| `setup.ts` | `setupGame`: the missions drawn, the box shuffled, the ids issued, the cards put aside, the hands dealt |
+| `view.ts` | `playerView` |
+| `autoplay.ts`, `debug.ts` | `autoPlayFor` and `autoPlayStep` (the whole turn of an absent player, or their missions read) and the debug commands |
+| `game.ts`, `index.ts` | `GAME`; the exports, the kit's included |
+| `test-utils.ts` | Helpers of the tests, not exported: `layout` (a rigged table from the names of the cards) and `problems` (the invariants of a state) |
+| `*.test.ts` | `actions`, `autoplay`, `determinism`, `game`, `golden`, `missions`, `scoring`, `setup`, `simulation` and `view` |
 
 ## Missions
 
@@ -34,40 +34,44 @@ export const MISSIONS: readonly Mission[] = [
 
 ## Determinism from the seed
 
-- The deal comes from `createRng(seed)` and the opaque ids from a side stream, so the ids never move the deal ([Random numbers](../01-the-game/09-state.md#random-numbers)); `determinism.test.ts` pins it and checks that nothing calls `Math.random` once a seed is given.
-- The seed stays in the state, and `autoMoveRng` derives the stream of each automatic move from it and the position in the game, from `games/courtisans/packages/engine/src/debug.ts`:
+- The deal comes from `createSaveableRng(seed)` and the opaque ids from a side stream, issued in the order of the catalogue before the box is shuffled, so the ids never move the deal ([Random numbers](../01-the-game/09-state.md#random-numbers)). `determinism.test.ts` pins it and checks that nothing calls `Math.random` once a seed is given, and `golden.test.ts` plays ten whole games with a scripted bot through the public view and holds what each one ends on.
+- The state keeps the position of the stream (`rng`), and the automatic moves are the only draws made after the setup: a move a player sends draws nothing. `autoMove`, from `games/courtisans/packages/engine/src/autoplay.ts`, picks a card of the hand, the first free zone and a level or an opponent from `ctx.rng`:
 
 ```ts
-export function autoMoveRng(state: GameState): Rng {
-  return createRng(sideSeed(state.seed ?? 0, AUTO_MOVE_STREAM, state.turnNumber, state.log.length, state.playedZones.length))
+const card = random(handOf(s, seat))
+const zone = availableZones(s)[0]!
+const target: Target =
+  zone === "table" ? { zone: "table", level: rng() < 0.5 ? "up" : "down" } : { zone: "domain", playerId: zone === "domain" ? me : random(opponents) }
+```
+
+## The opening and the view
+
+- The opening is a simultaneous step: a `read` flag for each player, not the kit's `Submissions<T>` ([Simultaneous steps](../01-the-game/03-turns.md#simultaneous-steps)). The phase is read from the state, never stored: the banquet starts when the last flag is set, and the game is over when no hand holds a card (`phaseOf`).
+- `waitingFor` lists the players who have not read, then the player of the turn; `autoPlayFor` reads for that one player or plays the whole turn ([Playing for an absent player](../01-the-game/03-turns.md#playing-for-an-absent-player)). From `games/courtisans/packages/engine/src/machine.ts`:
+
+```ts
+export function waitingFor(s: State): string[] {
+  const phase = phaseOf(s)
+  if (phase === "over") return []
+  if (phase === "missions") return s.seats.filter((_, seat) => !s.read[seat])
+  return [playerAt(s.seats, s.active)]
 }
 ```
 
-## The missions phase and the view
-
-- The opening is a simultaneous step: a `missionsRead` flag for each player, not the kit's `Submissions<T>` ([Simultaneous steps](../01-the-game/03-turns.md#simultaneous-steps)), and the last reader starts the banquet in the same action.
-- `waitingFor` lists the players who have not read, then the active player; `autoPlayFor` reads for that one player or plays the whole turn ([Playing for an absent player](../01-the-game/03-turns.md#playing-for-an-absent-player)). From `games/courtisans/packages/engine/src/actions.ts`:
+- `visibleCard` keeps a played spy's family hidden until the end, from its owner too ([Hidden information](../01-the-game/10-views.md#hidden-information), [Opaque ids](../01-the-game/10-views.md#opaque-ids)). From the same file:
 
 ```ts
-export function waitingPlayerIds(state: GameState): string[] {
-  if (state.phase === "missions") return state.players.filter((j) => !j.missionsRead).map((j) => j.id)
-  const active = activePlayerId(state)
-  return active ? [active] : []
+export function visibleCard(s: Pick<State, "ids">, id: number, revealed: boolean): VisibleCard {
+  const { family, role } = typeOf(s, id)
+  return { id, family: role === "spy" && !revealed ? null : family, role }
 }
 ```
 
-- `visibleCard` keeps a played spy's family hidden until the end ([Hidden information](../01-the-game/10-views.md#hidden-information), [Opaque ids](../01-the-game/10-views.md#opaque-ids)). From `games/courtisans/packages/engine/src/view.ts`:
-
-```ts
-export function visibleCard(card: Courtier, revealed: boolean): VisibleCard {
-  if (card.role === "spy" && !revealed) return { id: card.id, family: null, role: "spy" }
-  return { id: card.id, family: card.family, role: card.role }
-}
-```
+- What happened is said by `step` as `CourtisansEvent` (a card played, a card eliminated, cards drawn, the end) and kept by the platform, not by the state ([Events and the log](../01-the-game/12-events-and-the-log.md)). Nothing is private, and a spy shows no family in the entries either.
 
 ## Results, errors and debug commands
 
-- `computeResults` gives the shared `Results` with the game's own detail added ([Results](../01-the-game/06-victory.md#victory-and-results)). From `games/courtisans/packages/engine/src/scoring.ts`:
+- `results` gives the shared `Results` with the game's own detail added ([Results](../01-the-game/06-victory.md#victory-and-results)), and `null` until the game is over: the score depends on the missions, which are secret, so the view has no `standings`. From `games/courtisans/packages/engine/src/types.ts`:
 
 ```ts
 export type CourtisansPlayerResult = PlayerResult & {
@@ -77,5 +81,5 @@ export type CourtisansPlayerResult = PlayerResult & {
 }
 ```
 
-- `errors.ts` declares its own `EngineError` class: `instanceof` against the kit's class misses it, so `isEngineError` accepts any error with that `name` and a string `code` ([Errors](../01-the-game/05-actions.md#errors)); its `index.ts` does not re-export the kit.
+- The refusals are the shared codes, which the platform words, and two of the game's own, `ZONE_ALREADY_PLAYED` and `INVALID_ASSASSINATION` (`COURTISANS_ERROR_CODES`). What a client sends is checked before anything is read from it: a payload that is not an action of the game is `INVALID_ACTION` ([Errors](../01-the-game/05-actions.md#errors)).
 - `GAME.debug` has `turn` and `over`, and its own `missions` ([Debug commands](../01-the-game/11-the-contract.md#debug-commands)).

@@ -5,4 +5,4 @@ Two engines to read beside the pages on [building a game](../04-build-a-game/ind
 ## Pages
 
 - [A lean engine, file by file](01-a-lean-engine.md): the files of Flip 7's engine, then the catalogue and the lean state, the step, `waitingFor`, `autoPlayFor`, the options, the results and the tests.
-- [An engine with objectives and secrets](02-an-engine-with-setup-data.md): the files of Courtisans' engine, then the missions, determinism from the seed, the missions phase, the view, the results, its own `EngineError` and its debug commands.
+- [An engine with objectives and secrets](02-an-engine-with-setup-data.md): the files of Courtisans' engine, then the missions, determinism from the seed, the opening and the view, the results, the errors and its debug commands.

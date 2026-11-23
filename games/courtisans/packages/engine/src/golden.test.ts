@@ -1,7 +1,8 @@
 import { type Rng, createRng } from "@pbgo/engine-kit"
 import { describe, expect, it } from "vitest"
+import { FAMILIES } from "./catalogue"
 import { GAME } from "./game"
-import type { Action, GameState, Target } from "./types"
+import type { Action, State, Target } from "./types"
 
 /**
  * Golden seeds: ten whole games, played by a scripted bot, and what each one ends on. They are written once, before the engine is rewritten on the kit, and they must
@@ -28,7 +29,7 @@ type Summary = {
 }
 
 /** The bot's move: a card of the hand picked at random, the first zone still free, a level or an opponent picked at random, and for an assassin the first card that is not a guard. */
-function move(state: GameState, rng: Rng): Action {
+function move(state: State, rng: Rng): Action {
   const active = GAME.view(state, null).activePlayerId!
   const view = GAME.view(state, active)
   const hand = view.me!.hand
@@ -39,7 +40,7 @@ function move(state: GameState, rng: Rng): Action {
     zone === "table"
       ? { zone: "table", level: rng() < 0.5 ? "up" : "down" }
       : { zone: "domain", playerId: zone === "domain" ? active : opponents[Math.floor(rng() * opponents.length)]!.id }
-  let victimId: string | undefined
+  let victimId: number | undefined
   if (card.role === "assassin") {
     const cards = target.zone === "table" ? view.table.map((placement) => placement.card) : view.players.find((player) => player.id === target.playerId)!.domain
     victimId = cards.find((candidate) => candidate.role !== "guard")?.id
@@ -53,19 +54,21 @@ function play(seed: number, count: number): Summary {
   let state = GAME.setup({ players, options: {}, seed })
   for (const { id } of players) state = GAME.apply(state, { type: "readMissions", playerId: id })
 
+  // A turn ends when the zones of the turn are all free again: after its last card, or after the card that empties the hand of the last player
   let plays = 0
+  let turns = 0
   while (!GAME.isOver(state)) {
     state = GAME.apply(state, move(state, rng))
     if (++plays > 500) throw new Error("The game does not end")
+    if (GAME.isOver(state) || GAME.view(state, null).availableZones.length === 3) turns++
   }
 
-  const view = GAME.view(state, null)
-  const results = view.results!
+  const results = GAME.view(state, null).results!
   return {
     plays,
-    turns: view.turnNumber,
+    turns,
     winners: results.winners,
-    families: Object.entries(results.statuses).map(([family, { up, down, status }]) => `${family} ${up}-${down} ${status}`),
+    families: FAMILIES.map((family) => `${family} ${results.statuses[family].up}-${results.statuses[family].down} ${results.statuses[family].status}`),
     players: results.players.map((player) => {
       const families = player.families.map((family) => `${family.family}:${family.weight}:${family.points}`).join(" ")
       const missions = player.missions.map((mission) => `${mission.missionId}:${mission.done ? "done" : "failed"}`).join(" ")

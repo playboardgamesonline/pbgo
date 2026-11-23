@@ -1,34 +1,35 @@
 import type { GameDefinition } from "@pbgo/engine-kit"
-import { applyAction, waitingPlayerIds } from "./actions"
-import { applyDebug, autoPlayFor } from "./debug"
-import { setupGame } from "./setup"
-import type { Action, GameState } from "./types"
-import { type PlayerView, playerView } from "./view"
+import { step } from "./actions"
+import { autoPlayFor, autoPlayStep } from "./autoplay"
+import { debugCommands } from "./debug"
+import { isOver, progress, waitingFor } from "./machine"
+import { MAX_PLAYERS, MIN_PLAYERS, setupGame } from "./setup"
+import { type Action, CLIENT_ACTIONS, type CourtisansEvent, type PlayerView, type State } from "./types"
+import { playerView } from "./view"
 
-/** Game definition for @pbgo/core (@pbgo/engine-kit contract). */
-export const GAME: GameDefinition<GameState, Action, PlayerView> = {
+/** The game for @pbgo/core (the `@pbgo/engine-kit` contract). */
+export const GAME: GameDefinition<State, Action, PlayerView, undefined, CourtisansEvent> = {
   id: "courtisans",
   name: "Courtisans",
-  minPlayers: 2,
-  maxPlayers: 5,
+  minPlayers: MIN_PLAYERS,
+  maxPlayers: MAX_PLAYERS,
   options: {},
-  clientActions: ["readMissions", "playCard"],
-  setup: ({ players, seed }) =>
-    setupGame({
-      players: players.map((p) => ({ id: p.id, nickname: p.nickname })),
-      // without a seed (older servers), setupGame draws one: the game stays deterministic from then on
-      seed,
-    }),
-  apply: applyAction,
-  view: playerView,
-  isOver: (state) => state.phase === "over",
-  // the opening waits for the players who have not read their missions, the banquet for the active player
-  waitingFor: waitingPlayerIds,
-  // absent player: their missions are read for them, or their whole turn is played (up to 3 cards)
+  // The lines of the score that the end screen shows for each player, in this order; their words are `score.<key>` in the game's Sanity
+  scoreLines: ["domain", "missions"],
+  clientActions: CLIENT_ACTIONS,
+  setup: ({ players, seed }) => setupGame({ players, seed }),
+  apply: (state, action) => step(state, action).state,
+  // What each move did, for the platform to keep in the log of the table: the state holds none
+  step,
+  view: (state, playerId) => playerView(state, playerId),
+  isOver,
+  // The cards played out of the cards in play: the platform shows it as how far the game has come
+  progress,
+  // While the missions are read every player who has not read theirs; then the player of the turn; nobody once the game is over
+  waitingFor,
+  // Absent player: their missions are read for them, or their whole turn is played (up to 3 cards)
   autoPlayFor,
-  debug: {
-    turn: (state) => applyDebug(state, "turn"),
-    over: (state) => applyDebug(state, "over"),
-    missions: (state) => applyDebug(state, "missions"),
-  },
+  autoPlayStep,
+  // For development: say that everybody has read their missions, play a turn or the game out
+  debug: debugCommands,
 }

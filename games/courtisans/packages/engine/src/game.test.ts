@@ -1,140 +1,70 @@
-import { isEngineError, playFor, playOn, waitingPlayers } from "@pbgo/engine-kit"
+import { SHARED_ERROR_CODES, stepOf } from "@pbgo/engine-kit"
+import { thrownErrorCodes } from "@pbgo/engine-kit/testing"
 import { describe, expect, it } from "vitest"
 import { GAME } from "./game"
+import { handOfPlayer, layout, newState, players, card } from "./test-utils"
+import { CLIENT_ACTIONS, COURTISANS_ERROR_CODES } from "./types"
 
-const players = [
-  { id: "a", nickname: "Alice" },
-  { id: "b", nickname: "Bob" },
-  { id: "c", nickname: "Chloé" },
-]
+describe("GAME (the @pbgo/engine-kit contract)", () => {
+  it("is the definition of a game of two to five players with no option and two lines of score", () => {
+    expect(GAME.id).toBe("courtisans")
+    expect([GAME.minPlayers, GAME.maxPlayers]).toEqual([2, 5])
+    expect(GAME.options).toEqual({})
+    expect(GAME.scoreLines).toEqual(["domain", "missions"])
+    expect(GAME.clientActions).toEqual(CLIENT_ACTIONS)
+    expect(CLIENT_ACTIONS).toEqual(["readMissions", "playCard"])
+  })
 
-describe("GAME (@pbgo/engine-kit contract)", () => {
-  it("sets up a game from the lobby players and the loaded missions", () => {
-    const state = GAME.setup({ players, options: {}, seed: 42 })
-    expect(state.players.map((j) => [j.id, j.nickname])).toEqual([["a", "Alice"], ["b", "Bob"], ["c", "Chloé"]])
-    expect(state.players.every((j) => j.missions.length === 2)).toBe(true)
+  it("sets up a game from the lobby players: the seats are their ids, in order, and nothing else of them", () => {
+    const state = GAME.setup({ players: players(3), options: {}, seed: 42 })
+    expect(state.seats).toEqual(["ana", "bob", "cleo"])
+    expect(state.missions.every((own) => own.length === 2)).toBe(true)
     expect(GAME.isOver(state)).toBe(false)
   })
 
-  it("is deterministic with a seed", () => {
-    const a = GAME.setup({ players, options: {}, seed: 7 })
-    const b = GAME.setup({ players, options: {}, seed: 7 })
-    expect(a).toEqual(b)
+  it("applies an action: `apply` is the state of `step`", () => {
+    const state = newState(3)
+    const action = { type: "readMissions", playerId: "bob" } as const
+    expect(GAME.apply(state, action)).toEqual(GAME.step!(state, action).state)
+    expect(GAME.apply(state, action).read).toEqual([false, true, false])
   })
 
-  it("applies an action", () => {
-    const state = GAME.setup({ players, options: {}, seed: 1 })
-    const next = GAME.apply(state, { type: "readMissions", playerId: "b" })
-    expect(next.players.find((j) => j.id === "b")!.missionsRead).toBe(true)
+  it("says what a move did, through `stepOf` as the platform asks for it", () => {
+    const state = layout({ players: 2, hands: { ana: [card("hare"), card("stag"), card("carp")], bob: [card("butterfly")] } })
+    const [mine] = handOfPlayer(state, "ana")
+    const played = stepOf(GAME, state, { type: "playCard", playerId: "ana", cardId: mine!, target: { zone: "table", level: "up" } })
+    expect(played.events).toEqual([{ event: { type: "cardPlayed", playerId: "ana", card: { id: mine, family: "hare", role: null }, target: { zone: "table", level: "up" } } }])
   })
 
   it("plays a game to the end with the debug commands", () => {
-    const state = GAME.setup({ players, options: {}, seed: 3 })
-    const over = GAME.debug!.over!(state)
+    const over = GAME.debug!.over!(GAME.setup({ players: players(3), options: {}, seed: 3 }))
     expect(GAME.isOver(over)).toBe(true)
-    expect(GAME.view(over, "a").players).toHaveLength(3)
-  })
-})
-
-describe("GAME.waitingFor", () => {
-  const newGame = (seed = 5) => GAME.setup({ players, options: {}, seed })
-
-  it("waits for everyone to read their missions while the opening lasts", () => {
-    expect(waitingPlayers(GAME, newGame())).toEqual(["a", "b", "c"])
+    expect(GAME.view(over, "ana").players).toHaveLength(3)
+    expect(GAME.view(over, "ana").results?.winners.length).toBeGreaterThan(0)
   })
 
-  it("stops waiting for a player who has read, and leaves the others in seat order", () => {
-    const state = GAME.apply(newGame(), { type: "readMissions", playerId: "b" })
-    expect(waitingPlayers(GAME, state)).toEqual(["a", "c"])
-  })
-
-  it("waits for the active player alone once the banquet has started", () => {
-    const state = GAME.debug!.missions!(newGame())
-    expect(waitingPlayers(GAME, state)).toEqual([state.players[state.activePlayer]!.id])
-  })
-
-  it("waits for nobody once the game is over", () => {
-    expect(waitingPlayers(GAME, GAME.debug!.over!(newGame()))).toEqual([])
-  })
-
-  it("is public: it only holds what the players' flags already show", () => {
-    const state = GAME.apply(newGame(), { type: "readMissions", playerId: "a" })
-    const view = GAME.view(state, "b")
-    expect(view.players.filter((j) => !j.missionsRead).map((j) => j.id)).toEqual(waitingPlayers(GAME, state))
-  })
-})
-
-describe("GAME.autoPlayFor (absent player)", () => {
-  const newGame = (seed = 5) => GAME.setup({ players, options: {}, seed })
-
-  it("reads the missions of one player while the opening lasts, the others are still waited for", () => {
-    const next = playFor(GAME, newGame(), "b")
-    expect(next.phase).toBe("missions")
-    expect(next.players.map((j) => j.missionsRead)).toEqual([false, true, false])
-    expect(waitingPlayers(GAME, next)).toEqual(["a", "c"])
-  })
-
-  it("starts the banquet when the last missions are read", () => {
-    let state = newGame()
-    state = playFor(GAME, state, "a")
-    state = playFor(GAME, state, "c")
-    expect(state.phase).toBe("missions")
-    state = playFor(GAME, state, "b")
-    expect(state.phase).toBe("playing")
-    expect(waitingPlayers(GAME, state)).toEqual([state.players[state.activePlayer]!.id])
-  })
-
-  it("plays the whole turn of the active player once the banquet has started", () => {
-    const state = GAME.debug!.missions!(newGame())
-    const [active] = waitingPlayers(GAME, state)
-    expect(active).toBeDefined()
-    const next = playFor(GAME, state, active!)
-    expect(waitingPlayers(GAME, next)).not.toContain(active)
-    expect(next.turnNumber).toBe(state.turnNumber + 1)
-  })
-
-  it("refuses a player the game is not waiting for", () => {
-    const refused = (fn: () => unknown) => {
-      try {
-        fn()
-      } catch (error) {
-        return isEngineError(error) ? error.code : error
-      }
-      return null
+  it("says how far the game has come: nothing at the start, all of it at the end, more with every card played", () => {
+    let state = GAME.debug!.missions!(newState(4))
+    expect(GAME.progress!(state)).toBe(0)
+    const seen: number[] = []
+    while (!GAME.isOver(state)) {
+      state = GAME.autoPlayFor!(state, GAME.waitingFor!(state)[0]!)
+      seen.push(GAME.progress!(state))
     }
-    const opening = newGame()
-    const read = GAME.apply(opening, { type: "readMissions", playerId: "a" })
-    expect(refused(() => GAME.autoPlayFor!(read, "a"))).toBe("NOT_WAITING")
-    expect(refused(() => playFor(GAME, read, "a"))).toBe("NOT_WAITING")
-    expect(refused(() => GAME.autoPlayFor!(opening, "ghost"))).toBe("NOT_WAITING")
-
-    const banquet = GAME.debug!.missions!(opening)
-    const waiting = waitingPlayers(GAME, banquet)[0]!
-    const other = players.find((j) => j.id !== waiting)!.id
-    expect(refused(() => GAME.autoPlayFor!(banquet, other))).toBe("NOT_WAITING")
-    expect(refused(() => GAME.autoPlayFor!(GAME.debug!.over!(banquet), waiting))).toBe("NOT_WAITING")
-  })
-
-  it("leaves the state it was given untouched", () => {
-    const state = newGame()
-    const before = structuredClone(state)
-    playFor(GAME, state, "c")
-    expect(state).toEqual(before)
-  })
-
-  it("can play a whole table of absent players to the end, opening included", () => {
-    const over = playOn(GAME, newGame(11))
-    expect(GAME.isOver(over)).toBe(true)
-    expect(over.players.every((j) => j.missionsRead)).toBe(true)
+    expect(seen).toEqual([...seen].sort((a, b) => a - b))
+    expect(seen.at(-1)).toBe(100)
+    expect(seen[0]).toBeGreaterThan(0)
   })
 })
 
-describe("GAME.debug.missions (everyone has read)", () => {
-  it("marks every player as ready, which starts the banquet", () => {
-    const state = GAME.setup({ players, options: {}, seed: 2 })
-    expect(state.phase).toBe("missions")
-    const started = GAME.debug!.missions!(state)
-    expect(started.phase).toBe("playing")
-    expect(started.players.every((j) => j.missionsRead)).toBe(true)
+describe("the error codes", () => {
+  it("are listed once, and each is thrown by the engine or is a shared code the engine may throw", () => {
+    expect(new Set(COURTISANS_ERROR_CODES).size).toBe(COURTISANS_ERROR_CODES.length)
+    const { codes, dynamic } = thrownErrorCodes(new URL(".", import.meta.url))
+    expect(dynamic).toEqual([])
+    for (const code of codes.keys()) expect(COURTISANS_ERROR_CODES as readonly string[], `${code} is thrown and not listed`).toContain(code)
+    // the game's own codes are the ones that are not shared: the binding lists them for their messages to be written in Sanity
+    const own = COURTISANS_ERROR_CODES.filter((code) => !(SHARED_ERROR_CODES as readonly string[]).includes(code))
+    expect(own).toEqual(["ZONE_ALREADY_PLAYED", "INVALID_ASSASSINATION"])
   })
 })

@@ -75,7 +75,7 @@ export function winnersOf(s: State): string[] {
 
 ## Objectives
 
-An objective is a goal a player is dealt, written as data and checked against the state of the game. Courtisans' missions are the only objectives in the repo: a `Mission` holds a `Condition`, `evaluateCondition` reads it against the state and `computeResults` turns it into points. The code is `types.ts`, `missions.ts` and `scoring.ts` in `games/courtisans/packages/engine/src` ([Courtisans](../05-examples/02-an-engine-with-setup-data.md)).
+An objective is a goal a player is dealt, written as data and checked against the state of the game. Courtisans' missions are the only objectives in the repo: a `Mission` holds a `Condition`, `evaluateCondition` reads it against the state and `results` turns it into points. The code is `types.ts`, `missions.ts` and `results.ts` in `games/courtisans/packages/engine/src` ([Courtisans](../05-examples/02-an-engine-with-setup-data.md)).
 
 From `games/courtisans/packages/engine/src/types.ts`, the tree: five leaves that read the state, and `and`, `or` and `not` that combine them:
 
@@ -95,7 +95,7 @@ export type Condition =
 - The missions are the engine's own: `MISSIONS` lists the twenty, each with a colour and a `Condition`. A mission is also a Sanity document (`mission`) that holds its text and its picture under the same id, and no rule ([Game data](08-game-data.md)).
 - `setupGame` deals each player a white and a blue mission, drawn with the seeded stream from `MISSIONS`.
 - A player sees their own missions in `me.missions`; `missions` of the other players is `null` until the game is over ([Hidden information](10-views.md#hidden-information)).
-- Nothing is checked while the game goes: `playerView` computes the results when the phase is `over`, and `computeResults` evaluates every mission against that final state.
+- Nothing is checked while the game goes: `playerView` has the results once the game is over, and `results` evaluates every mission against that final state.
 - A mission that holds is worth `MISSION_POINTS`, added to the domain points in `total`. `CourtisansPlayerResult.missions` lists each mission with `done` and its `points`, and the generic `detail` has one `missions` line with their sum.
 
 ## Opening and ending

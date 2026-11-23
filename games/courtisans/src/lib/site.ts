@@ -23,17 +23,5 @@ export const GOOGLE_SITE_VERIFICATION = "NNqyjwU_KDPRURSnEMUynx4l6Vrl_ELFzR99g8d
 
 export const STUDIO_URL = "https://courtisans.sanity.studio"
 
-/** Codes the engine throws and core does not know (core has its own for the common ones). Their messages are written in Sanity (Gamemaster › Copy › Errors). */
-export const ERROR_CODES = [
-  "INVALID_PHASE",
-  "NOT_YOUR_TURN",
-  "UNKNOWN_CARD",
-  "ZONE_ALREADY_PLAYED",
-  "INVALID_TARGET",
-  "INVALID_ASSASSINATION",
-  "INVALID_PLAYERS",
-  "UNKNOWN_PLAYER",
-  "NOT_READY",
-  "NOT_ENOUGH_PLAYERS",
-  "GAME_FULL",
-]
+/** The codes the engine refuses with that no other game shares (the shared ones are worded by the platform). Their messages are written in Sanity (Gamemaster › Copy › Errors). */
+export const ERROR_CODES = ["ZONE_ALREADY_PLAYED", "INVALID_ASSASSINATION"]

@@ -4,17 +4,17 @@ A phase is where the game is: it decides which actions are accepted and whom the
 
 | Example | How a phase is stored | Where |
 | --- | --- | --- |
-| Courtisans | `phase`, a string (`Phase`): `missions`, `playing` or `over` | `games/courtisans/packages/engine/src`: `types.ts`, `actions.ts` |
+| Courtisans | Not stored: `phaseOf` reads it from the state, `missions` while a player has not read theirs, `playing`, then `over` once no hand holds a card | `games/courtisans/packages/engine/src`: `machine.ts` |
 | The template's demo | `phase`, a string: `bidding`, `playing` or `over` | `template/packages/engine/src/demo`: `types.ts`, `game.ts` |
 | Exploding Kittens | `phase`, a union tagged by `kind`, each member with its own data (`Phase`, `PhaseOf`) | `games/exploding-kittens/packages/engine/src`: `types.ts`, `machine.ts`, `window.ts` |
 | Flip 7 | `stack`, a list of frames (`Frame`, `FrameOf`) that `run` plays until one needs a player | `games/flip-7/packages/engine/src`: `types.ts`, `machine.ts`, `round.ts` |
 
 ## Keeping a phase
 
-- A string is enough when a phase carries no data of its own: the bids of the template's `bidding` are in `bids`, and the missions of Courtisans in a `missionsRead` flag for each player.
+- A string is enough when a phase carries no data of its own: the bids of the template's `bidding` are in `bids`, and the missions of Courtisans in a `read` flag for each player, from which its phase is read.
 - A tagged union gives each phase its own data, and the type narrows with it: `reaction` holds `pending`, `nopes` and `passed`, `give` holds `from` and `to`, and `PhaseOf<"reaction">` names one member for the code that works on it.
 - A stack suits steps inside steps: a Flip Three pushes a `flip` frame, and a Freeze flipped during it waits in `held` and becomes a `target` frame once the flips are done. Only the last frame is worked on, and `giveCard` throws a `RangeError` for any other.
-- The state never sits between two phases: the action that ends a phase also starts the next, so `apply` returns a state that waits for a player or is over ([Simultaneous steps](03-turns.md#simultaneous-steps)). The last `readMissions` of Courtisans sets `playing`, the last `pass` of a Nope window runs `closeWindow`, and every action of Flip 7 has `run` play the round until it needs a player.
+- The state never sits between two phases: the action that ends a phase also starts the next, so `apply` returns a state that waits for a player or is over ([Simultaneous steps](03-turns.md#simultaneous-steps)). The last `readMissions` of Courtisans starts the banquet (its phase is read from the flags), the last `pass` of a Nope window runs `closeWindow`, and every action of Flip 7 has `run` play the round until it needs a player.
 - `waitingFor` and `autoPlayFor` read the phase: Exploding Kittens switches on `phase.kind`, Flip 7 reads the kind of the last frame ([`waitingFor`](03-turns.md#waitingfor), [Absent players](03-turns.md#absent-players)).
 - An action sent in a phase that does not take it is refused with an `EngineError`: `INVALID_PHASE` in Courtisans and the template, `INVALID_ACTION` in Exploding Kittens and Flip 7. The shared vocabulary keeps `INVALID_ACTION` for an action that is wrong anywhere and `INVALID_PHASE` for the right action at the wrong moment ([The shared codes](05-actions.md#the-shared-codes)).
 - `over` is the last phase of Courtisans, the template and Exploding Kittens. Flip 7 has no such frame: `isOver` reads the scores of the finished rounds ([Rounds](06-victory.md#rounds)), and the `publicPhase` of its view says `over`.
@@ -39,7 +39,7 @@ export function waitingFor(s: State): string[] {
 
 ## The phase in the view
 
-- Core does not read the phase of a view: the end of the game is `PublicGame.status`, which it sets from `isOver`, so a view names its phase as the board needs ([What core reads from a view](10-views.md#what-core-reads-from-a-view)). Courtisans and the template send the phase string of their state.
+- Core does not read the phase of a view: the end of the game is `PublicGame.status`, which it sets from `isOver`, so a view names its phase as the board needs ([What core reads from a view](10-views.md#what-core-reads-from-a-view)). The template sends the phase string of its state, and Courtisans the one it reads from its own.
 - Exploding Kittens and Flip 7 send a `PublicPhase` instead, an object with a `kind` that holds what a viewer may see of the phase. Flip 7's `PublicPhase` has `turn`, `target`, `between` and `over`, and none of the frames the round plays by itself.
 - The board draws from the phase of the view: the template shows its `BidPanel` while `phase` is `bidding`, and Courtisans re-words the takeover pill (`labels` of `StalledTurn`) while it is `missions`. What a board shows at the opening and at the end is in [Opening and ending](06-victory.md#opening-and-ending).
 

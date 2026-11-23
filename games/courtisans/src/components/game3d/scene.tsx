@@ -67,7 +67,7 @@ import { type Textures, useTextures } from "./textures"
 type Placed = { card: VisibleCard; pose: Pose; playerId?: string }
 
 function arrange(view: PlayerView, places: Map<string, Seat>, unfolded: string | null = null, ending: EndingState | null = null) {
-  const map = new Map<string, Placed>()
+  const map = new Map<number, Placed>()
   const ranks = new Map<string, number>()
   const zones = new Map<string, DomainZone>()
   for (const { card, level } of view.table) {
@@ -736,7 +736,7 @@ function World({
   settings: OpeningSettings
 }) {
   useEffect(() => onReady(), [onReady])
-  const { view, catalog, nickname, color, avatarUrl } = useCourtisans()
+  const { view, catalog, log, nickname, color, avatarUrl } = useCourtisans()
   const seat = useSeatTheme()
   const { hostIcon } = useSkin()
   const it = useInteraction()
@@ -783,17 +783,20 @@ function World({
   }
 
   const [prevView, setPrevView] = useState(view)
-  const [origins, setOrigins] = useState<Map<string, Pose>>(new Map())
+  // What is new in the log is what has a version after the last one drawn: the log is the platform's, at most the last lines of it
+  const [prevV, setPrevV] = useState(() => log.at(-1)?.v ?? 0)
+  const [origins, setOrigins] = useState<Map<number, Pose>>(new Map())
   const [transients, setTransients] = useState<Transient[]>([])
 
-  const [cameraPoses] = useState(() => new Map<string, Pose>())
+  const [cameraPoses] = useState(() => new Map<string | number, Pose>())
 
   if (prevView !== view) {
-    const newOnes = new Map<string, Pose>()
+    const newOnes = new Map<number, Pose>()
     const added: Transient[] = []
-    if (view.log.length >= prevView.log.length) {
+    const latest = log.at(-1)?.v ?? 0
+    if (latest >= prevV) {
       const before = arrange(prevView, seats(prevView)).map
-      view.log.slice(prevView.log.length).forEach((e, n) => {
+      log.filter((line) => line.v > prevV).forEach(({ v, event: e }, n) => {
         if (e.type === "cardPlayed" && e.playerId !== meId) {
           const zone = zones.get(e.playerId)
           if (zone) newOnes.set(e.card.id, seatPose(zone))
@@ -811,7 +814,7 @@ function World({
               scaleFactor: 0.2,
             }
             added.push({
-              id: `x-${prevView.log.length + n}`,
+              id: `x-${v}-${n}`,
               card: p.card,
               origin: p.pose,
               target,
@@ -823,7 +826,7 @@ function World({
           if (zone)
             for (let i = 0; i < e.count; i++)
               added.push({
-                id: `p-${prevView.log.length + n}-${i}`,
+                id: `p-${v}-${n}-${i}`,
                 card: null,
                 origin: { ...deckTopPose(prevView.deckCount - i), delay: 0.35 + i * 0.28 },
                 target: underTablePose(zone),
@@ -835,6 +838,7 @@ function World({
       for (const c of hand)
         if (!beforeHand.has(c.id)) newOnes.set(c.id, { ...deckTopPose(prevView.deckCount - rank), delay: 0.35 + rank++ * 0.28 })
     }
+    setPrevV(latest)
     setOrigins(newOnes)
     if (added.length) setTransients((t) => [...t, ...added])
     setPrevView(view)
@@ -842,7 +846,7 @@ function World({
 
   const [prevStep, setPrevStep] = useState<OpeningStep>(openingStep)
   const flow = openingStep === "unroll"
-  const [deal, setDeal] = useState<Map<string, Pose>>(new Map())
+  const [deal, setDeal] = useState<Map<number, Pose>>(new Map())
   const [missionOrigins, setMissionOrigins] = useState<Map<string, Pose>>(new Map())
   const cameraOuverture = useThree((s) => s.camera)
   if (prevStep !== openingStep) {
@@ -850,7 +854,7 @@ function World({
     if (openingStep === "deal") {
       const n = view.players.length
       const total = n * 3
-      const dist = new Map<string, Pose>()
+      const dist = new Map<number, Pose>()
       const added: Transient[] = []
       for (let r = 0; r < 3; r++)
         view.players.forEach((j, idx) => {
@@ -973,7 +977,7 @@ function World({
     { collapsed: true, order: 5 },
     debugTab("SCENE"),
   )
-  const [hover, setHover] = useState<string | null>(null)
+  const [hover, setHover] = useState<string | number | null>(null)
   const [prevFocus, setPrevFocus] = useState(missionFocus)
   const [focusReturn, setFocusReturn] = useState<string | null>(null)
   if (prevFocus !== missionFocus) {
@@ -991,7 +995,7 @@ function World({
   useEffect(() => {
     if (unfolded) playSound("slide", { volume: 0.5 })
   }, [unfolded])
-  const cameraPose = (id: string) => {
+  const cameraPose = (id: string | number) => {
     let p = cameraPoses.get(id)
     if (!p) {
       p = { position: new Vector3(), quaternion: new Quaternion(), scaleFactor: 1 }

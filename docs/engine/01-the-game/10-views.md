@@ -45,7 +45,7 @@ A card that clients can see face down, in a hand or in a pile is shown under an 
 - A card that goes back into hiding after it was seen gets a new id from `reissueId`, so nobody can follow it from what they saw. Put `fresh` wherever the card is after the move: the old id must not stay anywhere in the state.
 - The ids' stream is a side stream ([Carrying a stream](09-state.md#carrying-a-stream)): keep its position in the state when the game reissues.
 - `issueIds` draws one number per id, and another when an id is taken, so the same stream issues the same ids. A retired id is not remembered: by chance it can be issued again.
-- A game that shows its ids in a fixed format asks for a smaller `space` (`assignOpaqueIds` of Courtisans).
+- A game that shows its ids in a fixed format asks for a smaller `space`.
 
 From `games/exploding-kittens/packages/engine/src/machine.ts`, the helper of a step that sends a card back into hiding:
 

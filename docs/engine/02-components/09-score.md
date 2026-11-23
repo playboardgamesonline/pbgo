@@ -8,7 +8,7 @@ The score is the points a board shows while a game goes on. The engine derives e
 | --- | --- | --- | --- |
 | Flip 7 | `rounds[round][seat]`, the points of each finished round | `totalsOf` with `sumRounds`; `roundScore` from `lineScore` | For each seat `score`, what the cards in front of it are worth now, and `total`, what it has banked; `rounds` and `target` |
 | The template | `pointsPerRound` on each player | `points`, their sum, built in `view` | `points` and `pointsPerRound` for each player, and `standings` |
-| Courtisans | No points | `computeResults`, from `computeStatuses`, `domainPoints` and the missions | None: `results` is `null` until `phase` is `"over"` |
+| Courtisans | No points | `results`, from `computeStatuses`, `domainPoints` and the missions | None: `results` is `null` until `phase` is `"over"` |
 | Exploding Kittens | `out`, the order the players left | `results`, whose `total` counts the opponents a player outlasted | No points: `out`, and `alive` for each player |
 
 ## Keeping the score
