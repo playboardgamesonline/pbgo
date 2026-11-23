@@ -14,19 +14,19 @@ export const SEAT_SETTINGS = {
   viewerReachZ: 1.18,
   /** The height of the name's lettering, and how far toward the middle of the table it stands from the plate's centre */
   nameHeight: 0.48,
-  nameLift: 0.25,
+  nameLift: 0.22,
   /** The height of the info line's lettering (the score, then the status), and how far toward the cards it stands from the plate's centre */
-  lineHeight: 0.4,
-  lineDrop: 0.4,
+  lineHeight: 0.34,
+  lineDrop: 0.34,
   /** The widest a name may be: a longer one (twelve wide capitals) shrinks to this width, with its proportions, instead of reaching the plate of the next seat. Twelve letters of the platform's font make about 3.1, so a name that is not wide is never touched */
   nameRoom: 3.8,
   /** The avatar's diameter and its gap to the first or the last letter */
-  avatarSize: 0.56,
-  avatarGap: 0.18,
+  avatarSize: 0.48,
+  avatarGap: 0.16,
   /** The crown's size, and how far its foot stands from the avatar's centre: toward the right, and toward the middle of the table */
-  crownSize: 0.6,
-  crownRight: 0.2,
-  crownBack: 0.24,
+  crownSize: 0.52,
+  crownRight: 0.17,
+  crownBack: 0.21,
   /** The clear space between the edge of a player's cards that faces the middle and the foot of their plate, the bottom of its info line: how far beyond the cards the plate stands */
   plateGap: 0.25,
   /** How opaque the plate of a player who is away stays */
@@ -92,6 +92,12 @@ export type Plate = {
   crownX: number
   crownZ: number
 }
+
+/**
+ * How far to the right of the plate's centre the middle of the name stands, so that the avatar and the name, side by side, are one block centred on the plate, over the info line: half of what the avatar takes, its diameter and its gap to the first
+ * letter, whatever the width of the name.
+ */
+export const nameShift = (settings: SeatSettings = SEAT_SETTINGS) => (settings.avatarGap + settings.avatarSize) / 2
 
 /** The pieces of the plate whose centre stands at (`x`, `z`), each where the settings put it from the centre */
 function plateAround(x: number, z: number, S: SeatSettings): Plate {

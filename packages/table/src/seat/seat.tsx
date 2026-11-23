@@ -12,7 +12,7 @@ import { useSettingsVersion } from "../debug/settings"
 import { DEBUG_VIEW } from "../debug/view"
 import type { Spot } from "../layout"
 import { TurnCrown } from "./crown"
-import { plateAbove, plateOf, SEAT_SETTINGS, type SeatSettings } from "./placement"
+import { nameShift, plateAbove, plateOf, SEAT_SETTINGS, type SeatSettings } from "./placement"
 import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import { seatStateOf } from "./state"
 import { TableText, type TextStyle } from "./table-text"
@@ -109,8 +109,8 @@ export function Seat({
   const opacity = away ? S.awayOpacity : 1
   const name: TextStyle = { color, shadow: "rgba(0,0,0,0.6)|12|4", weight: PLATE_WEIGHT, ...nameStyle }
   const info = [line, status].filter((part): part is string => !!part).join("  ·  ")
-  // The avatar and the name are one block centred on the plate: the name's lettering stands half the avatar's width to the right of the centre, so that the avatar, at its left edge, brings the block back to the middle
-  const shift = -plate.avatarX / 2
+  // The avatar and the name are one block centred on the plate, over the info line: the name's lettering stands half of what the avatar takes to the right of the centre, so that the avatar, at its left edge, brings the block back to the middle
+  const shift = nameShift(S)
   return (
     <group>
       <group position={[frame.x, 0, frame.z]} rotation-y={frame.yaw ?? 0}>

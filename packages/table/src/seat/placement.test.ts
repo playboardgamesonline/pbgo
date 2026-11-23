@@ -1,24 +1,25 @@
 import { describe, expect, it } from "vitest"
 import { boxesOverlap, boxOfPoses, boxOfRect, centreOf } from "../box"
 import { row, seats } from "../layout"
-import { PLATE_LETTERS, plateAbove, plateBoxOf, plateOf, plateWidth, SEAT_SETTINGS, scaledSeat } from "./placement"
+import { nameShift, PLATE_LETTERS, plateAbove, plateBoxOf, plateOf, plateWidth, SEAT_SETTINGS, scaledSeat } from "./placement"
 
-// The places the template's scene wrote inline before the plate moved here (`scene.tsx` and its `AVATAR` constant): the plate of a seat placed from its spot has not moved since, but for the info line, which stands a little lower, and the avatar, which is always to the left.
-const AVATAR = { size: 0.56, gap: 0.18 }
-function legacy(spot: { x: number; z: number }, viewer: boolean) {
-  const pos: [number, number, number] = [spot.x * (viewer ? 1 : 1.32), 0.02, spot.z * (viewer ? 1.18 : 1.32)]
-  return { x: pos[0], z: pos[2], nameZ: pos[2] - 0.25, avatarX: -(AVATAR.gap + AVATAR.size / 2) }
+// Where each piece of the plate of a seat placed from its spot stands, worked out again from the settings: the spot of the ring stretched by the reach factors (the viewer's level with it), the name lifted, the avatar before the first letter. The numbers the template's scene
+// wrote inline before the plate moved here are not pinned: the sizes were changed on purpose since, the way the pieces stand from the settings was not.
+function expected(spot: { x: number; z: number }, viewer: boolean) {
+  const S = SEAT_SETTINGS
+  const pos: [number, number] = [spot.x * (viewer ? S.viewerReachX : S.reachX), spot.z * (viewer ? S.viewerReachZ : S.reachZ)]
+  return { x: pos[0], z: pos[1], nameZ: pos[1] - S.nameLift, avatarX: -(S.avatarGap + S.avatarSize / 2) }
 }
 
 const RING = { radiusX: 7.4, radiusZ: 4.4 }
 const CARD = { width: 1.2, height: 1.8 }
 
 describe("plateOf", () => {
-  it("keeps every piece where the template put it, for every seat of every table of two to eight", () => {
+  it("puts every piece where the settings say, for every seat of every table of two to eight", () => {
     for (let count = 2; count <= 8; count++) {
       for (let me = -1; me < count; me++) {
         seats(count, { ...RING, me: me < 0 ? null : me }).forEach((spot, i) => {
-          expect(plateOf(spot, i === me)).toMatchObject(legacy(spot, i === me))
+          expect(plateOf(spot, i === me)).toMatchObject(expected(spot, i === me))
         })
       }
     }
@@ -168,5 +169,33 @@ describe("scaledSeat", () => {
     expect(small.maxZ - small.minZ).toBeCloseTo((full.maxZ - full.minZ) / 2, 10)
     // its foot stands nearer the cards by the gap it scaled
     expect(cards.minZ - small.minZ).toBeLessThan(cards.minZ - full.minZ)
+  })
+})
+
+describe("nameShift", () => {
+  // the avatar stands to the left of the name, `avatarX` from its left edge: its footprint is the diameter and the gap
+  const blockCentre = (width: number, settings = SEAT_SETTINGS) => {
+    const plate = plateOf({ x: 3, z: -2 }, false, settings)
+    const left = plate.x + nameShift(settings) - width / 2
+    const avatarLeft = left + plate.avatarX - settings.avatarSize / 2
+    return { centre: (avatarLeft + (left + width)) / 2, plate }
+  }
+
+  it("centres the avatar and the name, side by side, on the plate: over the info line", () => {
+    for (const width of [0.4, 1.3, 2.4, 3.1, 3.8]) {
+      const { centre, plate } = blockCentre(width)
+      expect(centre, `a name ${width} wide`).toBeCloseTo(plate.x, 10)
+    }
+  })
+
+  it("does it for a plate of another size", () => {
+    for (const settings of [scaledSeat(0.7), scaledSeat(1.3)]) {
+      const { centre, plate } = blockCentre(2.2, settings)
+      expect(centre).toBeCloseTo(plate.x, 10)
+    }
+  })
+
+  it("is half of what the avatar takes: its diameter and its gap", () => {
+    expect(nameShift()).toBeCloseTo((SEAT_SETTINGS.avatarSize + SEAT_SETTINGS.avatarGap) / 2, 10)
   })
 })
