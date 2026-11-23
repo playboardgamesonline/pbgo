@@ -24,7 +24,6 @@ import {
   fan,
   FloorButton,
   frameBoxOfPoses,
-  grainTexture,
   grid,
   gridCells,
   HandShadow,
@@ -71,10 +70,10 @@ import {
   Track,
   TrackMarker,
   type Touch,
+  type SurfaceProps,
   Zone,
 } from "@pbgo/table"
-import { useEffect, useMemo, useState } from "react"
-import { AdditiveBlending, CanvasTexture, SRGBColorSpace } from "three"
+import { useMemo, useState } from "react"
 import { BAG_START, BET_MOST, BID_FACES, FIELD_LENGTH, type LayoutName, PLAY_CLOCK, PLAY_DECK, PLAY_LIMITS, PLAY_NUMBERS, PLAY_SHEET, PLAY_TILES, PLAY_SKETCH, type PlayActions, type PlayCard, type PlayState, type PlayThing, PLAY_MAP, PLAY_NAMES, PLAY_SEAT_COLORS, PLAY_TABLE, SKETCH_BRUSHES } from "../defaults"
 import { cssColor, pageFont } from "../color"
 import { cellAt, cellCentres, coordsOf, floorPads, heldFrame, LOOP_CELLS, PILE_PLACES_AT, planOf, ringOf, ringRadius } from "../play/geometry"
@@ -157,30 +156,10 @@ const CORNER_HAND = { ...SCREEN_HAND_SETTINGS, room: 0.45 }
 /** Where the bin lies when the hand is held at the bottom left of the screen: in the bottom right of the table, the hand's counterpart. */
 const CORNER_BIN = { x: 6.8, z: 4.8 }
 
-/** The felt of the card scenes: Flip 7's table colour with the kit's grain, and the pool of light in the middle added to it (additive, so the grain shows through). One texture of each, made once and let go with the scene */
+/** The table of the card scenes: Flip 7's table colour with a faint grain, and its lighter colour as a pool of light in the middle, which the table adds to the colour so that the grain shows through (the kit's `layers` and `light`: the playground paints none). */
 const GRAIN_TILE = 2
-const MAT_SIZE = 44
-function useFelt() {
-  const grain = useMemo(() => grainTexture({ base: PLAY_TABLE.surfaceDark, strength: 0.3 }), [])
-  const mat = useMemo(() => {
-    const canvas = document.createElement("canvas")
-    canvas.width = canvas.height = 256
-    const g = canvas.getContext("2d")!
-    const channel = (hex: string, at: number) => parseInt(hex.slice(1 + at * 2, 3 + at * 2), 16)
-    const [r, gr, b] = [0, 1, 2].map((i) => Math.max(0, channel(PLAY_TABLE.surface, i) - channel(PLAY_TABLE.surfaceDark, i)))
-    const gradient = g.createRadialGradient(128, 128, 0, 128, 128, 128)
-    gradient.addColorStop(0, `rgb(${r},${gr},${b})`)
-    gradient.addColorStop(0.3, `rgb(${r},${gr},${b})`)
-    gradient.addColorStop(1, "rgb(0,0,0)")
-    g.fillStyle = gradient
-    g.fillRect(0, 0, 256, 256)
-    const texture = new CanvasTexture(canvas)
-    texture.colorSpace = SRGBColorSpace
-    return texture
-  }, [])
-  useEffect(() => () => (grain.dispose(), mat.dispose()), [grain, mat])
-  return { grain, mat }
-}
+const POOL_RADIUS = 22
+const TEAL_SURFACE: SurfaceProps = { color: PLAY_TABLE.surfaceDark, layers: [{ kind: "grain", strength: 0.3 }], tile: GRAIN_TILE, light: { center: PLAY_TABLE.surface, radius: POOL_RADIUS } }
 
 const topOfStack = (count: number) => ({ x: STACK_AT.x, z: STACK_AT.z, y: count * pieceModel("disc").height * STACK_SIZE })
 
@@ -188,14 +167,12 @@ const zoneOf = (cell: number) => `cell:${cell}`
 
 export function PlaygroundScene({ state, actions }: { state: PlayState; actions: PlayActions }) {
   const colors = palette()
-  const felt = useFelt()
   const font = pageFont()
   const cardBack = back()
   const paints = [colors.marks[0], colors.marks[1], colors.marks[2], colors.ivory, colors.muted, colors.navy]
   const { things, selected, parts } = state
   // The card scenes (a ring of seats) are on Flip 7's teal; the others keep the specimens' felt
   const teal = parts.seats || parts.floor
-  const tealSurface = useMemo(() => ({ color: PLAY_TABLE.surfaceDark, map: felt.grain, tile: GRAIN_TILE }), [felt.grain])
   const tiles = useMemo(() => view(state.tiles.laid, BOX, state.tiles.index, state.tiles.spin, PLAY_TILES.table), [state.tiles])
   const { shape, centre } = state.board
   const plan = useMemo(() => planOf({ shape, centre }), [shape, centre])
@@ -317,13 +294,7 @@ export function PlaygroundScene({ state, actions }: { state: PlayState; actions:
   )
 
   return (
-    <Stage id="scene-playground" camera={camera(state)} playIntro={false} surface={teal ? tealSurface : undefined}>
-      {teal && (
-        <mesh rotation-x={-Math.PI / 2} position-y={0.001} renderOrder={-1} raycast={() => null}>
-          <planeGeometry args={[MAT_SIZE, MAT_SIZE]} />
-          <meshBasicMaterial map={felt.mat} blending={AdditiveBlending} transparent toneMapped={false} depthWrite={false} />
-        </mesh>
-      )}
+    <Stage id="scene-playground" camera={camera(state)} playIntro={false} surface={teal ? TEAL_SURFACE : undefined}>
       {/* What the visitor moves */}
       {things.map((thing) => {
         const chosen = selected === thing.id
