@@ -1,6 +1,6 @@
 import { type Fit, PLATFORM_HUD, type Rect, standingDistance, type Viewport, windowRectOf } from "@pbgo/table"
 import { describe, expect, it } from "vitest"
-import { CAMERA, cameraFor, fitFor, overlays } from "./camera"
+import { CAMERA, cameraFor, fitFor } from "./camera"
 import { tableQuads } from "./layout"
 
 const PLAYERS = [2, 3, 4, 5, 6, 7, 8]
@@ -77,17 +77,6 @@ describe("the camera fitted to a window", () => {
         expect(unit, label).toBeGreaterThanOrEqual(30 - 1e-6)
       }
     }
-  })
-
-  it("lists the message box at the foot of the window with the boxes of the kit, which leave it out", () => {
-    const viewport = { width: 1280, height: 800 }
-    const boxes = overlays(viewport, 4)
-    expect(boxes).toHaveLength(3)
-    const chat = boxes.at(-1)!
-    expect(chat).toMatchObject({ right: viewport.width, bottom: viewport.height })
-    // 352 by 44 pixels, with the air kept round the boxes
-    expect(viewport.width - chat.left).toBeGreaterThan(352)
-    expect(viewport.height - chat.top).toBeGreaterThan(44)
   })
 
   it("does as much for a spectator, whose seats are spread round the table with none in front (there is no spectator of a table on a platform that seats everybody, so a full table on a tablet held across, the one corner that does not fit, is left out)", () => {

@@ -21,16 +21,19 @@ export type Quad = readonly Ground[]
 export const PLATFORM_HUD = {
   ticker: { left: 24, top: 20, width: 320, height: 300 },
   column: { right: 24, width: 240, top: 108, row: 40, padding: 27 },
+  /** The message box at the bottom right, the form of the chat of the table: 352 wide and 42 high, 20 from the right and from the bottom (the messages that come up over it, and the box when the social panel is open and it steps aside, are not kept clear of) */
+  chat: { right: 20, width: 352, bottom: 20, height: 42 },
   /** The air kept round those boxes, and round the window */
   gap: 12,
 }
 
-/** The boxes of the platform over a window, for a table of `players` players: what `FitOptions.avoid` is for */
-export function hudBoxes({ width }: Viewport, players: number): Rect[] {
-  const { ticker, column, gap } = PLATFORM_HUD
+/** The boxes of the platform over a window, for a table of `players` players: the log of the turns, the list of the players and the message box. What `FitOptions.avoid` is for */
+export function hudBoxes({ width, height }: Viewport, players: number): Rect[] {
+  const { ticker, column, chat, gap } = PLATFORM_HUD
   return [
     { left: 0, top: 0, right: ticker.left + ticker.width + gap, bottom: ticker.top + ticker.height + gap },
     { left: width - column.right - column.width - gap, top: 0, right: width, bottom: column.top + column.row * players + column.padding + gap },
+    { left: width - chat.right - chat.width - gap, top: height - chat.bottom - chat.height - gap, right: width, bottom: height },
   ]
 }
 

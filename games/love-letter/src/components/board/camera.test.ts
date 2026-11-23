@@ -116,8 +116,8 @@ describe("the camera fitted to a window", () => {
     expect(Math.abs(middle.y - viewport.height / 2)).toBeLessThan(0.5)
   })
 
-  it("knows the boxes of the platform: the same ones for every game", () => {
-    expect(hudBoxes({ width: 1280, height: 800 }, 5)).toHaveLength(2)
+  it("knows the boxes of the platform: the log, the players and the message box, the same ones for every game", () => {
+    expect(hudBoxes({ width: 1280, height: 800 }, 5)).toHaveLength(3)
   })
 
   it("does the same for the same window every time", () => {
