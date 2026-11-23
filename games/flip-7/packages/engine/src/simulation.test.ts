@@ -1,11 +1,12 @@
 import { isDeepStrictEqual } from "node:util"
 import { type Rng, createRng, isEngineError, nextSeat, playFor, waitingPlayers } from "@pbgo/engine-kit"
+import { deepFreeze, reorderKeys } from "@pbgo/engine-kit/testing"
 import { beforeAll, describe, expect, it } from "vitest"
 import { step } from "./actions"
 import { autoPlay } from "./autoplay"
 import { GAME } from "./game"
 import { close, open } from "./machine"
-import { newState, deepFreeze, problems, randomAction, reorderKeys, seedOf, titles, viewOf } from "./test-utils"
+import { newState, problems, randomAction, seedOf, titles, viewOf } from "./test-utils"
 import { type Action, CLIENT_ACTIONS, FLIP7_ERROR_CODES, type Flip7Event, type State } from "./types"
 
 /**
