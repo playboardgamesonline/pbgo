@@ -15,14 +15,18 @@ import {
   domainBox,
   handBox,
   heldLayout,
+  hotspotOf,
+  laneArea,
   MAT_D,
   MAT_W,
   MISSION_H,
   MISSION_PILE,
   MISSION_W,
+  NO_ASSASSINATION_PAD,
   type Seat,
   seatBox,
   seats,
+  STEP,
   tablePose,
 } from "./layout"
 
@@ -234,3 +238,65 @@ describe("the domain", () => {
   })
 })
 
+
+describe("the lanes and the button of the Queen's table", () => {
+  const COLUMNS = ["butterfly", "toad", "nightingale", "queen", "hare", "stag", "carp"] as const
+  const pad = rectangle(NO_ASSASSINATION_PAD.at.x, NO_ASSASSINATION_PAD.at.z, NO_ASSASSINATION_PAD.width, NO_ASSASSINATION_PAD.depth)
+  const areaOf = (a: { at: { x: number; z: number; yaw: number }; width: number; depth: number }) => rectangle(a.at.x, a.at.z, a.width, a.depth, a.at.yaw)
+
+  it("are pressed over the cards that lie in them and over no seat, whatever the table", () => {
+    for (const { label, seats: places } of everyTable()) {
+      for (const [id, seat] of places) {
+        const area = areaOf(hotspotOf(seat, seat.maxWidth))
+        for (const column of COLUMNS) {
+          for (const light of [true, false]) {
+            const lane = areaOf(laneArea(column, light, STEP * 0.96))
+            expect(polygonsOverlap(lane, area), `${label}: the ${light ? "light" : "disgrace"} lane of ${column} and the area of ${id}`).toBe(false)
+            expect(polygonsOverlap(lane, shapesOf(seat).plate), `${label}: the lane of ${column} and the plate of ${id}`).toBe(false)
+          }
+        }
+      }
+    }
+  })
+
+  it("start at the edge of the mat and run away from it", () => {
+    for (const column of COLUMNS) {
+      const light = laneArea(column, true, STEP)
+      const disgrace = laneArea(column, false, STEP)
+      expect(light.at.x).toBeCloseTo(columnX(column), 6)
+      // the lane's area starts at the mat's edge: its middle is half its depth beyond it
+      expect(light.at.z + light.depth / 2).toBeCloseTo(-MAT_D / 2, 6)
+      expect(disgrace.at.z - disgrace.depth / 2).toBeCloseTo(MAT_D / 2, 6)
+    }
+  })
+
+  it("leaves the button of the assassin clear of every seat, lane, pile and the mat, at every table", () => {
+    for (const { label, seats: places } of everyTable()) {
+      for (const [id, seat] of places) {
+        const { domain, plate, hand } = shapesOf(seat)
+        expect(polygonsOverlap(pad, domain), `${label}: the button and the domain of ${id}`).toBe(false)
+        expect(polygonsOverlap(pad, plate), `${label}: the button and the plate of ${id}`).toBe(false)
+        if (hand) expect(polygonsOverlap(pad, hand), `${label}: the button and the hand of ${id}`).toBe(false)
+        expect(polygonsOverlap(pad, areaOf(hotspotOf(seat, seat.maxWidth))), `${label}: the button and the area of ${id}`).toBe(false)
+      }
+    }
+    for (const column of COLUMNS) {
+      for (const light of [true, false]) expect(polygonsOverlap(pad, areaOf(laneArea(column, light, STEP * 0.96))), `the button and the ${light ? "light" : "disgrace"} lane of ${column}`).toBe(false)
+    }
+    for (const [what, shape] of [["the mat", MAT], ["the draw pile", DRAW], ["the missions", MISSIONS]] as const) expect(polygonsOverlap(pad, shape), `the button and ${what}`).toBe(false)
+  })
+
+  it("stays in the picture at every window", () => {
+    for (const aspect of [1.33, 1.6, 1.78, 2.4]) {
+      const camera = new PerspectiveCamera(CAMERA.fov, aspect, 0.1, 200)
+      placeCamera(camera, CAMERA, { distanceScale: aspectScale(aspect) })
+      camera.updateProjectionMatrix()
+      camera.updateMatrixWorld()
+      for (const point of pad) {
+        const shown = new Vector3(point.x, 0, point.z).project(camera)
+        expect(Math.abs(shown.x), `at ${aspect}`).toBeLessThan(0.99)
+        expect(Math.abs(shown.y), `at ${aspect}`).toBeLessThan(0.99)
+      }
+    }
+  })
+})

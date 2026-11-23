@@ -27,12 +27,30 @@ export type Column = Family | "queen"
 
 export const columnX = (column: Column) => -MAT_W / 2 + MARGIN + STEP * (MAT_ORDER.indexOf(column) + 0.5)
 
+/** The families that have a column on the mat, left to right */
+export const TABLE_FAMILIES = MAT_ORDER.filter((c): c is Family => c !== "queen")
+
 export function tablePose(column: Column, level: Level, rank: number, id?: number): Pose {
   const edge = MAT_D / 2 + CARD_H / 2 + rank * OFFSET
   return onTable(columnX(column), level === "up" ? -edge : edge, { y: RESTING_HEIGHT + rank * LAYOUT_SETTINGS.pileSpacing, lean: id === undefined ? undefined : String(id) })
 }
 
 export const columnOf = (card: VisibleCard): Column => card.family ?? "queen"
+
+/** Where a lane of the Queen's table lies: the bright end of its band, on the edge of the mat, and the way it runs from there, away from the mat: the light above it, the disgrace below it */
+export function laneFrame(column: Column, light: boolean): Required<Spot> {
+  return { x: columnX(column), z: light ? -MAT_D / 2 : MAT_D / 2, yaw: light ? 0 : Math.PI }
+}
+
+/** How far a lane is pressed from the edge of the mat, as a share of a card's height: where the cards of the Queen's table lie, and short of the plates of the seats, which a press on a plate belongs to */
+export const LANE_REACH = 1.05
+
+/** The area that takes the press of a lane, of the width of its band: from the edge of the mat outward, over the cards that lie there */
+export function laneArea(column: Column, light: boolean, width: number): { at: Required<Spot>; width: number; depth: number } {
+  const frame = laneFrame(column, light)
+  const depth = CARD_H * LANE_REACH
+  return { at: { ...frame, z: frame.z + ((light ? -1 : 1) * depth) / 2 }, width, depth }
+}
 
 /** Missions placed face down on the table, right of each player board, along the edge facing the table. */
 export const MISSION_REST = { scale: 0.62, gap: 0.35, spacing: 0.14 }
@@ -185,6 +203,11 @@ export function hotspotOf(seat: Seat, width: number): { at: { x: number; z: numb
   const middle = centreOf(area)
   return { at: { ...pointInFrame(seat.frame, middle), yaw: seat.frame.yaw }, width: area.maxX - area.minX + 2 * HOTSPOT_PADDING, depth: area.maxZ - area.minZ + 2 * HOTSPOT_PADDING }
 }
+
+/**
+ * The button that says nobody is eliminated, when an assassin is played: on the viewer's side of the table, right of the cards of the Queen's table and below the draw pile, clear of the seats at the sides and of the area of the seat in front. It is as wide as its words need.
+ */
+export const NO_ASSASSINATION_PAD = { at: { x: 7.7, z: 4.3 }, width: 3.6, depth: 1.1 }
 
 export type DomainPile = { family: Family | null; position: Vector3 }
 export type DomainZone = {
