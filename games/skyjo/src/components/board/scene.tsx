@@ -6,7 +6,6 @@ import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import { shortName } from "@pbgo/core/lib/short-name"
 import { FloorButton, onTable, Pile, PlayerSeat, type Pose, Table, TableText, useSettings, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useMemo, useState } from "react"
-import { AdditiveBlending } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
 import { FLOOR_TONES } from "../../lib/floor-tones"
 import { fill, type Vocabulary } from "../../lib/words"
@@ -14,31 +13,11 @@ import { cameraFor, PHOTO } from "./camera"
 import { GLOWS } from "./glows"
 import { cellPlace, cellPose, cellZone, fitPrompt, floorPlan, type Grid, grids, LAYOUT_FIELDS, LAYOUT_SETTINGS, pilePlaces, plateAt, seatSpots } from "./layout"
 import { cardKey, cellKey, type Entrance, HELD_KEY, type Origin, PACE_FIELDS, PACE_SETTINGS } from "./pacing"
-import { CARD_SIZE, feltTexture, matTexture, useFaces } from "./textures"
+import { CARD_SIZE, matOf, useFaces } from "./textures"
 import { useViewport } from "./viewport"
-
-/** The pool of light of the mat: how far across it spreads, in world units. Past it the table is the plain colour it fades into. */
-const MAT_SIZE = 44
-
-/** How many world units one repeat of the felt covers: nine mosaic cells across, so a cell is about half a world unit, a bit more than a card's width */
-const FELT_TILE = 5
 
 /** The most cards under the top of the discard that are drawn: a deeper pile looks no different */
 const DISCARD_DEPTH = 8
-
-/** The felt of the table: a cracked-glass mosaic painted in code (`feltTexture`), in the edge colour of the table, low in contrast so that cards and plates keep theirs */
-const useFelt = (base: string) => useMemo(() => feltTexture(base), [base])
-
-/** The pool of light the cards lie on: `surface` of the game's settings in the middle, falling away to `surfaceDark`, which is the colour of the endless table around it. It is added to the felt (additive blending), not laid over it, so the grain shows through it and it has no edge. */
-function Mat({ inner, outer }: { inner: string; outer: string }) {
-  const map = useMemo(() => matTexture(inner, outer), [inner, outer])
-  return (
-    <mesh rotation-x={-Math.PI / 2} position-y={0.001} renderOrder={-1} raycast={() => null}>
-      <planeGeometry args={[MAT_SIZE, MAT_SIZE]} />
-      <meshBasicMaterial map={map} blending={AdditiveBlending} transparent toneMapped={false} depthWrite={false} />
-    </mesh>
-  )
-}
 
 export type SceneProps = {
   view: PlayerView
@@ -334,11 +313,10 @@ export function Scene(props: SceneProps) {
   const viewport = useDeferredValue(useViewport())
   const seated = props.view.me !== null
   const camera = useMemo(() => cameraFor(players, viewport, seated), [players, viewport, seated])
-  // The endless table beyond the mat is the same felt, in the edge colour, and fades into it with distance
-  const felt = useFelt(theme.surfaceDark)
+  // The mat is data, from the colours of the game's settings: the table bakes the mosaic once and lights its middle
+  const mat = useMemo(() => matOf({ surface: theme.surface, surfaceDark: theme.surfaceDark }), [theme.surface, theme.surfaceDark])
   return (
-    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, map: felt, tile: FELT_TILE }} held={props.held} onLoaded={props.onLoaded}>
-      <Mat inner={theme.surface} outer={theme.surfaceDark} />
+    <Table camera={camera} photo={PHOTO} surface={mat} held={props.held} onLoaded={props.onLoaded}>
       <World {...props} />
     </Table>
   )
