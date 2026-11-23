@@ -1,12 +1,12 @@
-import { type CardFace, EngineError, type RoundsRule, type StepContext, closeStep, faceOfId, keyOfId, openStep, playerAt, roundsOutcome, sumRounds } from "@pbgo/engine-kit"
+import { type CardFace, EngineError, type RoundsRule, type StepContext, faceOfId, keyOfId, openStep, playerAt, roundsOutcome, sumRounds } from "@pbgo/engine-kit"
 import { CARDS, CATALOGUE } from "./catalogue"
 import { TARGET_SCORE } from "./options"
 import { sum } from "./scoring"
-import { type Cell, OPENING_FLIPS, type SkyjoEvent, type SkyjoStep, type State } from "./types"
+import { type Cell, OPENING_FLIPS, type SkyjoEvent, type State } from "./types"
 
 /**
- * The machinery every rule is written with: one step of the game is `open` (a private copy of the state), a few mutations, then `close`
- * (the new state and what happened, noted with `noteEvent`). They are the kit's (`openStep`, `closeStep`) given the types of the game.
+ * The machinery every rule is written with: one step of the game is `open` (a private copy of the state, the kit's `openStep` given the types of the game), a few mutations, then `closeStep`
+ * of the kit (the new state and what happened, noted with `noteEvent`).
  * Nothing mutates the state that came in, and nothing draws from `Math.random`.
  */
 
@@ -15,9 +15,6 @@ export type Ctx = StepContext<State, SkyjoEvent>
 
 /** A step starts here: a copy of the state to mutate, with the stream picked up where the last step left it. */
 export const open = (state: State): Ctx => openStep<State, SkyjoEvent>(state)
-
-/** A step ends here: the stream is saved back into the state, which comes out with what happened. (The parameter is typed as the kit names it, not as `Ctx`: `closeStep` reads its streams from the type it is given, which an alias of an alias hides.) */
-export const close = (ctx: StepContext<State, SkyjoEvent>): SkyjoStep => closeStep(ctx)
 
 // --- Cards
 

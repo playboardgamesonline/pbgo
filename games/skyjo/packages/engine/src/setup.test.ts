@@ -89,6 +89,8 @@ describe("setting a game up, at every table size", () => {
     expect(refused([{ id: "a", nickname: "A" }, { id: "a", nickname: "B" }])).toBe("INVALID_PLAYERS")
     expect(refused([{ id: "a", nickname: "A" }, { id: "", nickname: "B" }])).toBe("INVALID_PLAYERS")
     expect(refused([{ id: "a", nickname: "A" }, { id: 4, nickname: "B" }])).toBe("INVALID_PLAYERS")
+    expect(refused("ana,bob")).toBe("INVALID_PLAYERS")
+    expect(refused(undefined)).toBe("INVALID_PLAYERS")
   })
 
   it("takes the seats in the order it is given", () => {
