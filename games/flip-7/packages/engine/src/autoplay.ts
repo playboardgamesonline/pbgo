@@ -1,6 +1,6 @@
-import { EngineError } from "@pbgo/engine-kit"
+import { EngineError, nextSeat, playerAt } from "@pbgo/engine-kit"
 import { chooseTarget, dealRound, hit, stay } from "./actions"
-import { type Ctx, close, effectOf, lineOf, open, playerAt, targetsOf, waitingFor } from "./machine"
+import { type Ctx, close, effectOf, lineOf, open, targetsOf, waitingFor } from "./machine"
 import type { FrameOf, State, Flip7Step } from "./types"
 
 /**
@@ -9,13 +9,11 @@ import type { FrameOf, State, Flip7Step } from "./types"
  * it, clockwise.
  */
 function targetFor(s: State, frame: FrameOf<"target">): number {
-  const n = s.seats.length
   const targets = targetsOf(s, frame)
   if (effectOf(s, frame.card) === "freeze" && targets.includes(frame.seat)) return frame.seat
   // clockwise from the holder, the holder itself last
-  const clockwise = (seat: number) => (seat - frame.seat - 1 + n) % n
-  const [first] = [...targets].sort((a, b) => clockwise(a) - clockwise(b))
-  if (first === undefined) throw new RangeError("A card nobody can get is settled by the engine, not by a player")
+  const first = nextSeat(s.seats.length, frame.seat, (seat) => !targets.includes(seat))
+  if (first === null) throw new RangeError("A card nobody can get is settled by the engine, not by a player")
   return first
 }
 
@@ -40,7 +38,7 @@ export function autoPlay(ctx: Ctx, playerId: string): void {
     return
   }
   if (top.kind === "target") {
-    chooseTarget(ctx, playerId, playerAt(s, targetFor(s, top)))
+    chooseTarget(ctx, playerId, playerAt(s.seats, targetFor(s, top)))
     return
   }
   throw new RangeError("The round is not settled")

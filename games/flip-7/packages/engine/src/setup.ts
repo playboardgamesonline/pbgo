@@ -1,4 +1,4 @@
-import { EngineError, type PlayerInfo, createSaveableRng, issueIds, normalizeOptions, randomSeed, shuffle, sideSeed } from "@pbgo/engine-kit"
+import { type PlayerInfo, assertPlayers, createSaveableRng, issueIds, normalizeOptions, randomSeed, shuffle, sideSeed } from "@pbgo/engine-kit"
 import { CATALOGUE } from "./catalogue"
 import { close, open } from "./machine"
 import { OPTIONS } from "./options"
@@ -22,16 +22,9 @@ const IDS_STREAM = 1
  */
 export function setupStep(args: { players: readonly PlayerInfo[]; options?: unknown; seed?: number }): Flip7Step {
   const { players } = args
-  const seats = Array.isArray(players) ? players.map((player) => player?.id) : []
-  if (
-    seats.length < MIN_PLAYERS ||
-    seats.length > MAX_PLAYERS ||
-    seats.some((id) => typeof id !== "string" || id === "") ||
-    new Set(seats).size !== seats.length
-  ) {
-    throw new EngineError("INVALID_PLAYERS", `A table is ${MIN_PLAYERS} to ${MAX_PLAYERS} different players`)
-  }
-  const n = seats.length
+  assertPlayers(players, { min: MIN_PLAYERS, max: MAX_PLAYERS })
+  const n = players.length
+  const seats = players.map((player) => player.id)
   const options = normalizeOptions(OPTIONS, args.options, { playerCount: n })
   const seed = args.seed ?? randomSeed()
   const rng = createSaveableRng(seed)
@@ -43,7 +36,7 @@ export function setupStep(args: { players: readonly PlayerInfo[]; options?: unkn
 
   const state: State = {
     options,
-    seats: seats as string[],
+    seats,
     ids,
     rng: rng.save(),
     deck,

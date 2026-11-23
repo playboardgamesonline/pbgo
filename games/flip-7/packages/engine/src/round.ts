@@ -1,23 +1,7 @@
-import { reshuffleDiscard } from "@pbgo/engine-kit"
+import { faceOfId, noteEvent, playerAt, removeFrom, reshuffleDiscard } from "@pbgo/engine-kit"
+import { CATALOGUE } from "./catalogue"
 import { isFlip7 } from "./scoring"
-import {
-  type Ctx,
-  effectOf,
-  emit,
-  faceOf,
-  isOver,
-  lineOf,
-  lineTypes,
-  nextActive,
-  numbersOf,
-  playerAt,
-  removeFrom,
-  roundScore,
-  secondChanceIn,
-  targetsOf,
-  typeOf,
-  winnersOf,
-} from "./machine"
+import { type Ctx, effectOf, isOver, lineOf, lineTypes, nextActive, numbersOf, roundScore, secondChanceIn, targetsOf, typeOf, winnersOf } from "./machine"
 import type { FrameOf, Status } from "./types"
 
 /**
@@ -42,7 +26,7 @@ function drawCard(ctx: Ctx): number | null {
     const piles = reshuffleDiscard({ deck: s.deck, discard: s.discard }, ctx.rng)
     s.deck = piles.deck
     s.discard = piles.discard
-    emit(ctx, { kind: "reshuffle" })
+    noteEvent(ctx, { kind: "reshuffle" })
   }
   return s.deck.shift() ?? null
 }
@@ -50,13 +34,13 @@ function drawCard(ctx: Ctx): number | null {
 /** A number card: a duplicate busts, unless a Second Chance cancels it; seven different numbers are a Flip 7 and end the round. */
 function takeNumber(ctx: Ctx, seat: number, id: number, value: number): void {
   const { s } = ctx
-  const by = playerAt(s, seat)
+  const by = playerAt(s.seats, seat)
   const line = lineOf(s, seat)
   if (!numbersOf(s, seat).includes(value)) {
     line.push(id)
     if (isFlip7(lineTypes(s, seat))) {
       s.stats[seat]!.flip7 += 1
-      emit(ctx, { kind: "flip7", by })
+      noteEvent(ctx, { kind: "flip7", by })
       endRound(ctx)
     }
     return
@@ -65,13 +49,13 @@ function takeNumber(ctx: Ctx, seat: number, id: number, value: number): void {
   if (saver !== undefined) {
     removeFrom(line, saver)
     s.discard.unshift(saver, id)
-    emit(ctx, { kind: "saved", by, card: faceOf(s, id), secondChance: faceOf(s, saver) })
+    noteEvent(ctx, { kind: "saved", by, card: faceOfId(s.ids, CATALOGUE, id), secondChance: faceOfId(s.ids, CATALOGUE, saver) })
     return
   }
   line.push(id)
   s.status[seat] = "busted"
   s.stats[seat]!.busts += 1
-  emit(ctx, { kind: "bust", by, card: faceOf(s, id) })
+  noteEvent(ctx, { kind: "bust", by, card: faceOfId(s.ids, CATALOGUE, id) })
 }
 
 /**
@@ -83,8 +67,8 @@ function takeAction(ctx: Ctx, seat: number, id: number, source: Source): void {
   const effect = effectOf(s, id)
   if (effect === "second-chance" && secondChanceIn(s, seat) === undefined) {
     lineOf(s, seat).push(id)
-    const by = playerAt(s, seat)
-    emit(ctx, { kind: "play", by, target: by, card: faceOf(s, id) })
+    const by = playerAt(s.seats, seat)
+    noteEvent(ctx, { kind: "play", by, target: by, card: faceOfId(s.ids, CATALOGUE, id) })
     return
   }
   if (effect !== "second-chance" && source.how === "flip") {
@@ -105,7 +89,7 @@ export function receive(ctx: Ctx, seat: number, source: Source): void {
     endRound(ctx)
     return
   }
-  emit(ctx, { kind: "draw", by: playerAt(s, seat), card: faceOf(s, id), how: source.how })
+  noteEvent(ctx, { kind: "draw", by: playerAt(s.seats, seat), card: faceOfId(s.ids, CATALOGUE, id), how: source.how })
   const card = typeOf(s, id)
   switch (card.kind) {
     case "number":
@@ -126,7 +110,7 @@ export function giveCard(ctx: Ctx, frame: FrameOf<"target">, targetSeat: number)
   if (s.stack.at(-1) !== frame) throw new RangeError("Only the last frame can be settled")
   s.stack.pop()
   lineOf(s, targetSeat).push(frame.card)
-  emit(ctx, { kind: "play", by: playerAt(s, frame.seat), target: playerAt(s, targetSeat), card: faceOf(s, frame.card) })
+  noteEvent(ctx, { kind: "play", by: playerAt(s.seats, frame.seat), target: playerAt(s.seats, targetSeat), card: faceOfId(s.ids, CATALOGUE, frame.card) })
   switch (effectOf(s, frame.card)) {
     case "freeze":
       s.status[targetSeat] = "frozen"
@@ -144,7 +128,7 @@ function discardCard(ctx: Ctx, frame: FrameOf<"target">): void {
   const { s } = ctx
   s.stack.pop()
   s.discard.unshift(frame.card)
-  emit(ctx, { kind: "discarded", by: playerAt(s, frame.seat), card: faceOf(s, frame.card) })
+  noteEvent(ctx, { kind: "discarded", by: playerAt(s.seats, frame.seat), card: faceOfId(s.ids, CATALOGUE, frame.card) })
 }
 
 /**
@@ -162,8 +146,8 @@ export function endRound(ctx: Ctx): void {
   const scores = s.seats.map((_, seat) => roundScore(s, seat))
   s.rounds.push(scores)
   s.dealer = (s.dealer + 1) % s.seats.length
-  emit(ctx, { kind: "end", scores })
-  if (isOver(s)) emit(ctx, { kind: "over", winners: winnersOf(s) })
+  noteEvent(ctx, { kind: "end", scores })
+  if (isOver(s)) noteEvent(ctx, { kind: "over", winners: winnersOf(s) })
 }
 
 /**
@@ -176,7 +160,7 @@ export function startRound(ctx: Ctx): void {
   s.lines = s.seats.map(() => [])
   s.status = s.seats.map((): Status => "active")
   s.stack = [{ kind: "deal", given: 0 }]
-  emit(ctx, { kind: "round", number: s.rounds.length + 1, dealer: playerAt(s, s.dealer) })
+  noteEvent(ctx, { kind: "round", number: s.rounds.length + 1, dealer: playerAt(s.seats, s.dealer) })
   run(ctx)
 }
 

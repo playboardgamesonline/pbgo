@@ -1,4 +1,4 @@
-import { type PlayerInfo, type Rng, createRng } from "@pbgo/engine-kit"
+import { type PlayerInfo, type Rng, createRng, seatOf } from "@pbgo/engine-kit"
 import { step } from "./actions"
 import { CATALOGUE, keyOfValue } from "./catalogue"
 import { GAME } from "./game"
@@ -37,8 +37,9 @@ export function newState(n: number, seed: number = seedOf(0)): State {
 
 // --- Reading a state by values
 
-export function seatOf(state: State, playerId: string): number {
-  const seat = state.seats.indexOf(playerId)
+/** The seat of a player the test says is at the table: one who is not is a mistake of the test. */
+export function seatIn(state: State, playerId: string): number {
+  const seat = seatOf(state.seats, playerId)
   if (seat < 0) throw new Error(`${playerId} is not at the table`)
   return seat
 }
@@ -55,11 +56,11 @@ export function values(state: State, ids: readonly number[]): number[] {
 
 /** A grid as a test reads it: the value of every cell (`null` for a hole), and whether it is face up. */
 export function gridValues(state: State, playerId: string): (number | null)[] {
-  return state.grids[seatOf(state, playerId)]!.map((cell) => (cell === null ? null : valueOf(state, cell.card)))
+  return state.grids[seatIn(state, playerId)]!.map((cell) => (cell === null ? null : valueOf(state, cell.card)))
 }
 
 export function gridUp(state: State, playerId: string): (boolean | null)[] {
-  return state.grids[seatOf(state, playerId)]!.map((cell) => (cell === null ? null : cell.up))
+  return state.grids[seatIn(state, playerId)]!.map((cell) => (cell === null ? null : cell.up))
 }
 
 /** Who the game waits for. */
@@ -124,7 +125,7 @@ export function layout(spec: Layout = {}): State {
     return base.ids[index]!
   }
   const seat = (player: string): number => {
-    const found = names.indexOf(player)
+    const found = seatOf(names, player)
     if (found < 0) throw new Error(`${player} is not at the table`)
     return found
   }
@@ -285,7 +286,7 @@ export function randomAction(state: State, rng: Rng): Action {
   if (first === undefined) throw new Error("The game waits for nobody")
   const waits = waiting(state)
   const playerId = waits[Math.floor(rng() * waits.length)]!
-  const seat = seatOf(state, playerId)
+  const seat = seatIn(state, playerId)
   const grid = state.grids[seat]!
   const pick = (wanted: (cell: NonNullable<Cell>) => boolean): number => {
     const options = grid.flatMap((cell, position) => (cell && wanted(cell) ? [position] : []))

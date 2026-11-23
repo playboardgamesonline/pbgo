@@ -1,18 +1,5 @@
-import { reshuffleDiscard, shuffle } from "@pbgo/engine-kit"
-import {
-  type Ctx,
-  allUp,
-  emit,
-  faceOf,
-  fullScore,
-  gridOf,
-  isOver,
-  openingSeats,
-  playerAt,
-  valueOf,
-  visibleScore,
-  winnersOf,
-} from "./machine"
+import { nextSeat, noteEvent, playerAt, reshuffleDiscard, shuffle } from "@pbgo/engine-kit"
+import { type Ctx, allUp, faceOf, fullScore, gridOf, isOver, openingSeats, valueOf, visibleScore, winnersOf } from "./machine"
 import { CELLS, ROWS } from "./types"
 import { COLUMN_NUMBERS, columnCells, isTriple, roundScores } from "./scoring"
 
@@ -26,7 +13,7 @@ export function drawCard(ctx: Ctx): number | null {
     const piles = reshuffleDiscard({ deck: s.deck, discard: s.discard }, ctx.rng, { keep: 1 })
     s.deck = piles.deck
     s.discard = piles.discard
-    emit(ctx, { kind: "reshuffle" })
+    noteEvent(ctx, { kind: "reshuffle" })
   }
   return s.deck.shift() ?? null
 }
@@ -47,7 +34,7 @@ export function startRound(ctx: Ctx): void {
   s.stage = { kind: "reveal", starter: s.ender }
   s.ender = null
   s.last = []
-  emit(ctx, { kind: "round", number: s.rounds.length + 1, dealer: playerAt(s, s.dealer) })
+  noteEvent(ctx, { kind: "round", number: s.rounds.length + 1, dealer: playerAt(s.seats, s.dealer) })
 }
 
 /**
@@ -73,7 +60,7 @@ export function beginTurns(ctx: Ctx): void {
     how = "sum"
   }
   s.stage = { kind: "choose", seat: first }
-  emit(ctx, { kind: "start", by: playerAt(s, first), sum: sums[first]!, how })
+  noteEvent(ctx, { kind: "start", by: playerAt(s.seats, first), sum: sums[first]!, how })
 }
 
 /** Called after a card turned over in the opening. Starts the round when everybody has turned theirs. */
@@ -92,7 +79,7 @@ export function dropColumn(ctx: Ctx, seat: number, column: number): boolean {
   for (const position of columnCells(column)) grid[position] = null
   s.discard.unshift(...cards)
   s.stats[seat]!.columns += 1
-  emit(ctx, { kind: "column", by: playerAt(s, seat), column, value: valueOf(s, cards[0]!), cards: cards.map((card) => faceOf(s, card)) })
+  noteEvent(ctx, { kind: "column", by: playerAt(s.seats, seat), column, value: valueOf(s, cards[0]!), cards: cards.map((card) => faceOf(s, card)) })
   return true
 }
 
@@ -107,12 +94,12 @@ export function endTurn(ctx: Ctx, seat: number): void {
       s.ender = seat
       s.last = [seat]
       s.stats[seat]!.ended += 1
-      emit(ctx, { kind: "last", by: playerAt(s, seat) })
+      noteEvent(ctx, { kind: "last", by: playerAt(s.seats, seat) })
     }
   } else if (!s.last.includes(seat)) {
     s.last.push(seat)
   }
-  const next = (seat + 1) % s.seats.length
+  const next = nextSeat(s.seats.length, seat)!
   if (s.ender !== null && next === s.ender) endRound(ctx)
   else s.stage = { kind: "choose", seat: next }
 }
@@ -134,8 +121,8 @@ export function endRound(ctx: Ctx): void {
   const { scores, doubled } = roundScores(sums, ender)
   if (doubled) s.stats[ender]!.doubled += 1
   s.rounds.push(scores)
-  s.dealer = (s.dealer + 1) % s.seats.length
+  s.dealer = nextSeat(s.seats.length, s.dealer)!
   s.stage = { kind: "between" }
-  emit(ctx, { kind: "end", scores, ender: playerAt(s, ender), doubled })
-  if (isOver(s)) emit(ctx, { kind: "over", winners: winnersOf(s) })
+  noteEvent(ctx, { kind: "end", scores, ender: playerAt(s.seats, ender), doubled })
+  if (isOver(s)) noteEvent(ctx, { kind: "over", winners: winnersOf(s) })
 }

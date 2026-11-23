@@ -79,7 +79,7 @@ The props are `SeatProps`:
 | `status` | A word on the same info line, after the score ("132 pts · Stayed"), plain text, written the same way |
 | `trailing` | What stands to the right of the name, in a frame whose origin is the name's right edge (`0.2` is just right of the last letter): tokens, a count, an icon |
 | `crownIcon` | The crown's icon, the skin's `hostIcon`; without one, a drawn crown |
-| `font` | The CSS font of the lettering; `PLATE_FONT` (Geist) by default. `PLATE_FONT` and `PLATE_WEIGHT` are exported: a game that uploaded its own display font to its Sanity project puts it in front (`"Site Title", ${PLATE_FONT}`, `tableFonts` of Flip 7) so that the plates, and the buttons and counts of the table, are drawn in it, and the kit's own is what the lettering reads in until it has loaded |
+| `font` | The CSS font of the lettering; `PLATE_FONT` (Geist) by default. `PLATE_FONT` and `PLATE_WEIGHT` are exported: a game that uploaded its own display font to its Sanity project gives it from `useLettering()` (`lettering.display`, which is `"Site Title", ${PLATE_FONT}`, and `lettering.weight`: Flip 7's plates) so that the plates, and the buttons and counts of the table, are drawn in it, and the kit's own is what the lettering reads in until it has loaded |
 | `nameStyle`, `lineStyle` | What is changed in the `TextStyle` of the name and of the info line |
 | `children` | What else stands at the seat, in the frame of the world: the cards held there, as a `Zone` given the same `frame` |
 

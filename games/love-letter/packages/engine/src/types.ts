@@ -1,4 +1,4 @@
-import type { LogEntry, OptionValues, Results, Standing } from "@pbgo/engine-kit"
+import type { CardFace, LogEntry, OptionValues, Results, Standing, Step } from "@pbgo/engine-kit"
 import type { CharacterKey } from "./catalogue"
 
 /**
@@ -13,7 +13,7 @@ import type { CharacterKey } from "./catalogue"
  */
 
 /** A card a viewer sees: the id it holds now and who it is (a key of `CARDS`, e.g. "guard"). */
-export type Face = { id: number; type: CharacterKey }
+export type Face = CardFace<CharacterKey>
 
 /**
  * What the round is busy with. Between two moves the state is settled: a player has to do something, or the round is over.
@@ -215,4 +215,4 @@ export type LoveLetterEvent =
 export type LoveLetterLogEntry = LogEntry<LoveLetterEvent>
 
 /** What a step gives back: the new state and what happened, for the platform to keep (the state keeps no log). */
-export type LoveLetterStep = { state: State; events: LoveLetterLogEntry[] }
+export type LoveLetterStep = Step<State, LoveLetterEvent>

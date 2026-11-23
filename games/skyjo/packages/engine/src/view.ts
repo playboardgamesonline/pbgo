@@ -1,4 +1,5 @@
-import { faceOf, gridOf, isOver, openingSeats, playerAt, revealedCount, totalsOf, visibleScore } from "./machine"
+import { playerAt } from "@pbgo/engine-kit"
+import { faceOf, gridOf, isOver, openingSeats, revealedCount, totalsOf, visibleScore } from "./machine"
 import { TARGET_SCORE } from "./options"
 import { results } from "./results"
 import type { LastTurn, PlayerView, PublicCell, PublicPhase, PublicSeat, State } from "./types"
@@ -9,21 +10,21 @@ function publicPhase(s: State, viewer: string | null): PublicPhase {
     case "reveal":
       return {
         kind: "reveal",
-        waiting: openingSeats(s).map((seat) => playerAt(s, seat)),
-        starter: stage.starter === null ? null : playerAt(s, stage.starter),
+        waiting: openingSeats(s).map((seat) => playerAt(s.seats, seat)),
+        starter: stage.starter === null ? null : playerAt(s.seats, stage.starter),
       }
     case "choose":
-      return { kind: "choose", player: playerAt(s, stage.seat) }
+      return { kind: "choose", player: playerAt(s.seats, stage.seat) }
     case "place": {
-      const player = playerAt(s, stage.seat)
+      const player = playerAt(s.seats, stage.seat)
       // a card taken from the discard was seen by everybody; one drawn from the pile only by whoever drew it
       const seen = stage.from === "discard" || viewer === player
       return { kind: "place", player, from: stage.from, card: seen ? faceOf(s, stage.card) : null, canDiscard: stage.from === "deck" }
     }
     case "flip":
-      return { kind: "flip", player: playerAt(s, stage.seat) }
+      return { kind: "flip", player: playerAt(s.seats, stage.seat) }
     case "between":
-      return isOver(s) ? { kind: "over" } : { kind: "between", dealer: playerAt(s, s.dealer) }
+      return isOver(s) ? { kind: "over" } : { kind: "between", dealer: playerAt(s.seats, s.dealer) }
   }
 }
 
@@ -57,10 +58,10 @@ export function playerView(state: State, viewer: string | null): PlayerView {
     me: viewer !== null && s.seats.includes(viewer) ? viewer : null,
     players,
     standings: s.seats.map((playerId, seat) => ({ playerId, score: totals[seat]! })),
-    dealer: playerAt(s, s.dealer),
+    dealer: playerAt(s.seats, s.dealer),
     deck: { size: s.deck.length },
     discard: { size: s.discard.length, top: top === undefined ? null : faceOf(s, top) },
-    ender: s.ender === null ? null : playerAt(s, s.ender),
+    ender: s.ender === null ? null : playerAt(s.seats, s.ender),
     round: s.stage.kind === "between" ? s.rounds.length : s.rounds.length + 1,
     rounds: s.rounds.map((scores) => [...scores]),
     target: TARGET_SCORE,
