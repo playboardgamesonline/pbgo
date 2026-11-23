@@ -1,4 +1,4 @@
-// The words of Flip 7's board, plain data with no import: read by the board (through the catalog), and by the tests that keep it equal to the Studio's `texts` and to the seed.
+// The words of Flip 7's board, plain data and the Studio kit's `fill` (a module with no import, which Node resolves as the browser does): read by the board (through the catalog), and by the tests that keep it equal to the Studio's `texts` and to the seed.
 
 /**
  * The fields of the "Board" tab of the `texts` document in Sanity, under the same names: the buttons (`hit`, `stay`, `deal`), what the holder of an action card is told in the ticker (`target…`, one for each action card, and `targetPlayer`, the accessible name of a player's area), the status of a player, the two announcements that are the game's own and the sentences of
@@ -42,8 +42,5 @@ export type Vocabulary = Record<WordField, string>
 export const targetPromptOf = (type: string, words: Pick<Vocabulary, "targetFreeze" | "targetFlipThree" | "targetSecondChance">) =>
   type === "freeze" ? words.targetFreeze : type === "flip-three" ? words.targetFlipThree : words.targetSecondChance
 
-/** What a word of the board takes in its `{placeholders}`: the name of a player (`{target}`), a card (`{card}`: its figure, or the name of an action card), a number (`{number}`) or a count of points (`{points}`). */
-export type Values = Record<string, string | number>
-
-/** A word with its placeholders filled in. A placeholder with no value stays as written, so a mistake shows on the table instead of hiding. */
-export const fill = (text: string, values: Values = {}) => text.replace(/\{(\w+)\}/g, (match, name: string) => (name in values ? String(values[name]) : match))
+/** A word with its placeholders filled in, and what it takes: the Studio kit's, the one function that the board and the Node-only content project of the game both read */
+export { fill, type Values } from "@pbgo/studio-kit/fill"

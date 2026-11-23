@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./constants": "./src/constants.ts",
     "./field-translations": "./src/field-translations.ts",
-    "./translations": "./src/translations.ts"
+    "./translations": "./src/translations.ts",
+    "./fill": "./src/fill.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

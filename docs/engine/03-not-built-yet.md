@@ -52,7 +52,6 @@ What the framework does not provide, and what holds instead. The first table is 
 | How far the word over an object reaches | | Flip 7 reserves a width of its own beyond a pile (`PILE_WORD`) so that no plate lies under the word |
 | A plate size that follows the number of players by itself | | `scaledSeat(factor)` makes the settings of a smaller plate, which a board gives to its `Seat` and to its layout; no board does yet, and the kit has no rule for the factor of a table of eight |
 | A block for a card read large under the pointer (Love Letter's lens) | | The lens is Love Letter's own, in the layer of the HUD: it draws again the canvas of the face it reads. No other board has a text on its cards that is too small to read, so it moves into the kit the day a second one does |
-| The words of a board filled with their `{placeholders}` where a game's content project can read them | | `fill` of `@pbgo/core/lib/skin` reaches files typed for the browser, and the content projects run on Node alone: Flip 7, Skyjo and Love Letter keep a copy of the one line in `words.ts`. A module of core with no import, re-exported by `skin.ts`, needs a way for Node to resolve it that `@pbgo/core` has no map of exports for |
 
 Also not in the package, with no ticket of its own:
 

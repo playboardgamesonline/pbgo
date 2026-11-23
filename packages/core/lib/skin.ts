@@ -1,4 +1,5 @@
 import type { UiTextKey } from "@pbgo/studio-kit/constants"
+import { fill } from "@pbgo/studio-kit/fill"
 import { ERROR_TRANSLATIONS, UI_TRANSLATIONS } from "@pbgo/studio-kit/translations"
 import type { GameBinding } from "./binding"
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "./i18n"
@@ -95,10 +96,8 @@ export function creditTexts(binding: GameBinding): Record<Locale, CreditTexts> {
   ) as Record<Locale, CreditTexts>
 }
 
-/** Replaces the `{name}` variables of a label. */
-export function fill(text: string, params: Record<string, string | number> = {}) {
-  return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in params ? String(params[k]) : m))
-}
+/** Replaces the `{name}` variables of a label: the Studio kit's, which the games' words and their Node-only content projects read too. */
+export { fill }
 
 /**
  * The words of one of the engine's options, presets or score lines: the game's Sanity, else the words its engine still carries (`legacy`, for a game that has not moved them), else the marker
