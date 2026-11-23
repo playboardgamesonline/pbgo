@@ -40,7 +40,7 @@ A sequence is a state that changes on a clock. A board starts in `start`, and ea
 
 - **Not seen before its delay.** An entrance that waits is hidden until its delay has passed, and has not come in at that moment.
 - **What it fades.** The materials under it that have an opacity, which is all of the table's flat ones (lettering, glyphs, planes). It remembers what each was and gives it back when the entrance is over, and leaves it alone after that, so what a game does to its materials later is its own. A material a game shares with something that is not entering is faded with it: give an entrance its own.
-- **Order.** A piece under it that sets its own opacity every frame, as `TableText` does, is set first and faded after, since a parent's frame runs after its children's.
+- **Order.** A piece under it that sets its own opacity every frame, as `TableText` does, is faded when it is mounted with the entrance: it subscribes to the frame before its parent, so the parent fades after the piece has set. A piece that is mounted later subscribes after the entrance and shows at its own opacity until the entrance is over: mount it with the entrance, or give it its own `opacity` (`TableText` takes one).
 - **Reduced motion.** A visitor who asks for less motion gets what is inside as it is, at once.
 
 ## Veil
