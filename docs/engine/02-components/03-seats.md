@@ -146,7 +146,7 @@ Everything of a player stands on one line, the axis of their seat: the line from
 | `reachX`, `reachZ` | How far out of the ring an opponent's plate stands when it has no `above`, as factors of the spot |
 | `viewerReachX`, `viewerReachZ` | The same for the viewer's plate |
 | `nameHeight`, `nameLift` | The size of the name's letters, and how far toward the middle of the table it stands from the centre of the plate |
-| `nameRoom` | The widest a name may be: a longer one shrinks to this width, with its proportions, instead of reaching the plate of the next seat. Twelve letters of the platform's font make about 3.5, so only a name of wide capitals is touched |
+| `nameRoom` | The widest a name may be: a longer one shrinks to this width, with its proportions, instead of reaching the plate of the next seat. Twelve letters of the platform's font make about 3.1, so only a name of wide capitals is touched |
 | `lineHeight`, `lineDrop` | The same for the info line, which drops toward the cards |
 | `avatarSize`, `avatarGap` | The avatar's diameter and its gap to the first letter |
 | `crownSize`, `crownRight`, `crownBack` | The crown's size, and how far its foot stands from the avatar's centre: to the right and toward the middle of the table |
