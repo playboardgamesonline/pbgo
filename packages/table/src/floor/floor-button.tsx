@@ -3,7 +3,7 @@
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { useCursor } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
-import { type ReactElement, type ReactNode, useEffect, useMemo, useRef, useState } from "react"
+import { type ReactElement, useEffect, useMemo, useRef, useState } from "react"
 import { ExtrudeGeometry, type Group, type Mesh, type MeshBasicMaterial, Path, Shape } from "three"
 import { shadowTexture } from "../card/textures"
 import { useLettering } from "../lettering"
@@ -32,36 +32,14 @@ type PadProps = {
 export type FloorButtonProps = PadProps & {
   /** What is written flat on the pad, in the game's words and the visitor's language: the action it does ("Deal", "Stay") */
   label: string
-  /** `primary` (the default) for the action that goes on, `neutral` for the quieter ones: the game's theme gives each its colour (`UI_THEME.button`, over the accent and the text colour of its settings). A `#rrggbb` is still drawn as it is, and a board must not type one */
-  tone?: FloorTone | (string & {})
+  /** `primary` (the default) for the action that goes on, `neutral` for the quieter ones: the game's theme gives each its colour (`UI_THEME.button`, over the accent and the text colour of its settings), so a board types none */
+  tone?: FloorTone
   /** The size of the lettering in world units (default 0.55); a label too long for the pad is set smaller to fit it, on one line */
   labelHeight?: number
-  /** @deprecated The lettering is the table's (`useLettering`): the display font of the game. A board gives none */
-  font?: string
-  /** @deprecated The lettering is the table's (`useLettering`): its weight. A board gives none */
-  weight?: number
 }
 
-/** @deprecated A zone that is pressed to choose a seat, a cell or a player (no `label`, a `tint`, a `hitY`, decals). A choice between objects is made by pressing the objects, in the `interactive` state, and by a `Hotspot` over a player's cards: it goes with the next pass over the boards */
-export type FloorZoneProps = PadProps & {
-  label?: undefined
-  /** What a screen reader says: a zone has no label, so it must give one */
-  ariaLabel: string
-  /** `#rrggbb`: the tint at rest, the outline and the rim */
-  tone: string
-  /** How strongly the pad is tinted, as a share of the usual (default 1): a big zone that lies under cards takes 0.5 so that it tints the table without hiding it */
-  tint?: number
-  /** How high above the table the invisible plane that takes the pointer lies (default 0.02). A zone that lies under cards, which take the pointer themselves, lifts it above them (a card's height, 0.35) so that the whole zone answers, cards included */
-  hitY?: number
-  /** The decal slot: whatever is drawn flat on the zone, in the pad's own frame (x along `width`, z along `depth`, y up, the origin at the pad's centre), over the tint and under the cards. It stays on the table as the rim lifts, takes no clicks of its own unless it asks for them, and is drawn at `DECAL_Y` */
-  children?: ReactNode
-}
-
-/** What the drawing reads, whichever of the two a board gave */
-type PadDrawing = PadProps & { label?: string; tone?: string; labelHeight?: number; font?: string; weight?: number; tint?: number; hitY?: number; children?: ReactNode }
-
-/** How high above the table the decal slot lies: over the pad, under the cards */
-export const DECAL_Y = 0.012
+/** How high above the table the invisible plane that takes the pointer lies: over the pad, under the cards */
+const HIT_Y = 0.02
 
 /** How high the rim of a pad rises when lifted, in world units: a few cards' thickness, so the raised wall reads from the camera without hiding what lies behind it */
 export const RIM_HEIGHT = 0.2
@@ -120,13 +98,9 @@ function padShape(w: number, d: number, border: number) {
  * `neutral`, which the game's theme gives (`UI_THEME.button`): a board types no colour.
  *
  * A canvas takes no keyboard, so each enabled pad also puts one real, visually hidden `<button>` in the page: it takes the Tab key, shows the lift while focused, says `ariaLabel` (or `label`) to a screen reader and presses with Enter or Space. A disabled pad has none.
- * A button is for an action that has no object. The big zones that a board pressed to choose a seat or a cell (a pad with no label) are deprecated: see `FloorZoneProps`.
+ * A button is for an action that has no object: a choice between objects is made by pressing the objects, in the `interactive` state, and by a `Hotspot` over a player's cards.
  */
-export function FloorButton(props: FloorButtonProps): ReactElement
-/** @deprecated A zone with no label: a choice between objects is made by pressing the objects, in the `interactive` state, and by a `Hotspot` over a player's cards. See `FloorZoneProps` */
-export function FloorButton(props: FloorZoneProps): ReactElement
-export function FloorButton(props: FloorButtonProps | FloorZoneProps): ReactElement {
-  const { at, width, depth, tone, label, labelHeight = 0.55, font, weight, ariaLabel, onPress, disabled = false, rim = RIM_HEIGHT, tint = 1, hitY = 0.02, children }: PadDrawing = props
+export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55, ariaLabel, onPress, disabled = false, rim = RIM_HEIGHT }: FloorButtonProps): ReactElement {
   const letters = useLettering()
   const tones = useFloorTones()
   const reduced = usePrefersReducedMotion()
@@ -163,7 +137,7 @@ export function FloorButton(props: FloorButtonProps | FloorZoneProps): ReactElem
     side.current?.color.set(colours.rimSide)
     if (fill.current) {
       fill.current.color.set(colours.fill)
-      fill.current.opacity = colours.fillOpacity * tint
+      fill.current.opacity = colours.fillOpacity
     }
     if (dropShadow.current) dropShadow.current.opacity = 0.7 * value
     if (raised.current) raised.current.position.y = rim * LABEL_RISE * value
@@ -177,7 +151,7 @@ export function FloorButton(props: FloorButtonProps | FloorZoneProps): ReactElem
   // A change of colour, size or disabled state repaints at once, whatever the lift
   useEffect(() => paint(lift.current))
 
-  const lettering: TextStyle = { color: floorColours(colour, 0, disabled).label, weight: weight ?? letters.weight, shadow: "rgba(0,0,0,0.55)|10|3" }
+  const lettering: TextStyle = { color: floorColours(colour, 0, disabled).label, weight: letters.weight, shadow: "rgba(0,0,0,0.55)|10|3" }
   return (
     <group ref={root} position={[at.x, 0, at.z]} rotation-y={at.yaw ?? 0}>
       {/* The soft shadow under the rim: it shows as the rim lifts */}
@@ -197,17 +171,14 @@ export function FloorButton(props: FloorButtonProps | FloorZoneProps): ReactElem
           <meshBasicMaterial ref={side} toneMapped={false} attach="material-1" />
         </mesh>
       </group>
-      {children && <group position-y={DECAL_Y}>{children}</group>}
-      {label !== undefined && (
-        <group ref={raised}>
-          <TableText text={label} style={lettering} height={fitLabel(label, width - 2 * border - 0.2, labelHeight)} position={[0, TEXT_Y, 0]} font={font ?? letters.display} opacity={disabled ? 0.55 : 1} layer={6} />
-        </group>
-      )}
+      <group ref={raised}>
+        <TableText text={label} style={lettering} height={fitLabel(label, width - 2 * border - 0.2, labelHeight)} position={[0, TEXT_Y, 0]} font={letters.display} opacity={disabled ? 0.55 : 1} layer={6} />
+      </group>
       {/* What the pointer reaches: the whole pad, and a little past it, so that the edge is easy to find */}
       {pressable && (
         <mesh
           rotation-x={-Math.PI / 2}
-          position-y={hitY}
+          position-y={HIT_Y}
           onClick={(e) => {
             e.stopPropagation()
             onPress()

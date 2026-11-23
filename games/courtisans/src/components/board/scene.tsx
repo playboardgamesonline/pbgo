@@ -1,7 +1,6 @@
 "use client"
 
 import { type Family, type Mission, type PlayerView, type Role, type VisibleCard, missionOf } from "@courtisans/engine"
-import { useFrame, useThree } from "@react-three/fiber"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Color, Euler, Quaternion, Vector3 } from "three"
 import { useCourtisans } from "../game/context"
@@ -12,7 +11,7 @@ import { Counters, MissionSign, PilePoints, ENDING_SETTINGS, EndingSettings, Fam
 import { Lane, LaneSettings, MatLines } from "./lanes"
 import { copyButton, debugTab, useControls } from "@pbgo/core/components/game/debug-controls"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { Aura, Card, type CardState, effectiveState, FACE_DOWN, FloorButton, HELD_FAN_FIELDS, HELD_FAN_SETTINGS, HeldHand, Hotspot, lean, LightPool, NO_TOUCH, onTable, Pile, type Pose, Playmat, PlayerSeat, SCREEN_HAND_FIELDS, ScreenHand, screenHandLayout, type SurfaceProps, Table, type Touch, useSettings, useSettingsVersion, Veil, Zone, type ZoneCard } from "@pbgo/table"
+import { Aura, Card, type CardState, effectiveState, FACE_DOWN, FloorButton, HELD_FAN_FIELDS, HELD_FAN_SETTINGS, HeldHand, Hotspot, lean, LightPool, NO_TOUCH, onTable, Pile, type Pose, Playmat, PlayerSeat, SCREEN_HAND_FIELDS, ScreenHand, type ScreenHandView, type ScreenPointer, screenHandLayout, type SurfaceProps, Table, type Touch, useSettings, useSettingsVersion, Veil, Zone, type ZoneCard } from "@pbgo/table"
 import {
   CARD_SIZE,
   DH,
@@ -111,16 +110,6 @@ function Ephemeral({ item, tex, onEnd }: { item: Transient; tex: Textures; onEnd
   )
 }
 
-/** A click on the table where nothing answers. The shared `Table` passes none on from its canvas, so a plane under everything takes it: what lies over it stops its own clicks. */
-function EmptyClick({ onClick }: { onClick: () => void }) {
-  return (
-    <mesh rotation-x={-Math.PI / 2} position-y={-0.01} onClick={onClick}>
-      <planeGeometry args={[400, 400]} />
-      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-    </mesh>
-  )
-}
-
 const HAND_DISTANCE = 6
 const QUAT_GROUP = new Quaternion()
 const QUAT_LOCAL = new Quaternion()
@@ -133,7 +122,6 @@ function World({
   openingStep,
   missionFocus,
   onMission,
-  onEmpty,
   onReady,
   held,
   onLoaded,
@@ -145,7 +133,6 @@ function World({
   openingStep: OpeningStep
   missionFocus: string | null
   onMission: (id: string) => void
-  onEmpty: () => void
   onReady: () => void
   held: boolean
   onLoaded: () => void
@@ -259,7 +246,6 @@ function World({
   const piled = rolledOut || openingStep !== "unroll"
   const [deal, setDeal] = useState<Map<number, Pose>>(new Map())
   const [missionOrigins, setMissionOrigins] = useState<Map<string, Pose>>(new Map())
-  const cameraOuverture = useThree((s) => s.camera)
   if (prevStep !== openingStep) {
     setPrevStep(openingStep)
     if (openingStep === "deal") {
@@ -275,31 +261,14 @@ function World({
       setDeal(dist)
     }
     if (openingStep === "missions") {
-      cameraOuverture.updateMatrixWorld()
-      const inverse = cameraOuverture.quaternion.clone().invert()
-      setMissionOrigins(
-        new Map(
-          missions.map((m, i) => {
-            const from = missionPilePose(MISSION_PILE.size + i)
-            return [
-              m.id,
-              {
-                position: cameraOuverture.worldToLocal(from.position.clone()),
-                quaternion: inverse.clone().multiply(from.quaternion),
-                scale: from.scale,
-                delay: 0.35 + i * 0.3,
-              },
-            ]
-          }),
-        ),
-      )
+      // Where each mission starts, on the table, and how long it waits: the screen frame puts it in the frame of the camera when the card is drawn
+      setMissionOrigins(new Map(missions.map((m, i) => [m.id, { ...missionPilePose(MISSION_PILE.size + i), delay: 0.35 + i * 0.3 }])))
     }
   }
   const intro = openingStep === "missions"
   const visibleHand = openingStep !== "unroll"
   const visibleMissions = openingStep === "missions" || openingStep === null
 
-  const { camera } = useThree()
   const missionSettings = useControls(
     "Missions",
     {
@@ -367,6 +336,11 @@ function World({
     return p
   }
 
+  const fromMissionOrigin = (screen: ScreenHandView, id: string) => {
+    const origin = missionOrigins.get(id)
+    return origin ? screen.local(origin) : undefined
+  }
+
   const selectionId = it.selection?.id
   // The cards of the viewer's hand can be chosen on their turn; the one under the pointer is brought forward, and so is the one that is picked
   const playable = it.myTurn && !it.assassination && !it.sending
@@ -374,10 +348,13 @@ function World({
   const raised = hand.findIndex((card) => card.id === (selectionId ?? hoveredCard))
   const nameOf = (card: { family: Family | null; role: Role | null }) =>
     [card.role ? catalog.roles[card.role].name : catalog.words.courtier, card.family ? catalog.families[card.family].name : null].filter(Boolean).join(" · ")
-  useFrame(({ pointer }) => {
-    const proj = camera.projectionMatrix.elements
-    const h = HAND_DISTANCE / proj[5]
-    const w = HAND_DISTANCE / proj[0]
+  // The missions are held in front of the camera, in the frame that follows it: where each one lies depends on the camera and on the pointer, so it is worked out on every frame, in the poses the cards read
+  const holdMissions = (screen: ScreenHandView, pointer: ScreenPointer) => {
+    // the half height and the half width of the picture, one unit in front of the camera, and `HAND_DISTANCE` in front of it
+    const unitH = screen.halfHeight / screen.distance
+    const unitW = screen.halfWidth / screen.distance
+    const h = HAND_DISTANCE * unitH
+    const w = HAND_DISTANCE * unitW
     const rj = inGameMissionSettings
     const mW = Math.min(w * rj.size, h * 0.8)
     const mH = (mW * MISSION_H) / MISSION_W
@@ -385,7 +362,7 @@ function World({
       const p = cameraPose(`mission:${m.id}`)
       if (intro) {
         const r = missionSettings
-        const k = (r.distance / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
+        const k = (r.distance / 8) * (unitH / Math.tan((19 * Math.PI) / 180))
         const dir = i === 0 ? 1 : -1
         const group = QUAT_GROUP.setFromEuler(EULER_TMP.set(r.rotation.x - pointer.y * r.mouse, r.rotation.y + pointer.x * r.mouse, r.rotation.z))
         const x = (i - 0.5) * (MISSION_W + r.gap) * k * r.scaleFactor
@@ -397,7 +374,7 @@ function World({
         p.scale = k * r.scaleFactor
       } else if (missionFocus === m.id) {
         const d = rj.focusDistance
-        const k = (d / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
+        const k = (d / 8) * (unitH / Math.tan((19 * Math.PI) / 180))
         p.position.set(0, -0.04 * k, -d)
         p.quaternion.setFromEuler(EULER_TMP.set(-pointer.y * rj.focusMouse, pointer.x * rj.focusMouse * 1.3, 0))
         p.scale = rj.focusScale * k
@@ -405,11 +382,11 @@ function World({
         // placed face down on the table, right of the board; converted into the camera's frame (the cards follow the camera)
         const hovered = hover === `mission:${m.id}`
         const rest = missionRestPose(myZone, i, m.id)
-        camera.updateMatrixWorld()
         if (hovered) rest.position.y += 0.18
-        p.position.copy(camera.worldToLocal(rest.position))
-        p.quaternion.copy(camera.quaternion).invert().multiply(rest.quaternion)
-        p.scale = rest.scale * (hovered ? 1.08 : 1)
+        const placed = screen.local(rest)
+        p.position.copy(placed.position)
+        p.quaternion.copy(placed.quaternion)
+        p.scale = placed.scale * (hovered ? 1.08 : 1)
       } else {
         const hovered = hover === `mission:${m.id}`
         const jaw = i === 0 ? rj.angles.card1 : rj.angles.card2
@@ -427,7 +404,7 @@ function World({
         p.scale = (mW / MISSION_W) * (hovered ? rj.hoverScale : 1)
       }
     })
-  })
+  }
 
   const results = view.results
   const winnerCenters = useWinnerCenters(results?.winners ?? EMPTY, zones)
@@ -443,7 +420,6 @@ function World({
       <EndingSettings />
       <LayoutSettings />
       <MatLines results={results ?? null} ending={ending} />
-      <EmptyClick onClick={onEmpty} />
       <Playmat
         size={{ width: MAT_W, depth: MAT_D, radius: 0.07 }}
         picture={tex.mat}
@@ -504,8 +480,8 @@ function World({
       )}
 
       {/* The missions a player reads are held up in front of the camera, in a frame that follows it */}
-      <ScreenHand settings={HAND_SETTINGS}>
-        {() =>
+      <ScreenHand settings={HAND_SETTINGS} onFrame={holdMissions}>
+        {(screen) =>
           visibleMissions &&
           !ending &&
           missions.map((m: Mission) => (
@@ -513,7 +489,7 @@ function World({
               key={m.id}
               id={`mission:${m.id}`}
               target={cameraPose(`mission:${m.id}`)}
-              from={missionOrigins.get(m.id)}
+              from={fromMissionOrigin(screen, m.id)}
               front={tex.mission(m)}
               back={tex.missionBack(m)}
               size={MISSION_SIZE}
@@ -710,12 +686,11 @@ export default function Scene3D(props: {
     [theme],
   )
   return (
-    <Table camera={CAMERA} intro={INTRO} playIntro={props.openingStep === "unroll"} photo={PHOTO} surface={surface} lights held={props.held}>
+    <Table camera={CAMERA} intro={INTRO} playIntro={props.openingStep === "unroll"} photo={PHOTO} surface={surface} lights held={props.held} onEmptyPress={props.onEmpty}>
       <World
         openingStep={props.openingStep}
         missionFocus={props.missionFocus}
         onMission={props.onMission}
-        onEmpty={props.onEmpty}
         onReady={props.onReady}
         held={props.held}
         onLoaded={props.onLoaded}

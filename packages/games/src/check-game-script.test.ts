@@ -1,9 +1,11 @@
 import { spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { describe, expect, it } from "vitest"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { BOARD_DIR } from "./board-kit.ts"
+import { GAMES } from "./registry"
 
 // `scripts/check-game.mjs` reads files only and is run by Node itself: this runs it as `pnpm check:game` does, on the template (always there, and a game that has not got far: its engine is the demo, its
 // flags are off), to check the two kinds of gate. `--stage` is every check up to a stage; `--only` is one stage alone, for a step that is done out of order (`/add-game` gates the Studio's forms by it).
@@ -120,5 +122,84 @@ describe("pnpm check:game for a game that is not in the repo yet", () => {
     } finally {
       rmSync(assets, { recursive: true, force: true })
     }
+  })
+})
+
+describe("pnpm check:game on the games of the repository", () => {
+  // The script is not one of the gates of the repository, so these are what keep a game from going back: each game that has a board must pass the stage of its board, and a game that is live must pass every stage.
+  const game = (slug: string, ...args: string[]) => {
+    const run = spawnSync(process.execPath, ["scripts/check-game.mjs", slug, ...args], { cwd: REPO, encoding: "utf8", timeout: 60_000 })
+    return { status: run.status, out: run.stdout }
+  }
+  const withBoard = ["template", ...readdirSync(join(REPO, "games")).filter((slug) => existsSync(join(REPO, "games", slug, BOARD_DIR)))]
+
+  it("says what a board is built on and that it draws nothing with three.js outside the kit", () => {
+    const run = game("skyjo", "--only", "board")
+    expect(run.status).toBe(0)
+    expect(run.out).toMatch(/✓ kit: the board is built on @pbgo\/table: \d+ pieces, which load \d+ files of it/)
+    expect(run.out).toContain("✓ own drawing: nothing is drawn with three.js outside the kit")
+  })
+
+  it("passes the board stage for every game that has a board", () => {
+    expect(withBoard).toEqual(expect.arrayContaining(["template", "courtisans", "flip-7", "skyjo", "love-letter"]))
+    for (const slug of withBoard) {
+      const run = game(slug, "--only", "board")
+      expect(run.status, `${slug}: ${run.out}`).toBe(0)
+    }
+  }, 60_000)
+
+  it("passes every stage for every game that is live", () => {
+    for (const { slug } of GAMES.filter((entry) => entry.live)) {
+      const run = game(slug, "--stage", "live")
+      expect(run.status, `${slug}: ${run.out}`).toBe(0)
+    }
+  }, 60_000)
+
+  it("reads a score that is secret by design as one that says so, and a game that carries none or says nothing as behind", () => {
+    // Courtisans keeps its points secret until the end and says so where it builds its view; Flip 7 carries `standings`
+    expect(game("courtisans", "--only", "engine").out).not.toContain("no `standings` in the view")
+    expect(game("flip-7", "--only", "engine").out).not.toContain("no `standings` in the view")
+    expect(game("template", "--only", "engine").out).toContain("no `step` in the definition")
+  })
+})
+
+describe("pnpm check:game on a board of a repository of its own", () => {
+  // The script reads the repository `PBGO_REPO_DIR` names, so the two ways a board can be judged that no board of this repository takes today are run on boards written here: one that draws with three.js itself, which is
+  // a warning and no failure, and one that does not take the `Table` of the kit, which fails the stage.
+  let repo = ""
+  const write = (path: string, text: string) => {
+    mkdirSync(dirname(join(repo, path)), { recursive: true })
+    writeFileSync(join(repo, path), text)
+  }
+  const board = (slug: string) => {
+    const run = spawnSync(process.execPath, ["scripts/check-game.mjs", slug, "--only", "board"], { cwd: REPO, encoding: "utf8", timeout: 60_000, env: { ...process.env, PBGO_REPO_DIR: repo } })
+    return { status: run.status, out: run.stdout }
+  }
+
+  beforeAll(() => {
+    repo = mkdtempSync(join(tmpdir(), "check-game-board-"))
+    write("packages/games/src/registry.ts", ["export const GAMES = [", "  {", '    slug: "raw",', '    sanityProjectId: "abc12345",', "    live: false,", "    indexable: false,", "  },", "  {", '    slug: "nokit",', '    sanityProjectId: "abc12345",', "    live: false,", "    indexable: false,", "  },", "]", ""].join("\n"))
+    write("packages/table/src/index.ts", 'export { Table } from "./table"\nexport { PlayerSeat } from "./seat"\n')
+    write("packages/table/src/table.tsx", "export const Table = () => null\n")
+    write("packages/table/src/seat.tsx", "export const PlayerSeat = () => null\n")
+    write(
+      "games/raw/src/components/board/scene.tsx",
+      ['import { PlayerSeat, Table } from "@pbgo/table"', 'import { useFrame } from "@react-three/fiber"', "export const Scene = () => {", "  useFrame(() => {})", "  return (", "    <Table>", "      <mesh>", "        <planeGeometry />", "      </mesh>", "      <PlayerSeat />", "    </Table>", "  )", "}", ""].join("\n"),
+    )
+    write("games/nokit/src/components/board/scene.tsx", 'import { PlayerSeat } from "@pbgo/table"\nexport const Scene = () => <PlayerSeat />\n')
+  })
+  afterAll(() => rmSync(repo, { recursive: true, force: true }))
+
+  it("warns of the three.js a board draws itself and passes the stage: a warning is no failure", () => {
+    const run = board("raw")
+    expect(run.out).toContain("✓ kit: the board is built on @pbgo/table: 2 pieces")
+    expect(run.out).toContain("• own drawing: the board draws with three.js itself (mesh, planeGeometry, useFrame)")
+    expect(run.status).toBe(0)
+  })
+
+  it("fails the stage for a board that takes no `Table` from the kit, and says which piece it lacks", () => {
+    const run = board("nokit")
+    expect(run.out).toContain("✗ kit: the board takes no `Table` from @pbgo/table")
+    expect(run.status).toBe(1)
   })
 })

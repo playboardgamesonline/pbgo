@@ -53,13 +53,20 @@ export async function presses(ctx, seats) {
       if (!(await page.knows(latest.version))) throw new Error(`the page was never told version ${latest.version} of the table (it knows ${page.seen.version}): it does not follow the table`)
       // A scan or a `find` that throws is a bug to be told, not a control that has not appeared yet
       let broke = null
+      // The control the game's `find` picks may be under an announcement or a card that is still flying for a moment: it is waited for until it can be pressed, and said to be covered only when it stays so
+      let covered = null
       const found = await waitFor(
         async () => {
           try {
+            covered = null
             const scan = await page.eval(scanPressables)
             if (!scan.ok) return null
             const shown = scan.pressables.filter((p) => p.shown)
             const pressable = await config.find({ label: plan.label, pressables: shown, state: latest, me })
+            if (pressable && !pressable.reachable) {
+              covered = pressable
+              return null
+            }
             return pressable ? { pressable, shown } : null
           } catch (error) {
             broke = error
@@ -68,6 +75,10 @@ export async function presses(ctx, seats) {
         },
         { timeoutMs: 15_000, everyMs: 400 },
       )
+      if (!found && covered) {
+        await evidence(`${plan.label}-covered`)
+        throw new Error(`"${plan.label}" cannot be pressed: ${covered.why} (${covered.path} at ${covered.world?.map((v) => Math.round(v * 10) / 10).join(", ")}, in the middle of the window at ${covered.center?.join(", ")}), and stayed so for 15 s`)
+      }
       if (!found) {
         const scan = await page.eval(scanPressables).catch(() => ({ ok: false }))
         const offered = scan.ok ? scan.pressables.filter((p) => p.shown).map((p) => `${p.path} at ${p.world?.map((v) => Math.round(v * 10) / 10).join(",")}`) : []
@@ -75,10 +86,6 @@ export async function presses(ctx, seats) {
         throw new Error(`"${plan.label}": the board offered no control for it within 15 s (it offers ${offered.length}: ${offered.join("; ") || "none"})${broke ? `; the scan or \`find\` threw: ${broke.message}` : ""}`)
       }
       const { pressable } = found
-      if (!pressable.reachable) {
-        await evidence(`${plan.label}-covered`)
-        throw new Error(`"${plan.label}" cannot be pressed: ${pressable.why} (${pressable.path} at ${pressable.world?.map((v) => Math.round(v * 10) / 10).join(", ")}, in the middle of the window at ${pressable.center?.join(", ")})`)
-      }
       const before = latest.version
       const pressedAt = Date.now()
       let moved = null

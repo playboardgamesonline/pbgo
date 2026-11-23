@@ -20,6 +20,7 @@ export const PlaymatScene = dynamic(() => import("./three/playmat").then((m) => 
 export const SeatsScene = dynamic(() => import("./three/seats").then((m) => m.SeatsScene), { ssr: false })
 export const SeatScene = dynamic(() => import("./three/seat").then((m) => m.SeatScene), { ssr: false })
 export const ZoneLightsScene = dynamic(() => import("./three/zone-lights").then((m) => m.ZoneLightsScene), { ssr: false })
+export const PictureScene = dynamic(() => import("./three/picture").then((m) => m.PictureScene), { ssr: false })
 export const DiceScene = dynamic(() => import("./three/dice").then((m) => m.DiceScene), { ssr: false })
 export const TextFieldScene = dynamic(() => import("./three/text-field").then((m) => m.TextFieldScene), { ssr: false })
 export const StagingScene = dynamic(() => import("./three/staging").then((m) => m.StagingScene), { ssr: false })

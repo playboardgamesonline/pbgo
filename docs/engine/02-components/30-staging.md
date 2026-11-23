@@ -1,6 +1,6 @@
 # Staging
 
-What a board does with time on the table, beyond the moves of the players: a **sequence**, a short film made of states (the end of a game, an opening), an **appear**, something that comes onto the table, and a **veil**, the dark that makes one thing stand out. None of them is the engine's: nothing here is kept or sent, a visitor who comes in late or reloads has the whole of it again, and what the engine says (the game is over, here are the results) is what a sequence starts from. Shared: `packages/table/src/staging/`, with what is pure in `sequence.ts`, `appear-look.ts` and `veil-look.ts`, tested in `sequence.test.ts` and `staging.test.ts`.
+What a board does with time on the table, beyond the moves of the players: a **sequence**, a short film made of states (the end of a game, an opening), an **appear**, something that comes onto the table, a **stamp**, something that lands on it with a thump, and a **veil**, the dark that makes one thing stand out. None of them is the engine's: nothing here is kept or sent, a visitor who comes in late or reloads has the whole of it again, and what the engine says (the game is over, here are the results) is what a sequence starts from. Shared: `packages/table/src/staging/`, with what is pure in `sequence.ts`, `appear-look.ts` and `veil-look.ts`, tested in `sequence.test.ts` and `staging.test.ts`.
 
 The end of a game, as a sequence: the points of each card come down onto the table one by one, then the table goes dark and the winner is lit. Play it again, and change its pace.
 
@@ -41,6 +41,21 @@ A sequence is a state that changes on a clock. A board starts in `start`, and ea
 - **Not seen before its delay.** An entrance that waits is hidden until its delay has passed, and has not come in at that moment.
 - **What it fades.** The materials under it that have an opacity, which is all of the table's flat ones (lettering, glyphs, planes). It remembers what each was and gives it back when the entrance is over, and leaves it alone after that, so what a game does to its materials later is its own. A material a game shares with something that is not entering is faded with it: give an entrance its own.
 - **Order.** A piece under it that sets its own opacity every frame, as `TableText` does, is faded when it is mounted with the entrance: it subscribes to the frame before its parent, so the parent fades after the piece has set. A piece that is mounted later subscribes after the entrance and shows at its own opacity until the entrance is over: mount it with the entrance, or give it its own `opacity` (`TableText` takes one).
+- **Reduced motion.** A visitor who asks for less motion gets what is inside as it is, at once.
+
+## Stamp
+
+`Stamp` is something that lands on the table like a stamp thumped down: it waits `delay`, then grows from nothing to a little too big and back to its size over `duration`, while it comes down by `drop`, fast at first and settling (`stampAt`). Where an `Appear` fades in, a stamp pops: the sticker of the specimen of [Pictures](31-pictures.md) lands that way.
+
+| Prop | Role |
+| --- | --- |
+| `entering` | Whether it lands (default true): the landing plays from its start when this turns true and, while it is true, from the first frame it is drawn. While it is false what is inside is simply there |
+| `drop` | How far above its place it starts, in world units (`STAMP.drop`, 0.9) |
+| `delay`, `duration` | Seconds it waits before it lands and takes to land (`STAMP`: 0 and 0.45) |
+
+- **It scales about its own origin.** What lands is laid with its middle there: a [`Picture`](31-pictures.md) at the origin of a group that lies where the stamp does, as the stickers of Flip 7 are.
+- **Not seen before its delay**, and as small as the landing starts from the first frame, so that it is never seen whole before it lands.
+- **It does not fade.** It moves and scales what is inside it and leaves its materials alone.
 - **Reduced motion.** A visitor who asks for less motion gets what is inside as it is, at once.
 
 ## Veil

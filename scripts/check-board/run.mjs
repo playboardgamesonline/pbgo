@@ -67,7 +67,7 @@ export async function runCheck(ctx, { check, seats, timeoutMs = 600_000, lenient
     },
     /** A browser, its page labelled with this check so that its issues are the check's */
     async browser(options = {}) {
-      const page = await launchBrowser({ reducedMotion: ctx.args.reducedMotion, liftCors: ctx.args.port !== 3100, ...options })
+      const page = await launchBrowser({ reducedMotion: ctx.args.reducedMotion, liftCors: ctx.args.port !== 3100, banner: ctx.args.banner, ...options })
       page.phase = label
       pages.push(page)
       return page
