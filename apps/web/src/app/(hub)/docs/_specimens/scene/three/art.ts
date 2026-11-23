@@ -2,7 +2,7 @@
 // the pieces of the table (`--piece-*`) for the cards, the success and card tokens for the felt, so that a change of the tokens changes the scenes with them. The textures are made once and kept (`paintFace` keeps the cards' by key).
 // This is the heavy half of the specimens: only the files of this folder import three.js and `@pbgo/table`, and they are reached through `next/dynamic` only.
 
-import { type CardSize, latticeTexture, onTable, paintFace, type SurfaceProps } from "@pbgo/table"
+import { type CardSize, onTable, paintFace, type SurfaceProps } from "@pbgo/table"
 import { CanvasTexture, SRGBColorSpace, type Texture } from "three"
 import { cssColor, pageFont } from "../color"
 
@@ -67,17 +67,6 @@ export function tileColors(): Record<TileKind, string> {
 
 /** Where cards are dealt from in the specimens: above the middle of the table, face down. */
 export const DECK = onTable(0, -0.5, { y: 3.2, face: "down", scale: 0.9 })
-
-// A number between 0 and 1 from a seed, so that the felt is the same on every visit (and in every canvas that is made)
-function seeded(seed: number) {
-  let state = seed
-  return () => {
-    state = (state + 0x6d2b79f5) | 0
-    let t = Math.imul(state ^ (state >>> 15), 1 | state)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
 
 function roundedRect(g: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
   g.beginPath()
@@ -253,36 +242,19 @@ export function tokenFace(n: number, color: string): Texture {
   })
 }
 
-let cloth: Texture | undefined
+let feltMat: SurfaceProps | undefined
 
-/** The felt of the table: its colour with a grain, seamless so that the table can repeat it. */
-export function felt(): Texture {
-  if (cloth) return cloth
-  const canvas = document.createElement("canvas")
-  canvas.width = canvas.height = 256
-  const g = canvas.getContext("2d")!
-  g.fillStyle = palette().felt
-  g.fillRect(0, 0, 256, 256)
-  const picture = g.getImageData(0, 0, 256, 256)
-  const random = seeded(7)
-  for (let i = 0; i < picture.data.length; i += 4) {
-    const grain = (random() - 0.5) * 14
-    picture.data[i] += grain
-    picture.data[i + 1] += grain
-    picture.data[i + 2] += grain
-  }
-  g.putImageData(picture, 0, 0)
-  cloth = new CanvasTexture(canvas)
-  cloth.colorSpace = SRGBColorSpace
-  cloth.anisotropy = 8
-  return cloth
+/** The felt of the table: its colour with a faint grain, laid as a layer that the table bakes and repeats, so that nothing is painted here. */
+export function feltSurface(): SurfaceProps {
+  feltMat ??= { color: palette().felt, layers: [{ kind: "grain", strength: 0.25 }] }
+  return feltMat
 }
 
 let darkMat: SurfaceProps | undefined
 
 /** The dark mat of the boards that are made as Courtisans'. A very dark grey with a diamond lattice a hair lighter, no grain, and a pool of light on its middle, so that it is lit there and falls away to black at its edges. */
 export function mat(): SurfaceProps {
-  darkMat ??= { color: "#0c0c0e", map: latticeTexture({ base: "#0c0c0e", line: "#17171b", diamonds: 3, width: 2.5 }), light: { color: "#2c2c31", radius: 20 } }
+  darkMat ??= { color: "#0c0c0e", layers: [{ kind: "lattice", line: "#17171b", diamonds: 3, width: 2.5 }], resolution: 256, light: { color: "#2c2c31", radius: 20 } }
   return darkMat
 }
 
