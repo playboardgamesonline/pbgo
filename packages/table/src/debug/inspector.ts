@@ -13,8 +13,6 @@ export type CardReading = {
   targetScale: number
   /** The flight it is on: seconds in (negative while it waits its turn) of how many it lasts. None when it glides or rests */
   flight: { time: number; duration: number } | null
-  /** The name of its glow, as the game gave it to `defineGlows` */
-  glow: string | null
 }
 
 let current: { key: symbol; read: () => CardReading } | null = null
@@ -40,7 +38,7 @@ const places = (t: Triple) => t.map((n) => n.toFixed(2)).join(" · ")
 
 /** The lines the Inspector folder shows, one for each thing a card is doing */
 export function describeCard(reading: CardReading | null) {
-  if (!reading) return { card: "none", at: "—", target: "—", scale: "—", flight: "—", glow: "—" }
+  if (!reading) return { card: "none", at: "—", target: "—", scale: "—", flight: "—" }
   const { flight } = reading
   return {
     card: reading.id,
@@ -48,6 +46,5 @@ export function describeCard(reading: CardReading | null) {
     target: places(reading.target),
     scale: `${reading.scale.toFixed(2)} → ${reading.targetScale.toFixed(2)}`,
     flight: !flight ? "at rest" : flight.time < 0 ? `waits ${(-flight.time).toFixed(2)} s` : `${Math.round(Math.min(1, flight.time / flight.duration) * 100)} % of ${flight.duration.toFixed(2)} s`,
-    glow: reading.glow ?? "none",
   }
 }

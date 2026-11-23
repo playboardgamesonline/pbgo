@@ -8,7 +8,7 @@ Every component of the table on one table, in an interface of its own: [open the
 | --- | --- |
 | Toolbar | The scene picker, Undo and Redo, Reset (the scene and the tuning as they start), Share (copies a link) and the help for the keys |
 | Scene tab | Six scenes to start from, each one press: Card game (a ring of four seats, piles, floor buttons, your hand in the bottom left, as Flip 7), Board game, Trick-taking, Dice game, Everything (the playground as it used to start) and an Empty table. Also the view of the camera |
-| Add tab | Cards and pieces to put on the table, and what to do with the one that is picked (turn it, glow, remove) |
+| Add tab | Cards and pieces to put on the table, and what to do with the one that is picked (turn it, remove) |
 | Parts tab | Every part of the table in groups, a switch each with a line of what it is, a Docs link to its page and its own controls when it is on. The search box finds a part by its name or its words (hand, dice, hex, score, flip 7) |
 | Play tab | The transitions with Replay, the speed, arc and easing of the motion, the score of each seat and the log |
 | Tuning tab | A slider for every number a component reads on every frame, with a search and a link to the page of each component. "Put the settings back" restores them |
@@ -24,7 +24,7 @@ Each part is the component of the package as the page of its own shows it, given
 
 | On the table | What to do with it | Page |
 | --- | --- | --- |
-| Cards | Add one, press it to pick it (the table raises and lights it, `selected`), drag it, turn it over, and give the picked one a glow on top | [Cards](02-components/04-cards.md), [Glows](02-components/04-cards.md#glows), [Dragging](02-components/19-dragging.md) |
+| Cards | Add one, press it to pick it (the table raises and lights it, `selected`), drag it and turn it over | [Cards](02-components/04-cards.md), [Dragging](02-components/19-dragging.md) |
 | Pieces | Add a disc, a square, a hexagon, a cube, a sphere or a pawn, and drag it | [Pieces](02-components/13-pieces.md) |
 | Board | A grid of squares, a field of hexagons or a ring of spaces, in the middle or at the side: drop a card or a piece on a cell and it takes it (the cell turns gold); Move a piece walks a pawn to the next free cell | [Dragging](02-components/19-dragging.md#zones), [Boards](02-components/16-boards.md) |
 | Track | Move the marker along the spaces | [Tracks](02-components/15-tracks.md) |

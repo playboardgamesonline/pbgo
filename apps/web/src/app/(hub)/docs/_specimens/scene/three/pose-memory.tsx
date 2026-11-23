@@ -19,10 +19,7 @@ export function PoseMemoryScene({ middle, onMove }: { middle: readonly number[];
       id,
       front: face(id),
       back: cardBack,
-      onClick: (event) => {
-        event.stopPropagation()
-        onMove(id)
-      },
+      onPress: () => onMove(id),
     }))
   return (
     <Stage id="scene-pose-memory" camera={CAMERA} playIntro={false}>

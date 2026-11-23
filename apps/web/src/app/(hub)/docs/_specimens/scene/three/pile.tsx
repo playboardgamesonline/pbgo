@@ -5,7 +5,7 @@ import type { Drawn } from "../defaults"
 import { back, CARD_SIZE, face } from "./art"
 import { Stage } from "./parts"
 
-// A `Pile` is a stack of cards the game only counts. Its top card can be turned up, and it is a card like any other: it takes an `onClick`. A card drawn from it is a card of the game's own now, so it goes to a `Zone` over `pile` (a discard
+// A `Pile` is a stack of cards the game only counts. Its top card can be turned up, and it is a card like any other: it takes an `onPress`. A card drawn from it is a card of the game's own now, so it goes to a `Zone` over `pile` (a discard
 // pile whose cards stay named) and starts from the pose the top of the draw pile had, which the scene works out with the same `pile` the `Pile` calls.
 
 const CAMERA: CameraSettings = { tilt: 40, yaw: 0, distance: 13, fov: 34, targetX: 0, targetZ: 0.3 }
@@ -49,7 +49,7 @@ export function PileScene({
         back={cardBack}
         limit={LIMIT}
         {...OPTIONS}
-        top={{ id: next, front: topUp ? face(next) : undefined, onClick: onDraw }}
+        top={{ id: next, front: topUp ? face(next) : undefined, onPress: onDraw }}
       />
       <Zone
         frame={DISCARD_PILE}

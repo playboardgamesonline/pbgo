@@ -2,7 +2,6 @@ export { type BoxOptions, boxAbove, boxesOverlap, boxOfPoses, boxOfRect, centreO
 export { Card, type CardDrop, type CardProps } from "./card/card"
 export { faceResolution, paintFace, standIn, type StandIn } from "./card/face"
 export type { CardSize } from "./card/geometry"
-export { defineGlows, type Frame, type Glow, type GlowSpec, type Halo, type Outline, type Sparkle } from "./card/glows"
 export { Bag, type BagProps } from "./bag/bag"
 export { bagMouth } from "./bag/geometry"
 export { BAG_FIELDS, BAG_SETTINGS, BAG_SIZE } from "./bag/settings"
