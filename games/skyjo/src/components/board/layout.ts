@@ -1,40 +1,32 @@
-import { type Field, onTable, PILE_LABEL_GAP, PILE_LABEL_HEIGHT, type Pose, SEAT_SETTINGS, type Spot } from "@pbgo/table"
+import { boxOfPoses, byPlayers, cornersOfBox, type Field, onAxis, onTable, PILE_LABEL_GAP, PILE_LABEL_HEIGHT, type Place, plateAbove, plateBoxOf, type Pose, pointInFrame, seats, type Spot, type TableBox } from "@pbgo/table"
 
-/** A seat at the table: where it stands and the yaw that turns what lies there to face its player: the viewer's seat is at yaw 0, a seat across from them at π, one on their left at -π/2 */
+/** A seat at the table: where it stands and the yaw that turns what lies there to face the middle, as the player who sits there sees it: the viewer's seat is at yaw 0, the one across at half a turn, one on their left at -π/2 */
 export type SeatSpot = Required<Spot>
 
-/** A place on the table, in world units: x to the right, z toward the viewer */
-export type Place = { x: number; z: number }
-
 /**
- * The knobs of the layout, edited by the Layout folder of the debug panel (`scene.tsx` binds them with `useSettings`). The seats stand all around the table like the chairs of a real one, the viewer in front, and what lies at a seat (its grid of
- * 4 columns by 3 rows, its plate) turns to face the player who sits there. The ring is the one of Flip 7 (`seatAngle`, `seatAt`), for 2 to 8 seats.
+ * The knobs of the layout, edited by the Layout folder of the debug panel (`scene.tsx` binds them with `useSettings`). The seats stand all around the table like the chairs of a real one, the viewer in front (`seats` of the table kit), and everything of a player stands in
+ * the frame of their seat, turned as their name is: the plate above their grid, which is 4 columns by 3 rows.
  */
 export const LAYOUT_SETTINGS = {
-  /** The ellipse the grids of the seats are centred on, for a table of two and for a table of eight (in between, in steps). Its far end is the grid of the seat across, its sides those of the seats at the sides; the viewer's grid stands in front of it at
-   * `viewerZ`. How far the camera stands is not a knob: it is fitted to the window (`fitCamera`) */
-  radiusX2: 4.311,
-  radiusX8: 4.533,
-  radiusZ2: 4.337,
-  radiusZ8: 6.988,
+  /** The ellipse the grids of the seats are centred on, for a table of two and for a table of eight (in between, in steps). Its far end is the grid of the seat across, its sides those of the seats at the sides; the viewer's grid stands in front of it at `viewerZ`. How far the
+   * camera stands is not a knob: it is fitted to the window (`fitCamera`) */
+  radiusX2: 5.12,
+  radiusX8: 5.56,
+  radiusZ2: 6.24,
+  radiusZ8: 7.33,
   /** The size of the cards of the opponents, for a table of two and for a table of eight: a small table has big cards, a full one small ones */
-  opponentScale2: 0.603,
-  opponentScale8: 0.404,
+  opponentScale2: 0.62,
+  opponentScale8: 0.46,
   /** The viewer's grid: how far toward them it lies and how big its cards are */
-  viewerZ: 4.724,
-  viewerScale: 0.711,
-  /** The step between two columns of a grid, as a share of the width of a card, and between two rows, as a share of its height: 1.1 leaves a gap of a tenth of a card between neighbours, both ways. Cards never overlap (`layout.test.ts` holds a margin): the figures stay readable by the size of the cards */
+  viewerZ: 5.08,
+  viewerScale: 0.66,
+  /** The step between two columns of a grid, as a share of the width of a card, and between two rows, as a share of its height: 1.1 leaves a gap of a tenth of a card between neighbours, both ways. Cards never overlap (`layout.test.ts` holds a margin): the figures stay
+   * readable by the size of the cards */
   columnGap: 1.1,
   rowStep: 1.1,
-  /** 1: the grid of an opponent turns to face its player (the cards of the seat across from the viewer are upside down for the viewer, as on a real table); 0: every grid reads upright from the viewer's side */
-  faceSeat: 1,
-  /** 1: the plate of a seat (name, score, status) turns with the seat, but never upside down: a text that would be turned more than a quarter turn from upright is turned back by half a turn; 0: every plate reads upright */
-  textTurn: 1,
-  /** The clear space between a grid and its plate, in world units */
-  plateGap: 0.2,
   /** The draw pile and the discard, either side of the card in hand, in the middle of the table */
-  pilesX: 1.406,
-  pilesZ: 0.1,
+  pilesX: 1.23,
+  pilesZ: -0.03,
   pileScale: 0.818,
   /** The card in hand lies between the piles, a little bigger than they are */
   heldScale: 0.736,
@@ -51,9 +43,6 @@ export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
   viewerScale: ["viewer card scale", 0.3, 1.2, 0.01],
   columnGap: ["column step (cards)", 1.05, 1.4, 0.01],
   rowStep: ["row step (cards)", 1.05, 1.4, 0.01],
-  faceSeat: ["grids face their seat (0 off, 1 on)", 0, 1, 1],
-  textTurn: ["plates turn with their seat (0 off, 1 on)", 0, 1, 1],
-  plateGap: ["plate gap", 0, 2, 0.05],
   pilesX: ["piles x", 1, 3, 0.05],
   pilesZ: ["piles z", -3, 3, 0.05],
   pileScale: ["pile scale", 0.4, 1.4, 0.01],
@@ -68,84 +57,11 @@ export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
  */
 export const CARD = { width: 1.2, height: 1.93, radius: (1.2 * 29.3) / 296 }
 
-/** What grows with the table, for `n` players: from the values for two (the fewest) to those for eight (the most), in steps in between. */
-export function tableOf(n: number) {
-  const R = LAYOUT_SETTINGS
-  const t = Math.min(1, Math.max(0, (n - 2) / 6))
-  const between = (two: number, eight: number) => two + (eight - two) * t
-  return {
-    radiusX: between(R.radiusX2, R.radiusX8),
-    radiusZ: between(R.radiusZ2, R.radiusZ8),
-    opponentScale: between(R.opponentScale2, R.opponentScale8),
-  }
-}
-
 /**
- * Where the seats stand around the table, as angles in degrees: 0 is in front of the viewer, and the angle grows clockwise as the camera sees it (90 is the left side, 180 straight across, 270 the right side). `FIRST_OPPONENT` is where the player after the
- * viewer sits, which is also how far from the viewer's seat the first and the last opponent keep: the wide grid of the viewer needs the room, and the more players the less each of them needs. The other opponents are spread evenly between the first and the last.
+ * Where the player after the viewer sits, in degrees clockwise from the viewer's seat, for a table of each number of players (`first` of `seats`): the viewer's wide grid needs the room, and the more players the less each of them needs. It is also how far from the viewer's
+ * seat the first and the last opponent keep: the others are spread evenly between them.
  */
-const FIRST_OPPONENT: Readonly<Record<number, number>> = { 2: 180, 3: 145, 4: 90, 5: 90, 6: 66, 7: 62, 8: 60 }
-
-/**
- * The angle of a seat on the ring, in degrees clockwise from the viewer's: `index` counts the players in turn order from the viewer (0), `count` is the number of players. Without a viewer (`seated` false, a spectator's view) the seats are the
- * ones of a table with one more player, the empty chair in front being the one that nobody has: nobody sits where the viewer would, and the front keeps the room for the piles and the buttons.
- */
-export function seatAngle(index: number, count: number, seated = true): number {
-  if (!seated) return seatAngle(index + 1, count + 1)
-  if (index === 0) return 0
-  const first = FIRST_OPPONENT[Math.min(8, Math.max(2, count))]!
-  const others = count - 1
-  return others === 1 ? first : first + ((index - 1) / (others - 1)) * (360 - 2 * first)
-}
-
-/** The seat for an angle (`seatAngle`) on an ellipse of half-width `radiusX` and half-depth `radiusZ`: the yaw turns what lies there to face the middle of the table (top edge of a face-up card toward the middle), as the player who sits there reads it. */
-export function seatAt(angle: number, radiusX: number, radiusZ: number): SeatSpot {
-  const a = (angle * Math.PI) / 180
-  const x = -Math.sin(a) * radiusX
-  const z = Math.cos(a) * radiusZ
-  return { x, z, yaw: Math.abs(x) < 1e-9 && z > 0 ? 0 : Math.atan2(x, z) }
-}
-
-/** The seat of each player around the table: the viewer in front, the others on the ring in turn order, the turn passing to the viewer's left. */
-export function seatSpots(ids: readonly string[], meId: string | null): Map<string, SeatSpot> {
-  const viewer = ids.indexOf(meId ?? "")
-  const seated = viewer >= 0
-  // a spectator looks at a table with one more chair, the empty one in front: its seats and its grids are those of that table
-  const table = tableOf(seated ? ids.length : ids.length + 1)
-  // nine chairs on the ring of eight are closer together than the plates allow: a spectator of a full table gets a wider ring
-  const widen = !seated && ids.length >= 8 ? 1.25 : 1
-  const radiusX = table.radiusX * widen
-  const radiusZ = table.radiusZ * widen
-  return new Map(
-    ids.map((id, i): [string, SeatSpot] => {
-      const index = seated ? (i - viewer + ids.length) % ids.length : i
-      if (seated && index === 0) return [id, { x: 0, z: LAYOUT_SETTINGS.viewerZ, yaw: 0 }]
-      return [id, seatAt(seatAngle(index, ids.length, seated), radiusX, radiusZ)]
-    }),
-  )
-}
-
-/** What a player's grid is laid out in: where its centre lies, which way it faces (the yaw of its frame) and how big its cards are */
-export type Grid = { at: Place; yaw: number; scale: number }
-
-/** The way along the frame of a yaw that a row runs (its x axis) and the way its player faces away from the middle, outward (its +z axis), in the table's frame */
-const alongOf = (yaw: number): Place => ({ x: Math.cos(yaw), z: -Math.sin(yaw) })
-const outwardOf = (yaw: number): Place => ({ x: Math.sin(yaw), z: Math.cos(yaw) })
-
-/** The grid of every player, by id: the viewer's in front of them, an opponent's where its seat is, turned to face its player. */
-export function grids(spots: ReadonlyMap<string, SeatSpot>, meId: string | null): Map<string, Grid> {
-  const R = LAYOUT_SETTINGS
-  const seated = meId !== null && spots.has(meId)
-  // a spectator of a full table looks at nine chairs on the ring of eight: the cards of the opponents are a little smaller so that neighbours keep apart
-  const { opponentScale: base } = tableOf(seated ? spots.size : spots.size + 1)
-  const opponentScale = !seated && spots.size >= 8 ? base * 0.82 : base
-  return new Map(
-    [...spots].map(([id, spot]): [string, Grid] => [
-      id,
-      id === meId ? { at: { x: 0, z: R.viewerZ }, yaw: 0, scale: R.viewerScale } : { at: { x: spot.x, z: spot.z }, yaw: R.faceSeat ? spot.yaw : 0, scale: opponentScale },
-    ]),
-  )
-}
+const FIRST_OPPONENT: Readonly<Record<number, number>> = { 2: 180, 3: 152, 4: 90, 5: 88, 6: 67, 7: 62, 8: 60 }
 
 /** The size of a card of a grid, in world units */
 export const cardSize = (scale: number) => ({ width: CARD.width * scale, height: CARD.height * scale })
@@ -156,14 +72,14 @@ export function pitchOf(scale: number): { x: number; z: number } {
   return { x: CARD.width * scale * R.columnGap, z: CARD.height * scale * R.rowStep }
 }
 
-/** The whole grid of cards at `scale`: its width along its rows and its depth along its columns (the cards and the gaps between them, not the margin of the zones) */
+/** The whole grid of cards at `scale`: its width along its rows and its depth along its columns (the cards and the gaps between them) */
 export function gridSize(scale: number): { width: number; depth: number } {
   const pitch = pitchOf(scale)
   const card = cardSize(scale)
   return { width: 3 * pitch.x + card.width, depth: 2 * pitch.z + card.height }
 }
 
-/** Where the cell `position` (`column * 3 + row`) of a grid lies, in the frame of the grid: columns left to right, the first row farthest from its player, toward the middle of the table */
+/** Where the cell `position` (`column * 3 + row`) of a grid lies, in the frame of its seat: columns left to right, the first row farthest from its player, toward the middle of the table */
 export function cellSpot(position: number, scale: number): Place {
   const pitch = pitchOf(scale)
   const column = Math.floor(position / 3)
@@ -171,96 +87,45 @@ export function cellSpot(position: number, scale: number): Place {
   return { x: (column - 1.5) * pitch.x, z: (row - 1) * pitch.z }
 }
 
-/** The slot of the cell `position` in the frame of its grid: a card lying face up or face down, a hair higher than the one above it so that cards that overlap never fight for a pixel. */
+/** The slot of the cell `position` in the frame of its seat: a card lying face up or face down, a hair higher than the one above it so that cards that overlap never fight for a pixel. */
 export function cellPose(position: number, up: boolean, scale: number): Pose {
   const { x, z } = cellSpot(position, scale)
   return onTable(x, z, { y: 0.03 + 0.004 * (position % 3), face: up ? "up" : "down", scale })
 }
 
-/** Where the cell `position` of a grid lies on the table, as a place and the yaw of its frame */
-export function cellPlace(grid: Grid, position: number): Place & { yaw: number } {
-  const local = cellSpot(position, grid.scale)
-  const along = alongOf(grid.yaw)
-  const out = outwardOf(grid.yaw)
-  return { x: grid.at.x + local.x * along.x + local.z * out.x, z: grid.at.z + local.x * along.z + local.z * out.z, yaw: grid.yaw }
+/**
+ * The box of the whole grid of a seat in its frame (the twelve cards, holes included: a column thrown away leaves its room), brought onto the axis of the seat: the plate stands above it, centred on the line (`above` of a `Seat`). The cards lie flat, so no tilt.
+ */
+export function gridBox(scale: number): TableBox {
+  const poses = Array.from({ length: 12 }, (_, position) => cellPose(position, true, scale))
+  return onAxis(boxOfPoses(poses, CARD)!)
 }
 
-/** A rectangle of the table that is turned: its centre, half its width along its own x axis, half its depth along its own z axis, and the yaw of that frame (the frame of a seat: x runs along a row, +z points outward) */
-export type Box = { x: number; z: number; halfWidth: number; halfDepth: number; yaw: number }
+/** What a seat is laid out with: its frame (where it stands and the way it faces: `seats` of the table kit), how big its cards are and the box of its grid in that frame */
+export type SeatLayout = { frame: SeatSpot; scale: number; above: TableBox }
 
-/** The size of the twelve zones of a grid together: four columns by three rows of the pitch */
-export function zoneExtent(scale: number): { width: number; depth: number } {
-  const pitch = pitchOf(scale)
-  return { width: 4 * pitch.x, depth: 3 * pitch.z }
-}
-
-/** The box of the whole grid of a seat, zones included */
-export function gridBox(grid: Grid): Box {
-  // the box holds the zones too: the cards and half the gap round each of them
-  const { width, depth } = zoneExtent(grid.scale)
-  return { x: grid.at.x, z: grid.at.z, halfWidth: width / 2, halfDepth: depth / 2, yaw: grid.yaw }
-}
-
-/** The four corners of a box, in the table's frame */
-export function cornersOf({ x, z, halfWidth, halfDepth, yaw }: Box): Place[] {
-  const along = alongOf(yaw)
-  const outward = outwardOf(yaw)
-  return [
-    [-1, -1],
-    [1, -1],
-    [1, 1],
-    [-1, 1],
-  ].map(([a, b]) => ({ x: x + a! * halfWidth * along.x + b! * halfDepth * outward.x, z: z + a! * halfWidth * along.z + b! * halfDepth * outward.z }))
-}
-
-/** The turn of a text that would be more than a quarter turn from upright, back by half a turn: a plate is never read upside down */
-export function uprightYaw(yaw: number): number {
-  const turn = Math.atan2(Math.sin(yaw), Math.cos(yaw))
-  return Math.abs(turn) <= Math.PI / 2 + 1e-9 ? turn : turn - Math.sign(turn) * Math.PI
-}
-
-/** What a plate occupies in its own frame (from above the name to below the info line), measured from its centre: along z, from -`lift` to `drop` */
-const PLATE = { lift: SEAT_SETTINGS.nameLift + 0.45, drop: SEAT_SETTINGS.lineDrop + 0.3 }
-
-/** How wide a plate is taken to be, in world units: the width of the light that used to lie under it, which the zones and the camera have been made around */
-const PLATE_WIDTH = 3.2
-
-/** Where the plate of a seat stands, and the yaw of its frame (the way its text reads: name, then the info line (score and status), going down the frame's +z). It stands beyond the grid, out from the middle of the table, clear of it by `plateGap`. */
-export function plateAt(spot: SeatSpot, grid: Grid): Place & { yaw: number } {
+/**
+ * The seat of each player, by id: the viewer in front, the others on the ring in turn order, the turn passing to the viewer's left, each seat turned toward the middle of the table. A spectator looks at a table with one more chair, the empty one in front: its seats and its
+ * cards are those of that table (the kit's `seats` does it), and nine chairs on the ring of eight, which are closer than the plates allow, get a wider ring and smaller cards.
+ */
+export function seatsOf(ids: readonly string[], meId: string | null): Map<string, SeatLayout> {
   const R = LAYOUT_SETTINGS
-  const yaw = R.textTurn ? uprightYaw(spot.yaw) : 0
-  const out = outwardOf(spot.yaw)
-  // how far the grid's box reaches along the way out, and how far the plate reaches back toward the grid: the name when the plate's own down points out, the status when it points in
-  const { width, depth } = zoneExtent(grid.scale)
-  const along = alongOf(grid.yaw)
-  const across = outwardOf(grid.yaw)
-  const reach = (Math.abs(out.x * along.x + out.z * along.z) * width + Math.abs(out.x * across.x + out.z * across.z) * depth) / 2
-  const folded = Math.cos(yaw - spot.yaw) < 0
-  const back = folded ? PLATE.drop : PLATE.lift
-  const distance = reach + R.plateGap + back
-  return { x: grid.at.x + out.x * distance, z: grid.at.z + out.z * distance, yaw }
+  const viewer = ids.indexOf(meId ?? "")
+  const seated = viewer >= 0
+  const ring = seats(ids.length, { radiusX: [R.radiusX2, R.radiusX8], radiusZ: [R.radiusZ2, R.radiusZ8], viewerZ: R.viewerZ, first: FIRST_OPPONENT, me: seated ? viewer : null })
+  const base = byPlayers(seated ? ids.length : ids.length + 1, [R.opponentScale2, R.opponentScale8])
+  const opponent = !seated && ids.length >= 8 ? base * 0.82 : base
+  return new Map(
+    ids.map((id, i): [string, SeatLayout] => {
+      const scale = i === viewer ? R.viewerScale : opponent
+      return [id, { frame: ring[i]!, scale, above: gridBox(scale) }]
+    }),
+  )
 }
 
-/** The plate's box: as wide as the plate is taken to be, from above the name to below the status */
-export function plateBox(spot: SeatSpot, grid: Grid): Box {
-  const place = plateAt(spot, grid)
-  const middle = (PLATE.drop - PLATE.lift) / 2
-  const down = outwardOf(place.yaw)
-  return { x: place.x + down.x * middle, z: place.z + down.z * middle, halfWidth: PLATE_WIDTH / 2, halfDepth: (PLATE.drop + PLATE.lift) / 2, yaw: place.yaw }
-}
-
-/** Whether two turned rectangles overlap, by the separating axis test: they only touch when they share an edge */
-export function boxesOverlap(a: Box, b: Box): boolean {
-  const pa = cornersOf(a)
-  const pb = cornersOf(b)
-  for (const box of [a, b]) {
-    for (const axis of [alongOf(box.yaw), outwardOf(box.yaw)]) {
-      const project = (points: Place[]) => points.map((p) => p.x * axis.x + p.z * axis.z)
-      const [a0, a1, b0, b1] = [Math.min(...project(pa)), Math.max(...project(pa)), Math.min(...project(pb)), Math.max(...project(pb))]
-      if (a1 <= b0 + 1e-9 || b1 <= a0 + 1e-9) return false
-    }
-  }
-  return true
+/** Where the cell `position` of a seat's grid lies on the table, as a place and the yaw of its frame */
+export function cellPlace({ frame, scale }: SeatLayout, position: number): Place & { yaw: number } {
+  return { ...pointInFrame(frame, cellSpot(position, scale)), yaw: frame.yaw }
 }
 
 /** Where the draw pile, the card in hand and the discard lie: the piles either side of the middle of the table, the card in hand between them. */
@@ -277,7 +142,7 @@ export type Pad = { x: number; z: number; width: number; depth: number }
 export type FloorPlan = {
   /** Deal, for the dealer between two rounds: the one button of the table, over the piles (an action with no object on the table) */
   deal: Pad
-  /** The room over the piles and the card in hand, kept clear: the instruction is said by the ticker, and nothing is written on the table. The word over a pile (the action label) floats, and the deal button lies here */
+  /** The room over the piles and the card in hand, kept clear: the instruction is said by the ticker, and nothing is written on the table. The word over a pile (the action label) floats over it, and the deal button lies here */
   above: Pad
   /** The whole middle, for the footprints: the piles, the count under each, the card in hand and the room over them */
   strip: Pad
@@ -288,7 +153,7 @@ export function floorPlan(): FloorPlan {
   const pile = CARD.height * R.pileScale
   const g = FLOOR.gap
   const across = 2 * R.pilesX + CARD.width * R.pileScale
-  const aboveDepth = 0.9
+  const aboveDepth = 1.25
   const above = { x: 0, z: R.pilesZ - pile / 2 - g - aboveDepth / 2, width: 4 * R.pilesX, depth: aboveDepth }
   const top = above.z - aboveDepth / 2
   // each pile writes its count under it: its middle `PILE_LABEL_GAP` under the pile's edge, the letters `PILE_LABEL_HEIGHT` tall
@@ -300,35 +165,49 @@ export function floorPlan(): FloorPlan {
   }
 }
 
-/**
- * Where things stand on a table of `n` players, as boxes: the plate and the grid of each seat, the piles and the card in hand, the strip of the middle. The viewer is the first seat; a spectator (`seated` false) has none.
- */
-export function tableBoxes(n: number, seated = true): Box[] {
-  const R = LAYOUT_SETTINGS
-  const ids = Array.from({ length: n }, (_, i) => String(i))
-  const viewer = seated ? "0" : null
-  const spots = seatSpots(ids, viewer)
-  const placed = grids(spots, viewer)
-  const out: Box[] = []
-  for (const [id, spot] of spots) {
-    const grid = placed.get(id)!
-    out.push(plateBox(spot, grid), gridBox(grid))
-  }
-  const { deck, held, discard } = pilePlaces()
-  const pile = (CARD.height * R.pileScale) / 2
-  out.push({ x: deck.x, z: deck.z, halfWidth: (CARD.width * R.pileScale) / 2, halfDepth: pile, yaw: 0 })
-  out.push({ x: discard.x, z: discard.z, halfWidth: (CARD.width * R.pileScale) / 2, halfDepth: pile, yaw: 0 })
-  out.push({ x: held.x, z: held.z, halfWidth: (CARD.width * R.heldScale) / 2, halfDepth: (CARD.height * R.heldScale) / 2, yaw: 0 })
-  const { strip } = floorPlan()
-  out.push({ x: strip.x, z: strip.z, halfWidth: strip.width / 2, halfDepth: strip.depth / 2, yaw: 0 })
-  return out
+/** The corners of a rectangle on the table whose sides run along x and z, going round */
+const rectOf = ({ x, z, width, depth }: Pad): Place[] => [
+  { x: x - width / 2, z: z - depth / 2 },
+  { x: x + width / 2, z: z - depth / 2 },
+  { x: x + width / 2, z: z + depth / 2 },
+  { x: x - width / 2, z: z + depth / 2 },
+]
+
+/** What a seat's plate covers of the table, in its frame: the plate that stands above the grid (`plateAbove`), from the top of the name to the foot of the info line, as wide as the kit takes a plate to be */
+export const plateBox = ({ above }: SeatLayout): TableBox => plateBoxOf(plateAbove(above))
+
+/** Everything that lies on a table of `n` players, as the polygons the camera and the tests look at (the corners of each, going round) */
+export type TableParts = {
+  /** The plate and the grid of each seat, in seat order, turned as the seat is */
+  plates: Place[][]
+  grids: Place[][]
+  deck: Place[]
+  discard: Place[]
+  held: Place[]
+  /** The whole middle: the piles, their counts, the card in hand and the room over them */
+  strip: Place[]
 }
 
-/** What the camera has to bring into the window, and to keep clear of what the platform draws over it (`fitCamera`): the corners of each box of the table (`tableBoxes`). */
-export const tableQuads = (n: number, seated = true): Place[][] => tableBoxes(n, seated).map(cornersOf)
+/** The table of `n` players as polygons: the plate and the grid of each seat, the piles and the card in hand, and the strip of the middle. The viewer is the first seat; a spectator (`seated` false) has none. */
+export function tableParts(n: number, seated = true): TableParts {
+  const R = LAYOUT_SETTINGS
+  const ids = Array.from({ length: n }, (_, i) => String(i))
+  const placed = seatsOf(ids, seated ? "0" : null)
+  const seatList = ids.map((id) => placed.get(id)!)
+  const { deck, held, discard } = pilePlaces()
+  const card = (place: Place, scale: number): Place[] => rectOf({ x: place.x, z: place.z, width: CARD.width * scale, depth: CARD.height * scale })
+  return {
+    plates: seatList.map((seat) => cornersOfBox(plateBox(seat), seat.frame)),
+    grids: seatList.map((seat) => cornersOfBox(seat.above, seat.frame)),
+    deck: card(deck, R.pileScale),
+    discard: card(discard, R.pileScale),
+    held: card(held, R.heldScale),
+    strip: rectOf(floorPlan().strip),
+  }
+}
 
-/** Where the cards are dealt from: above the draw pile, face down. */
-export function dealtFrom(): Pose {
-  const { deck } = pilePlaces()
-  return onTable(deck.x, deck.z, { y: 1.6, face: "down", scale: LAYOUT_SETTINGS.pileScale })
+/** What the camera has to bring into the window, and to keep clear of what the platform draws over it (`fitCamera`): the plate and the grid of each seat, the piles and the card in hand, the strip of the middle. */
+export function tableQuads(n: number, seated = true): Place[][] {
+  const { plates, grids, deck, discard, held, strip } = tableParts(n, seated)
+  return [...plates, ...grids, deck, discard, held, strip]
 }

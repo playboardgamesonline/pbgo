@@ -7,7 +7,7 @@ import { useDeferredValue, useMemo, useState } from "react"
 import type { ClientCatalog } from "../../lib/catalog"
 import { fill, type Vocabulary } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { cellPlace, cellPose, floorPlan, type Grid, grids, LAYOUT_FIELDS, LAYOUT_SETTINGS, pilePlaces, plateAt, seatSpots } from "./layout"
+import { cellPlace, cellPose, floorPlan, LAYOUT_FIELDS, LAYOUT_SETTINGS, pilePlaces, seatsOf } from "./layout"
 import { cardKey, cellKey, type Entrance, HELD_KEY, type Origin, PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { CARD_SIZE, matOf, useFaces } from "./textures"
 
@@ -110,8 +110,7 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
   const ids = view.players.map((player) => player.id)
   const key = ids.join("|")
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the ids
-  const spots = useMemo(() => seatSpots(ids, meId), [key, meId])
-  const placed = useMemo(() => grids(spots, meId), [spots, meId])
+  const laid = useMemo(() => seatsOf(ids, meId), [key, meId])
   const R = LAYOUT_SETTINGS
   const { deck, held: handAt, discard } = pilePlaces()
   const plan = floorPlan()
@@ -145,10 +144,10 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
       case "held":
         return withDelay(onTable(handAt.x, handAt.z, { y: 0.8, face: "up", scale: R.heldScale }))
       case "cell": {
-        const grid = placed.get(origin.player)
-        if (!grid) return withDelay(onTable(deck.x, deck.z, { y: 1.4, face: "down", scale: R.pileScale }))
-        const cell = cellPlace(grid, origin.position)
-        return withDelay(onTable(cell.x, cell.z, { y: 0.3, face: origin.up ? "up" : "down", yaw: grid.yaw, scale: grid.scale }))
+        const seat = laid.get(origin.player)
+        if (!seat) return withDelay(onTable(deck.x, deck.z, { y: 1.4, face: "down", scale: R.pileScale }))
+        const cell = cellPlace(seat, origin.position)
+        return withDelay(onTable(cell.x, cell.z, { y: 0.3, face: origin.up ? "up" : "down", yaw: cell.yaw, scale: seat.scale }))
       }
     }
   }
@@ -192,9 +191,7 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
   return (
     <>
       {view.players.map((player) => {
-        const grid = placed.get(player.id) as Grid
-        const spot = spots.get(player.id)!
-        const plate = plateAt(spot, grid)
+        const place = laid.get(player.id)!
         const seat = said.get(player.id) ?? now.get(player.id)!
         const mine = view.players.findIndex((p) => p.id === player.id)
         const roundOver = phase.kind === "between" || phase.kind === "over"
@@ -205,15 +202,13 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
         const cells = player.cells.flatMap((cell, position) => (cell === null ? [] : [{ cell, position }]))
         return (
           <group key={player.id}>
-            {/* The plate stands beyond its grid, turned the way its text reads (never upside down): the seat is drawn in its own frame, with its centre at the plate's */}
-            <group position={[plate.x, 0, plate.z]} rotation-y={plate.yaw}>
-              <PlayerSeat id={player.id} spot={{ x: 0, z: 0, yaw: 0 }} viewer={false} line={pointsText(seat.total)} status={status} />
-            </group>
-            {/* What lies in front of the player: twelve cells of three rows by four columns, face down until turned, a hole where a column was thrown away; the grid turns to face its player (`faceSeat`). The cards of the opening deal are not on the
-                table while the start screen is up: they mount, and are dealt round the table, when it goes (a card that is already there when its entrance is given does not fly) */}
+            {/* The plate stands on the middle's side of the grid, in the frame of the seat, turned as the name is */}
+            <PlayerSeat id={player.id} frame={place.frame} above={place.above} line={pointsText(seat.total)} status={status} />
+            {/* What lies in front of the player: twelve cells of three rows by four columns, face down until turned, a hole where a column was thrown away, in the frame of the seat, so that the grid faces the middle as the name does. The cards of the opening deal are not on
+                the table while the start screen is up: they mount, and are dealt round the table, when it goes (a card that is already there when its entrance is given does not fly) */}
             <Zone
-              frame={{ x: grid.at.x, z: grid.at.z, yaw: grid.yaw }}
-              layout={cells.map(({ cell, position }) => cellPose(position, cell.up, grid.scale))}
+              frame={place.frame}
+              layout={cells.map(({ cell, position }) => cellPose(position, cell.up, place.scale))}
               size={CARD_SIZE}
               cards={held ? [] : cells.map(({ cell, position }) => cardOf(cell, player.id, position))}
             />
