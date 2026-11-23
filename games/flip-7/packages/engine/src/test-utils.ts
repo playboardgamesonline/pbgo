@@ -1,4 +1,4 @@
-import { type PlayerInfo, type Rng, createRng } from "@pbgo/engine-kit"
+import { type PlayerInfo, type Rng, createRng, keyOfId } from "@pbgo/engine-kit"
 import { step } from "./actions"
 import { CATALOGUE, type CardKey, cardType } from "./catalogue"
 import { lineScore } from "./scoring"
@@ -42,9 +42,7 @@ export function viewOf(state: State, viewer: string | null): PlayerView {
 // --- Reading a state by faces
 
 export function titleOf(state: State, id: number): CardKey {
-  const key = CATALOGUE[state.ids.indexOf(id)]
-  if (key === undefined) throw new Error(`No card holds the id ${id}`)
-  return key
+  return keyOfId(state.ids, CATALOGUE, id)
 }
 
 export function titles(state: State, ids: readonly number[]): CardKey[] {

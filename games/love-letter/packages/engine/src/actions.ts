@@ -1,7 +1,7 @@
-import { EngineError, cleanChoice, reissueIds } from "@pbgo/engine-kit"
-import { CARDS, type CharacterKey, GUESSES } from "./catalogue"
+import { EngineError, cleanChoice, faceOfId, facesOfIds, keyOfId, noteEvent, playerAt, reissueIds, removeFrom, seatOf } from "@pbgo/engine-kit"
+import { CARDS, CATALOGUE, type CharacterKey, GUESSES } from "./catalogue"
 import { EFFECTS } from "./effects"
-import { type Ctx, areaOf, close, emit, faceOf, facesOf, handOf, keyOf, open, playableOf, playerAt, refuse, removeFrom, seatOf, targetsOf, waitingFor } from "./machine"
+import { type Ctx, areaOf, close, handOf, open, playableOf, refuse, targetsOf, waitingFor } from "./machine"
 import { endTurn, startRound } from "./round"
 import { type Action, CLIENT_ACTIONS, type LoveLetterStep, type State } from "./types"
 
@@ -24,7 +24,7 @@ function chooseTarget(s: State, seat: number, key: CharacterKey, raw: unknown): 
     if (raw !== undefined && raw !== null) throw new EngineError("INVALID_TARGET", "No player can be picked: the card is played with no effect")
     return null
   }
-  const chosen = typeof raw === "string" ? seatOf(s, raw) : -1
+  const chosen = typeof raw === "string" ? seatOf(s.seats, raw) : -1
   if (!allowed.includes(chosen)) throw new EngineError("INVALID_TARGET", "That player cannot be picked")
   return chosen
 }
@@ -38,16 +38,16 @@ export function play(ctx: Ctx, by: string, fields: { card?: unknown; target?: un
   if (s.stage.kind !== "play") throw refuse("play a card")
   const { card } = fields
   if (typeof card !== "number" || !Number.isInteger(card)) throw new EngineError("INVALID_ACTION", "A card is named by its id")
-  const seat = seatOf(s, by)
+  const seat = seatOf(s.seats, by)
   const hand = handOf(s, seat)
   if (!hand.includes(card)) throw new EngineError("UNKNOWN_CARD", "That card is not in your hand")
   if (!playableOf(s, seat).includes(card)) throw new EngineError("MUST_PLAY_COUNTESS", "You must play the Countess when your other card is the King or a Prince")
-  const key = keyOf(s, card)
+  const key = keyOfId(s.ids, CATALOGUE, card)
   const target = chooseTarget(s, seat, key, fields.target)
   const guess = key === "guard" && target !== null ? cleanChoice(fields.guess, GUESSES) : null
   removeFrom(hand, card)
   areaOf(s, seat).push(card)
-  emit(ctx, { kind: "play", by, card: faceOf(s, card) })
+  noteEvent(ctx, { kind: "play", by, card: faceOfId(s.ids, CATALOGUE, card) })
   EFFECTS[key](ctx, { seat, by, target, guess })
   // a Chancellor leaves the turn to its player, who keeps a card (`keep`)
   if (s.stage.kind === "play") endTurn(ctx)
@@ -65,7 +65,7 @@ export function keep(ctx: Ctx, by: string, fields: { card?: unknown; bottom?: un
   const { card, bottom } = fields
   if (typeof card !== "number" || !Number.isInteger(card)) throw new EngineError("INVALID_ACTION", "A card is named by its id")
   if (!Array.isArray(bottom) || bottom.some((id) => typeof id !== "number" || !Number.isInteger(id))) throw new EngineError("INVALID_ACTION", "The cards to put back are named by their ids")
-  const seat = seatOf(s, by)
+  const seat = seatOf(s.seats, by)
   const hand = handOf(s, seat)
   if (!hand.includes(card)) throw new EngineError("UNKNOWN_CARD", "That card is not in your hand")
   const others = hand.filter((id) => id !== card)
@@ -73,19 +73,19 @@ export function keep(ctx: Ctx, by: string, fields: { card?: unknown; bottom?: un
   if (back.length !== others.length || new Set(back).size !== back.length || back.some((id) => !others.includes(id))) {
     throw new EngineError("INVALID_CHOICE", "Put back the other cards of your hand, each once")
   }
-  const returned = facesOf(s, back)
+  const returned = facesOfIds(s.ids, CATALOGUE, back)
   const { ids, fresh } = reissueIds(s.ids, back, ctx.idsRng)
   s.ids = ids
   s.hands[seat] = [card]
   s.deck.push(...fresh)
-  emit(ctx, { kind: "bottom", by, count: back.length, kept: faceOf(s, card), cards: returned }, { to: [by], masked: { kind: "bottom", by, count: back.length } })
+  noteEvent(ctx, { kind: "bottom", by, count: back.length, kept: faceOfId(s.ids, CATALOGUE, card), cards: returned }, { to: [by], masked: { kind: "bottom", by, count: back.length } })
   endTurn(ctx)
 }
 
 /** The player who takes the first turn deals the next round (rulebook, p. 7). */
 export function dealRound(ctx: Ctx, by: string): void {
   const { s } = ctx
-  if (s.stage.kind !== "between" || playerAt(s, s.turn) !== by) throw refuse("deal")
+  if (s.stage.kind !== "between" || playerAt(s.seats, s.turn) !== by) throw refuse("deal")
   startRound(ctx)
 }
 

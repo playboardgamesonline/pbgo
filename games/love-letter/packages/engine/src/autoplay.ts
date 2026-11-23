@@ -1,7 +1,7 @@
-import { EngineError } from "@pbgo/engine-kit"
+import { EngineError, keyOfId, playerAt } from "@pbgo/engine-kit"
 import { dealRound, keep, play } from "./actions"
-import { CARDS, type CharacterKey, GUESSES } from "./catalogue"
-import { type Ctx, close, handOf, keyOf, open, playableOf, playerAt, targetsOf, valueOf, waitingFor } from "./machine"
+import { CARDS, CATALOGUE, type CharacterKey, GUESSES } from "./catalogue"
+import { type Ctx, close, handOf, open, playableOf, targetsOf, valueOf, waitingFor } from "./machine"
 import type { LoveLetterStep, State } from "./types"
 
 /**
@@ -49,9 +49,9 @@ export function autoPlay(ctx: Ctx, playerId: string): void {
   if (s.stage.kind === "between") return dealRound(ctx, playerId)
   if (s.stage.kind === "play") {
     const card = lowestOf(s, playableOf(s, s.turn))
-    const key = keyOf(s, card)
+    const key = keyOfId(s.ids, CATALOGUE, card)
     const target = targetFor(s, s.turn, key)
-    play(ctx, playerId, { card, target: target === undefined ? undefined : playerAt(s, target), guess: key === "guard" ? GUESSES[0] : undefined })
+    play(ctx, playerId, { card, target: target === undefined ? undefined : playerAt(s.seats, target), guess: key === "guard" ? GUESSES[0] : undefined })
   }
   // after a Chancellor, whether just played or left waiting: keep the card of the highest value and put the others back in the order of the hand
   if (ctx.s.stage.kind === "keep") {

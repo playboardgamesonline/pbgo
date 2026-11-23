@@ -1,5 +1,5 @@
-import { EngineError } from "@pbgo/engine-kit"
-import { type Ctx, close, emit, faceOf, gridOf, open, playerAt, refuse, revealedCount, seatOf, waitingFor } from "./machine"
+import { EngineError, noteEvent, playerAt, seatOf } from "@pbgo/engine-kit"
+import { type Ctx, close, faceOf, gridOf, open, refuse, revealedCount, waitingFor } from "./machine"
 import { afterOpening, dropColumn, drawCard, endTurn, startRound } from "./round"
 import { columnOf, isPosition } from "./scoring"
 import { type Action, CLIENT_ACTIONS, type Cell, OPENING_FLIPS, type SkyjoStep, type State } from "./types"
@@ -27,18 +27,18 @@ function hiddenCell(s: State, seat: number, position: unknown): { cell: NonNulla
 export function reveal(ctx: Ctx, by: string, position: unknown): void {
   const { s } = ctx
   if (s.stage.kind !== "reveal") throw refuse("turn a card over to open the round")
-  const seat = seatOf(s, by)
+  const seat = seatOf(s.seats, by)
   if (revealedCount(s, seat) >= OPENING_FLIPS) throw new EngineError("NOT_YOUR_TURN", "You have turned your two cards over")
   const found = hiddenCell(s, seat, position)
   found.cell.up = true
-  emit(ctx, { kind: "reveal", by, position: found.position, card: faceOf(s, found.cell.card), how: "opening" })
+  noteEvent(ctx, { kind: "reveal", by, position: found.position, card: faceOf(s, found.cell.card), how: "opening" })
   afterOpening(ctx)
 }
 
 function stageOf<K extends "choose" | "place" | "flip">(s: State, by: string, kind: K, what: string): Extract<State["stage"], { kind: K }> & { seat: number } {
   const { stage } = s
   if (stage.kind !== kind) throw refuse(what)
-  if (playerAt(s, (stage as { seat: number }).seat) !== by) throw refuse(what)
+  if (playerAt(s.seats, (stage as { seat: number }).seat) !== by) throw refuse(what)
   return stage as Extract<State["stage"], { kind: K }> & { seat: number }
 }
 
@@ -49,7 +49,7 @@ export function take(ctx: Ctx, by: string): void {
   const card = s.discard.shift()
   if (card === undefined) throw new RangeError("The discard is never empty during a round")
   s.stage = { kind: "place", seat: stage.seat, card, from: "discard" }
-  emit(ctx, { kind: "take", by, card: faceOf(s, card) })
+  noteEvent(ctx, { kind: "take", by, card: faceOf(s, card) })
 }
 
 /** `by` draws the top card of the draw pile: only they see it, and they place it or throw it away. */
@@ -59,7 +59,7 @@ export function draw(ctx: Ctx, by: string): void {
   const card = drawCard(ctx)
   if (card === null) throw new EngineError("INVALID_PHASE", "The draw pile is empty: take the discard")
   s.stage = { kind: "place", seat: stage.seat, card, from: "deck" }
-  emit(ctx, { kind: "draw", by, card: faceOf(s, card) }, { to: [by], masked: { kind: "draw", by } })
+  noteEvent(ctx, { kind: "draw", by, card: faceOf(s, card) }, { to: [by], masked: { kind: "draw", by } })
 }
 
 /** `by` puts the card they hold in `position`: the card that was there, face up or not, goes on the discard, then three equal cards in the column are thrown away. */
@@ -71,7 +71,7 @@ export function place(ctx: Ctx, by: string, position: unknown): void {
   const replacedUp = found.cell.up
   gridOf(s, stage.seat)[found.position] = { card: stage.card, up: true }
   s.discard.unshift(replaced)
-  emit(ctx, { kind: "place", by, position: found.position, card: faceOf(s, stage.card), replaced: faceOf(s, replaced), replacedUp })
+  noteEvent(ctx, { kind: "place", by, position: found.position, card: faceOf(s, stage.card), replaced: faceOf(s, replaced), replacedUp })
   finish(ctx, stage.seat, found.position)
 }
 
@@ -82,7 +82,7 @@ export function discard(ctx: Ctx, by: string): void {
   if (stage.from === "discard") throw new EngineError("MUST_PLACE", "A card taken from the discard must be placed")
   s.discard.unshift(stage.card)
   s.stage = { kind: "flip", seat: stage.seat }
-  emit(ctx, { kind: "discard", by, card: faceOf(s, stage.card) })
+  noteEvent(ctx, { kind: "discard", by, card: faceOf(s, stage.card) })
 }
 
 /** `by` turns a face-down card of their grid over, after throwing away the card they drew. */
@@ -91,7 +91,7 @@ export function flip(ctx: Ctx, by: string, position: unknown): void {
   const stage = stageOf(s, by, "flip", "turn a card over")
   const found = hiddenCell(s, stage.seat, position)
   found.cell.up = true
-  emit(ctx, { kind: "reveal", by, position: found.position, card: faceOf(s, found.cell.card), how: "flip" })
+  noteEvent(ctx, { kind: "reveal", by, position: found.position, card: faceOf(s, found.cell.card), how: "flip" })
   finish(ctx, stage.seat, found.position)
 }
 
@@ -104,7 +104,7 @@ function finish(ctx: Ctx, seat: number, position: number): void {
 /** The dealer deals the next round. */
 export function dealRound(ctx: Ctx, by: string): void {
   const { s } = ctx
-  if (s.stage.kind !== "between" || playerAt(s, s.dealer) !== by) throw refuse("deal")
+  if (s.stage.kind !== "between" || playerAt(s.seats, s.dealer) !== by) throw refuse("deal")
   startRound(ctx)
 }
 
