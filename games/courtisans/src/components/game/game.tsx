@@ -18,7 +18,6 @@ import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import { useApi } from "@pbgo/core/lib/binding-context"
 import type { PublicGame } from "@pbgo/core/lib/game-types"
 import { seatsOf } from "@pbgo/core/lib/seat-avatar"
-import { Button } from "@pbgo/ui/game/button"
 import { MISSING_CATALOG, type ClientCatalog } from "../../lib/catalog"
 import { CourtisansProvider, useCourtisans } from "./context"
 import { renderFamilyCards } from "./score-details"
@@ -360,26 +359,6 @@ function BoardContent({
             />
 
             <DebugSlot />
-
-            <AnimatePresence>
-              {assassination && (
-                <motion.div
-                  initial={{ y: 80, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: 80, opacity: 0 }}
-                  className="absolute inset-x-0 bottom-8 z-30 mx-auto w-fit"
-                >
-                  <Button
-                    size="lg"
-                    disabled={sending}
-                    onClick={() => interaction.eliminate(null)}
-                    className="h-12 rounded-full border border-[#ff4d4d]/70 bg-[#3a0d12] px-8 font-display text-base text-foreground shadow-[0_0_24px_rgb(255_77_77/35%)] hover:bg-[#5a1219]"
-                  >
-                    {catalog.words.noAssassination}
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             <AnimatePresence>
               {victory && (

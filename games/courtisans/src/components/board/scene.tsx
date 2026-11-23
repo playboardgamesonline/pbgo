@@ -2,18 +2,17 @@
 
 import { type Family, type Mission, type PlayerView, type Role, type VisibleCard, missionOf } from "@courtisans/engine"
 import { useFrame, useThree } from "@react-three/fiber"
-import { easing } from "maath"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Color, Euler, type Group, type Mesh, type MeshBasicMaterial, Quaternion, Vector3 } from "three"
+import { Color, Euler, Quaternion, Vector3 } from "three"
 import { useCourtisans } from "../game/context"
 import { useInteraction } from "../game/interaction"
-import { Aura, WINNER_AURA_SETTINGS } from "./aura"
 import type { EndingState } from "./ending"
 import { LETTERING_FONT } from "./font"
-import { Counters, MissionSign, MatLine, MatLines, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters } from "./ending3d"
+import { Counters, MissionSign, PilePoints, ENDING_SETTINGS, EndingSettings, FamilyResolution, useWinnerCenters, WINNER_AURA } from "./ending3d"
+import { Lane, LaneSettings, MatLines } from "./lanes"
 import { copyButton, debugTab, useControls } from "@pbgo/core/components/game/debug-controls"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { Card, type CardState, effectiveState, FACE_DOWN, HELD_FAN_FIELDS, HELD_FAN_SETTINGS, HeldHand, Hotspot, lean, LightPool, NO_TOUCH, onTable, Pile, type Pose, Playmat, PlayerSeat, SCREEN_HAND_FIELDS, ScreenHand, screenHandLayout, type SurfaceProps, Table, type Touch, useSettings, useSettingsVersion, Zone, type ZoneCard } from "@pbgo/table"
+import { Aura, Card, type CardState, effectiveState, FACE_DOWN, FloorButton, HELD_FAN_FIELDS, HELD_FAN_SETTINGS, HeldHand, Hotspot, lean, LightPool, NO_TOUCH, onTable, Pile, type Pose, Playmat, PlayerSeat, SCREEN_HAND_FIELDS, ScreenHand, screenHandLayout, type SurfaceProps, Table, type Touch, useSettings, useSettingsVersion, Veil, Zone, type ZoneCard } from "@pbgo/table"
 import {
   CARD_SIZE,
   DH,
@@ -28,8 +27,6 @@ import {
   LAYOUT_SETTINGS,
   MAT_W,
   MAT_D,
-  columnX,
-  type Column as Column_,
   type DomainZone,
   columnOf,
   groupKey,
@@ -45,6 +42,7 @@ import {
   seatBox,
   seats,
   missionRestPose,
+  NO_ASSASSINATION_PAD,
 } from "./layout"
 import { CAMERA, INTRO, PHOTO } from "./camera"
 import { type Textures, useTextures } from "./textures"
@@ -92,37 +90,6 @@ type Transient = {
 
 const EMPTY: string[] = []
 
-function FollowCamera({ children }: { children: React.ReactNode }) {
-  const ref = useRef<Group>(null)
-  const { camera } = useThree()
-  useFrame(() => {
-    const g = ref.current
-    if (!g) return
-    g.position.copy(camera.position)
-    g.quaternion.copy(camera.quaternion)
-  }, -1)
-  return <group ref={ref}>{children}</group>
-}
-
-function Veil({ active, opacity, fade = 0.2 }: { active: boolean; opacity: number; fade?: number }) {
-  const ref = useRef<Mesh>(null)
-  const { camera } = useThree()
-  useFrame((_, dt) => {
-    if (!ref.current) return
-    ref.current.position.copy(camera.localToWorld(new Vector3(0, 0, -5)))
-    ref.current.quaternion.copy(camera.quaternion)
-    const m = ref.current.material as MeshBasicMaterial
-    easing.damp(m, "opacity", active ? opacity : 0, active ? fade : 0.2, dt)
-    ref.current.visible = m.opacity > 0.01
-  })
-  return (
-    <mesh ref={ref} renderOrder={10} userData={{ hideInPhoto: true }}>
-      <planeGeometry args={[40, 40]} />
-      <meshBasicMaterial color="#020b0d" transparent opacity={0} depthWrite={false} toneMapped={false} />
-    </mesh>
-  )
-}
-
 /** Where the cards of a pile come in from, above it, when the pile is put on the mat */
 const PILE_ENTRY = (x: number, z: number) => onTable(x, z, { y: 3, face: "down" })
 
@@ -130,11 +97,7 @@ function LayoutSettings() {
   // The viewer's hand is held at the bottom left of the screen: the Hand folder tunes it, as the Held hands folder tunes the small fans of the others
   useSettings("Hand", HAND_SETTINGS, SCREEN_HAND_FIELDS, { order: 2 })
   useSettings("Held hands", HELD_FAN_SETTINGS, HELD_FAN_FIELDS, { order: 3 })
-  return null
-}
-
-function Target({ column, level, onClick }: { column: Column_; level: "up" | "down"; onClick: () => void }) {
-  return <MatLine x={columnX(column)} light={level === "up"} onClick={onClick} />
+  return <LaneSettings />
 }
 
 function Ephemeral({ item, tex, onEnd }: { item: Transient; tex: Textures; onEnd: () => void }) {
@@ -538,8 +501,10 @@ function World({
         </ScreenHand>
       )}
 
-      <FollowCamera>
-        {visibleMissions &&
+      {/* The missions a player reads are held up in front of the camera, in a frame that follows it */}
+      <ScreenHand settings={HAND_SETTINGS}>
+        {() =>
+          visibleMissions &&
           !ending &&
           missions.map((m: Mission) => (
             <Card
@@ -567,8 +532,9 @@ function World({
               onHover={(over) => setHover(over ? `mission:${m.id}` : null)}
               onPress={() => onMission(m.id)}
             />
-          ))}
-      </FollowCamera>
+          ))
+        }
+      </ScreenHand>
       {visibleMissions &&
         !intro &&
         !ending &&
@@ -590,15 +556,7 @@ function World({
           <PilePoints view={view} results={results} ending={ending} zones={zones} />
           {ending.spotlight &&
             winnerCenters.winnerZones.map((z, i) => (
-              <Aura
-                key={i}
-                width={z.width}
-                depth={z.depth}
-                position={[z.center.x, 0.016, z.center.z]}
-                yaw={z.yaw}
-                strength={() => ENDING_SETTINGS.winnerStrength}
-                settings={WINNER_AURA_SETTINGS}
-              />
+              <Aura key={i} size={{ width: z.width, depth: z.depth }} frame={{ x: z.center.x, z: z.center.z, yaw: z.yaw }} y={0.016} strength={ENDING_SETTINGS.winnerStrength} look={WINNER_AURA} />
             ))}
           {view.players.map((j) => {
             const zone = zones.get(j.id)
@@ -618,7 +576,7 @@ function World({
           })}
         </>
       )}
-      <Veil active={subtle} opacity={missionFocus ? missionSettings.focusVeil : missionSettings.veil} fade={missionSettings.veilFade} />
+      <Veil active={subtle} opacity={missionFocus ? missionSettings.focusVeil : missionSettings.veil} fade={missionSettings.veilFade} color="#020b0d" />
 
       {transients.map((t) => (
         <Ephemeral key={t.id} item={t} tex={tex} onEnd={() => setTransients((l) => l.filter((x) => x.id !== t.id))} />
@@ -675,10 +633,22 @@ function World({
         )
       })}
 
+      {/* The lanes the picked card can be played along on the Queen's table: the light above the mat, the disgrace below it, pressed where the cards lie */}
       {targetColumn &&
         (["up", "down"] as const).map((level) => (
-          <Target key={level} column={targetColumn} level={level} onClick={() => it.play({ zone: "table", level })} />
+          <Lane
+            key={level}
+            column={targetColumn}
+            light={level === "up"}
+            ariaLabel={[catalog.words.youPlay, catalog.words.zoneTable, catalog.statusWords[level === "up" ? "light" : "disgrace"][0]].filter(Boolean).join(" ")}
+            onPress={() => it.play({ zone: "table", level })}
+          />
         ))}
+
+      {/* An assassin that was played may eliminate a card, or nobody: a button, since nobody is no object on the table */}
+      {it.assassination && (
+        <FloorButton at={NO_ASSASSINATION_PAD.at} width={NO_ASSASSINATION_PAD.width} depth={NO_ASSASSINATION_PAD.depth} label={catalog.words.noAssassination} tone="neutral" disabled={it.sending} onPress={() => it.eliminate(null)} />
+      )}
 
       {/* A domain is chosen by pressing it, its cards and the plate over it: an invisible area, and the cards are lit by their states, or a pool of light where there are none */}
       {view.players.map((j) => {

@@ -1,6 +1,6 @@
 "use client"
 
-import type { Family, CourtisansResults, PlayerView } from "@courtisans/engine"
+import type { CourtisansResults, PlayerView } from "@courtisans/engine"
 import { useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -13,15 +13,13 @@ import {
   Vector2,
 } from "three"
 import { useCourtisans } from "../game/context"
-import { TableText, useSettings, useSettingsVersion } from "@pbgo/table"
-import { MAT_ORDER } from "../../lib/catalog"
-import { CARD_H, columnX, STEP, MAT_D, type DomainZone } from "./layout"
-import { WINNER_AURA_SETTINGS, AURA_FIELDS } from "./aura"
-import { Column } from "./column"
+import { type AuraLook, AURA_FIELDS, AURA_LOOK, TableText, useSettings, useSettingsVersion } from "@pbgo/table"
+import { columnX, MAT_D, type DomainZone, TABLE_FAMILIES } from "./layout"
 import type { EndingState } from "./ending"
 import { LETTERING_FONT } from "./font"
 
-const TABLE_FAMILIES = MAT_ORDER.filter((c): c is Family => c !== "queen")
+/** How the aura of the winners looks: the table's own look, which the End · Winner folder of the debug panel edits */
+export const WINNER_AURA: AuraLook = { ...AURA_LOOK }
 const HOLO = { color: "#fff4dc", relief: "#8a6a3a", aura: "rgba(255,236,190,0.9)", weight: 800 }
 
 function Appear({ children, position, floating = 0.06 }: { children: React.ReactNode; position: [number, number, number]; floating?: number }) {
@@ -146,46 +144,10 @@ export const ENDING_SETTINGS = {
   counterHeight: 1.1,
 }
 
-export const LINE_SETTINGS = {
-  preview: false,
-  width: 0.96,
-  logLength: 2.1,
-  elevation: 0.07,
-  fade: 1.6,
-  lightColor: "#ffe8a3",
-  lightEdge: "#ffffff",
-  lightIntensity: 0.85,
-  disgraceColor: "#000000",
-  disgraceEdge: "#000000",
-  disgraceIntensity: 0.85,
-  pulse: 0.15,
-  speed: 1.6,
-}
-
 export function EndingSettings() {
-  useSettings(
-    "Mat Lines",
-    LINE_SETTINGS,
-    {
-      preview: "preview on all families",
-      width: ["width (× column)", 0.1, 1.5, 0.01],
-      logLength: ["length (× card height)", 0.2, 5, 0.05],
-      elevation: ["height", 0.02, 0.5, 0.005],
-      fade: ["fade curve", 0.2, 5, 0.05],
-      lightColor: "light color",
-      lightEdge: "light edge color",
-      lightIntensity: ["light intensity", 0, 3, 0.01],
-      disgraceColor: "disgrace color",
-      disgraceEdge: "disgrace edge color",
-      disgraceIntensity: ["disgrace intensity", 0, 3, 0.01],
-      pulse: ["pulse", 0, 1, 0.01],
-      speed: ["pulse speed", 0, 8, 0.05],
-    },
-    { order: 9, closed: false },
-  )
   useSettings("End · Mat Arrows", ENDING_SETTINGS, { arrowSize: ["arrow size", 0.3, 3, 0.05] } as never, { order: 11 })
   useSettings("End · Winner", ENDING_SETTINGS, { winnerStrength: ["winner aura", 0, 2, 0.01] } as never, { order: 12 })
-  useSettings("End · Winner", WINNER_AURA_SETTINGS, AURA_FIELDS as never, { order: 12 })
+  useSettings("End · Winner", WINNER_AURA, AURA_FIELDS, { order: 12 })
   useSettings(
     "End · Pile Points",
     ENDING_SETTINGS,
@@ -215,55 +177,6 @@ export function EndingSettings() {
     { order: 13 },
   )
   return null
-}
-
-export function MatLine({ x, light, onClick }: { x: number; light: boolean; onClick?: () => void }) {
-  useSettingsVersion()
-  const r = LINE_SETTINGS
-  return (
-    <Column
-      x={x}
-      z={light ? -MAT_D / 2 : MAT_D / 2}
-      dir={light ? -1 : 1}
-      width={STEP * r.width}
-      logLength={CARD_H * r.logLength}
-      elevation={r.elevation}
-      fade={r.fade}
-      color={light ? r.lightColor : r.disgraceColor}
-      edge={light ? r.lightEdge : r.disgraceEdge}
-      additive={light}
-      onClick={onClick}
-      strength={(t) =>
-        (light ? LINE_SETTINGS.lightIntensity : LINE_SETTINGS.disgraceIntensity) *
-        (1 + Math.sin(t * LINE_SETTINGS.speed) * LINE_SETTINGS.pulse)
-      }
-    />
-  )
-}
-
-export function MatLines({ results, ending }: { results: CourtisansResults | null; ending: EndingState | null }) {
-  useSettingsVersion()
-  if (LINE_SETTINGS.preview)
-    return (
-      <>
-        {TABLE_FAMILIES.map((f) => (
-          <group key={f}>
-            <MatLine x={columnX(f)} light />
-            <MatLine x={columnX(f)} light={false} />
-          </group>
-        ))}
-      </>
-    )
-  if (!results || !ending) return null
-  return (
-    <>
-      {TABLE_FAMILIES.slice(0, ending.families).map((f) => {
-        const s = results.statuses[f].status
-        if (s === "neutral") return null
-        return <MatLine key={f} x={columnX(f)} light={s === "light"} />
-      })}
-    </>
-  )
 }
 
 const arrows = new Map<"up" | "down", CanvasTexture>()
