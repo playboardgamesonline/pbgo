@@ -222,7 +222,6 @@ export type DomainZone = {
 }
 
 export const groupKey = (card: VisibleCard) => card.family ?? "spy"
-export const GROUP_ORDER = FAMILY_ORDER
 
 /** A point of a seat's frame at a height, put on the table */
 const onSeat = (frame: SeatSpot, x: number, y: number, z: number): Vector3 => {
