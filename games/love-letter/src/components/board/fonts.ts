@@ -37,8 +37,5 @@ function measureIn(font: string | undefined, fallback: string): (text: string) =
   return (text) => g.measureText(text).width / size
 }
 
-/** The names on the plates, in the display font: `plateFit` of the layout shrinks the plate of a long name by it */
-export const nameMeasure = (font: string | undefined) => measureIn(font, PLATE_FONT)
-
 /** The sentences of the strip, in the body font: `fitSentence` of the layout sets them by it, on one line when they fit */
 export const sentenceMeasure = (font: string | undefined) => measureIn(font, TABLE_FONT)

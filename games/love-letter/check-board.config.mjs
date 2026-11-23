@@ -48,7 +48,7 @@ const config = {
     },
   },
 
-  // What the viewer presses, in the order the game offers it. A move is two presses: a card of the hand, which only picks it (a `local` press: the table does not move), then the control that sends it: the Play pad for a card that picks nobody, a player's zone for a
+  // What the viewer presses, in the order the game offers it. A move is two presses: a card of the hand, which only picks it (a `local` press: the table does not move), then the control that sends it: the Play pad for a card that picks nobody, a player's area for a
   // Priest, a Baron, a King or a Prince, the zone then one of the nine faces for a Guard, and after a Chancellor the card to keep, Swap and the Keep pad. Deal when it is the viewer's to deal. Everything else the viewer does is played through the API.
   presses: {
     expect: ["card", "play", "target", "name", "guess", "swap", "keep", "deal"],
@@ -117,17 +117,17 @@ const config = {
       move = null
       return null
     },
-    // Where the controls lie, from what the board offers: the cards of the hand in the fan nearest the viewer (z beyond 5.6, floating), the pad or pads of the moment and the nine faces of a Guard in the strip in the middle (x within 2.6, z between -1.4 and 1.7, lying on the
-    // table), and the zone of a player, which the board lifts to a card's height (y about 0.35) so that the whole zone answers, cards included
+    // Where the controls lie, from what the board offers: the cards of the hand, held at the bottom left of the screen in the frame of the camera (so far above the table, y beyond 4, and told apart by their place across the screen), the pad or pads of the moment and the
+    // nine faces of a Guard in the strip in the middle (x within 2.6, z between -1.4 and 1.7, lying on the table), and the area of a player, a `Hotspot` that lies at a card's height (y about 0.35) so that the whole area answers, cards included
     find({ label, pressables, state }) {
       const world = (pressable) => pressable.world
-      const inHand = (pressable) => world(pressable) && world(pressable)[2] > 5.6 && world(pressable)[1] > 0.2
-      // a card that is still coming in from the deck is not in the hand yet: the fan lies beyond z 5.6, and a card in the air is pressed where it no longer is
+      const inHand = (pressable) => world(pressable) && world(pressable)[1] > 4
+      // a card that is still coming in from the deck is not in the hand yet, and a card in the air is pressed where it no longer is: `still` waits for the cards to have landed
       const inStrip = (pressable) => world(pressable) && Math.abs(world(pressable)[0]) < 2.6 && world(pressable)[2] > -1.4 && world(pressable)[2] < 1.7 && world(pressable)[1] < 0.1
-      const isZone = (pressable) => world(pressable) && world(pressable)[1] > 0.3 && world(pressable)[1] < 0.4 && world(pressable)[2] < 4.2
+      const isZone = (pressable) => world(pressable) && world(pressable)[1] > 0.3 && world(pressable)[1] < 0.4
       const byX = (a, b) => world(a)[0] - world(b)[0]
       const strip = pressables.filter(inStrip).sort(byX)
-      const cards = pressables.filter(inHand).sort(byX)
+      const cards = pressables.filter(inHand).sort((a, b) => (a.center?.[0] ?? 0) - (b.center?.[0] ?? 0))
       const zones = pressables.filter(isZone)
       // a control is pressed once the ones it is picked from have not moved since the last look (`find` is asked every few tenths of a second): the cards that come in from the deck move for about a second, and a pixel that reaches one of them mid-way reaches another by the time it is pressed
       if (!still(label === "card" ? cards : label === "target" || label === "name" ? zones : strip)) return undefined
