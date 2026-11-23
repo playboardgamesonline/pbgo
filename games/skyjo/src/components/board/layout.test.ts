@@ -1,3 +1,4 @@
+import { PILE_LABEL_GAP, PILE_LABEL_HEIGHT } from "@pbgo/table"
 import { describe, expect, it } from "vitest"
 import {
   type Box,
@@ -7,7 +8,6 @@ import {
   cellPlace,
   cellPose,
   cellSpot,
-  cellZone,
   FLOOR,
   floorPlan,
   gridBox,
@@ -180,66 +180,11 @@ describe("a grid", () => {
     expect(cellPlace(across, 0).z).toBeCloseTo(-3 - spot.z)
   })
 
-  it("has twelve cell zones that tile the grid with no gap and no overlap, for the viewer and for a seat turned to the side", () => {
-    for (const grid of [{ at: { x: 0, z: 3.4 }, yaw: 0, scale: 0.74 }, { at: { x: -4, z: 0 }, yaw: -Math.PI / 2, scale: 0.5 }, { at: { x: 2, z: -3 }, yaw: Math.PI * 0.8, scale: 0.4 }]) {
-      const zones = Array.from({ length: 12 }, (_, position) => cellZone(grid, position))
-      for (let i = 0; i < 12; i++) for (let j = i + 1; j < 12; j++) expect(boxesOverlap(zones[i]!, zones[j]!), `${i} and ${j}`).toBe(false)
-      // four columns of `pitch.x` by three rows of `pitch.z`: the gaps between the cards belong to the zones
-      const area = zones.reduce((sum, zone) => sum + 4 * zone.halfWidth * zone.halfDepth, 0)
-      expect(area).toBeCloseTo(12 * pitchOf(grid.scale).x * pitchOf(grid.scale).z, 6)
-      // every zone holds its own card's centre, in its own frame
-      zones.forEach((zone, position) => {
-        const centre = cellPlace(grid, position)
-        const dx = centre.x - zone.x
-        const dz = centre.z - zone.z
-        const along = dx * Math.cos(zone.yaw) - dz * Math.sin(zone.yaw)
-        const out = dx * Math.sin(zone.yaw) + dz * Math.cos(zone.yaw)
-        expect(Math.abs(along), `cell ${position}`).toBeLessThanOrEqual(zone.halfWidth + 1e-9)
-        expect(Math.abs(out), `cell ${position}`).toBeLessThanOrEqual(zone.halfDepth + 1e-9)
-      })
-    }
-  })
-
-  it("makes the zone of a card of the viewer comfortably big: at least a card wide and a card tall", () => {
-    const grid = grids(seatSpots(ids(4), "p0"), "p0").get("p0")!
-    const card = cardSize(grid.scale)
-    for (let position = 0; position < 12; position++) {
-      const zone = cellZone(grid, position)
-      expect(zone.halfWidth * 2).toBeGreaterThanOrEqual(card.width)
-      expect(zone.halfDepth * 2).toBeGreaterThanOrEqual(card.height)
-    }
-  })
-
-  it("keeps the plate of a seat out of every zone of its grid", () => {
+  it("keeps the plate of a seat out of its grid", () => {
     for (const n of SIZES) {
       const spots = seatSpots(ids(n), "p0")
       const placed = grids(spots, "p0")
-      for (const [id, spot] of spots) {
-        const plate = plateBox(spot, placed.get(id)!)
-        for (let position = 0; position < 12; position++) expect(boxesOverlap(plate, cellZone(placed.get(id)!, position)), `${n} players, ${id}, cell ${position}`).toBe(false)
-      }
-    }
-  })
-})
-
-describe("the zones of the viewer", () => {
-  it("overlap no plate, no pile, no pad, no card in hand and no other zone, for every table of two to eight", () => {
-    for (const n of SIZES) {
-      const ring = Array.from({ length: n }, (_, i) => `p${i}`)
-      const spots = seatSpots(ring, "p0")
-      const placed = grids(spots, "p0")
-      const zones = Array.from({ length: 12 }, (_, position) => cellZone(placed.get("p0")!, position))
-      const { draw, take, deal, strip } = floorPlan()
-      const pad = (p: { x: number; z: number; width: number; depth: number }): Box => ({ x: p.x, z: p.z, halfWidth: p.width / 2, halfDepth: p.depth / 2, yaw: 0 })
-      const others = [...[...spots].map(([id, spot]) => plateBox(spot, placed.get(id)!)), ...tableBoxes(n).slice(-4), pad(draw), pad(take), pad(deal), pad(strip)]
-      zones.forEach((zone, position) => {
-        others.forEach((box, i) => expect(boxesOverlap(zone, box), `${n} players, zone ${position} and box ${i}`).toBe(false))
-      })
-      // the opponents' zones too: none reaches a plate, a pile or the strip
-      for (const [id, grid] of placed) {
-        if (id === "p0") continue
-        for (let position = 0; position < 12; position++) for (const box of [...tableBoxes(n).slice(-4), ...[...spots].filter(([other]) => other !== id).map(([other, spot]) => plateBox(spot, placed.get(other)!))]) expect(boxesOverlap(cellZone(grid, position), box), `${n} players, ${id} zone ${position}`).toBe(false)
-      }
+      for (const [id, spot] of spots) expect(boxesOverlap(plateBox(spot, placed.get(id)!), gridBox(placed.get(id)!)), `${n} players, ${id}`).toBe(false)
     }
   })
 })
@@ -305,33 +250,40 @@ describe("the middle of the table", () => {
     expect(held.z).toBe(discard.z)
   })
 
-  it("lays the pads under the piles, one gap from them, as wide as the room between the piles' middles and one gap apart", () => {
-    const { draw, take, throwAway, deal, above } = floorPlan()
+  it("keeps a room over the piles, one gap from them, and lays the deal button in it", () => {
+    const { deal, above } = floorPlan()
     const pile = (CARD.height * LAYOUT_SETTINGS.pileScale) / 2
-    const { deck, discard } = pilePlaces()
-    expect(draw.z - draw.depth / 2 - (deck.z + pile)).toBeCloseTo(FLOOR.gap)
-    expect(take.z).toBe(draw.z)
-    // pad to pad, one gap
-    expect(take.x - take.width / 2 - (draw.x + draw.width / 2)).toBeCloseTo(FLOOR.gap)
-    expect(draw.x).toBe(deck.x)
-    expect(take.x).toBe(discard.x)
-    // throwing away is where taking is: the two never show at once
-    expect(throwAway).toEqual(take)
-    // deal is one pad across the room of the two
-    expect(deal.x - deal.width / 2).toBeCloseTo(draw.x - draw.width / 2)
-    expect(deal.x + deal.width / 2).toBeCloseTo(take.x + take.width / 2)
-    // the room kept clear lies above the piles, one gap from them
+    const { deck } = pilePlaces()
+    // the room lies above the piles, one gap from them
     expect(deck.z - pile - (above.z + above.depth / 2)).toBeCloseTo(FLOOR.gap)
+    // the button is across the two piles, in the room
+    expect(deal.x).toBe(0)
+    expect(deal.z).toBe(above.z)
+    expect(deal.depth).toBeLessThanOrEqual(above.depth)
+    expect(deal.width).toBeLessThanOrEqual(above.width)
   })
 
-  it("keeps the pads clear of the piles and of the card in hand", () => {
-    const { draw, take, deal } = floorPlan()
+  it("keeps the deal button clear of the piles and of the card in hand", () => {
+    const { deal } = floorPlan()
     const { deck, held, discard } = pilePlaces()
     const R = LAYOUT_SETTINGS
     const card = (place: { x: number; z: number }, scale: number): Box => ({ x: place.x, z: place.z, halfWidth: (CARD.width * scale) / 2, halfDepth: (CARD.height * scale) / 2, yaw: 0 })
-    const pad = (p: { x: number; z: number; width: number; depth: number }): Box => ({ x: p.x, z: p.z, halfWidth: p.width / 2, halfDepth: p.depth / 2, yaw: 0 })
-    for (const p of [draw, take, deal]) for (const c of [card(deck, R.pileScale), card(discard, R.pileScale), card(held, R.heldScale)]) expect(boxesOverlap(pad(p), c)).toBe(false)
-    expect(boxesOverlap(pad(draw), pad(take))).toBe(false)
+    const pad: Box = { x: deal.x, z: deal.z, halfWidth: deal.width / 2, halfDepth: deal.depth / 2, yaw: 0 }
+    for (const c of [card(deck, R.pileScale), card(discard, R.pileScale), card(held, R.heldScale)]) expect(boxesOverlap(pad, c)).toBe(false)
+  })
+
+  it("holds in the strip the piles, the card in hand, the count under each pile and the room over them", () => {
+    const { strip, above } = floorPlan()
+    const { deck, held, discard } = pilePlaces()
+    const R = LAYOUT_SETTINGS
+    const box = (place: { x: number; z: number }, scale: number): Box => ({ x: place.x, z: place.z, halfWidth: (CARD.width * scale) / 2, halfDepth: (CARD.height * scale) / 2, yaw: 0 })
+    const stripBox: Box = { x: strip.x, z: strip.z, halfWidth: strip.width / 2, halfDepth: strip.depth / 2, yaw: 0 }
+    const within = (inner: Box) => inner.x - inner.halfWidth >= stripBox.x - stripBox.halfWidth - 1e-9 && inner.x + inner.halfWidth <= stripBox.x + stripBox.halfWidth + 1e-9 && inner.z - inner.halfDepth >= stripBox.z - stripBox.halfDepth - 1e-9 && inner.z + inner.halfDepth <= stripBox.z + stripBox.halfDepth + 1e-9
+    for (const c of [box(deck, R.pileScale), box(discard, R.pileScale), box(held, R.heldScale)]) expect(within(c)).toBe(true)
+    expect(within({ x: above.x, z: above.z, halfWidth: strip.width / 2, halfDepth: above.depth / 2, yaw: 0 })).toBe(true)
+    // the count of a pile lies under it, in the strip: its middle is the kit's gap under the edge of the pile
+    const count = { x: deck.x, z: deck.z + (CARD.height * R.pileScale) / 2 + PILE_LABEL_GAP, halfWidth: 0.4, halfDepth: PILE_LABEL_HEIGHT / 2, yaw: 0 }
+    expect(within({ ...count, z: count.z })).toBe(true)
   })
 })
 
