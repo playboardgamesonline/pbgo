@@ -1,122 +1,120 @@
-import { draw } from "@pbgo/engine-kit"
-import { HAND_SIZE } from "./deck"
-import { EngineError } from "./errors"
-import type { Action, Target, Courtier, GameState, PlayZone } from "./types"
+import { EngineError, nextSeat, removeFrom, seatOf } from "@pbgo/engine-kit"
+import { HAND_SIZE } from "./catalogue"
+import { type Ctx, close, domainOf, emit, handOf, isOver, open, phaseOf, typeOf, visibleCard } from "./machine"
+import { type Action, CLIENT_ACTIONS, type ActionOf, type CourtisansStep, type PlayZone, type State, type Target } from "./types"
 
-export function applyAction(state: GameState, action: Action): GameState {
-  const next = structuredClone(state)
-  switch (action.type) {
-    case "readMissions":
-      readMissions(next, action.playerId)
-      break
-    case "playCard":
-      playCard(next, action.playerId, action.cardId, action.target, action.victimId)
-      break
+/**
+ * The rules of play. Everything is checked before anything changes: an illegal move is an `EngineError` with a code of the game's list, a bug is a plain error.
+ * A step works on a copy of the state (`open`), so a refusal that comes after a change leaves the state the player sent as it was.
+ */
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value)
+
+/** A target as a client sends it: the Queen's table above or below the mat, or the domain of a player. Anything else is malformed. */
+function parseTarget(value: unknown): Target {
+  if (isRecord(value) && value.zone === "table" && (value.level === "up" || value.level === "down")) return { zone: "table", level: value.level }
+  if (isRecord(value) && value.zone === "domain" && typeof value.playerId === "string") return { zone: "domain", playerId: value.playerId }
+  throw new EngineError("INVALID_ACTION", "The target is the table, above or below the mat, or the domain of a player")
+}
+
+/** What a client sent, checked: an action of the game, with the fields its type asks for. Anything else is `INVALID_ACTION`. */
+function parse(action: unknown): Action {
+  if (!isRecord(action) || typeof action.type !== "string" || !(CLIENT_ACTIONS as readonly string[]).includes(action.type)) {
+    throw new EngineError("INVALID_ACTION", "That is not an action of the game")
   }
-  return next
+  const { playerId } = action
+  if (typeof playerId !== "string") throw new EngineError("INVALID_ACTION", "An action names the player who sends it")
+  if (action.type === "readMissions") return { type: "readMissions", playerId }
+  const { cardId, victimId } = action
+  if (typeof cardId !== "number" || !Number.isInteger(cardId)) throw new EngineError("INVALID_ACTION", "A card is named by its id")
+  if (victimId !== undefined && (typeof victimId !== "number" || !Number.isInteger(victimId))) throw new EngineError("INVALID_ACTION", "A victim is named by its id")
+  return { type: "playCard", playerId, cardId, target: parseTarget(action.target), ...(victimId === undefined ? {} : { victimId }) }
 }
 
-function readMissions(state: GameState, playerId: string) {
-  if (state.phase === "over") throw new EngineError("INVALID_PHASE")
-  const player = state.players.find((j) => j.id === playerId)
-  if (!player) throw new EngineError("UNKNOWN_PLAYER")
-  player.missionsRead = true
-  // the banquet starts for everyone at the same time, when the last player has read (reading twice only counts once)
-  if (state.phase === "missions" && state.players.every((j) => j.missionsRead)) state.phase = "playing"
-}
-
-export function zoneOfTarget(state: GameState, playerId: string, target: Target): PlayZone {
+/** The zone a target is, for the player who plays in it: the table, their own domain, or somebody else's. */
+export function zoneOf(s: State, seat: number, target: Target): PlayZone {
   if (target.zone === "table") return "table"
-  if (!state.players.some((j) => j.id === target.playerId)) throw new EngineError("UNKNOWN_PLAYER")
-  return target.playerId === playerId ? "domain" : "opponentDomain"
+  const owner = seatOf(s.seats, target.playerId)
+  if (owner < 0) throw new EngineError("INVALID_TARGET", "That player is not at the table")
+  return owner === seat ? "domain" : "opponentDomain"
 }
 
-export function availableZones(state: GameState): PlayZone[] {
-  return (["table", "domain", "opponentDomain"] as const).filter((z) => !state.playedZones.includes(z))
-}
-
-export function activePlayerId(state: GameState): string | null {
-  return state.phase === "playing" ? (state.players[state.activePlayer]?.id ?? null) : null
+/** A player says that they have read their missions. The banquet starts when every player has; saying it twice counts once. */
+export function readMissions(ctx: Ctx, seat: number): void {
+  ctx.s.read[seat] = true
 }
 
 /**
- * Players the game waits for (`GAME.waitingFor`, public information): while the missions are being read, those who have not
- * read theirs yet, in seat order; during the banquet, the player whose turn it is; nobody once the game is over.
+ * Plays a card, and eliminates one with it when it is an assassin that names a victim. The turn ends when three zones have been played in, or when the player has no card left; the player then draws three
+ * cards and the next player who holds a card is up. When nobody does, the game is over.
  */
-export function waitingPlayerIds(state: GameState): string[] {
-  if (state.phase === "missions") return state.players.filter((j) => !j.missionsRead).map((j) => j.id)
-  const active = activePlayerId(state)
-  return active ? [active] : []
+export function playCard(ctx: Ctx, seat: number, { cardId, target, victimId }: Omit<ActionOf<"playCard">, "type" | "playerId">): void {
+  const { s } = ctx
+  if (phaseOf(s) !== "playing") throw new EngineError("INVALID_PHASE", "The banquet has not started")
+  if (seat !== s.active) throw new EngineError("NOT_YOUR_TURN", "It is not your turn")
+  const hand = handOf(s, seat)
+  if (!hand.includes(cardId)) throw new EngineError("UNKNOWN_CARD", "That card is not in your hand")
+  const zone = zoneOf(s, seat, target)
+  if (s.zones.includes(zone)) throw new EngineError("ZONE_ALREADY_PLAYED", "You played a card there already this turn")
+  if (victimId !== undefined && typeOf(s, cardId).role !== "assassin") throw new EngineError("INVALID_ASSASSINATION", "Only an assassin eliminates a card")
+
+  const playerId = s.seats[seat]!
+  removeFrom(hand, cardId)
+  if (target.zone === "table") s.table.push({ card: cardId, level: target.level })
+  else domainOf(s, seatOf(s.seats, target.playerId)).push(cardId)
+  emit(ctx, { type: "cardPlayed", playerId, card: visibleCard(s, cardId, false), target })
+
+  if (victimId !== undefined) eliminate(ctx, playerId, cardId, target, victimId)
+
+  s.zones.push(zone)
+  if (s.zones.length === 3 || hand.length === 0) endTurn(ctx)
 }
 
-function playCard(state: GameState, playerId: string, cardId: string, target: Target, victimId?: string) {
-  if (state.phase !== "playing") throw new EngineError("INVALID_PHASE")
-  const player = state.players[state.activePlayer]
-  if (!player || player.id !== playerId) throw new EngineError("NOT_YOUR_TURN")
-
-  const index = player.hand.findIndex((c) => c.id === cardId)
-  const card = player.hand[index]
-  if (!card) throw new EngineError("UNKNOWN_CARD")
-
-  const zone = zoneOfTarget(state, playerId, target)
-  if (state.playedZones.includes(zone)) throw new EngineError("ZONE_ALREADY_PLAYED")
-  if (victimId && card.role !== "assassin") throw new EngineError("INVALID_ASSASSINATION")
-
-  player.hand.splice(index, 1)
-  if (target.zone === "table") state.table.push({ card, level: target.level })
-  else state.players.find((j) => j.id === target.playerId)!.domain.push(card)
-  state.log.push({ type: "cardPlayed", playerId, card, target })
-
-  if (victimId) assassinate(state, playerId, card, target, victimId)
-
-  state.playedZones.push(zone)
-  if (state.playedZones.length === 3 || player.hand.length === 0) endTurn(state)
-}
-
-function assassinate(state: GameState, playerId: string, assassin: Courtier, target: Target, victimId: string) {
-  if (victimId === assassin.id) throw new EngineError("INVALID_ASSASSINATION")
-
-  let victim: Courtier | undefined
-  let victimTarget: Target
+/** The assassin `assassin`, just played in `target`, eliminates the card `victimId` of that zone: any card but a guard, and not the assassin itself. */
+function eliminate(ctx: Ctx, playerId: string, assassin: number, target: Target, victimId: number): void {
+  const { s } = ctx
+  if (victimId === assassin) throw new EngineError("INVALID_ASSASSINATION", "An assassin does not eliminate itself")
+  let victimTarget: Target = target
   if (target.zone === "table") {
-    const i = state.table.findIndex((p) => p.card.id === victimId)
-    const placement = state.table[i]
-    if (!placement || placement.card.role === "guard") throw new EngineError("INVALID_ASSASSINATION")
-    state.table.splice(i, 1)
-    victim = placement.card
+    const placement = s.table.find((candidate) => candidate.card === victimId)
+    if (!placement || typeOf(s, victimId).role === "guard") throw new EngineError("INVALID_ASSASSINATION", "That card cannot be eliminated")
+    s.table.splice(s.table.indexOf(placement), 1)
     victimTarget = { zone: "table", level: placement.level }
   } else {
-    const domain = state.players.find((j) => j.id === target.playerId)!.domain
-    const i = domain.findIndex((c) => c.id === victimId)
-    victim = domain[i]
-    if (!victim || victim.role === "guard") throw new EngineError("INVALID_ASSASSINATION")
-    domain.splice(i, 1)
-    victimTarget = target
+    const domain = domainOf(s, seatOf(s.seats, target.playerId))
+    if (!domain.includes(victimId) || typeOf(s, victimId).role === "guard") throw new EngineError("INVALID_ASSASSINATION", "That card cannot be eliminated")
+    removeFrom(domain, victimId)
   }
-
-  state.eliminated.push(victim)
-  state.log.push({ type: "cardEliminated", playerId, card: victim, target: victimTarget })
+  s.eliminated.push(victimId)
+  emit(ctx, { type: "cardEliminated", playerId, card: visibleCard(s, victimId, false), target: victimTarget })
 }
 
-function endTurn(state: GameState) {
-  const player = state.players[state.activePlayer]!
-  const { drawn, pile } = draw(state.deck, HAND_SIZE)
-  state.deck = pile
+/** The turn is over: the player draws back up to three cards (as many as the deck still holds) and the next player who holds a card is up. A game where nobody does is over. */
+function endTurn(ctx: Ctx): void {
+  const { s } = ctx
+  const playerId = s.seats[s.active]!
+  const drawn = s.deck.splice(0, HAND_SIZE)
   if (drawn.length > 0) {
-    player.hand.push(...drawn)
-    state.log.push({ type: "draw", playerId: player.id, count: drawn.length })
+    handOf(s, s.active).push(...drawn)
+    emit(ctx, { type: "draw", playerId, count: drawn.length })
   }
-  state.playedZones = []
+  s.zones = []
+  const next = nextSeat(s.seats.length, s.active, (seat) => handOf(s, seat).length === 0)
+  if (next === null) emit(ctx, { type: "gameOver" })
+  else s.active = next
+}
 
-  const total = state.players.length
-  for (let step = 1; step <= total; step++) {
-    const candidate = (state.activePlayer + step) % total
-    if (state.players[candidate]!.hand.length > 0) {
-      state.activePlayer = candidate
-      state.turnNumber++
-      return
-    }
-  }
-  state.phase = "over"
-  state.log.push({ type: "gameOver" })
+/**
+ * Plays an action and says what happened. The checks come in this order: the game is not over, the action is well formed, the player is at the table, then the rule of the action itself.
+ * `apply` of the definition is `step(state, action).state`.
+ */
+export function step(state: State, action: Action): CourtisansStep {
+  if (isOver(state)) throw new EngineError("GAME_OVER", "The game is over")
+  const parsed = parse(action)
+  const seat = seatOf(state.seats, parsed.playerId)
+  if (seat < 0) throw new EngineError("UNKNOWN_PLAYER", "You are not at this table")
+  const ctx = open(state)
+  if (parsed.type === "readMissions") readMissions(ctx, seat)
+  else playCard(ctx, seat, parsed)
+  return close(ctx)
 }

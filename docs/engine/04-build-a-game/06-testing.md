@@ -14,7 +14,7 @@ An engine is tested in layers, from one rule to a whole game with absent players
 | The order of keys | A state given back by `reorderKeys` plays, waits and views the same | Flip 7: `game.test.ts`, `simulation.test.ts`; the template: `game.test.ts` |
 | No mutation | A step on a state frozen with `deepFreeze` throws if it writes to it, and a refusal leaves the state as it was | Flip 7: `turns.test.ts`, `simulation.test.ts` |
 | Junk actions | Wrong types, missing fields and strangers are refused with a code of the game's list | Flip 7: `simulation.test.ts`, `turns.test.ts` |
-| Absent players | `playFor` plays each player the game waits for and refuses anybody else with `NOT_WAITING`; a table of absent players ends | Flip 7: `autoplay.test.ts`, `simulation.test.ts`; Courtisans: `game.test.ts` |
+| Absent players | `playFor` plays each player the game waits for and refuses anybody else with `NOT_WAITING`; a table of absent players ends | Flip 7: `autoplay.test.ts`, `simulation.test.ts`; Courtisans: `autoplay.test.ts` |
 | The commands | Each debug command, and that a command that rigs the draw pile changes nothing outside its moment | Flip 7: `debug.test.ts` |
 | The takeover in the binding | A whole game in which players never come back, with the real voting rules of core, on the rig of core (`takeoverRig`: the table, the clock, `jsonb`, the glue of the route and a player who plays to the end alone) | The template: `src/takeover.test.ts` |
 | The whole contract in the binding | The contract of an engine, played the way the server plays it, with the checks of every step | The template: `src/conformance.test.ts` |

@@ -1,62 +1,42 @@
-import { type Rng, createRng, sideSeed } from "@pbgo/engine-kit"
-import { applyAction, availableZones, waitingPlayerIds } from "./actions"
-import { EngineError } from "./errors"
-import type { Target, GameState } from "./types"
-
-export type DebugCommand = "missions" | "turn" | "over"
-
-/** Salt of the automatic moves' stream (see `sideSeed`). */
-const AUTO_MOVE_STREAM = 2
+import { autoPlayFor } from "./autoplay"
+import { isOver, waitingFor } from "./machine"
+import type { State } from "./types"
 
 /**
- * Stream of one automatic move, derived from the game seed and the move's position in the game: replaying the
- * same game always picks the same moves. Games saved without a seed use 0 and stay deterministic.
+ * The debug panel (`GAME.debug`), for development only. `missions` says that every player has read their missions, which starts the banquet; `turn` plays the turn that is going on (the missions are read first when
+ * they have not been), and `over` plays the game to the end, as an absent player would be.
  */
-export function autoMoveRng(state: GameState): Rng {
-  return createRng(sideSeed(state.seed ?? 0, AUTO_MOVE_STREAM, state.turnNumber, state.log.length, state.playedZones.length))
+
+/** Guards against a loop that does not end; a game is a hundred cards at the most. */
+const GAME_STEPS = 400
+
+/** The game goes one step further: the player it waits for is played for. */
+function playOne(state: State): State {
+  const [first] = waitingFor(state)
+  return first === undefined ? state : autoPlayFor(state, first)
 }
 
-export function autoMove(state: GameState): GameState {
-  const rng = autoMoveRng(state)
-  const random = <T>(list: T[]) => list[Math.floor(rng() * list.length)]!
-  const player = state.players[state.activePlayer]!
-  const card = random(player.hand)
-  const zone = availableZones(state)[0]!
-  const opponents = state.players.filter((j) => j.id !== player.id)
-  const target: Target =
-    zone === "table"
-      ? { zone: "table", level: rng() < 0.5 ? "up" : "down" }
-      : { zone: "domain", playerId: zone === "domain" ? player.id : random(opponents).id }
-  let victimId: string | undefined
-  if (card.role === "assassin") {
-    const cards = target.zone === "table" ? state.table.map((p) => p.card) : state.players.find((j) => j.id === target.playerId)!.domain
-    victimId = cards.find((c) => c.role !== "guard")?.id
-  }
-  return applyAction(state, { type: "playCard", playerId: player.id, cardId: card.id, target, victimId })
-}
-
-function readAll(state: GameState): GameState {
+/** Every player has read their missions: the banquet starts. */
+function readAll(state: State): State {
   let s = state
-  for (const j of s.players) if (!j.missionsRead) s = applyAction(s, { type: "readMissions", playerId: j.id })
+  for (let i = 0; i < state.seats.length && !s.read.every(Boolean); i++) s = playOne(s)
   return s
 }
 
-export function applyDebug(state: GameState, command: DebugCommand): GameState {
-  let s = state.phase === "missions" ? readAll(state) : state
-  if (command === "turn" && s.phase === "playing") {
-    const turn = s.turnNumber
-    for (let i = 0; i < 3 && s.phase === "playing" && s.turnNumber === turn; i++) s = autoMove(s)
-  }
-  if (command === "over") for (let i = 0; i < 400 && s.phase === "playing"; i++) s = autoMove(s)
+/** The turn that is going on is played out (the missions are read first when they have not been). */
+function finishTurn(state: State): State {
+  const read = readAll(state)
+  return isOver(read) ? read : playOne(read)
+}
+
+function finishGame(state: State): State {
+  let s = readAll(state)
+  for (let i = 0; i < GAME_STEPS && !isOver(s); i++) s = playOne(s)
   return s
 }
 
-/**
- * Plays for an absent player (`GAME.autoPlayFor`). While the missions are being read, theirs are read for them (the last one
- * to read starts the banquet); during the banquet, their whole turn is played (up to 3 cards).
- * `NOT_WAITING` when the game is not waiting for that player.
- */
-export function autoPlayFor(state: GameState, playerId: string): GameState {
-  if (!waitingPlayerIds(state).includes(playerId)) throw new EngineError("NOT_WAITING")
-  return state.phase === "missions" ? applyAction(state, { type: "readMissions", playerId }) : applyDebug(state, "turn")
+export const debugCommands: Record<string, (state: State) => State> = {
+  missions: readAll,
+  turn: finishTurn,
+  over: finishGame,
 }

@@ -1,7 +1,8 @@
 "use client"
 
-import type { PlayerView } from "@courtisans/engine"
+import type { CourtisansEvent } from "@courtisans/engine"
 import { useEffect, useRef } from "react"
+import type { LogLine } from "@pbgo/core/lib/game-types"
 import { playSound as playCoreSound } from "@pbgo/core/lib/sound"
 import type { SoundName } from "../../lib/sounds"
 import type { EndingState } from "./ending"
@@ -11,11 +12,12 @@ export function playSound(name: SoundName, options?: Parameters<typeof playCoreS
   playCoreSound(name, options)
 }
 
-export function useGameSounds(view: PlayerView, ending: EndingState | null, selectionId: string | null, missionFocus: string | null) {
-  const logLength = useRef(view.log.length)
+export function useGameSounds(log: readonly LogLine<CourtisansEvent>[], ending: EndingState | null, selectionId: number | null, missionFocus: string | null) {
+  // The lines that are there when the board opens are not played: only those that come after, by the version of the table
+  const playedV = useRef(log.at(-1)?.v ?? 0)
   useEffect(() => {
-    const newOnes = view.log.slice(logLength.current)
-    logLength.current = view.log.length
+    const newOnes = log.filter((line) => line.v > playedV.current).map((line) => line.event)
+    playedV.current = Math.max(playedV.current, log.at(-1)?.v ?? 0)
     let t = 0
     for (const e of newOnes) {
       if (e.type === "cardPlayed") {
@@ -29,7 +31,7 @@ export function useGameSounds(view: PlayerView, ending: EndingState | null, sele
         for (let i = 0; i < e.count; i++) playSound("slide", { delay: t + 0.35 + i * 0.28, volume: 0.8 })
       }
     }
-  }, [view.log])
+  }, [log])
 
   useEffect(() => {
     if (selectionId) playSound("select")

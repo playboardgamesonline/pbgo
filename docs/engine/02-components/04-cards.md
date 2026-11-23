@@ -27,11 +27,11 @@ A game can hold cards of different kinds, and its board paints each kind its own
 | --- | --- | --- | --- |
 | Flip 7 | `number`, `modifier`, `action` | `CardType` and `CARDS` in `games/flip-7/packages/engine/src/catalogue.ts` | A `CardFace` of the kit: the id and a key of `CARDS`, such as `number-7` or `freeze` |
 | Exploding Kittens | `kitten`, `defuse`, `nope`, `action`, `cat` | `CardKind` and `CARDS` in `games/exploding-kittens/packages/engine/src/catalogue.ts` | A `Face` of its own, the same shape |
-| Courtisans, courtiers | A family and a role | `FAMILIES`, `ROLES` and `Courtier` in `games/courtisans/packages/engine/src/types.ts`; the pictures are in Sanity | A `VisibleCard`: the id, the family and the role; a hidden spy has no family |
-| Courtisans, missions | A color and a `Condition` | `Mission` in the same `types.ts`; the missions come from Sanity as setup data ([Game data](../01-the-game/08-game-data.md)) | A `Mission`, to its holder; to the others `null` until the game is over |
+| Courtisans, courtiers | A family and a role | `FAMILIES`, `ROLES`, `CARDS` and `CATALOGUE` in `games/courtisans/packages/engine/src/catalogue.ts`; the pictures are in Sanity | A `VisibleCard`: the id, the family and the role; a hidden spy has no family (a `Courtier`, with all three, to its holder) |
+| Courtisans, missions | A color and a `Condition` | `Mission` in `types.ts` and `MISSIONS` in `missions.ts`; Sanity holds their texts and pictures ([Game data](../01-the-game/08-game-data.md)) | The id of a mission, to its holder; to the others `null` until the game is over |
 | La Plus Haute, the template's demo | A color and a value | `Card` in `template/packages/engine/src/demo/types.ts` | The `Card` itself; an opponent's hand is `cardCount` |
 
-- The rules read the `kind` of a card and the `effect` of an action card, never the key of its face. Flip 7 and Exploding Kittens keep both in `CARDS`; Courtisans' state predates the lean state, so each `Courtier` carries its family and its role.
+- The rules read the `kind` of a card and the `effect` of an action card, never the key of its face. Flip 7 and Exploding Kittens keep both in `CARDS`; Courtisans keeps the family and the role of each card in `CARDS`, under the key `cardKey` gives, and its state holds an id for each card.
 - A face key is a contract: it names the card type in the catalogue, in the Studio and in the art files, and it is append only. In Sanity each kind is a document type of its own, never a `kind` field, as `CATEGORIES` lists them for Flip 7 (`games/flip-7/apps/studio/schemaTypes/constants.ts`).
 - Kinds can differ in shape: Courtisans' courtiers are taller than wide and its missions wider than tall (`CARD_W` and `MISSION_W` in `layout.ts`). A `Zone` and a `Pile` take one `size` for all their cards, so cards of another shape go in a zone of their own.
 

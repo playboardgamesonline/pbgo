@@ -3,7 +3,7 @@
 import type { Target, Courtier, PlayZone } from "@courtisans/engine"
 import { createContext, useContext } from "react"
 
-export type Assassination = { cardId: string; target: Target; candidates: string[] }
+export type Assassination = { cardId: number; target: Target; candidates: number[] }
 
 export type Interaction = {
   myTurn: boolean
@@ -12,8 +12,8 @@ export type Interaction = {
   assassination: Assassination | null
   canPlay: (zone: PlayZone) => boolean
   play: (target: Target) => void
-  eliminate: (cardId: string | null) => void
-  originOf: (cardId: string) => string | null
+  eliminate: (cardId: number | null) => void
+  originOf: (cardId: number) => string | null
   sending: boolean
 }
 

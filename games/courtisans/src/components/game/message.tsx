@@ -1,6 +1,6 @@
 "use client"
 
-import type { VisibleCard, Target, VisibleEvent } from "@courtisans/engine"
+import type { CourtisansEvent, Target, VisibleCard } from "@courtisans/engine"
 import { Fragment } from "react"
 import { cn } from "@pbgo/ui/utils"
 import type { Vocabulary } from "../../lib/catalog"
@@ -72,7 +72,7 @@ function Subject({ id, action }: { id: string; action: Action }) {
 
 const LINE = "inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1"
 
-export function Message({ event, className }: { event: VisibleEvent; className?: string }) {
+export function Message({ event, className }: { event: CourtisansEvent; className?: string }) {
   const { catalog } = useCourtisans()
   switch (event.type) {
     case "cardPlayed":
@@ -100,7 +100,7 @@ export function Message({ event, className }: { event: VisibleEvent; className?:
   }
 }
 
-export function Messages({ events }: { events: VisibleEvent[] }) {
+export function Messages({ events }: { events: CourtisansEvent[] }) {
   return (
     <>
       {events.map((e, i) => (

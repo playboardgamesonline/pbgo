@@ -38,12 +38,12 @@ export function hashRandom(key: string) {
   return ((h >>> 0) / 4294967295) * 2 - 1
 }
 
-export const lean = (key: string, amplitude = LAYOUT_SETTINGS.randomRotation) =>
-  new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), hashRandom(key) * amplitude)
+export const lean = (key: string | number, amplitude = LAYOUT_SETTINGS.randomRotation) =>
+  new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), hashRandom(String(key)) * amplitude)
 
 export const columnX = (column: Column) => -MAT_W / 2 + MARGIN + STEP * (MAT_ORDER.indexOf(column) + 0.5)
 
-export function tablePose(column: Column, level: Level, rank: number, id?: string): Pose {
+export function tablePose(column: Column, level: Level, rank: number, id?: number): Pose {
   const edge = MAT_D / 2 + CARD_H / 2 + rank * OFFSET
   return pose(
     columnX(column),
@@ -144,9 +144,9 @@ export function arrangeDomain(
   seat: Seat,
   domain: VisibleCard[],
   unfolded: string | null = null,
-  hidden: Set<string> | null = null,
+  hidden: Set<number> | null = null,
   liftedPile: number | null = null,
-): { poses: Map<string, Pose>; zone: DomainZone } {
+): { poses: Map<number, Pose>; zone: DomainZone } {
   const { position: p, orientation, maxWidth } = seat
   const family = (c: VisibleCard) => (hidden?.has(c.id) ? null : c.family)
   const groups = [...FAMILY_ORDER.map((f) => domain.filter((c) => family(c) === f)), domain.filter((c) => !family(c))].filter(
@@ -164,7 +164,7 @@ export function arrangeDomain(
   const place = (u: number, y: number, q: Quaternion) =>
     pose(lateral ? center.x : center.x + u, y, lateral ? center.z + u : center.z, yaw.clone().multiply(q), DOMAIN_SCALE)
 
-  const poses = new Map<string, Pose>()
+  const poses = new Map<number, Pose>()
   const toTable = lateral ? new Vector3(toward, 0, 0) : new Vector3(0, 0, orientation === "up" ? 1 : -1)
   const piles: DomainPile[] = []
   let u = -width / 2 + DL / 2
