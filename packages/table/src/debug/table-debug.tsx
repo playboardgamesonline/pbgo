@@ -5,7 +5,6 @@ import { useEffect } from "react"
 import { copyButton } from "@pbgo/core/components/game/debug-controls"
 import { useDebugFolder } from "@pbgo/core/components/game/debug-folders"
 import { captureGamePhoto } from "@pbgo/core/lib/photo"
-import { definedGlows, type Glow } from "../card/glows"
 import { BAG_FIELDS, BAG_SETTINGS } from "../bag/settings"
 import { CARD_FIELDS, CARD_SETTINGS } from "../card/settings"
 import { CARD_STATE_FIELDS, CARD_STATE_SETTINGS } from "../card/states"
@@ -29,7 +28,7 @@ import { TRACK_FIELDS, TRACK_SETTINGS } from "../track/settings"
 import { AxesGizmo } from "./gizmos"
 import { describeCard, inspector } from "./inspector"
 import { ENTRANCE, FLOOR_OVERRIDE, LIGHTS_OVERRIDE } from "./overrides"
-import { type Field, inputs, notifySettings, settingsSchema, useSettings, useSettingsVersion } from "./settings"
+import { notifySettings, settingsSchema, useSettings, useSettingsVersion } from "./settings"
 import { slowClock } from "./time"
 import { DEBUG_VIEW, resetView, TIME, TIME_FIELDS, VIEW_FIELDS } from "./view"
 
@@ -161,33 +160,6 @@ function FloorFolder({ surface }: { surface: TableProps["surface"] }) {
   return null
 }
 
-/** The parts of a glow a frame reads, and the knob of each: `spread` and `blend` are read when the card is drawn, so they have none */
-const GLOW_FIELDS: { [Part in keyof Glow]-?: Record<string, Field> } = {
-  halo: { color: "colour", opacity: ["opacity", 0, 1, 0.01], pulse: ["pulse", 0, 0.5, 0.005], speed: ["speed", 0, 10, 0.05] },
-  outline: { color: "colour", visible: "visible" },
-  frame: { color: "colour", opacity: ["opacity", 0, 1, 0.01], pulse: ["pulse", 0, 0.5, 0.005], breath: ["breath", 0, 0.1, 0.001], speed: ["speed", 0, 10, 0.05] },
-  sparkle: { opacity: ["opacity", 0, 1, 0.01], speed: ["speed", 0, 3, 0.01] },
-}
-
-/** One folder for a glow, with a sub-folder for each part it has */
-function GlowFolder({ name, glow }: { name: string; glow: Glow }) {
-  const folder = `Glow · ${name}`
-  useDebugFolder({
-    folder,
-    tab: "SCENE",
-    order: 7,
-    schema: ({ folder: group }) => {
-      const parts = (Object.keys(GLOW_FIELDS) as (keyof Glow)[]).flatMap((part) => {
-        const values = glow[part]
-        // The inputs are made the way every folder's are (`inputs`); leva's own types cannot tell what they hold
-        return values ? [[part, group(inputs(values as Record<string, unknown>, GLOW_FIELDS[part]) as never, { collapsed: true })] as const] : []
-      })
-      return { ...Object.fromEntries(parts), ...copyButton("SCENE", folder) }
-    },
-  })
-  return null
-}
-
 /** What the table owns and a frame reads: the cards, the dice, the pieces, the counters, the cups, the bags, the tracks, the steppers, the sliders, the sketches, the road maps, the sheets, the timers, the drag, the seats, and the glows the game defined (those with no part at all have nothing to tune) */
 function PieceFolders() {
   useSettings("Card", CARD_SETTINGS, CARD_FIELDS, { order: 2 })
@@ -216,19 +188,11 @@ function PieceFolders() {
   useSettings("Timer", TIMER_SETTINGS, TIMER_FIELDS, { order: 2 })
   useSettings("Drag", DRAG_SETTINGS, DRAG_FIELDS, { order: 2 })
   useSettings("Seat", SEAT_SETTINGS, SEAT_FIELDS, { order: 3 })
-  return (
-    <>
-      {definedGlows()
-        .filter(([, glow]) => Object.keys(glow).length > 0)
-        .map(([name, glow]) => (
-          <GlowFolder key={name} name={name} glow={glow} />
-        ))}
-    </>
-  )
+  return null
 }
 
 /** The lines the Inspector shows, in order */
-const INSPECTOR_LINES = ["card", "at", "target", "scale", "flight", "glow"] as const
+const INSPECTOR_LINES = ["card", "at", "target", "scale", "flight"] as const
 
 /** What to draw over the table, what the pointer is on, and how fast time goes */
 function ViewFolders() {

@@ -3,7 +3,6 @@
 import type { PlayerView } from "@template/engine"
 import { Card } from "@pbgo/table"
 import { useEffect, useState } from "react"
-import { GLOWS } from "./glows"
 import { bidPose, bidRowPose, DECK_POSE, heldFrom, type SeatSpot } from "./layout"
 import { bidBackTexture, bidFaceTexture, CARD_SIZE } from "./textures"
 
@@ -24,7 +23,7 @@ function useLinger(active: boolean, ms: number) {
 
 /**
  * The bids of the simultaneous step, asked and shown on the table with the game's own cards instead of a window. The viewer has a row of bid cards across the middle of the table, one for each bid they may make: pressing one sends it to their
- * seat, where it lies face up for them to read (and glows while they may still change their mind, by pressing another, which takes its place); the others' bids lie face down at their seats as soon as they have bid, and turn over together when the last
+ * seat, where it lies face up for them to read (and is lit while they may still change their mind, by pressing another, which takes its place); the others' bids lie face down at their seats as soon as they have bid, and turn over together when the last
  * has. The cards that were not chosen leave once the bids are in. The view says who has bid and never what, until everybody has (`hasBid`, then `bid`), so a bid face down carries a numeral that nobody can read: it is a stand-in.
  */
 export function Bids({ view, slots, canBid, onBid }: { view: PlayerView; slots: Map<string, SeatSpot>; canBid: boolean; onBid: (amount: number) => void }) {
@@ -57,18 +56,18 @@ export function Bids({ view, slots, canBid, onBid }: { view: PlayerView; slots: 
               front={bidFaceTexture(k)}
               back={back}
               size={CARD_SIZE}
-              glow={placed && bidding ? GLOWS.selection : pressable && hovered === k ? GLOWS.selection : null}
-              gloss={pressable && hovered === k}
+              state={placed && bidding ? "selected" : pressable ? "interactive" : "base"}
               onHover={pressable ? (over) => setHovered((current) => (over ? k : current === k ? null : current)) : undefined}
-              onClick={
+              onPress={
                 pressable
-                  ? (event) => {
-                      event.stopPropagation()
+                  ? () => {
                       setHovered(null)
                       onBid(k)
                     }
                   : undefined
               }
+              // The demo's words are written here, as the ticker's are: a game's live in its Sanity
+              ariaLabel={pressable ? `Bid ${k}` : undefined}
             />
           )
         })}

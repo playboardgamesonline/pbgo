@@ -22,7 +22,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 
 | Component | What it is | In the engine | On the table | Standing |
 | --- | --- | --- | --- | --- |
-| Card | A 3D element with a face and a back. A game gives each card a value, a power, a picture: they are its data, in its engine and its Sanity project | An opaque id in the state, the deck helpers, a view that hides what a viewer may not see | `Card`, with its glows | Built: [Cards](04-cards.md) |
+| Card | A 3D element with a face and a back. A game gives each card a value, a power, a picture: they are its data, in its engine and its Sanity project | An opaque id in the state, the deck helpers, a view that hides what a viewer may not see | `Card`, with its states | Built: [Cards](04-cards.md) |
 | Pile and deck | Cards that are drawn from, counted or named | `deck`, `draw`, `deal`, `reshuffleDiscard` | `Pile`, or a `Zone` over a pile layout | Built: [Decks and piles](06-decks-and-piles.md) |
 | Zone and hand | A place where cards lie, in a layout; the viewer's hand held at the bottom left of the screen, and the cards the others hold, a small fan of backs that stands with a small round shadow | A list in the state | `Zone`, the layouts `fan`, `row`, `pile` and `grid`, `ScreenHand`, `HeldHand`, `HandShadow` | Built: [Where cards are](07-zones.md), [Layout helpers](08-layout-helpers.md) |
 | Die | Some faces, a shape and a value on each face, rolled with physics | `rollDie`, `rollDice`, `rerollDice` | `Die`, `DiceTray`, `DieModel` | Built: [Dice](10-dice.md) |
@@ -62,7 +62,7 @@ What each component is, what the engine holds of it, what the board draws, and w
 - [Table](01-table.md): the canvas, the lights, the endless surface, the playmat laid on it, the share photo and the coordinates.
 - [Camera](02-camera.md): the settings, the entrance, the rig.
 - [Seats](03-seats.md): the ring of seats around the table, each facing the middle, the plate of the player who sits at one (name, avatar, crown, score), standing above their play area and their hand on one line along the axis of the seat, and the picture beside a nickname.
-- [Cards](04-cards.md): a card in the state and on the table, its faces, its kinds and its glows.
+- [Cards](04-cards.md): a card in the state and on the table, its faces, its kinds and its states.
 - [Poses and motion](05-poses-and-motion.md): where a card lies, how it gets from one pose to another and where it starts from.
 - [Decks and piles](06-decks-and-piles.md): drawing, dealing and reshuffling in the engine, and the pile on the table.
 - [Where cards are](07-zones.md): the places of a card, the hand on the screen, the hands the others hold and the zones that lay cards out.

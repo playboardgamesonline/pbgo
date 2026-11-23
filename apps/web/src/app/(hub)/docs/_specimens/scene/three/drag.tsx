@@ -46,10 +46,7 @@ export function DragScene({
     draggable: true,
     dropOn: zonesOf(card),
     onDrop: (drop) => onDrop(card, drop),
-    onClick: (event) => {
-      event.stopPropagation()
-      onPick(card)
-    },
+    onPress: () => onPick(card),
   })
   return (
     <Stage id="scene-drag" camera={above ? ABOVE : CAMERA} playIntro={false}>

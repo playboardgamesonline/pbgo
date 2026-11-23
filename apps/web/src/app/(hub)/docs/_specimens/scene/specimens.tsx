@@ -15,7 +15,7 @@ import { MatScene, PlaymatScene } from "./lazy"
 import { ISLAND_CORNERS } from "./island"
 import { deal, lay, nextFitting, SEED, START, TABLE, TILES, type TileName, view } from "./landscape"
 import { BONUS, CATEGORIES, CATEGORY_OF, ROW_OF, scoreOf, totalOf, upperOf } from "./yahtzee"
-import { ActionLabelScene, FloorButtonsScene, TilesScene, BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CardStatesScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GlowsScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
+import { ActionLabelScene, FloorButtonsScene, TilesScene, BagScene, BetsScene, BidScene, BoardScene, CameraScene, CardScene, CardStatesScene, CounterScene, CupScene, DiceScene, DragScene, FlightScene, GridScene, LayoutsScene, NumbersScene, PiecesScene, PileScene, PoseMemoryScene, PourScene, RoadMapScene, SeatScene, SeatsScene, SheetScene, SketchScene, TableScene, TextFieldScene, TimerScene, TrackScene, ZonesScene } from "./lazy"
 
 // The light half of the 3D specimens of the engine docs: each is the state and the controls of one scene, laid out in a `SceneFrame`, and the scene itself (`lazy.tsx`), which is drawn only when the frame is near the window. The controls
 // are the platform's own and hold every value the scene is given, so they are there, and still, before the scene is and after it is let go; the scene is a function of them and sends back what the pointer did in it.
@@ -125,14 +125,6 @@ export function SceneCardStatesSpecimen() {
   return (
     <SceneFrame label="Seven cards in a row, one for each state a card can be in, each labelled; the second can be chosen: it lights and lifts under the pointer and can be picked">
       <CardStatesScene />
-    </SceneFrame>
-  )
-}
-
-export function SceneGlowsSpecimen() {
-  return (
-    <SceneFrame label="Five cards in a row, lit by a halo, an outline, a frame, a sparkle, and all four together; each is labelled">
-      <GlowsScene />
     </SceneFrame>
   )
 }

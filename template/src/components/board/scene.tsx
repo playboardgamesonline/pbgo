@@ -21,7 +21,7 @@ function useCollect(view: PlayerView) {
 }
 
 function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: SceneProps) {
-  // The table's own folders (camera, cards, seats, glows, lights...) are made by the shared `Table`; the game binds the knobs of its layout
+  // The table's own folders (camera, cards, seats, lights...) are made by the shared `Table`; the game binds the knobs of its layout
   useSettings("Layout", LAYOUT_SETTINGS, {
     radiusX: ["seat ring radius x", 3, 14, 0.1],
     radiusZ: ["seat ring radius z", 2, 10, 0.1],
@@ -49,13 +49,14 @@ function World({ view, pointsText, onPlay, myTurn, canBid, onBid, deadlineAt }: 
     back,
     state: myTurn ? "interactive" : "base",
     onHover: (over) => setHovered((v) => (over ? c.id : v === c.id ? null : v)),
-    onClick: myTurn
-      ? (e) => {
-          e.stopPropagation()
+    onPress: myTurn
+      ? () => {
           setHovered(null)
           onPlay(c.id)
         }
       : undefined,
+    // The demo's words are written here, as the ticker's are: a game's live in its Sanity
+    ariaLabel: myTurn ? `Play the ${c.color} ${c.value}` : undefined,
   }))
   // Where a card an opponent has just played flies from: the left end of their hand, which still held one card more
   const playedFrom = (playerId: string) => heldFrom(slots.get(playerId)!, (view.players.find((j) => j.id === playerId)?.cardCount ?? 0) + 1)

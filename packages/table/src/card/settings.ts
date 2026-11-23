@@ -3,7 +3,7 @@ import type { Field } from "../debug/settings"
 
 /**
  * The settings every `Card` reads, live, on every frame: one object for all the cards of the page, so a debug panel can tune them while the game runs.
- * What a glow looks like (colours, pulses) belongs to the glow itself, see `defineGlows`.
+ * What a state looks like (the bloom, the lift, the dark) belongs to the states, see `CARD_STATE_SETTINGS`.
  */
 export const CARD_SETTINGS = {
   /** Opacity of the shine that follows the pointer over a hovered card (a card can ask for its own, see `gloss`) */

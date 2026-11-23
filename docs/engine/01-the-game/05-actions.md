@@ -91,13 +91,13 @@ The scene takes the pointer through react-three-fiber events on meshes. `Card` i
 
 | Piece | Events | Cursor |
 | --- | --- | --- |
-| `Card` | `onPress` (and `onClick` for a card with no state) and `onHover`, on its face, its rim and its back | A pointer while hovered, when it can be pressed |
+| `Card` | `onPress` and `onHover`, on its face, its rim and its back | A pointer while hovered, when it can be pressed |
 | `TableText` | `onClick` and `onHover`, only when one is given | A pointer while hovered, when it has an `onClick` |
 | A click target the game adds | Its own handlers, on a mesh it draws | `useCursor` of drei |
 
-- Everything that decorates takes no events. The picture of the table, the parts of a glow, the shadow and the shine of a card, `LightPool`, `SeatAvatarMesh` and `TurnCrown` all set `raycast={() => null}`. A decoration a game adds does the same, or it steals the click from what lies under it.
-- A hovered card stops the event, so only the front-most card is hovered. A click handler stops it too, so the click does not also reach what lies behind: the template's does.
-- A card in a `state` is lit and lifted by the table under the pointer: the game says `interactive` while the viewer may choose it and `base` while not, and gives an `onPress`. It keeps no hovered id and moves no pose ([Cards](../02-components/04-cards.md#states)). A card with no state only reports the pointer: the game moves the pose (`shifted`) and sets `glow` or `gloss`, as the template's hand does.
+- Everything that decorates takes no events. The picture of the table, the bloom, the shadow and the shine of a card, `LightPool`, `SeatAvatarMesh` and `TurnCrown` all set `raycast={() => null}`. A decoration a game adds does the same, or it steals the click from what lies under it.
+- A hovered card stops the event, so only the front-most card is hovered. A card that can be pressed stops the click too, and so must a click handler a game adds, so that the click does not also reach what lies behind.
+- A card in a `state` is lit and lifted by the table under the pointer: the game says `interactive` while the viewer may choose it and `base` while not, and gives an `onPress`. It keeps no hovered id and moves no pose ([Cards](../02-components/04-cards.md#states)). A card with no state only reports the pointer, and takes a click or a tap: the game moves the pose (`shifted`) and sets `gloss`.
 - A card the viewer may not press is not `interactive` (or has no `onPress`), and its cursor stays an arrow.
 - A press on the empty table is `onEmptyPress` of `Table`: a plane under everything takes the press that nothing above it took, so what lies on the table and takes its own press keeps it. The `onPointerMissed` of the canvas is not passed on.
 - Hover has no touch equivalent: game pages are desktop only ([Desktop only](../../design/04-in-game/01-screens-and-game-flow.md#desktop-only)).

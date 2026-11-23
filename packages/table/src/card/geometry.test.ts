@@ -1,6 +1,6 @@
 import type { BufferGeometry } from "three"
 import { describe, expect, it } from "vitest"
-import { cardGeometry, cornerRadius, edgeGeometry, frameGeometry } from "./geometry"
+import { cardGeometry, cornerRadius, edgeGeometry } from "./geometry"
 
 /** Vertices are 32-bit floats: compare to about seven digits */
 const DIGITS = 6
@@ -13,13 +13,6 @@ const box = (geo: BufferGeometry) => {
 const expectPoint = (actual: number[], expected: number[]) => {
   expect(actual).toHaveLength(expected.length)
   expected.forEach((value, i) => expect(actual[i]).toBeCloseTo(value, DIGITS))
-}
-
-/** How far a point is from a rounded rectangle centred on the origin: negative inside it, positive outside */
-function distanceToCard(x: number, y: number, halfWidth: number, halfHeight: number, radius: number) {
-  const qx = Math.abs(x) - (halfWidth - radius)
-  const qy = Math.abs(y) - (halfHeight - radius)
-  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - radius
 }
 
 describe("cornerRadius", () => {
@@ -86,20 +79,3 @@ describe("edgeGeometry", () => {
   })
 })
 
-describe("frameGeometry", () => {
-  it("is a ring `gap` away from the card's edge and `thickness` wide", () => {
-    const geo = frameGeometry(1.3, 1.9, 0.07, 0.03)
-    const b = box(geo)
-    expect(b.max.x).toBeCloseTo(0.65 + 0.07 + 0.03, DIGITS)
-    expect(b.max.y).toBeCloseTo(0.95 + 0.07 + 0.03, DIGITS)
-    // The hole: nothing of the ring lies over the card or in the gap
-    const pos = geo.attributes.position!
-    const radius = cornerRadius({ width: 1.3, height: 1.9 })
-    for (let i = 0; i < pos.count; i++) expect(distanceToCard(pos.getX(i), pos.getY(i), 0.65, 0.95, radius)).toBeGreaterThanOrEqual(0.07 - 1e-5)
-  })
-
-  it("is one geometry per ring", () => {
-    expect(frameGeometry(1.3, 1.9, 0.07, 0.03)).toBe(frameGeometry(1.3, 1.9, 0.07, 0.03))
-    expect(frameGeometry(1.3, 1.9, 0.07, 0.03)).not.toBe(frameGeometry(1.3, 1.9, 0.07, 0.03, 0.2))
-  })
-})
