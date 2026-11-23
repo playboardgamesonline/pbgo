@@ -10,6 +10,7 @@ import { DebugSlot } from "@pbgo/core/components/game/debug-controls"
 import { useDebugFolder } from "@pbgo/core/components/game/debug-folders"
 import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-over"
 import { GameHud, groupTurns, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
+import { useLogSounds } from "@pbgo/core/components/game/use-log-sounds"
 import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
 import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import type { ClientDebugCommand } from "@pbgo/core/lib/api"
@@ -20,6 +21,7 @@ import { useMotion } from "@pbgo/core/lib/use-motion"
 import { timelineOf } from "../board/pacing"
 import { type ClientCatalog, MISSING_CATALOG } from "../../lib/catalog"
 import { actorsOf, sentenceOf } from "../../lib/history"
+import { cuesOf, FLIP_7_SOUND } from "../../lib/sounds"
 import { fill } from "../../lib/words"
 
 const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
@@ -85,6 +87,8 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a move that was taken note of is not timed again: only a newer version of the log, or the start screen going, starts a timer
   }, [timeline.v, held])
+  // What no card shows makes its sound as the line of the log comes: a bust when the stamp has landed (once the move has played out), a reshuffled deck
+  useLogSounds<Flip7Event>({ cues: (line) => cuesOf(line, timeline.settle) })
   const settings = useAnnouncementSettings()
   const { announce, element: announcement, current } = useAnnouncements(settings, { paused: busy })
   const [sending, setSending] = useState(false)
@@ -124,7 +128,7 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
     played.current = latest
     if (held || seen === null) return
     for (const line of log) {
-      if (line.v > seen && line.event.kind === "flip7") announce(words.flip7, "round", { subtitle: nickname(line.event.by), seats: seatsFor([line.event.by]) })
+      if (line.v > seen && line.event.kind === "flip7") announce(words.flip7, "round", { subtitle: nickname(line.event.by), sound: FLIP_7_SOUND, seats: seatsFor([line.event.by]) })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- it reads the lines that came since the last time, so it runs when the log grows or the start screen goes, not whenever `announce` is made again
   }, [log, held])
