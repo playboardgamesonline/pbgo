@@ -13,16 +13,16 @@ import {
   Vector2,
 } from "three"
 import { useCourtisans } from "../game/context"
-import { useSettings, useSettingsVersion } from "@pbgo/table"
+import { TableText, useSettings, useSettingsVersion } from "@pbgo/table"
 import { MAT_ORDER } from "../../lib/catalog"
 import { CARD_H, columnX, STEP, MAT_D, type DomainZone } from "./layout"
 import { WINNER_AURA_SETTINGS, AURA_FIELDS } from "./aura"
 import { Column } from "./column"
 import type { EndingState } from "./ending"
-import { TableText } from "./table-text"
+import { LETTERING_FONT } from "./font"
 
 const TABLE_FAMILIES = MAT_ORDER.filter((c): c is Family => c !== "queen")
-const HOLO = { color: "#fff4dc", relief: "#8a6a3a", aura: "rgba(255,236,190,0.9)", fontWeight: 800 }
+const HOLO = { color: "#fff4dc", relief: "#8a6a3a", aura: "rgba(255,236,190,0.9)", weight: 800 }
 
 function Appear({ children, position, floating = 0.06 }: { children: React.ReactNode; position: [number, number, number]; floating?: number }) {
   const ref = useRef<Group>(null)
@@ -397,12 +397,13 @@ export function PilePoints({ view, results, ending, zones }: { view: PlayerView;
                   style={{
                     color,
                     relief: ENDING_SETTINGS.relief ? "#1a1a1a" : undefined,
-                    fontWeight: 800,
+                    weight: 800,
                     shadow: `${shadowRgba()}|${ENDING_SETTINGS.shadowBlur}|${ENDING_SETTINGS.shadowOffset}`,
                   }}
-                  elevation={ENDING_SETTINGS.pointsSize}
+                  height={ENDING_SETTINGS.pointsSize}
+                  font={LETTERING_FONT}
                   position={[0, 0, 0]}
-                  order={7}
+                  layer={7}
                 />
               </Appear>
             </group>
@@ -425,12 +426,13 @@ export function MissionSign({ done, points, position }: { done: boolean; points:
           style={{
             color: ENDING_SETTINGS.positiveColor,
             relief: ENDING_SETTINGS.relief ? "#1a1a1a" : undefined,
-            fontWeight: 800,
+            weight: 800,
             shadow: `${shadowRgba()}|${ENDING_SETTINGS.shadowBlur}|${ENDING_SETTINGS.shadowOffset}`,
           }}
-          elevation={ENDING_SETTINGS.pointsSize}
+          height={ENDING_SETTINGS.pointsSize}
+          font={LETTERING_FONT}
           position={[0, 0, 0]}
-          order={8}
+          layer={8}
         />
       </Appear>
     </group>
@@ -459,7 +461,8 @@ export function Counters({ view, results, ending, zones }: { view: PlayerView; r
             <TableText
               text={`${total}`}
               style={{ ...HOLO, spacing: "4px", shadow: `rgba(0,0,0,${ENDING_SETTINGS.counterShadow})|${ENDING_SETTINGS.counterShadowBlur}|${ENDING_SETTINGS.counterShadowOffset}` }}
-              elevation={1.5}
+              height={1.5}
+              font={LETTERING_FONT}
               position={[0, 0, 0]}
             />
           </Appear>
