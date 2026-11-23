@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest"
 import { boxesOverlap, boxOfPoses, boxOfRect, centreOf } from "../box"
 import { row, seats } from "../layout"
-import { nameShift, PLATE_LETTERS, plateAbove, plateBoxOf, plateOf, plateWidth, SEAT_SETTINGS, scaledSeat } from "./placement"
+import { PLATE_LETTERS, plateAbove, plateBoxOf, plateOf, plateRow, plateWidth, SEAT_SETTINGS, scaledSeat } from "./placement"
 
-// Where each piece of the plate of a seat placed from its spot stands, worked out again from the settings: the spot of the ring stretched by the reach factors (the viewer's level with it), the name lifted, the avatar before the first letter. The numbers the template's scene
-// wrote inline before the plate moved here are not pinned: the sizes were changed on purpose since, the way the pieces stand from the settings was not.
+// Where the plate of a seat placed from its spot stands, worked out again from the settings: the spot of the ring stretched by the reach factors (the viewer's level with it), the name lifted and the info line dropped from its middle. The numbers the template's scene wrote
+// inline before the plate moved here are not pinned: the sizes were changed on purpose since, the way the pieces stand from the settings was not.
 function expected(spot: { x: number; z: number }, viewer: boolean) {
   const S = SEAT_SETTINGS
   const pos: [number, number] = [spot.x * (viewer ? S.viewerReachX : S.reachX), spot.z * (viewer ? S.viewerReachZ : S.reachZ)]
-  return { x: pos[0], z: pos[1], nameZ: pos[1] - S.nameLift, avatarX: -(S.avatarGap + S.avatarSize / 2) }
+  return { x: pos[0], z: pos[1], nameZ: pos[1] - S.nameLift, lineZ: pos[1] + S.lineDrop }
 }
 
 const RING = { radiusX: 7.4, radiusZ: 4.4 }
@@ -30,19 +30,6 @@ describe("plateOf", () => {
     const plate = plateOf(viewer!, true)
     expect(plate.x).toBe(0)
     expect(plate.z).toBeCloseTo(RING.radiusZ * SEAT_SETTINGS.viewerReachZ)
-  })
-
-  it("puts the avatar to the left of the name at every seat, left, middle or right of the table: the plate is read left to right", () => {
-    for (const x of [-6, -1, 0, 1, 6]) expect(plateOf({ x, z: -3 }, false).avatarX).toBeLessThan(0)
-    for (const count of [3, 5, 8]) for (const spot of seats(count, { ...RING, me: 0 })) expect(plateOf(spot, false).avatarX).toBeLessThan(0)
-  })
-
-  it("puts the crown on the upper-right corner of the avatar, in the avatar's frame, as the avatar is always to the left of the name", () => {
-    for (const spot of [{ x: -5, z: -3 }, { x: 5, z: -3 }]) {
-      const plate = plateOf(spot, false)
-      expect(plate.crownX - plate.avatarX).toBeCloseTo(SEAT_SETTINGS.crownRight)
-      expect(plate.crownZ).toBeCloseTo(-SEAT_SETTINGS.crownBack)
-    }
   })
 
   it("stands the info line under the name", () => {
@@ -101,11 +88,11 @@ describe("plateAbove", () => {
     expect(plateAbove(cards)).toEqual(plateAbove({ ...cards }))
   })
 
-  it("keeps the pieces of a plate where the plate has always had them: the avatar to the left, the info line under the name", () => {
+  it("keeps the info line under the name, with the middle of the plate between them: the avatar stands level with it", () => {
     const plate = plateAbove({ minX: 0, maxX: 4, minZ: 0, maxZ: 2 })
-    expect(plate.avatarX).toBeLessThan(0)
-    expect(plate.nameZ).toBeLessThan(plate.lineZ)
-    expect(plate.crownX - plate.avatarX).toBeCloseTo(SEAT_SETTINGS.crownRight)
+    expect(plate.nameZ).toBeLessThan(plate.z)
+    expect(plate.z).toBeLessThan(plate.lineZ)
+    expect(plate.lineZ - plate.nameZ).toBeCloseTo(SEAT_SETTINGS.nameLift + SEAT_SETTINGS.lineDrop)
   })
 
   it("follows the settings it is given", () => {
@@ -120,8 +107,25 @@ describe("plateBoxOf", () => {
     const box = plateBoxOf(plate)
     expect(box.maxX - box.minX).toBeCloseTo(plateWidth())
     expect(centreOf(box).x).toBeCloseTo(plate.x)
-    expect(box.minZ).toBeCloseTo(plate.nameZ - Math.max(SEAT_SETTINGS.nameHeight, SEAT_SETTINGS.avatarSize) / 2)
+    expect(box.minZ).toBeCloseTo(plate.nameZ - SEAT_SETTINGS.nameHeight / 2)
     expect(box.maxZ).toBeCloseTo(plate.lineZ + SEAT_SETTINGS.lineHeight / 2)
+  })
+
+  it("holds the avatar and both lines of lettering, whatever the settings are", () => {
+    for (const settings of [SEAT_SETTINGS, scaledSeat(0.6), { ...SEAT_SETTINGS, avatarSize: 1.4 }, { ...SEAT_SETTINGS, nameLift: 0.05, lineDrop: 0.05 }]) {
+      const plate = plateOf({ x: 1, z: 2 }, false, settings)
+      const box = plateBoxOf(plate, settings)
+      expect(box.minZ).toBeLessThanOrEqual(plate.nameZ - settings.nameHeight / 2 + 1e-9)
+      expect(box.minZ).toBeLessThanOrEqual(plate.z - settings.avatarSize / 2 + 1e-9)
+      expect(box.maxZ).toBeGreaterThanOrEqual(plate.lineZ + settings.lineHeight / 2 - 1e-9)
+      expect(box.maxZ).toBeGreaterThanOrEqual(plate.z + settings.avatarSize / 2 - 1e-9)
+    }
+  })
+
+  it("leaves the foot `plateGap` from the cards when the avatar is taller than the lettering too", () => {
+    const settings = { ...SEAT_SETTINGS, avatarSize: 1.4 }
+    const cards = { minX: -2, maxX: 2, minZ: 1, maxZ: 3 }
+    expect(plateBoxOf(plateAbove(cards, settings), settings).maxZ).toBeCloseTo(cards.minZ - settings.plateGap)
   })
 
   it("is as wide as the avatar and `PLATE_LETTERS` letters, or as wide as it is told", () => {
@@ -172,30 +176,61 @@ describe("scaledSeat", () => {
   })
 })
 
-describe("nameShift", () => {
-  // the avatar stands to the left of the name, `avatarX` from its left edge: its footprint is the diameter and the gap
-  const blockCentre = (width: number, settings = SEAT_SETTINGS) => {
-    const plate = plateOf({ x: 3, z: -2 }, false, settings)
-    const left = plate.x + nameShift(settings) - width / 2
-    const avatarLeft = left + plate.avatarX - settings.avatarSize / 2
-    return { centre: (avatarLeft + (left + width)) / 2, plate }
-  }
+describe("plateRow", () => {
+  const plate = plateOf({ x: 3, z: -2 }, false)
 
-  it("centres the avatar and the name, side by side, on the plate: over the info line", () => {
-    for (const width of [0.4, 1.3, 2.4, 3.1, 3.8]) {
-      const { centre, plate } = blockCentre(width)
-      expect(centre, `a name ${width} wide`).toBeCloseTo(plate.x, 10)
+  it("puts the avatar to the left of the lettering, whatever the widths", () => {
+    for (const [name, info] of [[0.4, 2.4], [2.4, 0.4], [3.1, null], [1, 1]] as const) {
+      const row = plateRow(plate, { name, info })
+      expect(row.avatarX + SEAT_SETTINGS.avatarSize / 2 + SEAT_SETTINGS.avatarGap).toBeCloseTo(row.textX, 10)
+      expect(row.avatarX).toBeLessThan(row.textX)
     }
+  })
+
+  it("centres the block, from the avatar's left edge to the column's right edge, on the plate", () => {
+    for (const [name, info] of [[0.4, 2.4], [2.4, 0.4], [3.1, null], [1, 1], [3.8, 3.8]] as const) {
+      const row = plateRow(plate, { name, info })
+      expect((row.minX + row.maxX) / 2, `a name ${name} wide, an info line ${info}`).toBeCloseTo(plate.x, 10)
+      expect(row.minX + SEAT_SETTINGS.avatarSize / 2).toBeCloseTo(row.avatarX, 10)
+      expect(row.maxX).toBeCloseTo(row.endX, 10)
+    }
+  })
+
+  it("is as wide as the wider of the two lines, and the name alone when there is no info line", () => {
+    const column = (name: number, info: number | null) => {
+      const row = plateRow(plate, { name, info })
+      return row.endX - row.textX
+    }
+    expect(column(1.2, 2.5)).toBeCloseTo(2.5, 10)
+    expect(column(2.5, 1.2)).toBeCloseTo(2.5, 10)
+    expect(column(2.5, null)).toBeCloseTo(2.5, 10)
+    expect(column(0, 0)).toBe(0)
+  })
+
+  it("keeps the avatar between the two lines, and the name over the info line", () => {
+    const row = plateRow(plate, { name: 1, info: 1 })
+    expect(row.nameZ).toBe(plate.nameZ)
+    expect(plate.nameZ).toBeLessThan(plate.z)
+    expect(plate.z).toBeLessThan(plate.lineZ)
+  })
+
+  it("puts a name that stands alone level with the avatar's centre, so that it is aligned with it", () => {
+    expect(plateRow(plate, { name: 1.5, info: null }).nameZ).toBe(plate.z)
   })
 
   it("does it for a plate of another size", () => {
     for (const settings of [scaledSeat(0.7), scaledSeat(1.3)]) {
-      const { centre, plate } = blockCentre(2.2, settings)
-      expect(centre).toBeCloseTo(plate.x, 10)
+      const scaled = plateOf({ x: 3, z: -2 }, false, settings)
+      const row = plateRow(scaled, { name: 2.2, info: 1.4 }, settings)
+      expect((row.minX + row.maxX) / 2).toBeCloseTo(scaled.x, 10)
+      expect(row.textX - row.avatarX).toBeCloseTo(settings.avatarSize / 2 + settings.avatarGap, 10)
     }
   })
 
-  it("is half of what the avatar takes: its diameter and its gap", () => {
-    expect(nameShift()).toBeCloseTo((SEAT_SETTINGS.avatarSize + SEAT_SETTINGS.avatarGap) / 2, 10)
+  it("leaves the block, with a name of the width a layout expects, within the box a layout leaves for a plate", () => {
+    const box = plateBoxOf(plate)
+    const row = plateRow(plate, { name: PLATE_LETTERS * 0.5 * SEAT_SETTINGS.nameHeight, info: null })
+    expect(row.minX).toBeCloseTo(box.minX, 10)
+    expect(row.maxX).toBeCloseTo(box.maxX, 10)
   })
 })

@@ -14,8 +14,9 @@ GameHud                          DOM, shared: ticker, announcements, game over
         ├── SharePhoto           when a photo camera is given
         └── World                what lies on the table, the game's own
             ├── PlayerSeat       a Seat for each player, in the frame of its seat, with its pieces
-            │   ├── TableText    the nickname, with SeatAvatarMesh and TurnCrown, on the middle's side of the cards
-            │   └── TableText    the points, and a status under them
+            │   ├── SeatAvatarMesh  the avatar, at the left of the lettering, with the TurnCrown on its corner
+            │   ├── TableText    the nickname, beside the avatar, on the middle's side of the cards
+            │   └── TableText    the points, and a status beside them, under the nickname
             ├── HeldHand         the cards an opponent holds: a small fan of backs that stands, in the frame of the seat, over a small round shadow (HandShadow)
             ├── Hotspot          an invisible area that chooses a player, with the cards of the seat lit
             ├── PlayerSeat       the viewer's own plate, in the middle of the front of the table, above their play area

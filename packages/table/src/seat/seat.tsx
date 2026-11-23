@@ -12,10 +12,10 @@ import { useSettingsVersion } from "../debug/settings"
 import { DEBUG_VIEW } from "../debug/view"
 import type { Spot } from "../layout"
 import { TurnCrown } from "./crown"
-import { nameShift, plateAbove, plateOf, SEAT_SETTINGS, type SeatSettings } from "./placement"
+import { plateAbove, plateOf, plateRow, SEAT_SETTINGS, type SeatSettings } from "./placement"
 import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import { seatStateOf } from "./state"
-import { TableText, type TextStyle } from "./table-text"
+import { TableText, type TextStyle, useTextWidth } from "./table-text"
 
 /** The height above the table of the lettering */
 const TEXT_Y = 0.03
@@ -57,11 +57,11 @@ export type SeatProps = {
   line?: string
   /** A word on the same info line, after the score (Frozen, Stayed), plain text, written the same way */
   status?: string
-  /** What stands to the right of the name, in a frame whose origin is the name's right edge (`0.2` is just right of the last letter): tokens, a count, an icon. For a game whose players hold things (Love Letter's affection tokens) */
+  /** What stands to the right of the plate, in a frame whose origin is the right edge of its lettering, level with the middle of the avatar (`0.2` is just right of the longer line): tokens, a count, an icon. For a game whose players hold things (Love Letter's affection tokens) */
   trailing?: ReactNode
   /** The crown's icon, the skin's `hostIcon`; without one, a drawn crown */
   crownIcon?: string | null
-  /** The widest the name may be, in world units: a longer one shrinks to it, with its proportions. `SEAT_SETTINGS.nameRoom` by default, which only a name of wide capitals goes beyond */
+  /** The widest the name, and the info line, may be, in world units: a longer one shrinks to it, with its proportions. `SEAT_SETTINGS.nameRoom` by default, which only a name of wide capitals goes beyond */
   room?: number
   /** The settings the plate follows: `SEAT_SETTINGS` unless a board makes its plates smaller at a bigger table (`scaledSeat`), in which case the layout that places them is given the same */
   settings?: SeatSettings
@@ -75,8 +75,9 @@ export type SeatProps = {
 }
 
 /**
- * The plate of a player at the table, one block that turns as one: the avatar, then the name, on a first row (the avatar is always to the LEFT of the name, as the plate is read), the info line under the name (the score, then a status as plain text), and a `trailing` slot
- * to the right of the name. The turn crown stands on the avatar's corner. Nothing lies under the plate: no light, no tint, in any state. The plate never reacts to the pointer: choosing a player is the job of the `Hotspot` over their cards.
+ * The plate of a player at the table, one block that turns as one: the avatar at the left (always to the LEFT of the lettering, as the plate is read), and beside it the name with the info line under it, left-aligned (the score, then a status as plain text, side by side), and a
+ * `trailing` slot to the right of the lettering. The avatar stands level with the middle of the two lines, or with the name when it stands alone. The turn crown stands on the avatar's corner. Nothing lies under the plate: no light, no tint, in any state. The plate never
+ * reacts to the pointer: choosing a player is the job of the `Hotspot` over their cards.
  *
  * It stands above the player's cards (`above`), in the frame of the seat: on the side of the cards that faces the middle of the table, turned with the seat, so that the name is read over the cards by the player who sits there, at every seat.
  */
@@ -109,16 +110,23 @@ export function Seat({
   const opacity = away ? S.awayOpacity : 1
   const name: TextStyle = { color, shadow: "rgba(0,0,0,0.6)|12|4", weight: PLATE_WEIGHT, ...nameStyle }
   const info = [line, status].filter((part): part is string => !!part).join("  ·  ")
-  // The avatar and the name are one block centred on the plate, over the info line: the name's lettering stands half of what the avatar takes to the right of the centre, so that the avatar, at its left edge, brings the block back to the middle
-  const shift = nameShift(S)
+  const nameText = shortName(nickname)
+  const lineStyleOf: TextStyle = { color: "#f5f2ea", weight: PLATE_WEIGHT, ...lineStyle }
+  // the block of the avatar and the two lines of lettering is centred on the plate, so the widths of the lettering place everything: both lines are held to the same room
+  const roomOf = room ?? S.nameRoom
+  const nameWidth = useTextWidth(nameText, name, S.nameHeight, font, roomOf)
+  const infoWidth = useTextWidth(info, lineStyleOf, S.lineHeight, font, roomOf)
+  const row = plateRow(plate, { name: nameWidth, info: info === "" ? null : infoWidth }, S)
   return (
     <group>
       <group position={[frame.x, 0, frame.z]} rotation-y={frame.yaw ?? 0}>
-        <TableText text={shortName(nickname)} style={name} height={S.nameHeight} maxWidth={room ?? S.nameRoom} position={[plate.x + shift, TEXT_Y, plate.nameZ]} font={font} opacity={opacity} trailing={trailing}>
-          <SeatAvatarMesh nickname={nickname} color={color} imageUrl={imageUrl} theme={theme} size={S.avatarSize} position={[plate.avatarX, 0, 0]} opacity={opacity} />
-          <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[plate.crownX, 0, plate.crownZ]} yaw={frame.yaw ?? 0} />
-        </TableText>
-        {info !== "" && <TableText text={info} style={{ color: "#f5f2ea", weight: PLATE_WEIGHT, ...lineStyle }} height={S.lineHeight} position={[plate.x, TEXT_Y, plate.lineZ]} font={font} opacity={opacity} />}
+        <group position={[row.avatarX, TEXT_Y, plate.z]}>
+          <SeatAvatarMesh nickname={nickname} color={color} imageUrl={imageUrl} theme={theme} size={S.avatarSize} position={[0, 0, 0]} opacity={opacity} />
+          <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[S.crownRight, 0, -S.crownBack]} yaw={frame.yaw ?? 0} />
+        </group>
+        <TableText text={nameText} style={name} height={S.nameHeight} maxWidth={roomOf} position={[row.textX + nameWidth / 2, TEXT_Y, row.nameZ]} font={font} opacity={opacity} capsCentred />
+        {info !== "" && <TableText text={info} style={lineStyleOf} height={S.lineHeight} maxWidth={roomOf} position={[row.textX + infoWidth / 2, TEXT_Y, plate.lineZ]} font={font} opacity={opacity} capsCentred />}
+        {trailing && <group position={[row.endX, TEXT_Y, plate.z]}>{trailing}</group>}
         {DEBUG_VIEW.seats && <SeatGizmo spot={above ? undefined : spot} plate={plate} cards={above} />}
       </group>
       {children}
