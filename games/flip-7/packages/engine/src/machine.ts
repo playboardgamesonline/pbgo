@@ -17,7 +17,7 @@ export type Ctx = StepContext<State, Flip7Event>
 export const open = (state: State): Ctx => openStep<State, Flip7Event>(state)
 
 /** A step ends here: the stream is saved back into the state, which comes out with what happened. */
-export const close = (ctx: Ctx) => closeStep<State, Flip7Event, "rng">(ctx)
+export const close = (ctx: Ctx) => closeStep(ctx)
 
 // --- Cards
 
