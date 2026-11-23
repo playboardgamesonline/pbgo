@@ -21,6 +21,7 @@ export const SeatsScene = dynamic(() => import("./three/seats").then((m) => m.Se
 export const SeatScene = dynamic(() => import("./three/seat").then((m) => m.SeatScene), { ssr: false })
 export const DiceScene = dynamic(() => import("./three/dice").then((m) => m.DiceScene), { ssr: false })
 export const TextFieldScene = dynamic(() => import("./three/text-field").then((m) => m.TextFieldScene), { ssr: false })
+export const StagingScene = dynamic(() => import("./three/staging").then((m) => m.StagingScene), { ssr: false })
 export const BetsScene = dynamic(() => import("./three/bets").then((m) => m.BetsScene), { ssr: false })
 export const PiecesScene = dynamic(() => import("./three/pieces").then((m) => m.PiecesScene), { ssr: false })
 export const CounterScene = dynamic(() => import("./three/counter").then((m) => m.CounterScene), { ssr: false })
