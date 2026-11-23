@@ -75,7 +75,6 @@ scene-mat
 | `resolution` | Pixels across the baked picture, a power of two (`MAT_SIZE`, 512, when not given): more for a picture with detail that is seen up close |
 | `tile` | How many world units one repeat of the picture covers (`SURFACE_TILE` in `surface.tsx`, 2, when not given) |
 | `light` | A pool of light on the table, as a vignette is ([A pool of light](#a-pool-of-light)): `{ color or center, radius, at, glow }` |
-| `map` | Deprecated. A seamless picture the game made and repeats over the table: say `layers`, so that the table bakes the picture itself and the game paints none |
 
 - Without layers, the surface is the colour the canvas is cleared to, not a shape in the scene. There is no edge to reach and no size to outgrow, so no camera sees an end of it: tilted to the horizon or pulled back (try both in [Camera](02-camera.md)), in the entrance or in the share photo.
 - With layers, the picture covers a plane `REACH` times wider than the camera's `far` and fades into `color` with distance, from `FOG_START` of `far` to `far`. The fade is the scene's fog: keep `far` well past the cards, or they fade too.

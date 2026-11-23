@@ -2,7 +2,7 @@
 
 import { useThree } from "@react-three/fiber"
 import { useEffect, useMemo } from "react"
-import { AdditiveBlending, CanvasTexture, type PerspectiveCamera, RepeatWrapping, SRGBColorSpace, type Texture } from "three"
+import { AdditiveBlending, CanvasTexture, type PerspectiveCamera, RepeatWrapping, SRGBColorSpace } from "three"
 import { FLOOR_OVERRIDE } from "../debug/overrides"
 import { useSettingsVersion } from "../debug/settings"
 import { bakeMat, MAT_SIZE, type MatLayer, matKey } from "./mat"
@@ -37,11 +37,6 @@ export type SurfaceProps = {
   layers?: readonly MatLayer[]
   /** Pixels across the baked picture of the layers, a power of two (default `MAT_SIZE`): more for a picture with detail that is seen up close */
   resolution?: number
-  /**
-   * A seamless picture that repeats over the whole table, made by the game. It is shown as it is: no light and no tone mapping touch it.
-   * @deprecated Say `layers`: the table bakes the picture itself, once, and a game paints none and keeps none
-   */
-  map?: Texture
   /** How many world units one repeat of the picture covers (default `SURFACE_TILE`) */
   tile?: number
   /** A pool of light on the table: lit at its middle and darker toward the edges, drawn on the table and under everything, so the cards and the plates are not darkened by it. It is added to the colour and the picture, so the picture shows through everywhere alike */
@@ -128,7 +123,7 @@ function Pool({ light, table }: { light: SurfaceLight; table: string }) {
 /** The table the cards lie on, endless: its colour is the one the canvas is cleared to, so it reaches every way the camera can look, and a picture repeats over a plane far wider than the camera sees and fades into that colour. It takes no clicks. What the Floor folder of the debug panel changed lies over the props */
 export function Surface(props: SurfaceProps) {
   useSettingsVersion()
-  const { color, layers, resolution = MAT_SIZE, map, tile = SURFACE_TILE, light } = { ...props, ...FLOOR_OVERRIDE }
+  const { color, layers, resolution = MAT_SIZE, tile = SURFACE_TILE, light } = { ...props, ...FLOOR_OVERRIDE }
   const far = useThree((s) => (s.camera as PerspectiveCamera).far)
   const width = far * REACH
   const repeat = width / tile
@@ -137,8 +132,8 @@ export function Surface(props: SurfaceProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` says whether the colour, the layers or the resolution changed, and the layers are read from here only to bake them
   const baked = useMemo(() => (key ? bakeMat(color, layers ?? [], resolution) : null), [key])
   useEffect(() => () => baked?.dispose(), [baked])
-  const source = baked ?? map
-  // The table's own copy, so the game's texture keeps its wrapping and its repeat
+  const source = baked
+  // The table's own copy of the baked picture, which wraps and repeats over the plane
   const picture = useMemo(() => {
     if (!source) return null
     const copy = source.clone()
