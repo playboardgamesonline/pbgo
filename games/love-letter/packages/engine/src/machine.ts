@@ -1,7 +1,7 @@
 import { EngineError, type StepContext, closeStep, keyOfId, nextSeat, openStep, playerAt } from "@pbgo/engine-kit"
 import { CARDS, CATALOGUE } from "./catalogue"
 import { tokensToWin } from "./options"
-import type { LoveLetterEvent, LoveLetterStep, State } from "./types"
+import type { LoveLetterEvent, State } from "./types"
 
 /**
  * The machinery every rule is written with: one step of the game is `open` (a private copy of the state), a few mutations, then `closeStep` of the kit (the new
@@ -17,8 +17,8 @@ export type Ctx = StepContext<State, LoveLetterEvent, "rng" | "idsRng">
 /** A step starts here: a copy of the state to mutate, with the two streams picked up where the last step left them. */
 export const open = (state: State): Ctx => openStep<State, LoveLetterEvent, "rng" | "idsRng">(state, ["rng", "idsRng"])
 
-/** A step ends here: the two streams are saved back into the state, which comes out with what happened. The context is written out in full, since `closeStep` cannot read the streams it saves through the alias `Ctx` */
-export const close = (ctx: StepContext<State, LoveLetterEvent, "rng" | "idsRng">): LoveLetterStep => closeStep(ctx)
+/** A step ends here: the two streams are saved back into the state, which comes out with what happened */
+export const close = closeStep
 
 // --- Cards
 
