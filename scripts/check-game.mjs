@@ -14,6 +14,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
+// Run by Node, which strips the types: the reading of a board (which pieces of the kit it loads, which three.js it writes itself) is the one `pnpm check:kit` prints and the tests of the boards keep
+import { readBoard } from "../packages/games/src/board-kit.ts"
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..")
 const STAGES = ["scaffold", "engine", "binding", "board", "content", "live"]
@@ -134,11 +136,16 @@ const CHECKS = [
       const files = sources(src)
       const all = (pattern) => files.some((file) => pattern.test(read(g.dir, join("packages/engine/src", file))))
       const behind = []
-      if (!all(/\bstandings\b/)) behind.push("no `standings` in the view (the HUD lists no points)")
-      if (!/^\s*progress\b/m.test(read(g.dir, "packages/engine/src/game.ts"))) behind.push("no `progress` in the definition")
+      // A view carries `standings` in its code, or says that the score is secret by design (the points of Courtisans are known at the end only) with a line `// standings: none, <why>`
+      const carries = files.some((file) => codeLines(read(g.dir, join("packages/engine/src", file))).some(([, code]) => /\bstandings\b/.test(code)))
+      if (!carries && !all(/^\s*\/\/\s*standings:\s*none\b/m)) behind.push("no `standings` in the view (the HUD lists no points): carry it, or say that the score is secret by design with a line `// standings: none, <why>` where the view is built")
+      const definition = read(g.dir, "packages/engine/src/game.ts")
+      if (!/^\s*progress\b/m.test(definition)) behind.push("no `progress` in the definition")
+      if (!/^\s*step\b/m.test(definition)) behind.push("no `step` in the definition (the log of the turns stays empty)")
+      if (!/^\s*scoreLines\b/m.test(definition)) behind.push("no `scoreLines` in the definition (the end screen lists no score lines)")
       if (/^\s+(label|help):/m.test(read(g.dir, "packages/engine/src/options.ts")) || /\blabel:/.test(read(g.dir, "packages/engine/src/results.ts"))) behind.push("words in the options or the score lines (they are keys, the words are the game's Sanity)")
       if (!exists(g.dir, "packages/engine/src/conformance.test.ts") && !exists(g.dir, "src/conformance.test.ts")) behind.push("the contract suite is not run (conformance.test.ts)")
-      return behind.length ? ["warn", `behind the engine of today: ${behind.join("; ")}`] : ["ok", "standings, progress, no words in the engine, the contract suite runs"]
+      return behind.length ? ["warn", `behind the engine of today: ${behind.join("; ")}`] : ["ok", "standings, progress, step, score lines, no words in the engine, the contract suite runs"]
     },
   ],
   [
@@ -191,6 +198,27 @@ const CHECKS = [
   ],
   [
     "board",
+    "kit",
+    (g) => {
+      if (!g.board) return ["warn", "no board to read"]
+      if (!g.board.names.includes("Table")) return ["fail", "the board takes no `Table` from @pbgo/table: the canvas, the camera, the lights and the mat are the kit's and the same for every game, so that a change of the kit reaches the board (template/src/components/board/scene.tsx is the model)"]
+      if (!g.board.names.includes("PlayerSeat")) return ["warn", "the board takes no `PlayerSeat` from @pbgo/table: the plate of a player is the kit's too (docs/engine/02-components/03-seats.md)"]
+      return ["ok", `the board is built on @pbgo/table: ${g.board.names.length} pieces, which load ${g.board.kit.length} files of it (\`pnpm check:kit\` says which boards an edit there changes)`]
+    },
+  ],
+  [
+    "board",
+    "own drawing",
+    (g) => {
+      if (!g.board) return ["warn", "no board to read"]
+      const own = [...g.board.elements, ...g.board.hooks]
+      return own.length
+        ? ["warn", `the board draws with three.js itself (${list(own, 6)}): look in docs/engine/02-components for the piece that draws it for every game, and ask the engine for the one that is missing; the test of the boards lists what each game draws itself (packages/games/src/boards.test.ts)`]
+        : ["ok", "nothing is drawn with three.js outside the kit"]
+    },
+  ],
+  [
+    "board",
     "game ui lazy",
     (g) => (/dynamic\(/.test(read(g.dir, "src/ui.tsx")) ? ["ok", "src/ui.tsx loads the game lazily"] : ["warn", "src/ui.tsx does not load `Game` with `dynamic`: the hub would carry the board"]),
   ],
@@ -238,7 +266,7 @@ async function check(slug, { online = false } = {}) {
   if (!existsSync(dir)) return { slug, missing: true, results: [], reached: null }
   // the template's id is a stand-in, and a placeholder is not asked about: neither is a project that could be gone
   const asks = online && slug !== "template" && entry !== null && entry.projectId !== "" && !entry.projectId.startsWith("__")
-  const game = { slug, entry, dir, project: asks ? await probeProject(entry.projectId) : null }
+  const game = { slug, entry, dir, project: asks ? await probeProject(entry.projectId) : null, board: readBoard(ROOT, slug) }
   const results = CHECKS.map(([stage, name, run]) => ({ stage, name, ...(([level, message]) => ({ level, message }))(run(game)) }))
   // The last stage with no failure from the first stage on: the game has got that far
   let reached = null

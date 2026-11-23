@@ -4,6 +4,7 @@ These rules hold for every board, whatever the game.
 
 - A board is 3D, never 2D: no DOM or CSS board. A missing picture is a generated texture (`standIn`) or a plain material, and only the shared HUD is DOM.
 - A game imports `@pbgo/table` from its lazy board chunk only, so the hub, a game's page on it included, loads no three.js ([Lazy loading](../04-build-a-game/04-composing-a-board.md#lazy-loading)).
+- A board is drawn with the kit's pieces and writes no three.js of its own: a scene element other than `group`, or a hook of react-three-fiber, is a piece the kit lacks or a copy of one it has. A test, `pnpm check:game` and the lint keep the boards on the kit ([Keeping a board on the kit](../04-build-a-game/04-composing-a-board.md#keeping-a-board-on-the-kit)).
 - `@pbgo/table` imports no game. It depends on `@pbgo/core` (easing, share photo, motion preference), and core never imports it.
 - A game's pictures and words stay in its Sanity project: the tools take textures, sizes and labels as arguments.
 - Every material is unlit and not tone mapped, so a colour on the screen is the texture's own.

@@ -1,9 +1,11 @@
 import { spawnSync } from "node:child_process"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
+import { BOARD_DIR } from "./board-kit.ts"
+import { GAMES } from "./registry"
 
 // `scripts/check-game.mjs` reads files only and is run by Node itself: this runs it as `pnpm check:game` does, on the template (always there, and a game that has not got far: its engine is the demo, its
 // flags are off), to check the two kinds of gate. `--stage` is every check up to a stage; `--only` is one stage alone, for a step that is done out of order (`/add-game` gates the Studio's forms by it).
@@ -120,5 +122,46 @@ describe("pnpm check:game for a game that is not in the repo yet", () => {
     } finally {
       rmSync(assets, { recursive: true, force: true })
     }
+  })
+})
+
+describe("pnpm check:game on the games of the repository", () => {
+  // The script is not one of the gates of the repository, so these are what keep a game from going back: each game that has a board must pass the stage of its board, and a game that is live must pass every stage.
+  const game = (slug: string, ...args: string[]) => {
+    const run = spawnSync(process.execPath, ["scripts/check-game.mjs", slug, ...args], { cwd: REPO, encoding: "utf8", timeout: 60_000 })
+    return { status: run.status, out: run.stdout }
+  }
+  const withBoard = ["template", ...readdirSync(join(REPO, "games")).filter((slug) => existsSync(join(REPO, "games", slug, BOARD_DIR)))]
+
+  it("says what a board is built on and what it draws with three.js itself, and a warning is no failure", () => {
+    const clean = game("skyjo", "--only", "board")
+    expect(clean.status).toBe(0)
+    expect(clean.out).toMatch(/✓ kit: the board is built on @pbgo\/table: \d+ pieces, which load \d+ files of it/)
+    expect(clean.out).toContain("✓ own drawing: nothing is drawn with three.js outside the kit")
+    const own = game("flip-7", "--only", "board")
+    expect(own.status).toBe(0)
+    expect(own.out).toContain("• own drawing: the board draws with three.js itself (mesh, meshBasicMaterial, planeGeometry, useFrame)")
+  })
+
+  it("passes the board stage for every game that has a board", () => {
+    expect(withBoard).toEqual(expect.arrayContaining(["template", "courtisans", "flip-7", "skyjo", "love-letter"]))
+    for (const slug of withBoard) {
+      const run = game(slug, "--only", "board")
+      expect(run.status, `${slug}: ${run.out}`).toBe(0)
+    }
+  }, 60_000)
+
+  it("passes every stage for every game that is live", () => {
+    for (const { slug } of GAMES.filter((entry) => entry.live)) {
+      const run = game(slug, "--stage", "live")
+      expect(run.status, `${slug}: ${run.out}`).toBe(0)
+    }
+  }, 60_000)
+
+  it("reads a score that is secret by design as one that says so, and a game that carries none or says nothing as behind", () => {
+    // Courtisans keeps its points secret until the end and says so where it builds its view; Flip 7 carries `standings`
+    expect(game("courtisans", "--only", "engine").out).not.toContain("no `standings` in the view")
+    expect(game("flip-7", "--only", "engine").out).not.toContain("no `standings` in the view")
+    expect(game("template", "--only", "engine").out).toContain("no `step` in the definition")
   })
 })

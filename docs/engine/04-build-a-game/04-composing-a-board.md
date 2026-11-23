@@ -55,3 +55,12 @@ From `template/src/components/game/game.tsx`:
 ```tsx
 const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
 ```
+
+## Keeping a board on the kit
+
+A board is drawn with the kit so that a change of the kit reaches every game. Nothing at run time says so, so the repository does ([Scripts](../../scripts.md)):
+
+- **What a board loads of the kit** is read from the source. `pnpm check:kit` lists the files of `@pbgo/table` by the boards that load them, and `pnpm check:kit Card`, or a file such as `seat/seat.tsx`, says which boards an edit of it changes. Ask it before a change of the kit.
+- **What every table is made of** is loaded by every board: the `Table`, its camera, the mat, the card, the zone, the plate of a player and the text on the table. The test of the boards (`packages/games/src/boards.test.ts`) fails when a board stops loading one of them: draw with the kit's piece again. A game with no use for a piece, no cards say, is listed there with its reason.
+- **What a board draws with three.js itself** is listed. A scene element other than `group` (a `mesh`, a `planeGeometry`) or a hook of react-three-fiber (`useFrame`, `useThree`) in a board is a piece the kit lacks or a copy of one it has: `pnpm check:game` warns of it, and the test fails for a board that writes one that is not in its list (`OWN_DRAWING`). Look for the piece in these pages first; when there is none, ask for it; when the thing is only this game's, add it to the list with the reason. Flip 7 and Courtisans write a few today, each a flat picture that lies on the table, a press on the empty table or something held in front of the camera.
+- **The boundary is linted**: only a game's `src/components/board` imports `@pbgo/table`, three.js and react-three-fiber, and no board opens a `Canvas` of its own, since the `Table` does.
