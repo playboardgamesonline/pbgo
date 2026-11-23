@@ -7,13 +7,9 @@ import type { ThemeColors } from "@pbgo/core/lib/settings"
 import { buttonTheme } from "@pbgo/core/lib/ui-theme"
 import { useMemo } from "react"
 import { bloomColor, FALLBACK_COLORS } from "../card/theme"
-import { isHex } from "./lift"
 
 /** The two tones of a button on the table: the action that goes on (Hit, Deal, Play) and the quieter ones (Stay, Keep, Swap). The game's theme gives each its colour */
 export type FloorTone = "primary" | "neutral"
-
-/** The grey a tone that is neither a name nor a colour is drawn in */
-const UNKNOWN = "#808080"
 
 /** `#rrggbb` for each tone, from the game's `UI_THEME.button` over the defaults and the colours of its theme. Pure: the hook below reads the game */
 export function floorTones(button: UiTheme["button"], colors: ThemeColors): Record<FloorTone, string> {
@@ -28,9 +24,7 @@ export function useFloorTones(): Record<FloorTone, string> {
   return useMemo(() => floorTones(button, colors), [button, colors])
 }
 
-/** The colour a `tone` prop stands for: a tone's own, the primary for none, a `#rrggbb` as it is (a board that still types one: it should not), grey for anything else */
-export function toneColour(tone: string | undefined, tones: Record<FloorTone, string>): string {
-  if (tone === undefined) return tones.primary
-  if (tone === "primary" || tone === "neutral") return tones[tone]
-  return isHex(tone) ? tone : UNKNOWN
+/** The colour a `tone` prop stands for: a tone's own, and the primary for none */
+export function toneColour(tone: FloorTone | undefined, tones: Record<FloorTone, string>): string {
+  return tones[tone ?? "primary"]
 }
