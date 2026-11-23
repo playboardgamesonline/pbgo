@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest"
+import type { CardFace } from "@pbgo/engine-kit"
 import { CARDS, CATALOGUE } from "./catalogue"
 import { deal, give, hit, layout, newState, playRandomly, seedOf, stay, titleOf, viewOf } from "./test-utils"
-import type { Face, PlayerView, State } from "./types"
+import type { PlayerView, State } from "./types"
 
 // What a viewer sees. Nothing is hidden in Flip 7 but the order of the draw pile: every card is turned face up as it is drawn.
 
 /** Every card id a view shows, wherever it is. */
 function idsIn(view: PlayerView): number[] {
-  const faces: Face[] = [...view.players.flatMap((player) => [...player.cards, ...player.held]), ...view.discard]
+  const faces: CardFace[] = [...view.players.flatMap((player) => [...player.cards, ...player.held]), ...view.discard]
   if (view.phase.kind === "target") faces.push(view.phase.card)
   return faces.map((face) => face.id)
 }
@@ -15,7 +16,7 @@ function idsIn(view: PlayerView): number[] {
 /** What the draw pile holds, worked out from what everybody sees: the box less the lines, the cards set aside and the discard. */
 function deckFromPublicCards(view: PlayerView): Record<string, number> {
   const left: Record<string, number> = Object.fromEntries(Object.keys(CARDS).map((face) => [face, CATALOGUE.filter((candidate) => candidate === face).length]))
-  const faces: Face[] = [...view.players.flatMap((player) => [...player.cards, ...player.held]), ...view.discard]
+  const faces: CardFace[] = [...view.players.flatMap((player) => [...player.cards, ...player.held]), ...view.discard]
   if (view.phase.kind === "target") faces.push(view.phase.card)
   for (const { type } of faces) left[type]! -= 1
   return left

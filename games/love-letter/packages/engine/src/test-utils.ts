@@ -1,8 +1,7 @@
-import { type PlayerInfo, type Rng, createRng } from "@pbgo/engine-kit"
+import { type PlayerInfo, type Rng, createRng, keyOfId, seatOf } from "@pbgo/engine-kit"
 import { step } from "./actions"
 import { CARDS, CATALOGUE, type CharacterKey, GUESSES } from "./catalogue"
 import { GAME } from "./game"
-import { keyOf } from "./machine"
 import { tokensToWin } from "./options"
 import { setupGame } from "./setup"
 import type { Action, LoveLetterLogEntry, LoveLetterStep, Stage, State } from "./types"
@@ -38,25 +37,26 @@ export function newState(n: number, seed: number = seedOf(0)): State {
 
 // --- Reading a state by characters
 
-export function seatOf(state: State, playerId: string): number {
-  const seat = state.seats.indexOf(playerId)
+/** The seat of a player of the table (`seatOf` of the kit, which a test that names somebody who is not at the table must not get a `-1` from). */
+export function seatIn(state: State, playerId: string): number {
+  const seat = seatOf(state.seats, playerId)
   if (seat < 0) throw new Error(`${playerId} is not at the table`)
   return seat
 }
 
 /** The characters of a list of ids, in the same order. */
 export function names(state: State, ids: readonly number[]): CharacterKey[] {
-  return ids.map((id) => keyOf(state, id))
+  return ids.map((id) => keyOfId(state.ids, CATALOGUE, id))
 }
 
 /** The characters in a player's hand, in the order of the hand. */
 export function handNames(state: State, playerId: string): CharacterKey[] {
-  return names(state, state.hands[seatOf(state, playerId)]!)
+  return names(state, state.hands[seatIn(state, playerId)]!)
 }
 
 /** The characters a player played or discarded this round, oldest first. */
 export function areaNames(state: State, playerId: string): CharacterKey[] {
-  return names(state, state.areas[seatOf(state, playerId)]!)
+  return names(state, state.areas[seatIn(state, playerId)]!)
 }
 
 /** The characters of the deck, top first. */
@@ -80,8 +80,8 @@ export function viewOf(state: State, viewer: string | null) {
 
 /** The id of the first card of `key` in a player's hand. */
 export function cardIn(state: State, playerId: string, key: CharacterKey): number {
-  const hand = state.hands[seatOf(state, playerId)]!
-  const id = hand.find((card) => keyOf(state, card) === key)
+  const hand = state.hands[seatIn(state, playerId)]!
+  const id = hand.find((card) => keyOfId(state.ids, CATALOGUE, card) === key)
   if (id === undefined) throw new Error(`${playerId} holds no ${key}`)
   return id
 }
@@ -144,7 +144,7 @@ export function layout(spec: Layout = {}): State {
     throw new Error("The box has nothing left to fill the table with")
   }
   const seat = (player: string): number => {
-    const found = seated.indexOf(player)
+    const found = seatOf(seated, player)
     if (found < 0) throw new Error(`${player} is not at the table`)
     return found
   }
@@ -203,12 +203,12 @@ export function keepCards(state: State, playerId: string, key: CharacterKey, bot
 }
 
 export function keepStep(state: State, playerId: string, key: CharacterKey, bottom: readonly CharacterKey[]): LoveLetterStep {
-  const hand = state.hands[seatOf(state, playerId)]!
+  const hand = state.hands[seatIn(state, playerId)]!
   const kept = cardIn(state, playerId, key)
   const rest = hand.filter((id) => id !== kept)
   const used = new Set<number>()
   const ids = bottom.map((name) => {
-    const id = rest.find((card) => keyOf(state, card) === name && !used.has(card))
+    const id = rest.find((card) => keyOfId(state.ids, CATALOGUE, card) === name && !used.has(card))
     if (id === undefined) throw new Error(`${playerId} has no ${name} to put back`)
     used.add(id)
     return id
@@ -307,10 +307,10 @@ export function pickable(state: State, playerId: string): string[] {
 
 /** The cards a player may play, written again here: their whole hand, or the Countess alone when the other card is the King or a Prince (p. 9). */
 export function playableIds(state: State, playerId: string): number[] {
-  const hand = state.hands[seatOf(state, playerId)]!
+  const hand = state.hands[seatIn(state, playerId)]!
   const keys = names(state, hand)
   const forced = keys.includes("countess") && (keys.includes("king") || keys.includes("prince"))
-  return forced ? hand.filter((id) => keyOf(state, id) === "countess") : [...hand]
+  return forced ? hand.filter((id) => keyOfId(state.ids, CATALOGUE, id) === "countess") : [...hand]
 }
 
 /** A legal move for the player the game waits for: the choices are the ones a table makes, at random. */
@@ -319,7 +319,7 @@ export function randomAction(state: State, rng: Rng): Action {
   if (playerId === undefined) throw new Error("The game waits for nobody")
   if (state.stage.kind === "between") return { type: "deal", playerId }
   if (state.stage.kind === "keep") {
-    const hand = state.hands[seatOf(state, playerId)]!
+    const hand = state.hands[seatIn(state, playerId)]!
     const card = hand[Math.floor(rng() * hand.length)]!
     const others = hand.filter((id) => id !== card)
     // the order of the cards put back is the player's: a shuffle of them
@@ -331,10 +331,10 @@ export function randomAction(state: State, rng: Rng): Action {
   }
   const choices = playableIds(state, playerId)
   const card = choices[Math.floor(rng() * choices.length)]!
-  const rule = CARDS[keyOf(state, card)].target
+  const rule = CARDS[keyOfId(state.ids, CATALOGUE, card)].target
   const allowed = rule === "any" ? [playerId, ...pickable(state, playerId)] : rule === "other" ? pickable(state, playerId) : []
   const target = allowed[Math.floor(rng() * allowed.length)]
-  const guess = keyOf(state, card) === "guard" && target !== undefined ? GUESSES[Math.floor(rng() * GUESSES.length)] : undefined
+  const guess = keyOfId(state.ids, CATALOGUE, card) === "guard" && target !== undefined ? GUESSES[Math.floor(rng() * GUESSES.length)] : undefined
   return { type: "play", playerId, card, ...(target === undefined ? {} : { target }), ...(guess === undefined ? {} : { guess }) }
 }
 

@@ -1,6 +1,7 @@
+import { keyOfId } from "@pbgo/engine-kit"
 import { autoPlayFor } from "./autoplay"
-import type { CharacterKey } from "./catalogue"
-import { type Ctx, areaOf, close, handOf, inRound, isOver, keyOf, open, waitingFor } from "./machine"
+import { CATALOGUE, type CharacterKey } from "./catalogue"
+import { type Ctx, areaOf, close, handOf, inRound, isOver, open, waitingFor } from "./machine"
 import { tokensToWin } from "./options"
 import type { State } from "./types"
 
@@ -50,15 +51,15 @@ function edit(state: State, change: (ctx: Ctx, seat: number) => void): State {
 function holdOne(ctx: Ctx, seat: number, key: CharacterKey, keep: readonly CharacterKey[] = []): boolean {
   const { s } = ctx
   const hand = handOf(s, seat)
-  if (hand.some((id) => keyOf(s, id) === key)) return true
-  const spare = hand.findIndex((id) => !keep.includes(keyOf(s, id)))
+  if (hand.some((id) => keyOfId(s.ids, CATALOGUE, id) === key)) return true
+  const spare = hand.findIndex((id) => !keep.includes(keyOfId(s.ids, CATALOGUE, id)))
   if (spare < 0) return false
   const swap = (pile: number[], at: number) => {
     const [mine, theirs] = [hand[spare]!, pile[at]!]
     hand[spare] = theirs
     pile[at] = mine
   }
-  const inDeck = s.deck.findIndex((id) => keyOf(s, id) === key)
+  const inDeck = s.deck.findIndex((id) => keyOfId(s.ids, CATALOGUE, id) === key)
   if (inDeck >= 0) {
     swap(s.deck, inDeck)
     return true
@@ -66,13 +67,13 @@ function holdOne(ctx: Ctx, seat: number, key: CharacterKey, keep: readonly Chara
   for (const other of inRound(s)) {
     if (other === seat) continue
     const theirs = handOf(s, other)
-    const at = theirs.findIndex((id) => keyOf(s, id) === key)
+    const at = theirs.findIndex((id) => keyOfId(s.ids, CATALOGUE, id) === key)
     if (at >= 0) {
       swap(theirs, at)
       return true
     }
   }
-  if (s.aside !== null && keyOf(s, s.aside) === key) {
+  if (s.aside !== null && keyOfId(s.ids, CATALOGUE, s.aside) === key) {
     const mine = hand[spare]!
     hand[spare] = s.aside
     s.aside = mine
