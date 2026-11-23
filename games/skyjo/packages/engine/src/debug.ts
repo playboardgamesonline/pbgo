@@ -1,5 +1,6 @@
+import { closeStep } from "@pbgo/engine-kit"
 import { autoPlayFor } from "./autoplay"
-import { type Ctx, close, gridOf, isOver, open, valueOf, waitingFor } from "./machine"
+import { type Ctx, gridOf, isOver, open, valueOf, waitingFor } from "./machine"
 import { columnCells } from "./scoring"
 import type { State } from "./types"
 
@@ -50,7 +51,7 @@ function edit(state: State, change: (ctx: Ctx, seat: number) => void): State {
   const ctx = open(state)
   const { stage } = ctx.s
   if (stage.kind === "choose") change(ctx, stage.seat)
-  return close(ctx).state
+  return closeStep(ctx).state
 }
 
 /**
@@ -142,7 +143,7 @@ export const debugCommands: Record<string, (state: State) => State> = {
     if (s.stage.kind === "choose" || s.stage.kind === "between") {
       s.rounds.push(s.seats.map((_, seat) => (seat === 0 ? 94 : 20 + 7 * seat)))
     }
-    return close(ctx).state
+    return closeStep(ctx).state
   },
 }
 

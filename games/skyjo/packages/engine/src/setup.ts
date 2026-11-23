@@ -1,6 +1,6 @@
-import { type PlayerInfo, assertPlayers, createSaveableRng, issueIds, normalizeOptions, randomSeed, sideSeed } from "@pbgo/engine-kit"
+import { type PlayerInfo, assertPlayers, closeStep, createSaveableRng, issueIds, normalizeOptions, randomSeed, sideSeed } from "@pbgo/engine-kit"
 import { CATALOGUE } from "./catalogue"
-import { close, open } from "./machine"
+import { open } from "./machine"
 import { OPTIONS } from "./options"
 import { startRound } from "./round"
 import type { SkyjoStep, State } from "./types"
@@ -47,7 +47,7 @@ export function setupStep(args: { players: readonly PlayerInfo[]; options?: unkn
   const ctx = open(state)
   // `open` restored the stream from `state.rng`, which is the one that drew the dealer
   startRound(ctx)
-  return close(ctx)
+  return closeStep(ctx)
 }
 
 /** A new game: the state of `setupStep`. */
