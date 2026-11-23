@@ -50,13 +50,12 @@ expect(demo.waitingFor!(stored)).toEqual(["long-id", "x1", "x0"])
 - Keep `rng.save()` in the state (one number) and `restoreRng` it in the next step: the stream picks up where it stopped.
 - Numbers that reach the clients, opaque ids above all, come from a side stream (`sideSeed`), never from the stream that shuffles, or anybody who rebuilt it would know the deck. Each game numbers its own side streams; the kit reserves none.
 
-Flip 7 picks the stream up when a step opens and saves the position back when it closes. From `games/flip-7/packages/engine/src/machine.ts`:
+Flip 7 picks the stream up when a step opens and saves the position back when it closes: `openStep` of the kit clones the state and restores each stream from the field that saves it, `closeStep` saves it back, and the game gives them its own types. From `games/flip-7/packages/engine/src/machine.ts`:
 
 ```ts
-const s = structuredClone(state)
-return { s, rng: restoreRng(s.rng), events: [] }
-// …
-ctx.s.rng = ctx.rng.save()
+export type Ctx = StepContext<State, Flip7Event>
+export const open = (state: State): Ctx => openStep<State, Flip7Event>(state)
+export const close = (ctx: Ctx) => closeStep<State, Flip7Event, "rng">(ctx)
 ```
 
 ## Counters and tracks

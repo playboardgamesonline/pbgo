@@ -1,5 +1,5 @@
-import { type PlayerResult, type Results, ranks, roundsOutcome } from "@pbgo/engine-kit"
-import { playerAt, rulesOf, totalsOf } from "./machine"
+import { type PlayerResult, type Results, playerAt, ranks, roundsOutcome } from "@pbgo/engine-kit"
+import { rulesOf, totalsOf } from "./machine"
 import type { State } from "./types"
 
 /**
@@ -27,5 +27,5 @@ export function results(s: State): Results | null {
     }))
     // the sort is stable: a tie keeps the seat order
     .sort((a, b) => a.rank - b.rank)
-  return { players, winners: outcome.winners.map((seat) => playerAt(s, seat)) }
+  return { players, winners: outcome.winners.map((seat) => playerAt(s.seats, seat)) }
 }

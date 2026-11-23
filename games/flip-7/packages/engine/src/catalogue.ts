@@ -2,7 +2,7 @@
  * The cards of Flip 7, as data.
  *
  * - `CARDS`: every face of the game, by key. The keys are a contract: they are also the keys of the card types in the Sanity studio
- *   (name, text, artwork), what a `Face` says and what the art files are named after. Append only, never rename.
+ *   (name, text, artwork), what a `CardFace` says and what the art files are named after. Append only, never rename.
  * - `DECK`: the box, how many copies of each face: 94 cards.
  * - `CATALOGUE`: every card of the box, one after the other, by face. A card is its index in it; it is never stored (lean state,
  *   PLT-45): the state holds the opaque id each index holds.
