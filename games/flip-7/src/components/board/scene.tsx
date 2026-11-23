@@ -171,8 +171,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         )
       })}
 
-      {/* The draw pile: pressing its top card turns the next card over, on the viewer's turn. Only its size is known, so it is a count, which the pile writes under itself. Its top card is turned up with the back for its picture: the halo, the outline and the shine of a
-          card lie on the side of its face, and a card lying face down shows none of them */}
+      {/* The draw pile: on the viewer's turn pressing it, or the word over it, turns the next card over (Hit). Only its size is known, so it is a count, which the pile writes under itself */}
       <Pile
         frame={{ x: deck.x, z: deck.z }}
         count={view.deck.size}
@@ -180,17 +179,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         back={faces.back}
         scale={R.pileScale}
         limit={14}
-        top={{
-          front: faces.back,
-          glow: myTurn ? GLOWS.deck : null,
-          gloss: myTurn,
-          onClick: myTurn
-            ? (event) => {
-                event.stopPropagation()
-                onHit()
-              }
-            : undefined,
-        }}
+        action={myTurn ? { label: words.hit, onPress: onHit } : undefined}
       />
 
       {/* The discard: every card of it keeps its id, so the cards of a line fly there when the next round is dealt */}
@@ -202,26 +191,13 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         cards={cardsOf(discarded)}
       />
 
-      {/* On the viewer's turn Hit and Stay lie to the right of the draw pile, side by side and as deep as the pile: floor buttons, one blue-green and one grey with a hint of the same. Stay is there but dim when the viewer holds nothing to bank */}
-      {myTurn && (
-        <>
-          <FloorButton at={plan.hit} width={plan.hit.width} depth={plan.hit.depth} tone={FLOOR_TONES.hit} label={words.hit} onPress={onHit} />
-          <FloorButton
-            at={plan.stay}
-            width={plan.stay.width}
-            depth={plan.stay.depth}
-            tone={FLOOR_TONES.stay}
-            label={words.stay}
-            disabled={!phase.canStay}
-            onPress={onStay}
-          />
-        </>
-      )}
+      {/* On the viewer's turn Stay lies beside the draw pile, across the strip between the piles and as deep as the pile: a floor button, for an action that has no object, in the quieter tone. It is there but dim when the viewer holds nothing to bank */}
+      {myTurn && <FloorButton at={plan.pad} width={plan.pad.width} depth={plan.pad.depth} tone="neutral" label={words.stay} disabled={!phase.canStay} onPress={onStay} />}
 
-      {/* Between two rounds the dealer deals the next one, from one pad across the room of the two */}
-      {dealing && <FloorButton at={plan.deal} width={plan.deal.width} depth={plan.deal.depth} tone={FLOOR_TONES.hit} label={words.deal} onPress={onDeal} />}
+      {/* Between two rounds the dealer deals the next one, from the same pad, in the tone of the action that goes on */}
+      {dealing && <FloorButton at={plan.pad} width={plan.pad.width} depth={plan.pad.depth} tone="primary" label={words.deal} onPress={onDeal} />}
 
-      {/* An action card drawn lies face up in the place of Hit, for everybody, and for the one who holds it the words beside it, written flat on the table, say what to do: press the zone of a player */}
+      {/* An action card drawn lies face up beside the draw pile, for everybody, and for the one who holds it the words beside it, written flat on the table, say what to do: press the zone of a player */}
       {phase.kind === "target" && (
         <>
           <Zone frame={{ x: plan.card.x, z: plan.card.z }} layout={[onTable(0, 0, { y: 0.05, scale: plan.card.scale })]} size={CARD_SIZE} cards={cardsOf([phase.card]).map((card) => ({ ...card, glow: choosing ? GLOWS.selection : null }))} />

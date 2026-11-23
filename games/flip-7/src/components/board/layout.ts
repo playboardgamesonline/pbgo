@@ -202,20 +202,17 @@ export function pilePlaces(): { deck: Place; discard: Place } {
 }
 
 /**
- * The strip of the table between the two piles, where the viewer's choices and the card to give lie. It is as deep as the piles and its three gaps are one length (`gap`): pile to pad, pad to pad, pad to discard, or pile to card, card to text, text to discard.
- * Hit and Stay (or Deal alone) stand in it on the viewer's turn, and an action card drawn with its prompt: the two never show at once.
+ * The strip of the table between the two piles, where the viewer's one button and the card to give lie. It is as deep as the piles and its gaps are one length (`gap`): pile to pad and pad to discard, or pile to card, card to text, text to discard.
+ * Stay (or Deal) stands in it across its width, and an action card drawn with its prompt: the two never show at once. Hit is no pad: it is the draw pile, whose top card is pressed.
  */
 export const FLOOR = { gap: 0.3 }
 
 export type Pad = { x: number; z: number; width: number; depth: number }
 
 export type FloorPlan = {
-  /** Hit on the left, Stay on its right, each the width of half the strip less the gaps, and as deep as the piles */
-  hit: Pad
-  stay: Pad
-  /** Deal, for the dealer between two rounds: one pad across the room of the two */
-  deal: Pad
-  /** The action card drawn, face up, in the place of Hit and the size of the piles' cards */
+  /** The pad of the action that has no object: Stay on the viewer's turn, Deal for the dealer between two rounds. It lies across the strip, one gap from each pile, and as deep as the piles */
+  pad: Pad
+  /** The action card drawn, face up, at the left of the strip, beside the draw pile, the size of the piles' cards */
   card: Place & { scale: number }
   /** The room for the words beside the card: its left edge, its width and its depth */
   prompt: Pad
@@ -231,18 +228,13 @@ export function floorPlan(): FloorPlan {
   const left = deck.x + cardWidth / 2
   const right = discard.x - cardWidth / 2
   const g = FLOOR.gap
-  const padWidth = (right - left - 3 * g) / 2
   const z = deck.z
-  const hit = { x: left + g + padWidth / 2, z, width: padWidth, depth }
-  const stay = { ...hit, x: hit.x + padWidth + g }
-  const deal = { x: (left + right) / 2, z, width: 2 * padWidth + g, depth }
+  const pad = { x: (left + right) / 2, z, width: right - left - 2 * g, depth }
   const cardX = left + g + cardWidth / 2
   const textLeft = cardX + cardWidth / 2 + g
   const textWidth = right - g - textLeft
   return {
-    hit,
-    stay,
-    deal,
+    pad,
     card: { x: cardX, z, scale: R.pileScale },
     prompt: { x: textLeft + textWidth / 2, z, width: textWidth, depth },
     strip: { x: (left + right) / 2, z, width: right - left, depth },

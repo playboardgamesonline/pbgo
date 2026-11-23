@@ -19,6 +19,8 @@ export const UI_THEME: UiTheme = {
     ring: "var(--foreground)",
     font: "var(--font-title)",
   },
+  // The buttons on the table: a luminous blue-green for the action that goes on (Deal) and a pale cool grey with a hint of it for the quieter one (Stay), both read against the teal table and belong together. The settings' theme has no slot for them, so they are named here, in the theme of the game, once
+  button: { primary: "#4fe0c0", neutral: "#b4c6d8" },
   gameOver: {
     surface: "var(--surface)",
     border: "var(--accent-game)",
