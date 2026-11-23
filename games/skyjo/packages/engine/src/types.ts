@@ -1,18 +1,15 @@
-import type { LogEntry, OptionValues, Results, Standing } from "@pbgo/engine-kit"
+import type { CardFace, LogEntry, OptionValues, Results, Standing, Step } from "@pbgo/engine-kit"
 
 /**
  * Skyjo: the types the engine and the board share.
  *
  * A card is a number in the state: the opaque id it holds right now (`ids` of the engine-kit). What it is (its face) comes from the
- * catalogue of the game (`catalogue.ts`), which is constant and never stored (lean state, PLT-45). The views show a card as a `Face`
+ * catalogue of the game (`catalogue.ts`), which is constant and never stored (lean state, PLT-45). The views show a card as a `CardFace`
  * (its id and its face key) only once it is face up; a face-down card is a `{ up: false }` and nothing else.
  *
  * Hidden: the cards face down in the grids, the order of the draw pile, and the card a player has just drawn from it (until they place
  * it or throw it away).
  */
-
-/** A card a viewer sees: the id it holds now and what it is (a key of `CARDS`, e.g. "card-7" or "card-minus-2"). */
-export type Face = { id: number; type: string }
 
 /** Cards in a column, columns in a grid, cells in a grid. A cell is `column * ROWS + row`. */
 export const ROWS = 3
@@ -129,7 +126,7 @@ export const SKYJO_ERROR_CODES = [
 export type SkyjoErrorCode = (typeof SKYJO_ERROR_CODES)[number]
 
 /** A cell as everybody sees it: a card face up, a card face down (nothing is said of it), or a hole where a column was thrown away. */
-export type PublicCell = { up: true; card: Face } | { up: false } | null
+export type PublicCell = { up: true; card: CardFace } | { up: false } | null
 
 /**
  * Where a seat stands in the closing turn, once a player has turned all their cards over: `ender` is that player, `pending` has still
@@ -165,7 +162,7 @@ export type PublicSeat = {
 export type PublicPhase =
   | { kind: "reveal"; waiting: string[]; starter: string | null }
   | { kind: "choose"; player: string }
-  | { kind: "place"; player: string; from: "deck" | "discard"; card: Face | null; canDiscard: boolean }
+  | { kind: "place"; player: string; from: "deck" | "discard"; card: CardFace | null; canDiscard: boolean }
   | { kind: "flip"; player: string }
   | { kind: "between"; dealer: string }
   | { kind: "over" }
@@ -183,7 +180,7 @@ export type PlayerView = {
   /** The draw pile: its size. Its cards are hidden. */
   deck: { size: number }
   /** The discard: how many cards it holds and the card on top, which everybody sees. */
-  discard: { size: number; top: Face | null }
+  discard: { size: number; top: CardFace | null }
   /** The player who turned all their cards over first in this round, once one has. */
   ender: string | null
   /** The number of the round going on, or of the last one once it is over. */
@@ -211,12 +208,12 @@ export type PlayerView = {
  */
 export type SkyjoEvent =
   | { kind: "round"; number: number; dealer: string }
-  | { kind: "reveal"; by: string; position: number; card: Face; how: "opening" | "flip" }
-  | { kind: "take"; by: string; card: Face }
-  | { kind: "draw"; by: string; card?: Face }
-  | { kind: "place"; by: string; position: number; card: Face; replaced: Face; replacedUp: boolean }
-  | { kind: "discard"; by: string; card: Face }
-  | { kind: "column"; by: string; column: number; value: number; cards: Face[] }
+  | { kind: "reveal"; by: string; position: number; card: CardFace; how: "opening" | "flip" }
+  | { kind: "take"; by: string; card: CardFace }
+  | { kind: "draw"; by: string; card?: CardFace }
+  | { kind: "place"; by: string; position: number; card: CardFace; replaced: CardFace; replacedUp: boolean }
+  | { kind: "discard"; by: string; card: CardFace }
+  | { kind: "column"; by: string; column: number; value: number; cards: CardFace[] }
   | { kind: "start"; by: string; sum: number; how: "sum" | "ender" }
   | { kind: "last"; by: string }
   | { kind: "reshuffle" }
@@ -226,4 +223,4 @@ export type SkyjoEvent =
 export type SkyjoLogEntry = LogEntry<SkyjoEvent>
 
 /** What a step gives back: the new state and what happened, for the platform to keep (the state keeps no log). */
-export type SkyjoStep = { state: State; events: SkyjoLogEntry[] }
+export type SkyjoStep = Step<State, SkyjoEvent>

@@ -17,6 +17,25 @@ describe("assertPlayers", () => {
   ])("refuses a table of %s with INVALID_PLAYERS", (_, players) => {
     expect(() => assertPlayers(players, { min: 2, max: 4 })).toThrow(expect.objectContaining({ code: "INVALID_PLAYERS" }))
   })
+
+  it.each([
+    ["undefined", undefined],
+    ["null", null],
+    ["a string", "abc"],
+    ["an object", { length: 2, 0: seat("a"), 1: seat("b") }],
+  ])("refuses a table that is %s and not a list with INVALID_PLAYERS, not a TypeError", (_, players) => {
+    expect(() => assertPlayers(players as never, { min: 2, max: 4 })).toThrow(expect.objectContaining({ code: "INVALID_PLAYERS" }))
+  })
+
+  it.each([
+    ["nobody at two seats", [null, null]],
+    ["players with no id", [{}, {}]],
+    ["a hole", [undefined, seat("a")]],
+    ["a number", [seat("a"), 3]],
+    ["an id that is not text", [seat("a"), { id: 7 }]],
+  ])("refuses seats that are %s with INVALID_PLAYERS", (_, players) => {
+    expect(() => assertPlayers(players as never, { min: 2, max: 4 })).toThrow(expect.objectContaining({ code: "INVALID_PLAYERS" }))
+  })
 })
 
 describe("seats", () => {

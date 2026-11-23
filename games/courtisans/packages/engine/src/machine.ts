@@ -12,7 +12,7 @@ export type Ctx = StepContext<State, CourtisansEvent>
 
 export const open = (state: State): Ctx => openStep<State, CourtisansEvent>(state)
 
-export const close = (ctx: Ctx): CourtisansStep => closeStep<State, CourtisansEvent, "rng">(ctx)
+export const close = (ctx: Ctx): CourtisansStep => closeStep(ctx)
 
 /** Notes what happened, for everybody: nothing in Courtisans is private. */
 export const emit = (ctx: Ctx, event: CourtisansEvent): void => noteEvent(ctx, event)

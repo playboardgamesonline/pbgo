@@ -58,15 +58,8 @@ The order of the seats is the order of an array of the state: `seats` in Explodi
 - A neighbour is the seat next to another, the modulo wrapping both ends: the left one is the next seat, the right one the previous, and at a table of two both are the other player (`leftNeighbor` and `rightNeighbor` of the missions of Courtisans).
 - Core colours a seat by its place in `PublicGame.players` (`seatColor`), the order `setup` received, and a board hands the players in seat order and the viewer's index to `seats` ([Seats](../02-components/03-seats.md)).
 
-From `games/flip-7/packages/engine/src/machine.ts`, the seat that plays after `from`, `from` itself last:
+From `games/flip-7/packages/engine/src/machine.ts`, the seat that plays after `from`, `from` itself last, passing over the seats that are not active:
 
 ```ts
-export function nextActive(s: State, from: number): number | null {
-  const n = s.seats.length
-  for (let i = 1; i <= n; i++) {
-    const seat = (from + i) % n
-    if (isActive(s, seat)) return seat
-  }
-  return null
-}
+export const nextActive = (s: State, from: number): number | null => nextSeat(s.seats.length, from, (seat) => !isActive(s, seat))
 ```
