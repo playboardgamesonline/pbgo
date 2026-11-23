@@ -27,6 +27,7 @@ import {
   Stack,
   Table,
   type Touch,
+  useLettering,
   useSettings,
   useViewport,
   Zone,
@@ -37,7 +38,6 @@ import type { ClientCatalog } from "../../lib/catalog"
 import { holdHovered, holdPicked, releaseHovered, releaseHoveredUnless } from "../../lib/lens"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { TABLE_WEIGHT, tableFonts } from "./fonts"
 import { areaPoses, CARD, dealPlace, dealtFrom, faceUpPoses, guessPoses, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, PLATE_TRAILING, revealedPoses } from "./layout"
 import { type Arrival, PACE_FIELDS, PACE_SETTINGS, type Reveal } from "./pacing"
 import { RevealView } from "./sequence"
@@ -73,9 +73,6 @@ export type SceneProps = {
   onLoaded?: () => void
 }
 
-/** What a plate changes in the kit's lettering: the table's lettering is all at 700 (`TABLE_WEIGHT`), where the kit's plates are at 600 */
-const LETTERING = { weight: TABLE_WEIGHT }
-
 /** The word under a player's name: out of the round, or a winner of the round that has just been counted, or protected by a Handmaid. A player who is none of them has none. */
 function statusOf(player: PublicSeat, view: PlayerView, words: ClientCatalog["words"]): string | undefined {
   if (player.out) return words.out
@@ -86,10 +83,11 @@ function statusOf(player: PublicSeat, view: PlayerView, words: ClientCatalog["wo
 
 /** The favor tokens of a player: a stack of discs and, beside it, what they hold over what wins (numbers only), at the right of their name, in the `PLATE_TRAILING` the layout keeps for them (the count is about nine tenths of a unit wide, centred a unit from the name). */
 function Tokens({ id, count, target, color, ink }: { id: string; count: number; target: number; color: string; ink: string }) {
+  const { weight } = useLettering()
   return (
     <>
       <Stack id={`tokens-${id}`} count={count} cap={8} model="disc" size={0.32} at={{ x: 0.42, z: 0 }} color={color} />
-      <Counter value={count} at={{ x: PLATE_TRAILING - 0.45, z: 0 }} height={0.38} format={(tokens) => `${tokens} / ${target}`} style={{ color: ink, weight: TABLE_WEIGHT }} />
+      <Counter value={count} at={{ x: PLATE_TRAILING - 0.45, z: 0 }} height={0.38} format={(tokens) => `${tokens} / ${target}`} style={{ color: ink, weight }} />
     </>
   )
 }
@@ -100,10 +98,10 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
   useSettings("Pace", PACE_SETTINGS, PACE_FIELDS, { order: 2 })
   useSettings("Held hands", HELD_FAN_SETTINGS, HELD_FAN_FIELDS, { order: 3 })
   useSettings("Hand", HAND_SETTINGS, SCREEN_HAND_FIELDS, { order: 4 })
-  const { theme, bodyFont, displayFont, files } = useSiteSettings()
-  // The lettering on the table is drawn in the fonts of the game's settings (the display font for names, counts and plates, the body font for the card texts)
-  const fonts = tableFonts({ bodyFont, displayFont, files })
-  const faces = useFaces(catalog, { nameFont: fonts.display, textFont: fonts.body, ink: theme.surfaceDark })
+  const { theme } = useSiteSettings()
+  // The lettering on the table is the kit's (`useLettering`): the fonts the game uploaded to its Sanity project, the display font for names, buttons and counts, the body font for the card texts, else the kit's own
+  const lettering = useLettering()
+  const faces = useFaces(catalog, { nameFont: lettering.display, textFont: lettering.body, ink: theme.surfaceDark })
   const { words, names } = catalog
   const { nickname } = useGame()
   const meId = view.me?.id ?? null
@@ -241,9 +239,9 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
               frame={line.seat}
               above={line.cards}
               status={statusOf(player, view, words)}
-              font={fonts.display}
-              nameStyle={LETTERING}
-              lineStyle={LETTERING}
+              font={lettering.display}
+              nameStyle={{ weight: lettering.weight }}
+              lineStyle={{ weight: lettering.weight }}
               trailing={<Tokens id={player.id} count={player.tokens} target={view.target} color={theme.accent} ink={theme.foreground} />}
             />
             {/* What lies in front of the player: every card they played or discarded this round, face up, oldest first, in a row on the axis of their seat. A player who is out has them grey */}
