@@ -267,29 +267,6 @@ export const scoreOf = (faces: readonly CardKey[]): number => lineScore(faces.ma
 
 // --- Fuzz and storage
 
-/** Freezes a value and everything in it: a step that mutates its input throws. */
-export function deepFreeze<T>(value: T): T {
-  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
-    Object.freeze(value)
-    for (const child of Object.values(value)) deepFreeze(child)
-  }
-  return value
-}
-
-/**
- * The way Postgres `jsonb` gives a value back: the keys of every object shortest first, then alphabetically, whatever order they were
- * written in. The state must mean the same after it.
- */
-export function reorderKeys<T>(value: T): T {
-  const sorted = (v: unknown): unknown => {
-    if (Array.isArray(v)) return v.map(sorted)
-    if (!v || typeof v !== "object") return v
-    const keys = Object.keys(v).sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0))
-    return Object.fromEntries(keys.map((key) => [key, sorted((v as Record<string, unknown>)[key])]))
-  }
-  return sorted(JSON.parse(JSON.stringify(value))) as T
-}
-
 /** A legal move for the player the game waits for: the choices are the ones a table makes, at random. */
 export function randomAction(state: State, rng: Rng): Action {
   const top = state.stack.at(-1)
