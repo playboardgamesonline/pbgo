@@ -42,7 +42,7 @@ import {
   seatBox,
   seats,
   missionRestPose,
-  NO_ASSASSINATION_PAD,
+  BUTTON_PAD,
 } from "./layout"
 import { CAMERA, INTRO, PHOTO } from "./camera"
 import { type Textures, useTextures } from "./textures"
@@ -139,6 +139,7 @@ function World({
   onLoaded,
   onProgress,
   ending,
+  onSkip,
   settings,
 }: {
   openingStep: OpeningStep
@@ -150,6 +151,7 @@ function World({
   onLoaded: () => void
   onProgress: (progress: number) => void
   ending: EndingState | null
+  onSkip: () => void
   settings: OpeningSettings
 }) {
   useEffect(() => onReady(), [onReady])
@@ -645,10 +647,11 @@ function World({
           />
         ))}
 
-      {/* An assassin that was played may eliminate a card, or nobody: a button, since nobody is no object on the table */}
+      {/* An assassin that was played may eliminate a card, or nobody: a button, since nobody is no object on the table. The end of the game can be skipped, by the same one: they never meet */}
       {it.assassination && (
-        <FloorButton at={NO_ASSASSINATION_PAD.at} width={NO_ASSASSINATION_PAD.width} depth={NO_ASSASSINATION_PAD.depth} label={catalog.words.noAssassination} tone="neutral" disabled={it.sending} onPress={() => it.eliminate(null)} />
+        <FloorButton at={BUTTON_PAD.at} width={BUTTON_PAD.width} depth={BUTTON_PAD.depth} label={catalog.words.noAssassination} tone="neutral" disabled={it.sending} onPress={() => it.eliminate(null)} />
       )}
+      {ending && !ending.scoreboard && <FloorButton at={BUTTON_PAD.at} width={BUTTON_PAD.width} depth={BUTTON_PAD.depth} label={catalog.words.skip} tone="neutral" onPress={onSkip} />}
 
       {/* A domain is chosen by pressing it, its cards and the plate over it: an invisible area, and the cards are lit by their states, or a pool of light where there are none */}
       {view.players.map((j) => {
@@ -690,6 +693,8 @@ export default function Scene3D(props: {
   /** How far the scene is loaded, 0 to 1 */
   onProgress: (progress: number) => void
   ending: EndingState | null
+  /** Skips the end of the game: the sequence jumps to its last step */
+  onSkip: () => void
   settings: OpeningSettings
 }) {
   const { theme } = useSiteSettings()
@@ -716,6 +721,7 @@ export default function Scene3D(props: {
         onLoaded={props.onLoaded}
         onProgress={props.onProgress}
         ending={props.ending}
+        onSkip={props.onSkip}
         settings={props.settings}
       />
     </Table>

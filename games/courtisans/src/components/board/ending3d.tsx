@@ -2,18 +2,10 @@
 
 import type { CourtisansResults, PlayerView } from "@courtisans/engine"
 import { useFrame } from "@react-three/fiber"
-import { easing } from "maath"
 import { useEffect, useMemo, useRef, useState } from "react"
-import {
-  CanvasTexture,
-  Color,
-  type Group,
-  type Mesh,
-  SRGBColorSpace,
-  Vector2,
-} from "three"
+import { CanvasTexture, Color, type Mesh, SRGBColorSpace, Vector2 } from "three"
 import { useCourtisans } from "../game/context"
-import { type AuraLook, AURA_FIELDS, AURA_LOOK, TableText, useSettings, useSettingsVersion } from "@pbgo/table"
+import { Appear, type AuraLook, AURA_FIELDS, AURA_LOOK, TableText, useSettings, useSettingsVersion } from "@pbgo/table"
 import { columnX, MAT_D, type DomainZone, TABLE_FAMILIES } from "./layout"
 import type { EndingState } from "./ending"
 import { LETTERING_FONT } from "./font"
@@ -22,21 +14,8 @@ import { LETTERING_FONT } from "./font"
 export const WINNER_AURA: AuraLook = { ...AURA_LOOK }
 const HOLO = { color: "#fff4dc", relief: "#8a6a3a", aura: "rgba(255,236,190,0.9)", weight: 800 }
 
-function Appear({ children, position, floating = 0.06 }: { children: React.ReactNode; position: [number, number, number]; floating?: number }) {
-  const ref = useRef<Group>(null)
-  const [phase] = useState(() => Math.random() * Math.PI * 2)
-  useFrame(({ clock }, dt) => {
-    const g = ref.current
-    if (!g) return
-    easing.damp3(g.scale, [1, 1, 1], 0.18, dt)
-    g.position.y = position[1] + Math.sin(clock.elapsedTime * 1.8 + phase) * floating
-  })
-  return (
-    <group ref={ref} position={position} scale={0.001}>
-      {children}
-    </group>
-  )
-}
+/** How a sign, an arrow or a number comes onto the table at the end: it lands on its place from a little above it while it fades in */
+const LAND = { drop: 0.5, duration: 0.45 }
 
 let rond: CanvasTexture | null = null
 function roundBg() {
@@ -116,12 +95,14 @@ function signTexture(sign: Sign) {
 function Sign({ sign, position, size = 1.15 }: { sign: Sign; position: [number, number, number]; size?: number }) {
   const [texture] = useState(() => signTexture(sign))
   return (
-    <Appear position={position} floating={0}>
-      <mesh rotation-x={-Math.PI / 2} renderOrder={4} raycast={() => null}>
-        <planeGeometry args={[size, size]} />
-        <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
-      </mesh>
-    </Appear>
+    <group position={position}>
+      <Appear {...LAND}>
+        <mesh rotation-x={-Math.PI / 2} renderOrder={4} raycast={() => null}>
+          <planeGeometry args={[size, size]} />
+          <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
+        </mesh>
+      </Appear>
+    </group>
   )
 }
 
@@ -251,12 +232,14 @@ function Arrow({ direction, url, position }: { direction: "up" | "down"; url?: s
     if (ref.current) ref.current.scale.setScalar(ENDING_SETTINGS.arrowSize)
   })
   return (
-    <Appear position={position} floating={0}>
-      <mesh ref={ref} rotation-x={-Math.PI / 2} renderOrder={4} raycast={() => null}>
-        <planeGeometry args={[1, 1]} />
-        <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
-      </mesh>
-    </Appear>
+    <group position={position}>
+      <Appear {...LAND}>
+        <mesh ref={ref} rotation-x={-Math.PI / 2} renderOrder={4} raycast={() => null}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
+        </mesh>
+      </Appear>
+    </group>
   )
 }
 
@@ -304,7 +287,7 @@ export function PilePoints({ view, results, ending, zones }: { view: PlayerView;
           const color = points > 0 ? ENDING_SETTINGS.positiveColor : points < 0 ? ENDING_SETTINGS.negativeColor : ENDING_SETTINGS.zeroColor
           return (
             <group key={`${j.id}-${i}`} position={pile.position}>
-              <Appear position={[0, 0, 0]} floating={0}>
+              <Appear {...LAND}>
                 <TableText
                   text={points > 0 ? `+${points}` : points < 0 ? `−${-points}` : "+0"}
                   style={{
@@ -333,7 +316,7 @@ export function MissionSign({ done, points, position }: { done: boolean; points:
   if (!done) return <Sign sign="cross" size={1} position={position} />
   return (
     <group position={position}>
-      <Appear position={[0, 0, 0]} floating={0}>
+      <Appear {...LAND}>
         <TableText
           text={`+${points}`}
           style={{
@@ -364,7 +347,8 @@ export function Counters({ view, results, ending, zones }: { view: PlayerView; r
         const piles = r.families.slice(0, ending.pile)
         const total = piles.reduce((s, d) => s + d.points, 0) + (ending.missions ? r.missions.reduce((s, m) => s + m.points, 0) : 0)
         return (
-          <Appear key={j.id} position={[zone.center.x, ENDING_SETTINGS.counterHeight, zone.center.z]} floating={0}>
+          <group key={j.id} position={[zone.center.x, ENDING_SETTINGS.counterHeight, zone.center.z]}>
+            <Appear {...LAND}>
             {ENDING_SETTINGS.counterBackdrop > 0.01 && (
               <mesh rotation-x={-Math.PI / 2} position-y={-0.02} raycast={() => null}>
                 <circleGeometry args={[1.25, 48]} />
@@ -378,7 +362,8 @@ export function Counters({ view, results, ending, zones }: { view: PlayerView; r
               font={LETTERING_FONT}
               position={[0, 0, 0]}
             />
-          </Appear>
+            </Appear>
+          </group>
         )
       })}
     </>
