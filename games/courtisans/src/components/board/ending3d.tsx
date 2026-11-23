@@ -13,7 +13,7 @@ import {
   Vector2,
 } from "three"
 import { useCourtisans } from "../game/context"
-import { useSettings, useSettingsVersion } from "./settings"
+import { useSettings, useSettingsVersion } from "@pbgo/table"
 import { MAT_ORDER } from "../../lib/catalog"
 import { CARD_H, columnX, STEP, MAT_D, type DomainZone } from "./layout"
 import { WINNER_AURA_SETTINGS, AURA_FIELDS } from "./aura"

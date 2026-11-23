@@ -22,6 +22,7 @@
     "@courtisans/engine": "workspace:*",
     "@fontsource-variable/alegreya": "catalog:",
     "@pbgo/core": "workspace:*",
+    "@pbgo/table": "workspace:*",
     "@pbgo/ui": "workspace:*",
     "@react-three/drei": "catalog:",
     "@react-three/fiber": "catalog:",

@@ -677,6 +677,9 @@ importers:
       '@pbgo/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@pbgo/table':
+        specifier: workspace:*
+        version: link:../../packages/table
       '@pbgo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
