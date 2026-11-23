@@ -22,13 +22,13 @@ import { MISSING_CATALOG, type ClientCatalog } from "../../lib/catalog"
 import { CourtisansProvider, useCourtisans } from "./context"
 import { renderFamilyCards } from "./score-details"
 import { Message } from "./message"
-import { useEndingSequence } from "../game3d/ending"
-import { useGameSounds } from "../game3d/sounds"
-import { useCheat } from "../game3d/cheat"
+import { useEndingSequence } from "../board/ending"
+import { useGameSounds } from "../board/sounds"
+import { useCheat } from "../board/cheat"
 import { type Assassination, type Interaction, InteractionContext } from "./interaction"
-import type { OpeningStep } from "../game3d/scene"
+import type { OpeningStep } from "../board/scene"
 
-const Scene3D = dynamic(() => import("../game3d/scene"), {
+const Scene3D = dynamic(() => import("../board/scene"), {
   ssr: false,
   loading: () => (
     <div className="flex size-full items-center justify-center">

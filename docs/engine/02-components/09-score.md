@@ -22,7 +22,7 @@ The score is the points a board shows while a game goes on. The engine derives e
 
 - Core lists the points while the game goes, from `view.standings`, in the list of the players at the top right (`TablePlayers`): a game whose view has none shows no number there. At the end it shows them from `view.results`: in the game-over panel, where `detail` of each `PlayerResult` makes the chips, and in the victory announcement ([Game over](../../design/04-in-game/07-game-over.md)).
 - On the table the points are the `line` of a `Seat`, a `TableText` under the nickname: the game writes it in the visitor's language, and the template uses `pointsShort` of the skin. A word about the player's state in the round, such as Frozen or Stayed, goes under it as the `status`, written the same way ([Seats](03-seats.md#the-plate)).
-- At the end a board may draw `results` on the table: the ending of Courtisans writes the points of each pile with `PilePoints` and each player's total with `Counters`, which grows as the piles resolve (`games/courtisans/src/components/game3d/ending3d.tsx`).
+- At the end a board may draw `results` on the table: the ending of Courtisans writes the points of each pile with `PilePoints` and each player's total with `Counters`, which grows as the piles resolve (`games/courtisans/src/components/board/ending3d.tsx`).
 - Flip 7's `score` and `total` are drawn by no board, since the game has none, and no tool draws a score sheet or a track ([what is not built](../03-not-built-yet.md)).
 
 ## Text on the table
