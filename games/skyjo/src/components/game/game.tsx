@@ -21,6 +21,7 @@ import { timelineOf } from "../board/pacing"
 import { type ClientCatalog, MISSING_CATALOG } from "../../lib/catalog"
 import { actorsOf, sentenceOf } from "../../lib/history"
 import { fill } from "../../lib/words"
+import { promptOf } from "./prompt"
 
 const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
 
@@ -214,7 +215,16 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   return (
     <GameHud
       onLeave={onLeave}
-      ticker={<Ticker activePlayerId={ended ? null : turn} waitingFor={ended ? undefined : game.waitingFor} status={!ended && <RoundStatus catalog={catalog} />} history={history} />}
+      ticker={
+        <Ticker
+          activePlayerId={ended ? null : turn}
+          waitingFor={ended ? undefined : game.waitingFor}
+          // what the viewer has to do now: the table writes no sentence, the ticker says it
+          prompt={promptOf(view, words)}
+          status={!ended && <RoundStatus catalog={catalog} />}
+          history={history}
+        />
+      }
       overlay={
         <>
           {announcement}

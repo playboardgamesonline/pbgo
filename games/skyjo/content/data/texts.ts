@@ -62,13 +62,6 @@ export const BOARD_WORDS = [
   { key: "deal", fr: "Distribuer", en: "Deal", es: "Repartir", de: "Geben" },
   { key: "promptReveal", fr: "Retournez deux de vos cartes", en: "Turn two of your cards over", es: "Voltea dos de tus cartas", de: "Deck zwei deiner Karten auf" },
   {
-    key: "promptRevealWait",
-    fr: "On attend que tous aient retourné deux cartes",
-    en: "Waiting for everyone to turn two cards over",
-    es: "Esperando a que todos volteen dos cartas",
-    de: "Warten, bis alle zwei Karten aufgedeckt haben",
-  },
-  {
     key: "promptChoose",
     fr: "Piochez, ou prenez la carte de la défausse",
     en: "Draw a card, or take the discard",
@@ -95,14 +88,6 @@ export const BOARD_WORDS = [
     en: "Turn one of your hidden cards over",
     es: "Voltea una de tus cartas ocultas",
     de: "Deck eine deiner verdeckten Karten auf",
-  },
-  { key: "promptWait", fr: "{player} joue", en: "{player} is playing", es: "Juega {player}", de: "{player} ist dran" },
-  {
-    key: "promptBetween",
-    fr: "Manche terminée : {player} distribue la suivante",
-    en: "Round over: {player} deals the next one",
-    es: "Ronda terminada: {player} reparte la siguiente",
-    de: "Runde vorbei: {player} gibt die nächste",
   },
   { key: "promptDeal", fr: "Distribuez la manche suivante", en: "Deal the next round", es: "Reparte la siguiente ronda", de: "Gib die nächste Runde" },
   { key: "cell", fr: "Colonne {column}, ligne {row}", en: "Column {column}, row {row}", es: "Columna {column}, fila {row}", de: "Spalte {column}, Reihe {row}" },
