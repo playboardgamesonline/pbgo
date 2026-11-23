@@ -31,9 +31,4 @@ describe("toneColour", () => {
     expect(toneColour("neutral", tones)).toBe("#f5f2ea")
     expect(toneColour(undefined, tones)).toBe("#e8b43a")
   })
-
-  it("draws a colour a board still types as it is, and anything else grey", () => {
-    expect(toneColour("#4fe0c0", tones)).toBe("#4fe0c0")
-    expect(toneColour("teal", tones)).toBe("#808080")
-  })
 })

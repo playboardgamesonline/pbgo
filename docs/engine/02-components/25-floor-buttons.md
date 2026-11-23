@@ -12,7 +12,7 @@ scene-floor-buttons
 
 | Part | What it is | Where it comes from |
 | --- | --- | --- |
-| Pad | A rounded rectangle lying on the table: a tint of the tone at rest, brighter and more opaque as the rim lifts | `tone`, `tint` |
+| Pad | A rounded rectangle lying on the table: a tint of the tone at rest, brighter and more opaque as the rim lifts | `tone` |
 | Rim | The outline of the pad. Flat and thin at rest, a raised wall with a darker side under the pointer or the focus, pressed down a little while it is held | `rim`, the lift |
 | Shadow | A soft dark spot under the rim that shows as it rises | the lift |
 | Label | The words, written flat on the pad with `TableText`, which rise with the rim so the wall does not bury them | `label`, in the game's words |
@@ -21,24 +21,19 @@ scene-floor-buttons
 
 ## On the table
 
-A `FloorButton` is shared: `packages/table/src/floor/floor-button.tsx`. The props are `FloorButtonProps` (a zone, which is deprecated, takes `FloorZoneProps`):
+A `FloorButton` is shared: `packages/table/src/floor/floor-button.tsx`. The props are `FloorButtonProps`:
 
 | Prop | Role |
 | --- | --- |
 | `at` | `{ x, z, yaw? }`: where the pad's centre lies and the way it faces. A pad of a seat takes the yaw of the seat |
 | `width`, `depth` | The pad's size in world units, `width` along its own x axis and `depth` along its own z axis. A button is as deep as the pile it sits beside |
-| `tone` | `primary` (the default) for the action that goes on, `neutral` for the quieter ones: the tint, the outline and the rim all come from it, and the game's theme gives each its colour ([Tones](#tones)). A `#rrggbb` is still drawn as it is and anything else grey, which is deprecated: a board types no colour |
-| `label` | What is written on the pad, in the game's words and the visitor's language: the action it does. Required: a pad with no label is a zone, which is deprecated |
+| `tone` | `primary` (the default) for the action that goes on, `neutral` for the quieter ones: the tint, the outline and the rim all come from it, and the game's theme gives each its colour ([Tones](#tones)). A board types no colour |
+| `label` | What is written on the pad, in the game's words and the visitor's language: the action it does. Required: a choice between objects is made by pressing the objects, not by a pad with no label |
 | `labelHeight` | The size of the letters in world units (default 0.55). A label too long for the pad, a word in another language, is set smaller to fit it on one line (`fitLabel` in `lift.ts`) |
-| `font` | Deprecated: the lettering is the table's (`useLettering`), the display font of the game |
-| `weight` | Deprecated: the table's own (`LETTERING_WEIGHT`) |
-| `ariaLabel` | What a screen reader says and what the keyboard focus lands on; `label` when not given. A zone, which has no label, must give one ("Pick the card") |
+| `ariaLabel` | What a screen reader says and what the keyboard focus lands on; `label` when not given. |
 | `onPress` | A click, a tap, or Enter or Space on the focused pad calls it. Without it the pad is drawn and takes no press |
 | `disabled` | The pad lies flat and dim, takes no pointer and is left out of the Tab order |
 | `rim` | How high the rim rises, in world units (default `RIM_HEIGHT`, 0.2) |
-| `hitY` | A zone only, deprecated: how high the invisible plane that takes the pointer lies (default 0.02) |
-| `children` | A zone only, deprecated: the decal slot, see [Decals](#decals) |
-| `tint` | A zone only, deprecated: how strongly the pad is tinted, as a share of the usual (default 1) |
 
 - **Hover, focus and press** all lift the rim; a held press lowers it a little (`LIFT_LEVELS`, `liftTarget` in `lift.ts`). Keyboard focus shows the lift only for a focus the browser draws a ring on (`:focus-visible`), so a pointer press does not leave a pad lifted. A disabled pad never lifts.
 - **Reduced motion.** The rim glides in about a sixth of a second (`stepLift`). A visitor who asks for less motion (`usePrefersReducedMotion`, as every block of the table) gets the lifted state at once, with no glide: the rim is up or it is down, never on its way.
@@ -54,18 +49,18 @@ A button has one of two tones, and the game's theme gives each its colour: `prim
 button: { primary: "accent", neutral: "#b4c6d8" }
 ```
 
-Each is a key of the theme (`accent`, `foreground`, `surface`…) or `#rrggbb` ([Game themes](../../design/04-in-game/03-game-themes.md)). `floorTones` gives the colour each tone stands for and `useFloorTones` reads it for the game shown. The lettering of a button is the table's, in the display font of the game (`useLettering`): a board gives no font and no weight.
+Each is a key of the theme (`accent`, `foreground`, `surface`…) or `#rrggbb` ([Game themes](../../design/04-in-game/03-game-themes.md)). `floorTones` gives the colour each tone stands for and `useFloorTones` reads it for the game shown. The lettering of a button is the table's, in the display font of the game (`useLettering`): a board gives no font, no weight and no colour.
 
 ## In Flip 7
 
 | What | Where | Tone |
 | --- | --- | --- |
-| Stay, beside the draw pile, one pad across the strip between the two piles and as deep as them, on the viewer's turn. It lies dim when the viewer holds nothing to bank | `floorPlan().pad` | `neutral`: a pale cool grey `#b4c6d8` with a hint of the blue-green of the table |
-| Deal, the same pad, for the dealer between two rounds | `floorPlan().pad` | `primary`: a luminous blue-green `#4fe0c0`, which reads on the teal table |
+| Stay, beside the draw pile, one pad across the strip between the two piles and as deep as them, on the viewer's turn. It lies dim when the viewer holds nothing to bank | `floorPlan().pad` | `neutral` |
+| Deal, the same pad, for the dealer between two rounds | `floorPlan().pad` | `primary` |
 | Hit is not a button: it is the draw pile, whose top card is pressed, with the word "Hit" over it | `action` of its `Pile` | |
-| The area of each seat that can get the action card the viewer holds: a `Hotspot` over the cards and the plate, which lights the cards as the pointer goes over it, and a pool of light where a player has no card yet, see [Choosing a player](#choosing-a-player) | `zones()`, `ZONE_PADDING`, `ZONE_MAX_WIDTH` | none: the cards are lit by the bloom of their state |
+| The area of each seat that can get the action card the viewer holds: a `Hotspot` over the cards and the plate, which lights the cards as the pointer goes over it, and a pool of light where a player has no card yet, see [Choosing a player](#choosing-a-player) | `zones()`, `ZONE_PADDING` | none: the cards are lit by the bloom of their state |
 
-The tones are `UI_THEME.button` of the game, `{ primary: "#4fe0c0", neutral: "#b4c6d8" }`. The action card drawn lies face up at the left of the strip, beside the draw pile, in the state `selected` for the player who gives it, because Stay and the card never show at once. What the player has to do is the ticker's `prompt`, one sentence for each action card, and the table writes none. The game's words for them are `hit`, `stay`, `deal`, `targetFreeze`, `targetFlipThree`, `targetSecondChance` and `targetPlayer` (the accessible name of an area).
+The tones are the game's `UI_THEME.button`, which the game says once ([Tones](#tones)). What the player has to do is the ticker's `prompt`, one sentence for each action card, and the table writes none. The game's words for them are `hit`, `stay`, `deal`, `targetFreeze`, `targetFlipThree`, `targetSecondChance` and `targetPlayer` (the accessible name of an area).
 
 ## Choosing a player
 
@@ -92,12 +87,8 @@ scene-seat
 - **Colours** are the game's: `UI_THEME.card` gives each state's bloom its colour and strength, and the table has no colour of its own for a target. A board never types one.
 - **Geometry.** Tested with the boxes, not a screenshot: no area overlaps another area, another seat's plate, a pile or the buttons, and an area holds its player's cards and plate (the `layout.test.ts` of Flip 7 and of the template are the models).
 
-## Decals
-
-Deprecated, with the zones. A pad can carry flat marks (a seat's emblem, a sketch, a glyph) that belong to the pad, not to the cards on it. The extension point is the `children` of a `FloorButton`: they are drawn in the pad's own frame (x along `width`, z along `depth`, y up, the origin at the pad's centre) at `DECAL_Y` (0.012), over the tint and under the label and the cards, and they stay on the table as the rim lifts. A decal that must not take the pointer has `raycast={() => null}`. The slot is implemented and is one line (`floor-button.tsx`); it has no automated test, since nothing renders a scene in the unit tests, and no game uses it yet.
-
 ## Limits
 
-- The keyboard stand-in is a DOM button placed at the pad's centre. It is hidden from the eye but not from a screen reader, which reads one entry for each pad that can be pressed. A table with many pads at once (a zone for each seat) lists as many buttons.
+- The keyboard stand-in is a DOM button placed at the pad's centre. It is hidden from the eye but not from a screen reader, which reads one entry for each pad that can be pressed. A table with many pads at once lists as many buttons.
 - The drop shadow is a texture laid under the rim, not a real shadow: it does not follow the light and does not fall on other pads.
 - The rim is an extruded outline whose height is scaled, so its wall is as thick as the outline: it reads as a lifted border, not as a block.
