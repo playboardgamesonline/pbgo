@@ -3,10 +3,10 @@
 import { playSound } from "@pbgo/core/lib/sound"
 import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { useCursor } from "@react-three/drei"
-import { type ThreeEvent, useFrame } from "@react-three/fiber"
+import { useFrame } from "@react-three/fiber"
 import { easing } from "maath"
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { AdditiveBlending, type Color, type Group, type Mesh, type MeshBasicMaterial, NormalBlending, Quaternion, type Texture, Vector3 } from "three"
+import { AdditiveBlending, type Color, type Group, type Mesh, type MeshBasicMaterial, Quaternion, type Texture, Vector3 } from "three"
 import { type CardReading, inspector } from "../debug/inspector"
 import { DEBUG_VIEW } from "../debug/view"
 import { useStandIn } from "../floor/stand-in"
@@ -19,12 +19,11 @@ import type { CardId } from "../table/memory"
 import { usePoseMemory } from "../table/memory-context"
 import { type Flight, startFlight, stepFlight } from "./flight"
 import { applyFold, foldable } from "./fold"
-import { type CardSize, cardGeometry, cornerRadius, edgeGeometry, frameGeometry } from "./geometry"
-import { type Glow, glowNameOf } from "./glows"
+import { type CardSize, cardGeometry, cornerRadius, edgeGeometry } from "./geometry"
 import { CARD_SETTINGS } from "./settings"
 import { flightCues, soundOfTransition } from "./sounds"
 import { CARD_STATE_SETTINGS, type BloomKey, type CardState, effectiveState, haloSide, isPressable, stateLook } from "./states"
-import { glossTexture, haloTexture, shadowTexture, sparkleTexture } from "./textures"
+import { glossTexture, haloTexture, shadowTexture } from "./textures"
 import { useCardBlooms } from "./theme"
 
 /** Where a dragged card was let go: the zone it was let go on, or null for none, and where it lay on the table (`useDrag`) */
@@ -43,36 +42,24 @@ export type CardProps = {
   back: Texture
   /** Width, height and corner radius, in world units. The same for every card of a game: cards of one size share their geometry */
   size: CardSize
-  /**
-   * The glow around the card, one of the game's `defineGlows`. None when null.
-   * @deprecated Say a `state`: the table draws the bloom, the lift and the dark itself, in the game's colours (`UI_THEME.card`), and a card has no outline and no frame. The glows of a board go with the next pass over the boards
-   */
-  glow?: Glow | null
   /** The shine that follows the pointer over the front: `true` for the usual strength, a number (0 to 1) for a given one */
   gloss?: boolean | number
   /** Casts a drop shadow (default true) */
   shadow?: boolean
-  /** Drawn over everything else, glows of other cards included */
+  /** Drawn over everything else, the blooms of other cards included */
   above?: boolean
-  /**
-   * The card can no longer play (its player is out of the round): a grey filter over its picture and its edge, darker and with no colour. It lifts when `out` turns false.
-   * @deprecated Say `state="out"`, which does the same
-   */
-  out?: boolean
   /**
    * How the card stands for the player: `base`, `interactive` (can be chosen now), `selected` (picked), `disabled`, `out`, or `hover` and `pressed` to force them. The table draws the state itself: a bloom of light in the game's colours (`UI_THEME.card`), the lift and the growth of
    * a card under the pointer or picked, the dip of a pressed one, the dark of a disabled one. It raises an `interactive` card to `hover` and `pressed` from the pointer and the keyboard, so a game wires none of it. Without a state the card has none: it only reports the pointer
-   * and the game lifts and lights it with `glow` and `gloss` as it did. A card that can be pressed (`interactive`, `selected`) takes `onPress`, and only such a card does: one in any other state lets the pointer by
+   * and the game lifts and lights it with `gloss`. A card that can be pressed (`interactive`, `selected`) takes `onPress`, and only such a card does: one in any other state lets the pointer by
    */
   state?: CardState
-  /** The card was pressed: a click, a tap, or Enter or Space on its keyboard stand-in. A card in a state takes it only while it can be pressed */
+  /** The card was pressed: a click, a tap, or Enter or Space on its keyboard stand-in. A card in a state takes it only while it can be pressed; one with no state takes a click or a tap alone, with no light and no key */
   onPress?: () => void
   /** What a screen reader says of the card and what the keyboard focus lands on: the game's word and the card's name ("Take the discard", "Guard"). A card that can be pressed must give it, or no key reaches it: it has no stand-in */
   ariaLabel?: string
   /** Seconds the card takes to settle on a new `target`, about: the smaller, the snappier (default 0.16) */
   speed?: number
-  /** @deprecated Say `onPress` and a `state` that can be pressed: a card in a state takes the press itself, and keeps a keyboard stand-in, which a click handler has not */
-  onClick?: (e: ThreeEvent<MouseEvent>) => void
   onHover?: (hovered: boolean) => void
   /** Called when a flight ends */
   onArrive?: () => void
@@ -105,13 +92,13 @@ const JUMP = 4
 
 // How far each coplanar layer sits outside the card's surface (`thickness / 2` from its middle), on the side its name says.
 // At least 0.001 apart: the depth buffer is only about 0.0004 precise at the usual camera distance, so closer layers would flicker into one another
-const FRONT = { face: 0.001, overlay: 0.002, frame: 0.002, gloss: 0.003, sparkle: 0.004 }
-const BACK = { face: 0.001, outline: 0.003, halo: 0.006, shadow: 0.012 }
+const FRONT = { face: 0.001, overlay: 0.002, gloss: 0.003 }
+const BACK = { face: 0.001, halo: 0.006, shadow: 0.012 }
 
 // What the pressing of a card without a name cannot do: the keyboard has no way to it. Said once, in development
 let warnedNoName = false
 
-// A glow's colours are read every frame so they can be tuned live; a colour is parsed only when it differs from the last one set
+// The bloom's colours are read every frame so they can be tuned live; a colour is parsed only when it differs from the last one set
 const tints = new WeakMap<Color, string>()
 function tint(color: Color, value: string) {
   if (tints.get(color) === value) return
@@ -124,8 +111,8 @@ const arch = (fold: { value: number }, height: number, dir: 1 | -1, grey: number
 
 /**
  * A playing card: a plane with a front and a back, a thickness, and the same behaviour in every game.
- * It glides to its `target`, flies there along a curve when it comes `from` somewhere or jumps far, flips, hovers, glows and casts a shadow.
- * What differs from game to game is passed in: the pictures, the `size`, the `glow`s and what is drawn on the face (`children`).
+ * It glides to its `target`, flies there along a curve when it comes `from` somewhere or jumps far, flips, hovers, is lit by its `state` and casts a shadow.
+ * What differs from game to game is passed in: the pictures, the `size` and what is drawn on the face (`children`).
  */
 export function Card({
   id,
@@ -134,16 +121,13 @@ export function Card({
   front,
   back,
   size,
-  glow,
   gloss,
   shadow = true,
   above = false,
-  out: outProp = false,
   state,
   onPress,
   ariaLabel,
   speed = 0.16,
-  onClick,
   onHover,
   onArrive,
   draggable = false,
@@ -159,36 +143,20 @@ export function Card({
   const reduced = usePrefersReducedMotion()
   const blooms = useCardBlooms()
   const stated = state !== undefined
-  const out = outProp || state === "out"
+  const out = state === "out"
   const thickness = width * CARD_SETTINGS.thickness
   const stride = Math.min(width, height) / 5
   const geo = useMemo(() => foldable(cardGeometry(width, height, radius), stride), [width, height, radius, stride])
   const edge = useMemo(() => foldable(edgeGeometry(width, height, thickness, radius), stride), [width, height, thickness, radius, stride])
   const fold = useRef({ value: 0 })
 
-  // The parts of the glow. A part the glow lacks is not built at all
-  const { halo, outline, frame, sparkle }: Glow = glow ?? {}
-  const fit = Math.max(target.scale, 0.3)
-  const haloMargin = halo ? Math.min(width, height) * halo.spread : 0
-  const haloTex = halo ? haloTexture(width, height, haloMargin, radius) : null
-  const frameGeo = frame ? frameGeometry(width, height, 0.07 / fit, 0.03 / fit, radius) : null
-  const outlineMargin = 0.05 / fit
-  const outlineRadius = size.radius === undefined ? undefined : size.radius + outlineMargin / 2
-  const outlineGeo = outline ? cardGeometry(width + outlineMargin, height + outlineMargin, outlineRadius) : null
   const bloomMargin = Math.min(width, height) * CARD_STATE_SETTINGS.bloomSpread
   const bloomTex = stated ? haloTexture(width, height, bloomMargin, radius) : null
-  const hasSparkle = !!sparkle
-  const sparkleTex = useMemo(() => (hasSparkle ? sparkleTexture() : null), [hasSparkle])
-  useEffect(() => () => sparkleTex?.dispose(), [sparkleTex])
-  const haloRef = useRef<MeshBasicMaterial>(null)
-  const frameRef = useRef<Mesh>(null)
-  const outlineRef = useRef<Mesh>(null)
-  const sparkleRef = useRef<Mesh>(null)
 
   const [hovered, setHovered] = useState(false)
   const [touched, setTouched] = useState(false)
-  // Whether a press of this card does anything: the game's own say for a card in a state, any handler for one without
-  const pressable = stated ? isPressable(state) && !!(onPress || onClick) : !!(onPress || onClick)
+  // Whether a press of this card does anything: the game's own say for a card in a state, a handler for one without
+  const pressable = stated ? isPressable(state) && !!onPress : !!onPress
   // The keyboard stand-in of a card that can be pressed: one real button in the page, over the card
   const focused = useStandIn({ pressable: stated && isPressable(state) && !!onPress && !!ariaLabel, name: ariaLabel, onPress, anchor: ref })
   const drawn: CardState = stated ? effectiveState(state, { hovered, focused, pressed: touched }) : "base"
@@ -219,9 +187,8 @@ export function Card({
     dropOn,
     onClick: pressable
       ? (e) => {
-          // A card in a state takes the click: it goes no farther, to the table behind it or to a zone over it
-          if (stated) e.stopPropagation()
-          onClick?.(e)
+          // A card that can be pressed takes the click: it goes no farther, to the table behind it or to a zone over it
+          e.stopPropagation()
           onPress?.()
         }
       : undefined,
@@ -236,9 +203,9 @@ export function Card({
 
   // The debug panel's inspector reads the card under the pointer: what it reads is the card as it is then, not as it was when the pointer came
   const [inspectKey] = useState(() => Symbol("card"))
-  const latest = useRef({ id, target, glow })
+  const latest = useRef({ id, target })
   useEffect(() => {
-    latest.current = { id, target, glow }
+    latest.current = { id, target }
     drawnRef.current = drawn
     bloomsRef.current = blooms
   })
@@ -268,7 +235,7 @@ export function Card({
   }, [drawn])
   useEffect(() => () => inspector.leave(inspectKey), [inspectKey])
   const reading = (): CardReading => {
-    const { id: named, target: to, glow: lit } = latest.current
+    const { id: named, target: to } = latest.current
     const g = ref.current
     const f = flight.current
     return {
@@ -278,7 +245,6 @@ export function Card({
       scale: g ? g.scale.x : 1,
       targetScale: to.scale,
       flight: f ? { time: f.t, duration: f.duration } : null,
-      glow: glowNameOf(lit),
     }
   }
 
@@ -311,26 +277,7 @@ export function Card({
   useFrame(({ pointer, clock, camera }, dt) => {
     const S = CARD_SETTINGS
     const t = clock.elapsedTime
-    if (halo && haloRef.current) {
-      haloRef.current.opacity = halo.opacity + Math.sin(t * halo.speed) * halo.pulse
-      tint(haloRef.current.color, halo.color)
-    }
-    if (outline && outlineRef.current) {
-      outlineRef.current.visible = outline.visible
-      tint((outlineRef.current.material as MeshBasicMaterial).color, outline.color)
-    }
     if (shadowRef.current) (shadowRef.current.material as MeshBasicMaterial).opacity = S.shadow
-    if (frame && frameRef.current) {
-      frameRef.current.scale.setScalar(1 + Math.sin(t * frame.speed) * frame.breath)
-      const m = frameRef.current.material as MeshBasicMaterial
-      m.opacity = frame.opacity + Math.sin(t * frame.speed) * frame.pulse
-      tint(m.color, frame.color)
-    }
-    if (sparkle && sparkleRef.current) {
-      const m = sparkleRef.current.material as MeshBasicMaterial
-      if (m.map) m.map.offset.x = ((t * sparkle.speed) % 1.6) - 0.8
-      m.opacity = sparkle.opacity
-    }
     // A card the table draws in a state has the shine under the pointer unless the game gives its own
     const touching = drawnRef.current === "hover" || drawnRef.current === "pressed"
     const shine = gloss !== undefined ? (gloss === true ? S.gloss : gloss || 0) : touching ? S.gloss : 0
@@ -476,35 +423,6 @@ export function Card({
             toneMapped={false}
           />
         </mesh>
-        {halo && haloTex && (
-          <mesh position-z={-thickness / 2 - BACK.halo} raycast={() => null}>
-            <planeGeometry args={[width + 2 * haloMargin, height + 2 * haloMargin]} />
-            <meshBasicMaterial
-              ref={haloRef}
-              map={haloTex}
-              color={halo.color}
-              transparent
-              depthWrite={false}
-              blending={halo.blend === "add" ? AdditiveBlending : NormalBlending}
-              toneMapped={false}
-            />
-          </mesh>
-        )}
-        {sparkle && sparkleTex && (
-          <mesh ref={sparkleRef} geometry={geo} position-z={thickness / 2 + FRONT.sparkle} raycast={() => null}>
-            <meshBasicMaterial map={sparkleTex} transparent opacity={0} blending={AdditiveBlending} depthWrite={false} toneMapped={false} />
-          </mesh>
-        )}
-        {frame && frameGeo && (
-          <mesh ref={frameRef} geometry={frameGeo} position-z={thickness / 2 + FRONT.frame} raycast={() => null}>
-            <meshBasicMaterial color={frame.color} transparent toneMapped={false} />
-          </mesh>
-        )}
-        {outline && outlineGeo && (
-          <mesh ref={outlineRef} geometry={outlineGeo} position-z={-thickness / 2 - BACK.outline} raycast={() => null}>
-            <meshBasicMaterial color={outline.color} toneMapped={false} />
-          </mesh>
-        )}
         {stated && (
           <group ref={bloomSide} visible={false}>
             <mesh raycast={() => null}>

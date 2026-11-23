@@ -33,7 +33,7 @@ describe("the parts", () => {
       expect(anchors, link.page).not.toBeNull()
       if (link.anchor) expect(anchors?.has(link.anchor), `${link.page}#${link.anchor}`).toBe(true)
     }
-    expect(docHref({ page: "cards", anchor: "glows" })).toBe("/docs/engine/components/cards#glows")
+    expect(docHref({ page: "cards", anchor: "states" })).toBe("/docs/engine/components/cards#states")
   })
 
   it("are all switched on by a scene or reachable from the Parts tab", () => {

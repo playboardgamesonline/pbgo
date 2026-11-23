@@ -62,7 +62,7 @@ A choice is a decision one player makes inside a phase: who gets an action card,
 - The view gives the board what the options are made of. Flip 7's `target` phase holds the holder, the card as a `Face` and `targets`, the ids that can get it in seat order. Exploding Kittens' `give` names `from` and `to` (the options are the hand of `from`, `me.hand`), `defuse` shows the `kitten` (the options are the places in the pile, up to its size `deck`) and `pick` shows `played` (the options are the public `discard`, less `played` and the Kittens).
 - A choice made with the move needs no pending state: `play` and `combo` of Exploding Kittens carry a `target` (and `named`), checked by `checkTarget` when the card is played and by `hasCards` again when it resolves, and `playCard` of Courtisans carries a `Target` and, for an assassin, a `victimId`. The board of Courtisans holds the half-made choice itself (`Assassination`) and sends one action.
 - `autoPlayFor` answers a pending choice with the function of the action (`chooseTarget`, `defuse`, `give`, `pick`), so an absent player's answer passes the same checks.
-- What the table draws of the options is in [Clicks and hover](05-actions.md#clicks-and-hover) and [Glows](../02-components/04-cards.md#glows).
+- What the table draws of the options is in [Clicks and hover](05-actions.md#clicks-and-hover) and [Card states](../02-components/04-cards.md#states).
 
 ## Reactions
 

@@ -86,7 +86,6 @@ export function baseState(): PlayState {
     bet: null,
     face: null,
     sketch: { strokes: emptyDrawing(), color: 0, width: 1 },
-    glow: "halo",
     hand: {
       cards: [
         { id: 7, card: 3 },

@@ -8,7 +8,6 @@ const reading = (over: Partial<CardReading> = {}): CardReading => ({
   scale: 1,
   targetScale: 1.25,
   flight: null,
-  glow: null,
   ...over,
 })
 
@@ -58,10 +57,5 @@ describe("the lines of the Inspector", () => {
     expect(describeCard(reading({ flight: { time: -0.3, duration: 1.2 } })).flight).toBe("waits 0.30 s")
     expect(describeCard(reading({ flight: { time: 0.6, duration: 1.2 } })).flight).toBe("50 % of 1.20 s")
     expect(describeCard(reading({ flight: { time: 2, duration: 1.2 } })).flight).toBe("100 % of 1.20 s")
-  })
-
-  it("name the glow, or say there is none", () => {
-    expect(describeCard(reading({ glow: "selection" })).glow).toBe("selection")
-    expect(describeCard(reading()).glow).toBe("none")
   })
 })

@@ -10,7 +10,6 @@ export const TableScene = dynamic(() => import("./three/table").then((m) => m.Ta
 export const CameraScene = dynamic(() => import("./three/camera").then((m) => m.CameraScene), { ssr: false })
 export const CardScene = dynamic(() => import("./three/card").then((m) => m.CardScene), { ssr: false })
 export const CardStatesScene = dynamic(() => import("./three/card-states").then((m) => m.CardStatesScene), { ssr: false })
-export const GlowsScene = dynamic(() => import("./three/glows").then((m) => m.GlowsScene), { ssr: false })
 export const FlightScene = dynamic(() => import("./three/flight").then((m) => m.FlightScene), { ssr: false })
 export const PoseMemoryScene = dynamic(() => import("./three/pose-memory").then((m) => m.PoseMemoryScene), { ssr: false })
 export const LayoutsScene = dynamic(() => import("./three/layouts").then((m) => m.LayoutsScene), { ssr: false })
