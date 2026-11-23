@@ -18,6 +18,8 @@ export const SEAT_SETTINGS = {
   /** The height of the info line's lettering (the score, then the status), and how far toward the cards it stands from the plate's centre */
   lineHeight: 0.4,
   lineDrop: 0.4,
+  /** The widest a name may be: a longer one (twelve wide capitals) shrinks to this width, with its proportions, instead of reaching the plate of the next seat. Twelve letters of the platform's font make about 3.5, so a name that is not wide is never touched */
+  nameRoom: 3.8,
   /** The avatar's diameter and its gap to the first or the last letter */
   avatarSize: 0.56,
   avatarGap: 0.18,
@@ -32,6 +34,28 @@ export const SEAT_SETTINGS = {
 }
 export type SeatSettings = typeof SEAT_SETTINGS
 
+/**
+ * The settings of a plate made `factor` times the size, for a board whose plates shrink at a bigger table: every size and every gap is multiplied, the reach factors and the opacity are not. A plate is drawn with them (`settings` of `Seat`) and a layout
+ * works its boxes out with the same (`plateAbove`, `plateBoxOf` and `plateWidth` take them), so that the two agree. `SEAT_SETTINGS` is a plain object the debug panel edits: this is a copy of it as it is when it is called.
+ */
+export function scaledSeat(factor: number, base: SeatSettings = SEAT_SETTINGS): SeatSettings {
+  const S = base
+  return {
+    ...S,
+    nameHeight: S.nameHeight * factor,
+    nameLift: S.nameLift * factor,
+    lineHeight: S.lineHeight * factor,
+    lineDrop: S.lineDrop * factor,
+    nameRoom: S.nameRoom * factor,
+    avatarSize: S.avatarSize * factor,
+    avatarGap: S.avatarGap * factor,
+    crownSize: S.crownSize * factor,
+    crownRight: S.crownRight * factor,
+    crownBack: S.crownBack * factor,
+    plateGap: S.plateGap * factor,
+  }
+}
+
 /** A knob of a debug panel: its label, its least, its greatest and its step */
 type Knob = [label: string, min: number, max: number, step: number]
 
@@ -45,6 +69,7 @@ export const SEAT_FIELDS = {
   nameLift: ["name lift", 0, 1, 0.01],
   lineHeight: ["info line size", 0.2, 1, 0.01],
   lineDrop: ["info line drop", 0, 1, 0.01],
+  nameRoom: ["name room (a longer name shrinks)", 1, 8, 0.1],
   avatarSize: ["avatar size", 0.2, 1.2, 0.01],
   avatarGap: ["avatar gap", 0, 0.6, 0.01],
   crownSize: ["crown size", 0.2, 1.4, 0.01],

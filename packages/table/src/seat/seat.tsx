@@ -12,7 +12,7 @@ import { useSettingsVersion } from "../debug/settings"
 import { DEBUG_VIEW } from "../debug/view"
 import type { Spot } from "../layout"
 import { TurnCrown } from "./crown"
-import { plateAbove, plateOf, SEAT_SETTINGS } from "./placement"
+import { plateAbove, plateOf, SEAT_SETTINGS, type SeatSettings } from "./placement"
 import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import { seatStateOf } from "./state"
 import { TableText, type TextStyle } from "./table-text"
@@ -61,6 +61,10 @@ export type SeatProps = {
   trailing?: ReactNode
   /** The crown's icon, the skin's `hostIcon`; without one, a drawn crown */
   crownIcon?: string | null
+  /** The widest the name may be, in world units: a longer one shrinks to it, with its proportions. `SEAT_SETTINGS.nameRoom` by default, which only a name of wide capitals goes beyond */
+  room?: number
+  /** The settings the plate follows: `SEAT_SETTINGS` unless a board makes its plates smaller at a bigger table (`scaledSeat`), in which case the layout that places them is given the same */
+  settings?: SeatSettings
   /** The CSS font of the lettering; `PLATE_FONT` (Geist) by default */
   font?: string
   /** What is changed in the name's style (colour, effects) and in the info line's */
@@ -91,6 +95,8 @@ export function Seat({
   status,
   trailing,
   crownIcon,
+  room,
+  settings,
   font = PLATE_FONT,
   nameStyle,
   lineStyle,
@@ -98,7 +104,7 @@ export function Seat({
 }: SeatProps) {
   // The plate follows `SEAT_SETTINGS` as the knobs of the debug panel move them, and the panel can mark where the seat is
   useSettingsVersion()
-  const S = SEAT_SETTINGS
+  const S = settings ?? SEAT_SETTINGS
   const plate = above ? plateAbove(above, S) : plateOf(spot, viewer, S)
   const opacity = away ? S.awayOpacity : 1
   const name: TextStyle = { color, shadow: "rgba(0,0,0,0.6)|12|4", weight: PLATE_WEIGHT, ...nameStyle }
@@ -108,7 +114,7 @@ export function Seat({
   return (
     <group>
       <group position={[frame.x, 0, frame.z]} rotation-y={frame.yaw ?? 0}>
-        <TableText text={shortName(nickname)} style={name} height={S.nameHeight} position={[plate.x + shift, TEXT_Y, plate.nameZ]} font={font} opacity={opacity} trailing={trailing}>
+        <TableText text={shortName(nickname)} style={name} height={S.nameHeight} maxWidth={room ?? S.nameRoom} position={[plate.x + shift, TEXT_Y, plate.nameZ]} font={font} opacity={opacity} trailing={trailing}>
           <SeatAvatarMesh nickname={nickname} color={color} imageUrl={imageUrl} theme={theme} size={S.avatarSize} position={[plate.avatarX, 0, 0]} opacity={opacity} />
           <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[plate.crownX, 0, plate.crownZ]} yaw={frame.yaw ?? 0} />
         </TableText>
