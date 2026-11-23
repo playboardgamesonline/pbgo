@@ -2,7 +2,7 @@ import { readdirSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
-import { BOARD_DIR, gameDir, KIT_DIR, readBoards, reachedBy } from "./board-kit.ts"
+import { BOARD_DIR, gameDir, KIT_DIR, kitFiles, readBoards, reachedBy } from "./board-kit.ts"
 import { GAMES } from "./registry"
 
 // The boards of the games are drawn on one kit, `@pbgo/table`, so that an edit of the kit changes every one of them. Nothing at run time says so: a game can stop using the kit's `Card` for a copy of its own and
@@ -51,6 +51,11 @@ describe("the boards of the games", () => {
 
   it("exist for every game that is live", () => {
     for (const game of GAMES.filter((entry) => entry.live)) expect(slugs, `${game.slug} is live and has no board in ${gameDir(game.slug)}/${BOARD_DIR}`).toContain(game.slug)
+  })
+
+  it("have the pieces of the list in the kit: a file that was renamed or moved is told here, not as a board that stopped loading it", () => {
+    const files = kitFiles(REPO)
+    for (const piece of EVERY_BOARD) expect(files, `${piece} is in EVERY_BOARD and is no file of the kit (${KIT_DIR}): it was renamed or moved, so name the file that holds the piece now`).toContain(`${KIT_DIR}/${piece}`)
   })
 
   it.each(EVERY_BOARD)("are all changed by an edit of %s", (piece) => {
