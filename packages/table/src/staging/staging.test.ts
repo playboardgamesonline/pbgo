@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { APPEAR, appearAt } from "./appear-look"
+import { STAMP, stampAt } from "./stamp-look"
 import { VEIL, veilTarget } from "./veil-look"
 
 describe("how far an entrance has come", () => {
@@ -54,5 +55,38 @@ describe("where a veil is going", () => {
   it("is drawn after what is on the table, which sits at order 0", () => {
     expect(VEIL.order).toBeGreaterThan(0)
     expect(VEIL.distance).toBeGreaterThan(0)
+  })
+})
+
+describe("how a stamp lands", () => {
+  it("is not seen until its delay has passed, and starts as nothing, high above its place", () => {
+    expect(stampAt(0.5, { delay: 1 }).visible).toBe(false)
+    expect(stampAt(1, { delay: 1 })).toEqual({ visible: true, scale: 0.001, lift: STAMP.drop })
+  })
+
+  it("has landed once its delay and its duration have passed: its size, on its place", () => {
+    expect(stampAt(STAMP.delay + STAMP.duration)).toEqual({ visible: true, scale: 1, lift: 0 })
+    expect(stampAt(Infinity, { delay: 3 })).toEqual({ visible: true, scale: 1, lift: 0 })
+  })
+
+  it("grows past its size on the way and settles back to it, as a stamp that is thumped down", () => {
+    const scales = Array.from({ length: 101 }, (_, i) => stampAt((i / 100) * STAMP.duration).scale)
+    expect(Math.max(...scales)).toBeGreaterThan(1.1)
+    expect(scales[100]).toBe(1)
+    // after the most it is, it only gets smaller, down to its size
+    const top = scales.indexOf(Math.max(...scales))
+    for (let i = top + 1; i < scales.length; i++) expect(scales[i]!).toBeLessThanOrEqual(scales[i - 1]!)
+  })
+
+  it("comes down fast at first and settling, and never goes under its place", () => {
+    const lifts = Array.from({ length: 41 }, (_, i) => stampAt((i / 40) * STAMP.duration).lift)
+    for (let i = 1; i < lifts.length; i++) expect(lifts[i]!).toBeLessThanOrEqual(lifts[i - 1]!)
+    expect(lifts[0]! - lifts[10]!).toBeGreaterThan(lifts[30]! - lifts[40]!)
+    expect(Math.min(...lifts)).toBe(0)
+  })
+
+  it("takes the delay, the duration and the height a game gives, and never divides by a duration of nothing", () => {
+    expect(stampAt(2, { delay: 1, duration: 2, drop: 3 }).lift).toBeCloseTo(0.75)
+    expect(stampAt(0.6, { delay: 0.5, duration: 0 })).toEqual({ visible: true, scale: 1, lift: 0 })
   })
 })

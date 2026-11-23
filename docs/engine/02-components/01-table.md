@@ -16,6 +16,7 @@ scene-table
 | `intro`, `playIntro` | The camera's entrance, and whether it plays ([The entrance](02-camera.md#the-entrance)) |
 | `held` | The entrance waits at its first frame until this turns false, then plays from there: for a table drawn behind the platform's start screen |
 | `onLoaded` | Called once, when what the children suspend on (`useTexture`, `useLoader`) is in; what a game loads without suspending, it reports itself |
+| `onEmptyPress` | A press on the table where nothing answers, for a board that lets go of what is picked when the visitor presses elsewhere. A plane under everything takes it, so what lies on the table and takes its own press (a card, a zone, a button) keeps it |
 | `surface` | The table the cards lie on, as `SurfaceProps`. Required: it has no end, the canvas is never transparent and the page behind it never shows through |
 | `lights` | `true` for `DEFAULT_LIGHTS`, or a `LightsProps` that overrides the fields it names; without it, no light |
 | `photo` | The `CameraSettings` of the share photo; without it the share image is the pixels of the canvas |

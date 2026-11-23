@@ -1,4 +1,5 @@
 import type { Specimens } from "@pbgo/docs/markdown"
+import { ScenePictureSpecimen } from "./picture"
 import { SceneZoneLightsSpecimen } from "./zone-lights"
 import {
   SceneActionLabelSpecimen,
@@ -61,6 +62,7 @@ export const sceneSpecimens: Specimens = {
   "scene-seats": SceneSeatsSpecimen,
   "scene-seat": SceneSeatSpecimen,
   "scene-zone-lights": SceneZoneLightsSpecimen,
+  "scene-picture": ScenePictureSpecimen,
   "scene-dice": SceneDiceSpecimen,
   "scene-text-field": SceneTextFieldSpecimen,
   "scene-staging": SceneStagingSpecimen,

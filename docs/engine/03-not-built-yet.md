@@ -54,4 +54,3 @@ Also not in the package, with no ticket of its own:
 
 - A mat with a behaviour of its own, such as a shader that unrolls it: the table's surface is a colour and a repeating picture, nothing more, and a mat is a plane the game draws on it.
 - A table lit like a room, with shadows and a source of light: the surface is flat and unlit. A pool of light added to it gives the vignette ([A pool of light](02-components/01-table.md#a-pool-of-light)), and nothing else.
-- A click on empty space: `Table` does not pass on the `onPointerMissed` of its canvas ([Clicks and hover](01-the-game/05-actions.md#clicks-and-hover)).
