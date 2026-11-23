@@ -1,5 +1,6 @@
 import type { CharacterKey, LoveLetterEvent } from "@love-letter/engine"
 import type { LogLine } from "@pbgo/core/lib/game-types"
+import { type Pace, paceOf } from "@pbgo/core/lib/move-pace"
 import type { Field } from "@pbgo/table"
 
 /**
@@ -97,41 +98,29 @@ export type Arrival = { from: "deck" | "hand"; by: string; delay: number }
  */
 export type Reveal = { kind: "guess" | "look" | "compare" | "swap"; at: number; duration: number; cards: (CharacterKey | null)[]; owners: (string | null)[]; event: LoveLetterEvent }
 
-export type Timeline = {
-  /** The greatest version of the log, the move that was played last (0 for an empty log) */
-  v: number
+export type Timeline = Pace & {
   /** Where each card that came in with that move comes in from, and when, by card id */
   entrances: Map<number, Arrival>
   /** When each player who drew a card with that move drew it, by player: a card drawn by another player is a back, which has no id to come in under, so the hand it joins comes in from the deck at that time */
   drawn: Map<string, number>
   /** What the move shows to be read, in order */
   reveals: Reveal[]
-  /** Seconds until that move has played out: the last card has landed, the last thing has had its time */
-  settle: number
 }
 
 /**
- * When each thing of the last move happens, from the lines of the log (`useGameLog`): the log says what happened and in what order, the board decides how long each takes. The view is drawn at once and is what is there; this is what the board waits with: the
+ * When each thing of the last move happens, from the lines of the log (`useGameLog`): the log says what happened and in what order, the board decides how long each takes (`paceOf`). The view is drawn at once and is what is there; this is what the board waits with: the
  * cards come in one after the other, the reveals are read, and the words that say how the move ended wait for it to end. With `instant` (the visitor asks for less motion) nothing waits and nothing is shown.
  */
 export function timelineOf(lines: readonly LogLine<LoveLetterEvent>[], instant = false): Timeline {
-  const v = lines.reduce((greatest, line) => Math.max(greatest, line.v), 0)
-  const timeline: Timeline = { v, entrances: new Map(), drawn: new Map(), reveals: [], settle: 0 }
-  if (instant || v === 0) return timeline
+  const entrances = new Map<number, Arrival>()
+  const drawn = new Map<string, number>()
+  const reveals: Reveal[] = []
   const P = PACE_SETTINGS
-  let at = 0
-  let landed = 0
-  const arrive = (id: number, from: Arrival["from"], by: string) => {
-    timeline.entrances.set(id, { from, by, delay: at })
-    landed = Math.max(landed, at + P.landing)
-  }
-  for (const line of lines) {
-    if (line.v !== v) continue
-    const { event } = line
+  const pace = paceOf(lines, { beat: beatOf, landing: P.landing, instant }, (event, cursor) => {
+    const arrive = (id: number, from: Arrival["from"], by: string) => void entrances.set(id, { from, by, delay: cursor.land() })
     switch (event.kind) {
       case "draw":
-        timeline.drawn.set(event.by, at)
-        landed = Math.max(landed, at + P.landing)
+        drawn.set(event.by, cursor.land())
         if (event.card) arrive(event.card.id, "deck", event.by)
         break
       case "play":
@@ -144,20 +133,18 @@ export function timelineOf(lines: readonly LogLine<LoveLetterEvent>[], instant =
         for (const card of event.cards) arrive(card.id, "hand", event.player)
         break
       case "guess":
-        timeline.reveals.push({ kind: "guess", at, duration: P.guess, cards: [event.guess], owners: [null], event })
+        reveals.push({ kind: "guess", at: cursor.at, duration: P.guess, cards: [event.guess], owners: [null], event })
         break
       case "look":
-        timeline.reveals.push({ kind: "look", at, duration: P.look, cards: [event.card ?? null], owners: [event.target], event })
+        reveals.push({ kind: "look", at: cursor.at, duration: P.look, cards: [event.card ?? null], owners: [event.target], event })
         break
       case "compare":
       case "swap":
-        timeline.reveals.push({ kind: event.kind, at, duration: event.kind === "compare" ? P.compare : P.swap, cards: [event.cards?.by ?? null, event.cards?.target ?? null], owners: [event.by, event.target], event })
+        reveals.push({ kind: event.kind, at: cursor.at, duration: event.kind === "compare" ? P.compare : P.swap, cards: [event.cards?.by ?? null, event.cards?.target ?? null], owners: [event.by, event.target], event })
         break
       default:
         break
     }
-    at += beatOf(event)
-  }
-  timeline.settle = Math.max(at, landed)
-  return timeline
+  })
+  return { ...pace, entrances, drawn, reveals }
 }

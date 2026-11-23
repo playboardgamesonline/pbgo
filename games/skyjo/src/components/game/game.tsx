@@ -10,6 +10,7 @@ import { DebugSlot } from "@pbgo/core/components/game/debug-controls"
 import { useDebugFolder } from "@pbgo/core/components/game/debug-folders"
 import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-over"
 import { GameHud, groupTurns, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
+import { useMoveClock } from "@pbgo/core/components/game/use-move-clock"
 import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
 import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import type { ClientDebugCommand } from "@pbgo/core/lib/api"
@@ -74,25 +75,13 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   // What happened, as the platform keeps it for the table and sends it to this player: the state and the view hold no log
   const log = useGameLog<SkyjoEvent>()
   // How long the last move takes to play out (`timelineOf`). The board draws the view at once; what it holds back waits for that time: the cards that come in one after the other, the announcements and the words that say how the move ended.
-  // A table that is opened, or reloaded, is drawn as it is and plays nothing (`openedAt`), but for the deal, which is drawn when the start screen goes
+  // A table that is opened, or reloaded, is drawn as it is and plays nothing (`playing`), but for the deal, which is drawn when the start screen goes
   const motion = useMotion()
   const seatIds = view.players.map((player) => player.id)
   const key = seatIds.join("|")
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the ids
   const timeline = useMemo(() => timelineOf(log, seatIds, motion === "reduced"), [log, key, motion])
-  const [openedAt] = useState(() => (held ? 0 : timeline.v))
-  const [playedV, setPlayedV] = useState(openedAt)
-  const busyUntil = useRef(0)
-  const busy = playedV < timeline.v
-  useEffect(() => {
-    // behind the start screen the cards of the deal are not drawn: the clock of the deal starts when the screen goes
-    if (held || timeline.v <= playedV) return
-    // a move that comes while another plays out waits for both
-    busyUntil.current = Math.max(busyUntil.current, Date.now() + timeline.settle * 1000)
-    const timer = setTimeout(() => setPlayedV(timeline.v), Math.max(0, busyUntil.current - Date.now()))
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- a move that was taken note of is not timed again: only a newer version of the log, or the start screen going, starts a timer
-  }, [timeline.v, held])
+  const { busy, playing } = useMoveClock(timeline, held)
   const settings = useAnnouncementSettings()
   const { announce, element: announcement, current } = useAnnouncements(settings, { paused: busy })
   const [sending, setSending] = useState(false)
@@ -245,8 +234,8 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
         onThrow={() => void send({ type: "discard" })}
         onFlip={(position) => void send({ type: "flip", position })}
         onDeal={() => void send({ type: "deal" })}
-        entrances={timeline.v > openedAt ? timeline.entrances : NO_ENTRANCES}
-        columns={timeline.v > openedAt ? timeline.columns : NO_COLUMNS}
+        entrances={playing ? timeline.entrances : NO_ENTRANCES}
+        columns={playing ? timeline.columns : NO_COLUMNS}
         busy={busy}
         held={held}
         onLoaded={onLoaded}
