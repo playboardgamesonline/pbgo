@@ -372,15 +372,6 @@ function BoardContent({
                 />
               )}
             </AnimatePresence>
-            {ending && !ending.scoreboard && (
-              <button
-                type="button"
-                className="absolute right-6 bottom-6 z-40 h-10 cursor-pointer rounded-xl bg-foreground px-6 font-display text-base tracking-wide text-background shadow-[0_10px_30px_rgb(0_0_0/55%),0_0_28px_color-mix(in_oklab,var(--foreground)_30%,transparent)] transition-transform duration-200 hover:scale-[1.04] active:scale-[0.98]"
-                onClick={skip}
-              >
-                {catalog.words.skip}
-              </button>
-            )}
             {ending?.scoreboard && <GameOver onUpdate={onUpdate} renderDetail={renderFamilyCards} history={history} sentences />}
           </>
         }
@@ -394,6 +385,7 @@ function BoardContent({
           settings={openingSettings}
           missionFocus={missionFocus}
           ending={ending}
+          onSkip={skip}
           onMission={(id) => setMissionFocus((f) => (f === id ? null : id))}
           onEmpty={() => {
             setMissionFocus(null)

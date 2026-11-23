@@ -22,7 +22,7 @@ import {
   MISSION_H,
   MISSION_PILE,
   MISSION_W,
-  NO_ASSASSINATION_PAD,
+  BUTTON_PAD,
   type Seat,
   seatBox,
   seats,
@@ -241,7 +241,7 @@ describe("the domain", () => {
 
 describe("the lanes and the button of the Queen's table", () => {
   const COLUMNS = ["butterfly", "toad", "nightingale", "queen", "hare", "stag", "carp"] as const
-  const pad = rectangle(NO_ASSASSINATION_PAD.at.x, NO_ASSASSINATION_PAD.at.z, NO_ASSASSINATION_PAD.width, NO_ASSASSINATION_PAD.depth)
+  const pad = rectangle(BUTTON_PAD.at.x, BUTTON_PAD.at.z, BUTTON_PAD.width, BUTTON_PAD.depth)
   const areaOf = (a: { at: { x: number; z: number; yaw: number }; width: number; depth: number }) => rectangle(a.at.x, a.at.z, a.width, a.depth, a.at.yaw)
 
   it("are pressed over the cards that lie in them and over no seat, whatever the table", () => {
@@ -270,7 +270,7 @@ describe("the lanes and the button of the Queen's table", () => {
     }
   })
 
-  it("leaves the button of the assassin clear of every seat, lane, pile and the mat, at every table", () => {
+  it("leaves the button of the table clear of every seat, lane, pile and the mat, at every table", () => {
     for (const { label, seats: places } of everyTable()) {
       for (const [id, seat] of places) {
         const { domain, plate, hand } = shapesOf(seat)

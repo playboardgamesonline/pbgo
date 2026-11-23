@@ -205,9 +205,10 @@ export function hotspotOf(seat: Seat, width: number): { at: { x: number; z: numb
 }
 
 /**
- * The button that says nobody is eliminated, when an assassin is played: on the viewer's side of the table, right of the cards of the Queen's table and below the draw pile, clear of the seats at the sides and of the area of the seat in front. It is as wide as its words need.
+ * Where the button of the table stands: on the viewer's side, right of the cards of the Queen's table and below the draw pile, clear of the seats at the sides and of the area of the seat in front. It says nobody is eliminated while an assassin is being played, and
+ * skips the end of the game while it plays: the two never meet. It is as wide as its words need.
  */
-export const NO_ASSASSINATION_PAD = { at: { x: 7.7, z: 4.3 }, width: 3.6, depth: 1.1 }
+export const BUTTON_PAD = { at: { x: 7.7, z: 4.3 }, width: 3.6, depth: 1.1 }
 
 export type DomainPile = { family: Family | null; position: Vector3 }
 export type DomainZone = {
