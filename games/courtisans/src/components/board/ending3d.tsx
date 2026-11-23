@@ -1,11 +1,10 @@
 "use client"
 
 import type { CourtisansResults, PlayerView } from "@courtisans/engine"
-import { useFrame } from "@react-three/fiber"
-import { useEffect, useMemo, useRef, useState } from "react"
-import { CanvasTexture, Color, type Mesh, SRGBColorSpace, Vector2 } from "three"
+import { useEffect, useMemo, useState } from "react"
+import { CanvasTexture, Color, SRGBColorSpace, Vector2 } from "three"
 import { useCourtisans } from "../game/context"
-import { Appear, type AuraLook, AURA_FIELDS, AURA_LOOK, TableText, useSettings, useSettingsVersion } from "@pbgo/table"
+import { Appear, type AuraLook, AURA_FIELDS, AURA_LOOK, Picture, TableText, useSettings, useSettingsVersion } from "@pbgo/table"
 import { columnX, MAT_D, type DomainZone, TABLE_FAMILIES } from "./layout"
 import type { EndingState } from "./ending"
 import { LETTERING_FONT } from "./font"
@@ -97,10 +96,7 @@ function Sign({ sign, position, size = 1.15 }: { sign: Sign; position: [number, 
   return (
     <group position={position}>
       <Appear {...LAND}>
-        <mesh rotation-x={-Math.PI / 2} renderOrder={4} raycast={() => null}>
-          <planeGeometry args={[size, size]} />
-          <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
-        </mesh>
+        <Picture texture={texture} width={size} aspect={1} />
       </Appear>
     </group>
   )
@@ -227,17 +223,10 @@ function Arrow({ direction, url, position }: { direction: "up" | "down"; url?: s
   useEffect(() => {
     if (url) loadArrow(url, setTexture)
   }, [url])
-  const ref = useRef<Mesh>(null)
-  useFrame(() => {
-    if (ref.current) ref.current.scale.setScalar(ENDING_SETTINGS.arrowSize)
-  })
   return (
     <group position={position}>
       <Appear {...LAND}>
-        <mesh ref={ref} rotation-x={-Math.PI / 2} renderOrder={4} raycast={() => null}>
-          <planeGeometry args={[1, 1]} />
-          <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
-        </mesh>
+        <Picture texture={texture} width={ENDING_SETTINGS.arrowSize} aspect={1} />
       </Appear>
     </group>
   )
@@ -349,12 +338,7 @@ export function Counters({ view, results, ending, zones }: { view: PlayerView; r
         return (
           <group key={j.id} position={[zone.center.x, ENDING_SETTINGS.counterHeight, zone.center.z]}>
             <Appear {...LAND}>
-            {ENDING_SETTINGS.counterBackdrop > 0.01 && (
-              <mesh rotation-x={-Math.PI / 2} position-y={-0.02} raycast={() => null}>
-                <circleGeometry args={[1.25, 48]} />
-                <meshBasicMaterial map={roundBg()} color="#02151a" transparent opacity={ENDING_SETTINGS.counterBackdrop} depthWrite={false} toneMapped={false} />
-              </mesh>
-            )}
+            {ENDING_SETTINGS.counterBackdrop > 0.01 && <Picture texture={roundBg()} width={2.5} aspect={1} lift={-0.02} order={0} color="#02151a" opacity={ENDING_SETTINGS.counterBackdrop} />}
             <TableText
               text={`${total}`}
               style={{ ...HOLO, spacing: "4px", shadow: `rgba(0,0,0,${ENDING_SETTINGS.counterShadow})|${ENDING_SETTINGS.counterShadowBlur}|${ENDING_SETTINGS.counterShadowOffset}` }}

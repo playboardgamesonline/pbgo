@@ -36,11 +36,7 @@ const WITHOUT: Record<string, string[]> = {}
  * it, and a board writes no other: a new element or a new hook is a decision. Ask the engine for the piece, or, when it is only this game's, add it here with the reason. The list is exact, so that one that
  * a board no longer needs is taken out of it, and the day the kit has the piece, the board takes it and the entry goes.
  */
-const OWN_DRAWING: Record<string, { elements: string[]; hooks: string[] }> = {
-  // Flat pictures that lie on the mat and a round backdrop under a counter (the ending), a plane under everything that takes a press on the empty table (`Table` passes none on), and the opening, which holds the
-  // missions in front of the camera and follows the pointer: no kit piece draws a flat picture or holds anything in the camera's frame but a hand
-  courtisans: { elements: ["circleGeometry", "mesh", "meshBasicMaterial", "planeGeometry"], hooks: ["useFrame", "useThree"] },
-}
+const OWN_DRAWING: Record<string, { elements: string[]; hooks: string[] }> = {}
 
 describe("the boards of the games", () => {
   it("are found: the four games the kit was moved to, and the template they were made from", () => {
