@@ -1,7 +1,6 @@
-import { type Quad, SEAT_SETTINGS, polygonsOverlap } from "@pbgo/table"
+import { hotspotOf, type Quad, SEAT_SETTINGS, polygonsOverlap } from "@pbgo/table"
 import { describe, expect, it } from "vitest"
 import {
-  areaPlace,
   CARD,
   cardsBox,
   FIRST_OPPONENT,
@@ -312,7 +311,7 @@ describe("the areas the viewer presses to give a card", () => {
     return names.map((id, i) => ({ id, area: areas[i]!, line: placed.get(id)! }))
   }
   const shapeOf = ({ frame, box }: (typeof setup extends (...a: never[]) => (infer T)[] ? T : never)["area"]): Quad => {
-    const { at, width, depth } = areaPlace({ frame, box })
+    const { at, width, depth } = hotspotOf({ frame, box })
     const [c, s] = [Math.cos(at.yaw ?? 0), Math.sin(at.yaw ?? 0)]
     return [
       [-1, -1],

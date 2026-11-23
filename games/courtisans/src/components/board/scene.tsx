@@ -35,7 +35,7 @@ import {
   heldFrom,
   heldLayout,
   HELD_SHADOW,
-  hotspotOf,
+  seatHotspot,
   tablePose,
   type Seat,
   seatBox,
@@ -634,7 +634,7 @@ function World({
         const seat = places.get(j.id)
         const zone = zones.get(j.id)
         if (!seat || !zone || !targetDomain(j.id)) return null
-        const area = hotspotOf(seat, zone.width)
+        const area = seatHotspot(seat, zone.width)
         return (
           <group key={j.id}>
             {j.domain.length === 0 && (

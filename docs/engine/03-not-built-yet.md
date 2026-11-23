@@ -49,7 +49,6 @@ What the framework does not provide, and what holds instead. The first table is 
 | A board for an engine that has none | GAM-24, GAM-8 | Exploding Kittens has an engine and no board; GAM-8 covers the wiring and the messages of Exploding Kittens too |
 | A skill for building a board, `engine-board` | PLT-70 | These pages and `template/docs/GAME_GUIDE.md` |
 | The template as a showcase of every feature | PLT-79 | Its board draws no `Pile`, no `grid`, no overlay in a card's `children`, no `standIn` and no `lights`; the tests of the package and these pages cover them |
-| The area that chooses a player or a cell, grown from its cards and its plate until it meets its neighbours | | A `Hotspot` takes the area the game works out: Flip 7 keeps its own `zones()`, the specimen a fixed padding |
 | How far the word over an object reaches | | Flip 7 reserves a width of its own beyond a pile (`PILE_WORD`) so that no plate lies under the word |
 | A plate size that follows the number of players by itself | | `scaledSeat(factor)` makes the settings of a smaller plate, which a board gives to its `Seat` and to its layout; no board does yet, and the kit has no rule for the factor of a table of eight |
 | A font for a `Counter`, the order of an ordered choice that `cleanChoices` keeps, a block for a card read large under the pointer (Love Letter's lens) | | A `Counter` writes in the table's lettering; the game keeps the order of a choice itself; the lens is Love Letter's own, in the layer of the HUD |
