@@ -1,6 +1,6 @@
 # Floor buttons
 
-A floor button is for an action that has no object on the table, such as stopping or dealing: a choice between objects is made by pressing the objects ([Rules of the board](26-rules-of-the-board.md)). It is a button drawn flat on the table, not floating over it: a pad of a colour with a thin outline and its label, on the felt like a card or a plate. Hit and Stay are floor buttons, and so is Deal. Its colour is a tone of the game's theme, `primary` or `neutral`, never a colour a board types ([Tones](#tones)). A player is not chosen with one: that is a [hotspot](#choosing-a-player) over their cards. At rest the pad is a tint with an outline. Under the pointer, under the keyboard focus and while it is held, its border lifts off the table: the rim rises, a soft shadow shows under it and the fill brightens. A canvas takes no keyboard, so each pad that can be pressed also puts one real, hidden button in the page, which the Tab key reaches (`useStandIn`, which a `Card` that can be pressed uses too). The table's side is `packages/table/src/floor/`: `floor-button.tsx` draws it, `hotspot.tsx` is the invisible area that chooses a player, `lift.ts` holds what is pure (how far the rim has lifted, the colours at each stage) and `lift.test.ts` tests it.
+A floor button is for an action that has no object on the table, such as stopping or dealing: a choice between objects is made by pressing the objects ([Rules of the board](26-rules-of-the-board.md)). It is a button drawn flat on the table, not floating over it: a pad of a colour with a thin outline and its label, on the felt like a card or a plate. Stay is a floor button, and so is Deal; Hit is not, since it has an object, the draw pile ([Action labels](27-action-labels.md#over-a-pile)). Its colour is a tone of the game's theme, `primary` or `neutral`, never a colour a board types ([Tones](#tones)). A player is not chosen with one: that is a [hotspot](#choosing-a-player) over their cards. At rest the pad is a tint with an outline. Under the pointer, under the keyboard focus and while it is held, its border lifts off the table: the rim rises, a soft shadow shows under it and the fill brightens. A canvas takes no keyboard, so each pad that can be pressed also puts one real, hidden button in the page, which the Tab key reaches (`useStandIn`, which a `Card` that can be pressed uses too). The table's side is `packages/table/src/floor/`: `floor-button.tsx` draws it, `hotspot.tsx` is the invisible area that chooses a player, `lift.ts` holds what is pure (how far the rim has lifted, the colours at each stage) and `lift.test.ts` tests it.
 
 Move the pointer over the buttons, or press Tab to walk the keyboard focus through them, and Enter or Space to press. Switch them off to see them lie flat and dim.
 
@@ -48,7 +48,7 @@ A `FloorButton` is shared: `packages/table/src/floor/floor-button.tsx`. The prop
 
 ## Tones
 
-A button has one of two tones, and the game's theme gives each its colour: `primary` for the action that goes on (Hit, Deal, Play) and `neutral` for the quieter ones (Stay, Keep, Swap). By default `primary` is the accent of the game's theme and `neutral` its text colour, which the settings change in the gamemaster, so a button follows the colours of the game without a board typing one. A game that wants others says it once, in its `UI_THEME`:
+A button has one of two tones, and the game's theme gives each its colour: `primary` for the action that goes on (Deal, Play) and `neutral` for the quieter ones (Stay, Keep, Swap). By default `primary` is the accent of the game's theme and `neutral` its text colour, which the settings change in the gamemaster, so a button follows the colours of the game without a board typing one. A game that wants others says it once, in its `UI_THEME`:
 
 ```ts
 button: { primary: "accent", neutral: "#b4c6d8" }
@@ -60,11 +60,12 @@ Each is a key of the theme (`accent`, `foreground`, `surface`…) or `#rrggbb` (
 
 | What | Where | Tone |
 | --- | --- | --- |
-| Hit, then Stay, side by side to the right of the draw pile, as deep as it, on the viewer's turn. Stay lies dim when the viewer holds nothing to bank | `floorPlan()`: `hit`, `stay` | a luminous blue-green `#4fe0c0`, and a pale cool grey `#b4c6d8` with a hint of the same blue-green, so the pair belongs together and both read on the teal table |
-| Deal, one pad across the room of the two, for the dealer between two rounds | `floorPlan().deal` | the teal |
+| Stay, beside the draw pile, one pad across the strip between the two piles and as deep as them, on the viewer's turn. It lies dim when the viewer holds nothing to bank | `floorPlan().pad` | `neutral`: a pale cool grey `#b4c6d8` with a hint of the blue-green of the table |
+| Deal, the same pad, for the dealer between two rounds | `floorPlan().pad` | `primary`: a luminous blue-green `#4fe0c0`, which reads on the teal table |
+| Hit is not a button: it is the draw pile, whose top card is pressed, with the word "Hit" over it | `action` of its `Pile` | |
 | The zone of each seat that can get the action card the viewer holds: a floor zone over the cards and the plate, see [Choosing a player](#choosing-a-player) for the rule a board follows | `zones()`, `ZONE_PADDING`, `ZONE_MAX_WIDTH` | a paler aqua `#a6efe0`, `tint` 0.3 |
 
-The action card drawn lies face up in the place of Hit, and its sentence is written flat beside it (`fitPrompt` breaks it into lines that fit the room), because Hit and Stay and the card never show at once. The game's words for them are `hit`, `stay`, `deal`, `targetFreeze`, `targetFlipThree`, `targetSecondChance` and `targetPlayer` (the accessible name of a zone).
+The tones are `UI_THEME.button` of the game, `{ primary: "#4fe0c0", neutral: "#b4c6d8" }`. The action card drawn lies face up at the left of the strip, beside the draw pile, and its sentence is written flat beside it (`fitPrompt` breaks it into lines that fit the room), because Stay and the card never show at once. The game's words for them are `hit`, `stay`, `deal`, `targetFreeze`, `targetFlipThree`, `targetSecondChance` and `targetPlayer` (the accessible name of a zone).
 
 ## Choosing a player
 

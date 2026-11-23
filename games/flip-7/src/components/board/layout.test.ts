@@ -287,36 +287,20 @@ describe("the floor between the piles", () => {
   const pile = (CARD.width * LAYOUT_SETTINGS.pileScale) / 2
   const edges = (pad: { x: number; width: number }) => [pad.x - pad.width / 2, pad.x + pad.width / 2] as const
 
-  it("has Hit and Stay side by side, as deep as the piles", () => {
-    const depth = CARD.height * LAYOUT_SETTINGS.pileScale
-    expect(plan.hit.depth).toBeCloseTo(depth)
-    expect(plan.stay.depth).toBeCloseTo(depth)
-    expect(plan.hit.z).toBe(deck.z)
-    expect(plan.stay.z).toBe(deck.z)
-    expect(plan.hit.x).toBeLessThan(plan.stay.x)
-    expect(plan.hit.width).toBeCloseTo(plan.stay.width)
+  it("has one pad, for Stay and for Deal, as deep as the piles and on their line", () => {
+    expect(plan.pad.depth).toBeCloseTo(CARD.height * LAYOUT_SETTINGS.pileScale)
+    expect(plan.pad.z).toBe(deck.z)
   })
 
-  it("keeps one gap, the same length, between the draw pile and Hit, Hit and Stay, and Stay and the discard", () => {
-    const [hitLeft, hitRight] = edges(plan.hit)
-    const [stayLeft, stayRight] = edges(plan.stay)
-    expect(hitLeft - (deck.x + pile)).toBeCloseTo(FLOOR.gap)
-    expect(stayLeft - hitRight).toBeCloseTo(FLOOR.gap)
-    expect(discard.x - pile - stayRight).toBeCloseTo(FLOOR.gap)
+  it("keeps one gap, the same length, between the draw pile and the pad and between the pad and the discard", () => {
+    const [left, right] = edges(plan.pad)
+    expect(left - (deck.x + pile)).toBeCloseTo(FLOOR.gap)
+    expect(discard.x - pile - right).toBeCloseTo(FLOOR.gap)
   })
 
-  it("has Deal across the room of the two, as deep as they are", () => {
-    const [left] = edges(plan.hit)
-    const [, right] = edges(plan.stay)
-    const [dealLeft, dealRight] = edges(plan.deal)
-    expect(dealLeft).toBeCloseTo(left)
-    expect(dealRight).toBeCloseTo(right)
-    expect(plan.deal.depth).toBeCloseTo(plan.hit.depth)
-  })
-
-  it("puts the action card where Hit is and the words after it, with the same gaps, and nothing runs into the discard", () => {
-    const [hitLeft] = edges(plan.hit)
-    expect(plan.card.x - (CARD.width * plan.card.scale) / 2).toBeCloseTo(hitLeft)
+  it("puts the action card where the pad begins and the words after it, with the same gaps, and nothing runs into the discard", () => {
+    const [padLeft] = edges(plan.pad)
+    expect(plan.card.x - (CARD.width * plan.card.scale) / 2).toBeCloseTo(padLeft)
     const [promptLeft, promptRight] = edges(plan.prompt)
     expect(promptLeft - (plan.card.x + (CARD.width * plan.card.scale) / 2)).toBeCloseTo(FLOOR.gap)
     expect(discard.x - pile - promptRight).toBeCloseTo(FLOOR.gap)
