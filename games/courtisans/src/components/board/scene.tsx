@@ -1,16 +1,14 @@
 "use client"
 
-import { type VisibleCard, type Mission, type PlayerView, missionOf } from "@courtisans/engine"
+import { type Family, type Mission, type PlayerView, type Role, type VisibleCard, missionOf } from "@courtisans/engine"
 import { useCursor } from "@react-three/drei"
 import { useFrame, useThree } from "@react-three/fiber"
 import { easing } from "maath"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Color, Euler, type Group, type Mesh, MeshBasicMaterial, Quaternion, Vector3 } from "three"
+import { Color, Euler, type Group, type Mesh, MeshBasicMaterial, Quaternion, Shape, ShapeGeometry, Vector3 } from "three"
 import { useCourtisans } from "../game/context"
-import { playSound } from "./sounds"
 import { useInteraction } from "../game/interaction"
 import { Aura, AURA_FIELDS, WINNER_AURA_SETTINGS, ZONE_AURA_SETTINGS } from "./aura"
-import { CardSettingsPanel } from "./card-settings"
 import { CrownMark } from "./crown"
 import { SeatAvatarMesh } from "./seat-avatar-mesh"
 import type { EndingState } from "./ending"
@@ -18,22 +16,20 @@ import { Counters, MissionSign, MatLine, MatLines, PilePoints, ENDING_SETTINGS, 
 import { copyButton, debugTab, useControls } from "@pbgo/core/components/game/debug-controls"
 import { useSeatTheme } from "@pbgo/core/components/game/seat-label"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { Playmat, type SurfaceProps, Table, useSettings, useSettingsVersion } from "@pbgo/table"
+import { Card, FACE_DOWN, lean, onTable, Pile, type Pose, Playmat, SCREEN_HAND_FIELDS, ScreenHand, screenHandLayout, type SurfaceProps, Table, useSettings, useSettingsVersion, Zone, type ZoneCard } from "@pbgo/table"
 import { useSkin } from "@pbgo/core/components/skin-provider"
-import { Card3D, CARD_SETTINGS, cardGeometry, edgeGeometry } from "./card3d"
 import { type TextStyle, TableText } from "./table-text"
 import {
-  CARD_H,
-  CARD_W,
+  CARD_SIZE,
   DOMAIN_SCALE,
-  FACE_DOWN,
   MISSION_H,
+  MISSION_SIZE,
   MISSION_W,
   DRAW_PILE,
   MISSION_PILE,
   missionPilePose,
+  HAND_SETTINGS,
   LAYOUT_SETTINGS,
-  type Pose,
   MAT_W,
   MAT_D,
   columnX,
@@ -43,7 +39,6 @@ import {
   groupKey,
   arrangeDomain,
   deckTopPose,
-  lean,
   tablePose,
   type Seat,
   seats,
@@ -65,7 +60,7 @@ function arrange(view: PlayerView, places: Map<string, Seat>, unfolded: string |
     const rank = ranks.get(key) ?? 0
     ranks.set(key, rank + 1)
     const pose = tablePose(col, level, rank, card.id)
-    if (spy && ending.tableSpies === "cache") pose.quaternion.copy(lean(card.id)).multiply(FACE_DOWN)
+    if (spy && ending.tableSpies === "cache") pose.quaternion.copy(lean(String(card.id))).multiply(FACE_DOWN)
     map.set(card.id, { card, pose })
   }
   for (const j of view.players) {
@@ -94,14 +89,14 @@ const underTablePose = (zone: DomainZone): Pose => {
       .addScaledVector(outside, zone.depth / 2 + 1.2)
       .setY(-1.6),
     quaternion: new Quaternion().setFromEuler(new Euler(0, zone.labelYaw, 0)).multiply(FACE_DOWN),
-    scaleFactor: DOMAIN_SCALE * 0.8,
+    scale: DOMAIN_SCALE * 0.8,
   }
 }
 
 const seatPose = (zone: DomainZone): Pose => ({
   position: new Vector3(zone.labelPos.x, 3.5, zone.labelPos.z),
   quaternion: new Quaternion().setFromEuler(new Euler(0, zone.labelYaw, 0)).multiply(FACE_DOWN),
-  scaleFactor: DOMAIN_SCALE * 0.7,
+  scale: DOMAIN_SCALE * 0.7,
 })
 
 type Transient = {
@@ -113,81 +108,6 @@ type Transient = {
 
 const EMPTY: string[] = []
 
-const FADE = { uFadeBottom: { value: 0.8 }, uFadeTop: { value: 4 } }
-
-function withFade(m: MeshBasicMaterial) {
-  if (m.userData.fade) return
-  m.userData.fade = true
-  const previous = m.onBeforeCompile
-  m.onBeforeCompile = (shader, renderer) => {
-    previous.call(m, shader, renderer)
-    Object.assign(shader.uniforms, FADE)
-    shader.vertexShader = shader.vertexShader
-      .replace("#include <common>", "#include <common>\nvarying float vHauteurFondu;")
-      .replace("#include <project_vertex>", "#include <project_vertex>\nvHauteurFondu = (modelMatrix * vec4(transformed, 1.0)).y;")
-    shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", "#include <common>\nvarying float vHauteurFondu;\nuniform float uFadeBottom;\nuniform float uFadeTop;")
-      .replace(
-        "#include <dithering_fragment>",
-        "#include <dithering_fragment>\ngl_FragColor.a *= 1.0 - smoothstep(uFadeBottom, uFadeTop, vHauteurFondu);",
-      )
-  }
-  const key = m.customProgramCacheKey.bind(m)
-  m.customProgramCacheKey = () => `${key()}:fondu`
-  m.needsUpdate = true
-}
-
-function Appear({
-  active,
-  delay,
-  duration,
-  elevation,
-  mask = false,
-  children,
-}: {
-  active: boolean
-  delay: number
-  duration: number
-  elevation: number
-  mask?: boolean
-  children: React.ReactNode
-}) {
-  const ref = useRef<Group>(null)
-  const start = useRef<number | null>(null)
-  const done = useRef(true)
-  useFrame(({ clock }) => {
-    const g = ref.current
-    if (!g) return
-    let u = 1
-    if (active) {
-      if (start.current === null) start.current = clock.elapsedTime
-      u = Math.min(1, Math.max(0, (clock.elapsedTime - start.current - delay) / duration))
-    } else start.current = null
-    const e = 1 - (1 - u) ** 3
-    g.position.y = elevation * (1 - e)
-    g.visible = !active || clock.elapsedTime - (start.current ?? 0) >= delay || u > 0
-    if (u >= 1 && done.current) return
-    done.current = u >= 1
-    g.traverse((o) => {
-      const m = (o as Mesh).material as MeshBasicMaterial | undefined
-      if (!m || Array.isArray(m)) return
-      if (m.userData.transparentOrigine === undefined) {
-        m.userData.transparentOrigine = m.transparent
-        m.userData.opaciteOrigine = m.opacity
-      }
-      m.transparent = u < 1 || m.userData.transparentOrigine
-      if (mask) {
-        if (u < 1) withFade(m)
-      } else m.opacity = m.userData.opaciteOrigine * e
-    })
-  })
-  return (
-    <group ref={ref} userData={{ hideInPhoto: true }}>
-      {children}
-    </group>
-  )
-}
-
 function FollowCamera({ children }: { children: React.ReactNode }) {
   const ref = useRef<Group>(null)
   const { camera } = useThree()
@@ -198,83 +118,6 @@ function FollowCamera({ children }: { children: React.ReactNode }) {
     g.quaternion.copy(camera.quaternion)
   }, -1)
   return <group ref={ref}>{children}</group>
-}
-
-const EASINGS = {
-  linear: (u: number) => u,
-  "ease in": (u: number) => u * u * u,
-  "ease out": (u: number) => 1 - (1 - u) ** 3,
-  "ease in-out": (u: number) => (u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2),
-}
-type DrawPileSettings = {
-  delay: number
-  duration: number
-  drop: number
-  elevation: number
-  easing: keyof typeof EASINGS
-  fadeBottom: number
-  fadeTop: number
-}
-
-const deckEnd = (r: DrawPileSettings) => r.delay + r.duration
-
-function DrawPile({ count, active, settings: r }: { count: number; active: boolean; settings: DrawPileSettings }) {
-  const cardThickness = CARD_W * CARD_SETTINGS.thickness
-  const geo = useMemo(() => edgeGeometry(CARD_W, CARD_H, cardThickness), [cardThickness])
-  const n = Math.min(count, 60)
-  const cards = useRef<(Group | null)[]>([])
-  const start = useRef<number | null>(null)
-  const animated = useRef(false)
-  useFrame(({ clock }) => {
-    FADE.uFadeBottom.value = r.fadeBottom
-    FADE.uFadeTop.value = r.fadeTop
-    if (active && start.current === null) start.current = clock.elapsedTime
-    if (!active) start.current = null
-    const t = start.current === null ? Infinity : clock.elapsedTime - start.current
-    const total = Math.max(1, n - 1)
-    let pending = false
-    cards.current.forEach((g, i) => {
-      if (!g) return
-      const base = 0.03 + (i + 1) * LAYOUT_SETTINGS.deckSpacing
-      const arrival = r.delay + EASINGS[r.easing](i / total) * r.duration
-      const u = Math.min(1, Math.max(0, (t - (arrival - r.drop)) / r.drop))
-      if (u < 1) pending = true
-      g.visible = u > 0
-      g.position.y = base + r.elevation * (1 - u * u)
-    })
-    if (pending !== animated.current) {
-      animated.current = pending
-      cards.current.forEach((g) =>
-        g?.traverse((o) => {
-          const mats = (o as Mesh).material
-          if (!mats) return
-          for (const m of Array.isArray(mats) ? mats : [mats]) {
-            withFade(m as MeshBasicMaterial)
-            m.transparent = pending
-          }
-        }),
-      )
-    }
-  })
-  return (
-    <group position={[DRAW_PILE.x, 0, DRAW_PILE.z]}>
-      {Array.from({ length: Math.max(0, n - 1) }, (_, i) => (
-        <group
-          key={i}
-          ref={(g) => {
-            cards.current[i] = g
-          }}
-          position-y={0.03 + (i + 1) * LAYOUT_SETTINGS.deckSpacing}
-          quaternion={lean(`pioche${i + 1}`, 0.04)}
-        >
-          <mesh geometry={geo} rotation-x={-Math.PI / 2} position-y={-cardThickness / 2} raycast={() => null}>
-            <meshBasicMaterial attach="material-0" color="#123c42" toneMapped={false} />
-            <meshBasicMaterial attach="material-1" color={i % 2 ? "#d9cba6" : "#cdbf98"} toneMapped={false} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  )
 }
 
 function Veil({ active, opacity, fade = 0.2 }: { active: boolean; opacity: number; fade?: number }) {
@@ -309,7 +152,12 @@ export const ZONE_SETTINGS = {
   avatarGap: 0.2,
 }
 
+/** Where the cards of a pile come in from, above it, when the pile is put on the mat */
+const PILE_ENTRY = (x: number, z: number) => onTable(x, z, { y: 3, face: "down" })
+
 function ZoneSettings() {
+  // The viewer's hand is held at the bottom left of the screen: the Hand folder tunes it, as the Held hands and the layout have theirs
+  useSettings("Hand", HAND_SETTINGS, SCREEN_HAND_FIELDS, { order: 2 })
   useSettings(
     "Player Zone",
     ZONE_SETTINGS,
@@ -331,11 +179,28 @@ function ZoneSettings() {
   return null
 }
 
+/** A rounded rectangle lying on the table, for the background of a domain (it goes with the backgrounds, when the seats are the shared ones) */
+function roundedPlane(width: number, depth: number, radius: number) {
+  const x = -width / 2
+  const y = -depth / 2
+  const shape = new Shape()
+  shape.moveTo(x + radius, y)
+  shape.lineTo(x + width - radius, y)
+  shape.quadraticCurveTo(x + width, y, x + width, y + radius)
+  shape.lineTo(x + width, y + depth - radius)
+  shape.quadraticCurveTo(x + width, y + depth, x + width - radius, y + depth)
+  shape.lineTo(x + radius, y + depth)
+  shape.quadraticCurveTo(x, y + depth, x, y + depth - radius)
+  shape.lineTo(x, y + radius)
+  shape.quadraticCurveTo(x, y, x + radius, y)
+  return new ShapeGeometry(shape, 6)
+}
+
 function DomainBackground({ zone, playable, hover, color }: { zone: DomainZone; playable: boolean; hover: boolean; color: string }) {
   const bright = useMemo(() => `#${new Color(color).lerp(new Color("#ffffff"), 0.65).getHexString()}`, [color])
   const ref = useRef<MeshBasicMaterial>(null)
   const rounding = ZONE_SETTINGS.rounding
-  const geo = useMemo(() => cardGeometry(zone.width, zone.depth, rounding), [zone.width, zone.depth, rounding])
+  const geo = useMemo(() => roundedPlane(zone.width, zone.depth, rounding), [zone.width, zone.depth, rounding])
   useFrame((_, dt) => {
     const m = ref.current
     if (!m) return
@@ -431,16 +296,7 @@ function Ephemeral({ item, tex, onEnd }: { item: Transient; tex: Textures; onEnd
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   return (
-    <Card3D
-      target={item.target}
-      origin={item.origin}
-      front={item.card ? tex.face(item.card) : tex.back}
-      backFace={tex.back}
-      width={CARD_W}
-      elevation={CARD_H}
-      speed={0.12}
-      onArrive={onEnd}
-    />
+    <Card id={`transient-${item.id}`} target={item.target} from={item.origin} front={item.card ? tex.face(item.card) : tex.back} back={tex.back} size={CARD_SIZE} speed={0.12} onArrive={onEnd} />
   )
 }
 
@@ -456,7 +312,6 @@ function EmptyClick({ onClick }: { onClick: () => void }) {
 
 const HAND_DISTANCE = 6
 const SPACING = "18px"
-const QUAT_TMP = new Quaternion()
 const QUAT_GROUP = new Quaternion()
 const QUAT_LOCAL = new Quaternion()
 const EULER_TMP = new Euler()
@@ -554,17 +409,13 @@ function World({
           const zone = zones.get(e.playerId)
           if (zone) newOnes.set(e.card.id, seatPose(zone))
         }
-        if (e.type === "cardPlayed" && e.playerId === meId) {
-          const p = cameraPoses.get(e.card.id)
-          if (p) newOnes.set(e.card.id, { position: p.position.clone(), quaternion: p.quaternion.clone(), scaleFactor: p.scaleFactor })
-        }
         if (e.type === "cardEliminated") {
           const p = before.get(e.card.id)
           if (p) {
             const target = {
               position: p.pose.position.clone().add(new Vector3(0, 6, -2)),
               quaternion: p.pose.quaternion.clone(),
-              scaleFactor: 0.2,
+              scale: 0.2,
             }
             added.push({
               id: `x-${v}-${n}`,
@@ -599,6 +450,8 @@ function World({
 
   const [prevStep, setPrevStep] = useState<OpeningStep>(openingStep)
   const flow = openingStep === "unroll"
+  // The piles are put on the mat once it is out, and are there from the start for a table that is opened or reloaded
+  const [piled, setPiled] = useState(!flow)
   const [deal, setDeal] = useState<Map<number, Pose>>(new Map())
   const [missionOrigins, setMissionOrigins] = useState<Map<string, Pose>>(new Map())
   const cameraOuverture = useThree((s) => s.camera)
@@ -613,7 +466,6 @@ function World({
         view.players.forEach((j, idx) => {
           const k = r * n + idx
           const origin = { ...deckTopPose(view.deckCount + total - k), delay: 0.1 + k * settings.dealStep }
-          playSound("slide", { volume: 0.45, delay: origin.delay + 0.1 })
           if (j.id === meId) {
             const card = hand[r]
             if (card) dist.set(card.id, origin)
@@ -637,7 +489,7 @@ function World({
               {
                 position: cameraOuverture.worldToLocal(from.position.clone()),
                 quaternion: inverse.clone().multiply(from.quaternion),
-                scaleFactor: from.scaleFactor,
+                scale: from.scale,
                 delay: 0.35 + i * 0.3,
               },
             ]
@@ -672,42 +524,6 @@ function World({
     { collapsed: true, order: 4 },
     debugTab("SCENE"),
   )
-  const drawPileSettings = useControls(
-    "Draw Pile",
-    {
-      delay: { value: 0.15, min: 0, max: 5, step: 0.05, label: "delay (s)" },
-      duration: { value: 1.4, min: 0.1, max: 6, step: 0.05, label: "total duration (s)" },
-      drop: { value: 0.35, min: 0.05, max: 2, step: 0.01, label: "single card fall (s)" },
-      elevation: { value: 3, min: 0.5, max: 10, step: 0.1, label: "fall height" },
-      easing: { value: "ease out" as keyof typeof EASINGS, options: Object.keys(EASINGS) as (keyof typeof EASINGS)[], label: "global easing" },
-      fadeBottom: { value: 0.8, min: 0, max: 5, step: 0.05, label: "fade: opaque below" },
-      fadeTop: { value: 4, min: 0.5, max: 10, step: 0.05, label: "fade: transparent above" },
-      counterDelay: { value: 0.1, min: 0, max: 3, step: 0.05, label: "counter delay (s)" },
-      ...copyButton("SCENE", "Draw Pile"),
-    },
-    { collapsed: true, order: 3 },
-    debugTab("SCENE"),
-  )
-  const handSettings = useControls(
-    "Deck",
-    {
-      size: { value: 0.66, min: 0.2, max: 1.5, step: 0.01, label: "size" },
-      step: { value: 0.9, min: 0.2, max: 1.5, step: 0.01, label: "spacing" },
-      position: { value: { x: 0, y: 0.22 }, step: 0.005, label: "position" },
-      rotation: { value: { x: -0.11, y: 0.15, z: -0.1 }, step: 0.01, label: "rotation" },
-      fan: { value: 0.09, min: 0, max: 0.6, step: 0.005, label: "fan rotation" },
-      curve: { value: 0.045, min: 0, max: 0.3, step: 0.005, label: "fan curve" },
-      hoverLift: { value: 0.08, min: 0, max: 0.6, step: 0.005, label: "hover lift" },
-      hoverScale: { value: 1, min: 0.8, max: 1.5, step: 0.01, label: "hover scale" },
-      selectionLift: { value: 0.32, min: 0, max: 1, step: 0.01, label: "selected lift" },
-      selectionScale: { value: 1.12, min: 0.8, max: 1.8, step: 0.01, label: "selected scale" },
-      selectionAdvance: { value: 0.15, min: 0, max: 1, step: 0.01, label: "selected forward" },
-      selectionRotation: { value: 0, min: -0.5, max: 0.5, step: 0.01, label: "selected rotation" },
-      ...copyButton("SCENE", "Deck"),
-    },
-    { collapsed: true, order: 2 },
-    debugTab("SCENE"),
-  )
   const inGameMissionSettings = useControls(
     "Missions · In Game",
     {
@@ -739,52 +555,26 @@ function World({
   }
   if (focusReturn && hover === `mission:${focusReturn}`) setFocusReturn(null)
   const [hoverPlayer, setHoverPlayer] = useState<string | null>(null)
-  useEffect(() => {
-    if (hover) playSound("hover")
-  }, [hover])
-  useEffect(() => {
-    if (hoverPlayer) playSound("hover", { volume: 0.7 })
-  }, [hoverPlayer])
-  useEffect(() => {
-    if (unfolded) playSound("slide", { volume: 0.5 })
-  }, [unfolded])
   const cameraPose = (id: string | number) => {
     let p = cameraPoses.get(id)
     if (!p) {
-      p = { position: new Vector3(), quaternion: new Quaternion(), scaleFactor: 1 }
+      p = { position: new Vector3(), quaternion: new Quaternion(), scale: 1 }
       cameraPoses.set(id, p)
     }
     return p
   }
 
   const selectionId = it.selection?.id
+  // The cards of the viewer's hand can be chosen on their turn; the one under the pointer is brought forward, and so is the one that is picked
+  const playable = it.myTurn && !it.assassination && !it.sending
+  const [hoveredCard, setHovered] = useState<number | null>(null)
+  const raised = hand.findIndex((card) => card.id === (selectionId ?? hoveredCard))
+  const nameOf = (card: { family: Family | null; role: Role | null }) =>
+    [card.role ? catalog.roles[card.role].name : catalog.words.courtier, card.family ? catalog.families[card.family].name : null].filter(Boolean).join(" · ")
   useFrame(({ pointer }) => {
     const proj = camera.projectionMatrix.elements
     const h = HAND_DISTANCE / proj[5]
     const w = HAND_DISTANCE / proj[0]
-    const rm = handSettings
-    const elevation = h * rm.size
-    const scaleFactor = elevation / CARD_H
-    const width = CARD_W * scaleFactor
-    const step = width * rm.step
-    const n = hand.length
-    const pivot = new Vector3(-w - width * 0.02 + width / 2 + ((n - 1) * step) / 2 + rm.position.x * w, -h + elevation * rm.position.y, -HAND_DISTANCE)
-    const block = new Quaternion().setFromEuler(EULER_TMP.set(rm.rotation.x, rm.rotation.y, rm.rotation.z))
-    hand.forEach((c, i) => {
-      const t = i - (n - 1) / 2
-      const chosen = c.id === selectionId
-      const lifted = chosen ? elevation * rm.selectionLift : c.id === hover ? elevation * rm.hoverLift : 0
-      const local = new Vector3(t * step, -Math.abs(t) * elevation * rm.curve + lifted, (chosen ? rm.selectionAdvance : 0) + i * 0.01)
-        .applyQuaternion(block)
-        .add(pivot)
-      const p = cameraPose(c.id)
-      p.position.copy(camera.localToWorld(local))
-      p.quaternion
-        .copy(camera.quaternion)
-        .multiply(block)
-        .multiply(QUAT_TMP.setFromEuler(EULER_TMP.set(0, 0, -t * rm.fan + (chosen ? rm.selectionRotation : 0))))
-      p.scaleFactor = scaleFactor * (chosen ? rm.selectionScale : c.id === hover ? rm.hoverScale : 1)
-    })
     const rj = inGameMissionSettings
     const mW = Math.min(w * rj.size, h * 0.8)
     const mH = (mW * MISSION_H) / MISSION_W
@@ -801,13 +591,13 @@ function World({
         const dy = offset.y * k
         p.position.set(r.position.x * k, r.position.y * k, -r.distance).add(new Vector3(x + dx, dy, -Math.abs(x) * r.backOffset).applyQuaternion(group))
         p.quaternion.copy(group).multiply(QUAT_LOCAL.setFromEuler(EULER_TMP.set(0, dir * r.angles.y, -dir * r.angles.z)))
-        p.scaleFactor = k * r.scaleFactor
+        p.scale = k * r.scaleFactor
       } else if (missionFocus === m.id) {
         const d = rj.focusDistance
         const k = (d / 8) * (1 / (proj[5] * Math.tan((19 * Math.PI) / 180)))
         p.position.set(0, -0.04 * k, -d)
         p.quaternion.setFromEuler(EULER_TMP.set(-pointer.y * rj.focusMouse, pointer.x * rj.focusMouse * 1.3, 0))
-        p.scaleFactor = rj.focusScale * k
+        p.scale = rj.focusScale * k
       } else if (myZone) {
         // placed face down on the table, right of the board; converted into the camera's frame (the cards follow the camera)
         const hovered = hover === `mission:${m.id}`
@@ -816,7 +606,7 @@ function World({
         if (hovered) rest.position.y += 0.18
         p.position.copy(camera.worldToLocal(rest.position))
         p.quaternion.copy(camera.quaternion).invert().multiply(rest.quaternion)
-        p.scaleFactor = rest.scaleFactor * (hovered ? 1.08 : 1)
+        p.scale = rest.scale * (hovered ? 1.08 : 1)
       } else {
         const hovered = hover === `mission:${m.id}`
         const jaw = i === 0 ? rj.angles.card1 : rj.angles.card2
@@ -831,7 +621,7 @@ function World({
           -HAND_DISTANCE + 0.05 + (i === 0 ? 0 : 0.02),
         )
         p.quaternion.setFromEuler(EULER_TMP.set(0, 0, -jaw))
-        p.scaleFactor = (mW / MISSION_W) * (hovered ? rj.hoverScale : 1)
+        p.scale = (mW / MISSION_W) * (hovered ? rj.hoverScale : 1)
       }
     })
   })
@@ -855,7 +645,6 @@ function World({
 
   return (
     <>
-      <CardSettingsPanel />
       <EndingSettings />
       <ZoneSettings />
       <MatLines results={results ?? null} ending={ending} />
@@ -869,87 +658,77 @@ function World({
         unroll={flow ? (held ? "rolled" : "unrolling") : "flat"}
         duration={settings.matDuration}
         roller={theme.surface}
+        onUnrolled={() => setPiled(true)}
       />
 
       {[...board.values()].map(({ card, pose, playerId }) => {
         const candidate = candidates.has(card.id)
         const domainTarget = !!playerId && targetDomain(playerId)
+        const press = candidate ? () => it.eliminate(card.id) : domainTarget ? () => playDomain(playerId) : undefined
         return (
-          <Card3D
+          <Card
             key={card.id}
+            id={card.id}
             target={pose}
-            origin={origins.get(card.id)}
+            from={origins.get(card.id)}
             front={tex.face(card)}
-            backFace={tex.back}
-            width={CARD_W}
-            elevation={CARD_H}
-            glow={candidate ? "red" : null}
+            back={tex.back}
+            size={CARD_SIZE}
+            state={press ? "interactive" : "base"}
+            onPress={press}
+            ariaLabel={candidate ? `${catalog.words.youEliminate} ${nameOf(card)}` : domainTarget ? `${catalog.words.youPlay} ${playerId === meId ? catalog.words.zoneYours : nickname(playerId)}` : undefined}
             onHover={
               playerId
-                ? (s) => {
-                    if (it.assassination) hoverGroup(`${playerId}:${groupKey(card)}`, s)
-                    if (domainTarget) setHoverPlayer(s ? playerId : null)
+                ? (over) => {
+                    if (it.assassination) hoverGroup(`${playerId}:${groupKey(card)}`, over)
+                    if (domainTarget) setHoverPlayer(over ? playerId : null)
                   }
                 : undefined
-            }
-            onClick={
-              candidate
-                ? (e) => {
-                    e.stopPropagation()
-                    it.eliminate(card.id)
-                  }
-                : domainTarget
-                  ? (e) => {
-                      e.stopPropagation()
-                      playDomain(playerId)
-                    }
-                  : undefined
             }
           />
         )
       })}
 
-      {visibleHand &&
-        hand.map((card) => {
-          const playable = it.myTurn && !it.assassination && !it.sending
-          return (
-            <Card3D
-              key={card.id}
-              target={cameraPose(card.id)}
-              origin={origins.get(card.id) ?? deal.get(card.id)}
-              front={tex.face(card)}
-              backFace={tex.back}
-              width={CARD_W}
-              elevation={CARD_H}
-              speed={0.12}
-              reflection={card.id === hover || card.id === selectionId}
-              onHover={(s) => setHover(s ? card.id : null)}
-              onClick={
-                playable
-                  ? (e) => {
-                      e.stopPropagation()
-                      it.select(card.id === selectionId ? null : card)
-                    }
-                  : undefined
-              }
+      {visibleHand && meId && (
+        <ScreenHand settings={HAND_SETTINGS}>
+          {(screen) => (
+            <Zone
+              layout={screenHandLayout(hand.length, screen, CARD_SIZE, HAND_SETTINGS, raised)}
+              size={CARD_SIZE}
+              cards={hand.map((card): ZoneCard => {
+                const from = origins.get(card.id) ?? deal.get(card.id)
+                return {
+                  key: card.id,
+                  id: card.id,
+                  front: tex.face(card),
+                  back: tex.back,
+                  from: from ? screen.local(from) : undefined,
+                  speed: 0.12,
+                  state: card.id === selectionId ? "selected" : playable ? "interactive" : "base",
+                  ariaLabel: playable ? `${catalog.words.youPlay} ${nameOf(card)}` : undefined,
+                  onHover: (over) => setHovered((v) => (over ? card.id : v === card.id ? null : v)),
+                  onPress: playable ? () => it.select(card.id === selectionId ? null : card) : undefined,
+                }
+              })}
             />
-          )
-        })}
+          )}
+        </ScreenHand>
+      )}
 
       <FollowCamera>
         {visibleMissions &&
           !ending &&
           missions.map((m: Mission) => (
-            <Card3D
+            <Card
               key={m.id}
+              id={`mission:${m.id}`}
               target={cameraPose(`mission:${m.id}`)}
-              origin={missionOrigins.get(m.id)}
+              from={missionOrigins.get(m.id)}
               front={tex.mission(m)}
-              backFace={tex.missionBack(m)}
-              width={MISSION_W}
-              elevation={MISSION_H}
+              back={tex.missionBack(m)}
+              size={MISSION_SIZE}
               above
-              noShadow
+              shadow={false}
               speed={
                 hover === `mission:${m.id}` && !missionFocus
                   ? inGameMissionSettings.hoverDuration
@@ -959,14 +738,11 @@ function World({
                       ? inGameMissionSettings.defocusDuration
                       : inGameMissionSettings.returnDuration
               }
-              reflectionIntensity={inGameMissionSettings.focusReflection}
-              reflection={missionFocus === m.id}
-              glow={null}
-              onHover={(s) => setHover(s ? `mission:${m.id}` : null)}
-              onClick={(e) => {
-                e.stopPropagation()
-                if (!intro) onMission(m.id)
-              }}
+              gloss={missionFocus === m.id}
+              state={intro ? "base" : "interactive"}
+              ariaLabel={catalog.missionTexts[m.id]}
+              onHover={(over) => setHover(over ? `mission:${m.id}` : null)}
+              onPress={() => onMission(m.id)}
             />
           ))}
       </FollowCamera>
@@ -981,7 +757,7 @@ function World({
           return [0, 1].map((k) => {
             const back = tex.missionBack(missions[k % missions.length]!)
             const origin = openingStep === "missions" ? { ...missionPilePose(MISSION_PILE.size + 2 + k), delay: 0.9 + (order * 2 + k) * 0.25 } : undefined
-            return <Card3D key={`mission-dos-${j.id}-${k}`} target={restPose(zone, j.id, k)} origin={origin} front={back} backFace={back} width={MISSION_W} elevation={MISSION_H} noShadow />
+            return <Card key={`mission-dos-${j.id}-${k}`} id={`mission-dos-${j.id}-${k}`} target={restPose(zone, j.id, k)} from={origin} front={back} back={back} size={MISSION_SIZE} shadow={false} />
           })
         })}
       {results && ending && (
@@ -1011,15 +787,7 @@ function World({
               const result = r?.missions.find((x) => x.missionId === m.id)
               return (
                 <group key={m.id}>
-                  <Card3D
-                    target={target}
-                    front={tex.mission(m)}
-                    backFace={tex.missionBack(m)}
-                    width={MISSION_W}
-                    elevation={MISSION_H}
-                    speed={0.22}
-                    glow={null}
-                  />
+                  <Card id={`end-${m.id}`} target={target} front={tex.mission(m)} back={tex.missionBack(m)} size={MISSION_SIZE} speed={0.22} />
                   {ending.missions && result && <MissionSign done={result.done} points={result.points} position={[target.position.x, 0.12, target.position.z]} />}
                 </group>
               )
@@ -1033,31 +801,34 @@ function World({
         <Ephemeral key={t.id} item={t} tex={tex} onEnd={() => setTransients((l) => l.filter((x) => x.id !== t.id))} />
       ))}
 
-      <Appear active={flow} delay={deckEnd(drawPileSettings)} duration={drawPileSettings.drop} elevation={drawPileSettings.elevation} mask>
-        {Array.from({ length: missions.length > 0 ? MISSION_PILE.size : 0 }, (_, n) => {
-          const back = tex.missionBack(missions[0]!)
-          return <Card3D key={`mission-pile-${n}`} target={missionPilePose(n)} front={back} backFace={back} width={MISSION_W} elevation={MISSION_H} noShadow={n < MISSION_PILE.size - 1} />
-        })}
-      </Appear>
-      <DrawPile count={view.deckCount} active={flow} settings={drawPileSettings} />
-      <Appear active={flow} delay={deckEnd(drawPileSettings)} duration={drawPileSettings.drop} elevation={drawPileSettings.elevation} mask>
-        {view.deckCount > 0 && (
-          <Card3D target={deckTopPose(view.deckCount)} front={tex.back} backFace={tex.back} width={CARD_W} elevation={CARD_H} />
-        )}
-      </Appear>
-      <Appear
-        active={flow}
-        delay={deckEnd(drawPileSettings) + drawPileSettings.drop + drawPileSettings.counterDelay}
-        duration={0.7}
-        elevation={-0.6}
-      >
-        <TableText
-          text={String(view.deckCount)}
-          style={{ color: "#fff4dc", relief: "#8a6a3a", aura: "rgba(255,236,190,0.9)", fontWeight: 800 }}
-          elevation={0.85}
-          position={[DRAW_PILE.x, 0.04, DRAW_PILE.z + CARD_H / 2 + 0.75]}
+      {/* The two piles: the missions that are dealt, left of the mat, and the draw pile at its right. They come in from above when the mat is out, and are simply there when a table is opened or reloaded */}
+      {piled && missions.length > 0 && (
+        <Pile
+          frame={{ x: MISSION_PILE.x, z: MISSION_PILE.z }}
+          count={MISSION_PILE.size}
+          size={MISSION_SIZE}
+          back={tex.missionBack(missions[0]!)}
+          scale={MISSION_PILE.scale}
+          step={MISSION_PILE.spacing}
+          label={false}
+          enter={flow ? PILE_ENTRY(MISSION_PILE.x, MISSION_PILE.z) : undefined}
+          stagger={0.05}
         />
-      </Appear>
+      )}
+      {piled && (
+        <Pile
+          frame={{ x: DRAW_PILE.x, z: DRAW_PILE.z }}
+          count={view.deckCount}
+          size={CARD_SIZE}
+          back={tex.back}
+          limit={60}
+          step={LAYOUT_SETTINGS.deckSpacing}
+          lean="pioche"
+          leanAmplitude={0.04}
+          enter={flow ? PILE_ENTRY(DRAW_PILE.x, DRAW_PILE.z) : undefined}
+          stagger={0.015}
+        />
+      )}
 
       {view.players.map((j) => {
         const zone = zones.get(j.id)

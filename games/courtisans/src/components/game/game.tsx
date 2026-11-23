@@ -12,6 +12,7 @@ import { button, copyButton, debugTab, DebugSlot, useControls, useDebugTools } f
 import { GameOver, winnerAnnouncement } from "@pbgo/core/components/game/game-over"
 import { GameHud, groupTurns, Ticker, useAnnouncements } from "@pbgo/core/components/game/hud"
 import { StalledTurn } from "@pbgo/core/components/game/stalled-turn"
+import { useLogSounds } from "@pbgo/core/components/game/use-log-sounds"
 import { PrimaryButton } from "@pbgo/core/components/home/screen"
 import { useSkin, useText } from "@pbgo/core/components/skin-provider"
 import { useApi } from "@pbgo/core/lib/binding-context"
@@ -23,7 +24,7 @@ import { CourtisansProvider, useCourtisans } from "./context"
 import { renderFamilyCards } from "./score-details"
 import { Message } from "./message"
 import { useEndingSequence } from "../board/ending"
-import { useGameSounds } from "../board/sounds"
+import { cuesOf, useBoardSounds } from "../board/sounds"
 import { useCheat } from "../board/cheat"
 import { type Assassination, type Interaction, InteractionContext } from "./interaction"
 import type { OpeningStep } from "../board/scene"
@@ -228,7 +229,8 @@ function BoardContent({
   const meId = view.me?.id
   const myTurn = view.phase === "playing" && !!meId && view.activePlayerId === meId
   const selection = rawSelection && view.me?.hand.some((c) => c.id === rawSelection.id) && myTurn ? rawSelection : null
-  useGameSounds(log, ending, selection?.id ?? null, missionFocus)
+  useLogSounds<CourtisansEvent>({ cues: cuesOf })
+  useBoardSounds(ending, missionFocus)
 
   function debugCommand(command: "start" | "missions" | "turn" | "over") {
     api

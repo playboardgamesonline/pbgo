@@ -3,6 +3,7 @@
 import type { CourtisansEvent } from "@courtisans/engine"
 import { useEffect, useRef } from "react"
 import type { LogLine } from "@pbgo/core/lib/game-types"
+import type { SoundCue } from "@pbgo/core/lib/sound-cues"
 import { playSound as playCoreSound } from "@pbgo/core/lib/sound"
 import type { SoundName } from "../../lib/sounds"
 import type { EndingState } from "./ending"
@@ -12,31 +13,16 @@ export function playSound(name: SoundName, options?: Parameters<typeof playCoreS
   playCoreSound(name, options)
 }
 
-export function useGameSounds(log: readonly LogLine<CourtisansEvent>[], ending: EndingState | null, selectionId: number | null, missionFocus: string | null) {
-  // The lines that are there when the board opens are not played: only those that come after, by the version of the table
-  const playedV = useRef(log.at(-1)?.v ?? 0)
-  useEffect(() => {
-    const newOnes = log.filter((line) => line.v > playedV.current).map((line) => line.event)
-    playedV.current = Math.max(playedV.current, log.at(-1)?.v ?? 0)
-    let t = 0
-    for (const e of newOnes) {
-      if (e.type === "cardPlayed") {
-        playSound("slide", { delay: t })
-        playSound("place", { delay: t + 0.95 })
-        if (e.card.role === "assassin") playSound("assassin", { delay: t + 1.05 })
-        t += 0.15
-      } else if (e.type === "cardEliminated") {
-        playSound("eliminate", { delay: t + 1.2 })
-      } else if (e.type === "draw") {
-        for (let i = 0; i < e.count; i++) playSound("slide", { delay: t + 0.35 + i * 0.28, volume: 0.8 })
-      }
-    }
-  }, [log])
+/** What a line of the log sounds like, when no card shows it: an assassin that is played, a card that is eliminated. The cards make the sounds of their own flights. */
+export function cuesOf(line: LogLine<CourtisansEvent>): SoundCue[] {
+  const event = line.event
+  if (event.type === "cardPlayed" && event.card.role === "assassin") return [{ name: "assassin", delay: 1.05 }]
+  if (event.type === "cardEliminated") return [{ name: "eliminate", delay: 1.2 }]
+  return []
+}
 
-  useEffect(() => {
-    if (selectionId) playSound("select")
-  }, [selectionId])
-
+/** The sounds that are the board's own, not a line's: a mission looked at, and the steps of the ending. */
+export function useBoardSounds(ending: EndingState | null, missionFocus: string | null) {
   useEffect(() => {
     if (missionFocus) playSound("reveal")
   }, [missionFocus])

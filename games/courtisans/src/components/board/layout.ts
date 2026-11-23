@@ -1,4 +1,5 @@
 import { FAMILIES, type VisibleCard, type Family, type Level, type PlayerView } from "@courtisans/engine"
+import { type CardSize, FACE_DOWN, FACE_UP, lean, onTable, type Pose, RESTING_HEIGHT, SCREEN_HAND_SETTINGS } from "@pbgo/table"
 import { Euler, Quaternion, Vector3 } from "three"
 import { MAT_ORDER } from "../../lib/catalog"
 
@@ -14,43 +15,20 @@ export const DOMAIN_SCALE = 1.1
 export const OFFSET = 0.42
 export const LAYOUT_SETTINGS = { randomRotation: 0.017, pileSpacing: 0.02, deckSpacing: 0.017 }
 
-export const FACE_UP = new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, 0))
-export const FACE_DOWN = new Quaternion().setFromEuler(new Euler(Math.PI / 2, 0, 0))
+/** The viewer's hand, held at the bottom left of the screen: the numbers of the table's own, which are the ones Courtisans holds its hand with */
+export const HAND_SETTINGS = { ...SCREEN_HAND_SETTINGS }
 
-export type Pose = {
-  position: Vector3
-  quaternion: Quaternion
-  scaleFactor: number
-  delay?: number
-}
-
-const pose = (x: number, y: number, z: number, q: Quaternion, scaleFactor = 1): Pose => ({
-  position: new Vector3(x, y, z),
-  quaternion: q.clone(),
-  scaleFactor,
-})
+/** The size of a courtier and of a mission, the same for every card of its kind */
+export const CARD_SIZE: CardSize = { width: CARD_W, height: CARD_H }
+export const MISSION_SIZE: CardSize = { width: MISSION_W, height: MISSION_H }
 
 export type Column = Family | "queen"
-
-export function hashRandom(key: string) {
-  let h = 2166136261
-  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619)
-  return ((h >>> 0) / 4294967295) * 2 - 1
-}
-
-export const lean = (key: string | number, amplitude = LAYOUT_SETTINGS.randomRotation) =>
-  new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), hashRandom(String(key)) * amplitude)
 
 export const columnX = (column: Column) => -MAT_W / 2 + MARGIN + STEP * (MAT_ORDER.indexOf(column) + 0.5)
 
 export function tablePose(column: Column, level: Level, rank: number, id?: number): Pose {
   const edge = MAT_D / 2 + CARD_H / 2 + rank * OFFSET
-  return pose(
-    columnX(column),
-    0.03 + rank * LAYOUT_SETTINGS.pileSpacing,
-    level === "up" ? -edge : edge,
-    id ? lean(id).multiply(FACE_UP) : FACE_UP,
-  )
+  return onTable(columnX(column), level === "up" ? -edge : edge, { y: RESTING_HEIGHT + rank * LAYOUT_SETTINGS.pileSpacing, lean: id === undefined ? undefined : String(id) })
 }
 
 export const columnOf = (card: VisibleCard): Column => card.family ?? "queen"
@@ -65,18 +43,17 @@ export function missionRestPose(zone: { center: Vector3; width: number; labelPos
   return {
     position: zone.labelPos.clone().add(local).setY(0.05 + index * 0.02),
     quaternion: yaw.multiply(lean(`${key}:${index}`, 0.06)).multiply(faceUp ? FACE_UP : FACE_DOWN),
-    scaleFactor: MISSION_REST.scale,
+    scale: MISSION_REST.scale,
   }
 }
 
 export const DRAW_PILE = new Vector3(MAT_W / 2 + 1.2, 0, 0)
-export const deckTopPose = (n: number) =>
-  pose(DRAW_PILE.x, 0.03 + Math.min(n, 60) * LAYOUT_SETTINGS.deckSpacing, DRAW_PILE.z, lean(`pioche${n}`, 0.04).multiply(FACE_DOWN))
+export const deckTopPose = (n: number) => onTable(DRAW_PILE.x, DRAW_PILE.z, { y: RESTING_HEIGHT + Math.min(n, 60) * LAYOUT_SETTINGS.deckSpacing, face: "down", lean: `pioche${n}`, leanAmplitude: 0.04 })
 
 /** Pile of missions, face down, left of the board (mirror of the draw pile); missions are dealt from it after the cards of the draw pile. */
 export const MISSION_PILE = { x: -(MAT_W / 2 + 1.2), z: 0, size: 8, scale: 0.85, spacing: 0.022 }
-export const missionPilePose = (n: number, scaleFactor = MISSION_PILE.scale): Pose =>
-  pose(MISSION_PILE.x, 0.03 + n * MISSION_PILE.spacing, MISSION_PILE.z, lean(`mission-pile${n}`, 0.05).multiply(FACE_DOWN), scaleFactor)
+export const missionPilePose = (n: number, scale = MISSION_PILE.scale): Pose =>
+  onTable(MISSION_PILE.x, MISSION_PILE.z, { y: RESTING_HEIGHT + n * MISSION_PILE.spacing, face: "down", lean: `mission-pile${n}`, leanAmplitude: 0.05, scale })
 
 export type Orientation = "down" | "up" | "left" | "right"
 export type Seat = { position: Vector3; orientation: Orientation; maxWidth: number }
@@ -161,8 +138,11 @@ export function arrangeDomain(
   const toward = orientation === "left" ? 1 : orientation === "right" ? -1 : 1
   const center = lateral ? new Vector3(p.x + toward * (0.4 + DH / 2), 0.02, p.z) : new Vector3(p.x, 0.02, p.z + 0.4 + DH / 2)
   const yaw = new Quaternion().setFromEuler(new Euler(0, YAW[orientation], 0))
-  const place = (u: number, y: number, q: Quaternion) =>
-    pose(lateral ? center.x : center.x + u, y, lateral ? center.z + u : center.z, yaw.clone().multiply(q), DOMAIN_SCALE)
+  const place = (u: number, y: number, q: Quaternion): Pose => ({
+    position: new Vector3(lateral ? center.x : center.x + u, y, lateral ? center.z + u : center.z),
+    quaternion: yaw.clone().multiply(q),
+    scale: DOMAIN_SCALE,
+  })
 
   const poses = new Map<number, Pose>()
   const toTable = lateral ? new Vector3(toward, 0, 0) : new Vector3(0, 0, orientation === "up" ? 1 : -1)
@@ -186,7 +166,7 @@ export function arrangeDomain(
         place(
           position,
           (open ? 0.35 : 0.03) + lifted + k * LAYOUT_SETTINGS.pileSpacing,
-          lean(card.id).multiply(family(card) ? FACE_UP : FACE_DOWN),
+          lean(String(card.id)).multiply(family(card) ? FACE_UP : FACE_DOWN),
         ),
       )
     })
