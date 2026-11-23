@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Checks the board of a game in a real browser, the way `.claude/skills/engine-board` step 6 asks, so that nobody writes the scripts again: a headless Chromium (the one Playwright keeps in its cache) opens the table as the viewer
 // while guests that only exist here sit at it and play through the API, and the report says what was seen.
-// Usage: pnpm check:board <slug> [--players 3,5,8] [--sizes 1280x800,...] [--checks presses,sizes,...] [--scenarios a,b] [--out <dir>] [--reduced-motion] [--keep-tables] [--port 3100] [--absent-seconds 85]
+// Usage: pnpm check:board <slug> [--players 3,5,8] [--sizes 1280x800,...] [--checks presses,sizes,...] [--scenarios a,b] [--out <dir>] [--reduced-motion] [--banner] [--keep-tables] [--port 3100] [--absent-seconds 85]
 // It needs `pnpm dev` running (http://localhost:3100) and writes tables to the Supabase project of its `.env.local`, the preview one, so it never runs on production and is no part of the six gates or of CI. What is the game's own (where to
 // press, how to rig a case) is in `games/<slug>/check-board.config.mjs`, optional. Exit 0: every check passed; 1: a check failed (no board, a console error, a press that changed nothing…); 2: it could not run. `docs/scripts.md` has it in full.
 import { execFileSync } from "node:child_process"
@@ -30,6 +30,7 @@ a reload in the middle of a game, the normal start and a player who is away. Wri
   --scenarios flipthree    which cases of the scenarios check (default: all those of the game's config, then turn and over)
   --out <dir>              where the sheets and the report go (default: a folder of the system's temporary files; keep it out of the repo)
   --reduced-motion         the visitor asks for less motion
+  --banner                 leave the cookie banner up, as a first visit has it (default: the visitor has answered it, so that a control under it is not counted against the board)
   --keep-tables            leave the tables as they are (default: the guests leave, which deletes them)
   --port 3100              the dev server's port (the pictures of the game load only from http://localhost:3100; on another port the tool fetches them itself, as that origin)
   --absent-seconds 85      how long the others are away in the absent check (the platform counts a seat present for 75 s)
@@ -40,7 +41,7 @@ Needs: \`pnpm dev <slug>\` running, Chromium in Playwright's cache (\`npx playwr
 class Usage extends Error {}
 
 function parseArgs(argv) {
-  const args = { slug: null, players: null, sizes: null, checks: null, scenarios: null, out: null, port: 3100, absentSeconds: 85, reducedMotion: false, keepTables: false, help: false }
+  const args = { slug: null, players: null, sizes: null, checks: null, scenarios: null, out: null, port: 3100, absentSeconds: 85, reducedMotion: false, banner: false, keepTables: false, help: false }
   for (let i = 0; i < argv.length; i++) {
     const [flag, inline] = argv[i].startsWith("--") ? argv[i].split(/=(.*)/s, 2) : [argv[i], undefined]
     const value = () => {
@@ -82,6 +83,9 @@ function parseArgs(argv) {
         break
       case "--reduced-motion":
         args.reducedMotion = true
+        break
+      case "--banner":
+        args.banner = true
         break
       case "--keep-tables":
         args.keepTables = true
