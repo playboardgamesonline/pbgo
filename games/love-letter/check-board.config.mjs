@@ -48,10 +48,11 @@ const config = {
     },
   },
 
-  // What the viewer presses, in the order the game offers it. A move is two presses: a card of the hand, which only picks it (a `local` press: the table does not move), then the control that sends it: the Play pad for a card that picks nobody, a player's area for a
-  // Priest, a Baron, a King or a Prince, the zone then one of the nine faces for a Guard, and after a Chancellor the card to keep, Swap and the Keep pad. Deal when it is the viewer's to deal. Everything else the viewer does is played through the API.
+  // What the viewer presses, in the order the game offers it. Objects are pressed, so a move is one press or a few: a card that picks nobody is played by pressing it (`play`), a card that picks a player is held by pressing it (`card`, a `local` press: the table does not
+  // move) and then played by pressing the player's cards (`target`); for a Guard the player is pressed too (`name`, local) and then one of the nine faces (`guess`). After a Chancellor the card to keep is pressed (`keep`: held when there are three cards, sent at once
+  // when there are two) and then the card that goes under the deck first (`order`). Deal is the one button, when it is the viewer's to deal. Everything else the viewer does is played through the API.
   presses: {
-    expect: ["card", "play", "target", "name", "guess", "swap", "keep", "deal"],
+    expect: ["card", "play", "target", "name", "guess", "keep", "order", "deal"],
     max: 90,
     budgetSeconds: 360,
     plan({ state, me, exercised }) {
@@ -70,83 +71,82 @@ const config = {
         return { label: "deal" }
       }
       if (phase.kind === "keep" && phase.player === me) {
+        // three cards: the first card pressed is held as the one kept, and the next one pressed goes under the deck first; two cards: the card pressed is kept and the move is sent
         if (!move) {
-          move = { stage: "card" }
-          return { label: "card", local: true, prepare: rest }
-        }
-        if (move.stage === "card") {
-          move.stage = "order"
-          if (!exercised.has("swap") && handOf(state).length === 3) return { label: "swap", local: true }
+          if (handOf(state).length < 3) {
+            move = { final: true }
+            return { label: "keep" }
+          }
+          move = { stage: "kept" }
+          return { label: "keep", local: true, prepare: rest }
         }
         move.final = true
-        return { label: "keep" }
+        return { label: "order" }
       }
       if (phase.kind === "turn" && phase.player === me) {
         if (!move) {
           const choice = choose(view, exercised)
           if (!choice) return null
-          // `wanted` is the card the plan would like to pick; `find` picks it when the hand holds it (a rig may not bring it: the other copies may all be played) and says which card it pressed in `type`
+          // `wanted` is the card the plan would like to press; `find` presses it when the hand holds it (a rig may not bring it: the other copies may all be played) and says which card it pressed in `type`
+          const picks = RULE[choice.type] === "any" || (RULE[choice.type] === "other" && phase.targets.length > 0)
           move = { wanted: choice.type, type: choice.type, stage: "picked" }
-          return {
-            label: "card",
-            local: true,
-            prepare: async (table) => {
-              await rest()
-              if (choice.rig) await table.rig(choice.rig)
-            },
+          const prepare = async (table) => {
+            await rest()
+            if (choice.rig) await table.rig(choice.rig)
           }
-        }
-        const rule = RULE[move.type]
-        const anyone = phase.targets.length > 0
-        // after the card: a player to choose (a Prince can always choose its own player), or the pad that plays it
-        if (rule === "any" || (rule === "other" && anyone)) {
-          if (move.type === "guard") {
-            if (move.stage === "picked") {
-              move.stage = "named"
-              return { label: "name", local: true }
-            }
+          if (!picks) {
             move.final = true
-            return { label: "guess" }
+            return { label: "play", prepare }
+          }
+          return { label: "card", local: true, prepare }
+        }
+        // after the card: a player to press (a Prince can always press its own player), and for a Guard the nine faces
+        if (move.type === "guard") {
+          if (move.stage === "picked") {
+            move.stage = "named"
+            return { label: "name", local: true }
           }
           move.final = true
-          return { label: "target" }
+          return { label: "guess" }
         }
         move.final = true
-        return { label: "play" }
+        return { label: "target" }
       }
       move = null
       return null
     },
-    // Where the controls lie, from what the board offers: the cards of the hand, held at the bottom left of the screen in the frame of the camera (so far above the table, y beyond 4, and told apart by their place across the screen), the pad or pads of the moment and the
-    // nine faces of a Guard in the strip in the middle (x within 2.6, z between -1.4 and 1.7, lying on the table), and the area of a player, a `Hotspot` that lies at a card's height (y about 0.35) so that the whole area answers, cards included
+    // Where the controls lie, from what the board offers: the cards of the hand, held at the bottom left of the screen in the frame of the camera (so far above the table, y beyond 4, and told apart by their place across the screen), the Deal button and the nine
+    // faces of a Guard in the middle (x within 2.6, z between -1.4 and 1.7, lying on the table), and the area of a player, a `Hotspot` that lies at a card's height (y about 0.35) so that the whole area answers, cards included
     find({ label, pressables, state }) {
       const world = (pressable) => pressable.world
       const inHand = (pressable) => world(pressable) && world(pressable)[1] > 4
       // a card that is still coming in from the deck is not in the hand yet, and a card in the air is pressed where it no longer is: `still` waits for the cards to have landed
-      const inStrip = (pressable) => world(pressable) && Math.abs(world(pressable)[0]) < 2.6 && world(pressable)[2] > -1.4 && world(pressable)[2] < 1.7 && world(pressable)[1] < 0.1
+      const inMiddle = (pressable) => world(pressable) && Math.abs(world(pressable)[0]) < 2.6 && world(pressable)[2] > -1.4 && world(pressable)[2] < 1.7 && world(pressable)[1] < 0.1
       const isZone = (pressable) => world(pressable) && world(pressable)[1] > 0.3 && world(pressable)[1] < 0.4
       const byX = (a, b) => world(a)[0] - world(b)[0]
-      const strip = pressables.filter(inStrip).sort(byX)
+      const middle = pressables.filter(inMiddle).sort(byX)
       const cards = pressables.filter(inHand).sort((a, b) => (a.center?.[0] ?? 0) - (b.center?.[0] ?? 0))
       const zones = pressables.filter(isZone)
+      const onHand = label === "card" || label === "play" || label === "keep" || label === "order"
       // a control is pressed once the ones it is picked from have not moved since the last look (`find` is asked every few tenths of a second): the cards that come in from the deck move for about a second, and a pixel that reaches one of them mid-way reaches another by the time it is pressed
-      if (!still(label === "card" ? cards : label === "target" || label === "name" ? zones : strip)) return undefined
-      if (label === "card") {
+      if (!still(onHand ? cards : label === "target" || label === "name" ? zones : middle)) return undefined
+      if (onHand) {
         const hand = handOf(state)
-        // only a card that can be pressed carries a control (the Countess rule leaves the other card of the hand with none), and the fan lies in the order of the hand: so the place of a card in the line of controls is its place among the cards that can be pressed, once every one of
-        // them has landed (a card that came from the deck a moment ago, which a rig does, is in the air, and the control at its place in the line would be another card's)
+        // only a card that can be pressed carries a control (the Countess rule leaves the other card of the hand with none), and the hand lies in the order of the cards: so the place of a card in the line of controls is its place among the cards that can be pressed, once every one
+        // of them has landed (a card that came from the deck a moment ago, which a rig does, is in the air, and the control at its place in the line would be another card's)
         const playable = state.view.phase.kind === "keep" ? new Set(hand.map((card) => card.id)) : new Set(state.view.me.playable)
         const pressing = hand.filter((card) => playable.has(card.id))
         if (cards.length !== pressing.length) return undefined
+        // the card to keep is the first, the one that goes under the deck first is the second
+        if (label === "keep") return cards[0]
+        if (label === "order") return cards[1]
         let index = move?.wanted ? pressing.findIndex((card) => card.type === move.wanted) : -1
         if (index < 0) index = 0
         if (move && pressing[index]) move.type = pressing[index].type
         return cards[index]
       }
-      if (label === "play" || label === "deal") return strip.find((pressable) => Math.abs(world(pressable)[0]) < 0.3)
-      if (label === "swap") return strip.find((pressable) => world(pressable)[0] < -0.3)
-      if (label === "keep") return strip.at(-1)
-      if (label === "guess") return strip.find((pressable) => pressable.reachable) ?? strip[3]
+      if (label === "deal") return middle.find((pressable) => Math.abs(world(pressable)[0]) < 0.3)
+      if (label === "guess") return middle.find((pressable) => pressable.reachable) ?? middle[3]
       if (label === "target" || label === "name") return zones.find((pressable) => pressable.reachable) ?? zones[0]
       return undefined
     },
@@ -222,7 +222,7 @@ function still(list) {
 const rest = () => new Promise((resolve) => setTimeout(resolve, 1000))
 
 /**
- * The card the viewer picks first: the one that exercises a control that has not been pressed yet, a Guard (a zone, then one of the nine faces), a card that picks a player, the Chancellor (the card to keep, Swap and Keep: rigged into the hand when it is not there)
+ * The card the viewer presses first: the one that exercises a control that has not been pressed yet, a Guard (a player, then one of the nine faces), a card that picks a player, the Chancellor (the card to keep and the card put back first: rigged into the hand when it is not there)
  * or a card that picks nobody. The Princess is never picked by choice: playing her puts the viewer out of the round.
  */
 function choose(view, exercised) {

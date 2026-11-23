@@ -21,13 +21,15 @@ import { type ClientCatalog, MISSING_CATALOG } from "../../lib/catalog"
 import { actorsOf, sentenceOf } from "../../lib/history"
 import { fill } from "../../lib/words"
 import { type Arrival, type Reveal, timelineOf } from "../board/pacing"
-import type { ClientAction } from "../board/turn"
+import { useReveal } from "../board/sequence"
+import { type Choice, type ClientAction, NO_CHOICE, promptOf, type Step, stepOf, validChoice } from "../board/turn"
 import { Lens } from "./lens"
 
 const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
 
 /** No card waits for its turn to come in and nothing is shown: the cards of a table that was just opened are where they lie */
 const NO_ENTRANCES: ReadonlyMap<number, Arrival> = new Map()
+const NO_DRAWS: ReadonlyMap<string, number> = new Map()
 const NO_REVEALS: readonly Reveal[] = []
 
 /** `held` and `onLoaded` are the start screen's (PLT-107): behind it the board is drawn and loads, says so, and holds its opening (the camera's entrance, the start announcement) until the screen goes */
@@ -54,9 +56,12 @@ export function Game(props: Props) {
 /** Under the main line of the ticker: the round and the favor tokens that win. */
 function RoundStatus({ catalog }: { catalog: ClientCatalog }) {
   const { view } = useGame<PlayerView>()
+  // a viewer who is out of the round reads the table and waits for it to end: the plate says it of them, and so does the ticker
+  const out = view.me !== null && view.phase.kind !== "between" && view.phase.kind !== "over" && view.players.some((player) => player.id === view.me?.id && player.out)
   return (
     <>
       {fill(catalog.words.round, { number: view.round })} · {fill(catalog.words.tokensToWin, { count: view.target })}
+      {out && <div className="mt-1.5 text-xs tracking-[0.12em] text-foreground/60">{catalog.words.outOfRound}</div>}
     </>
   )
 }
@@ -91,6 +96,10 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   const settings = useAnnouncementSettings()
   const { announce, element: announcement, current } = useAnnouncements(settings, { paused: busy })
   const [sending, setSending] = useState(false)
+  // What the viewer has picked this turn (`turn.ts`): the table draws the cards for it and the ticker says what to do next, so it is held here, above both. A pick that no longer fits the view (the card left the hand, the turn passed) is dropped
+  const [picked, setPicked] = useState<Choice>(NO_CHOICE)
+  const choice = validChoice(view, picked)
+  if (choice !== picked) setPicked(choice)
   const previous = useRef<{ round: number; turn: string | null; phase: string } | null>(null)
 
   const meId = view.me?.id ?? null
@@ -127,7 +136,7 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
       .catch((e: Error) => toast.error(e.message))
   }
 
-  /** What the viewer does: a card played, a card kept, the next round dealt. One move at a time: the pads wait for the answer, and a refusal is a toast */
+  /** What the viewer does: a card played, a card kept, the next round dealt. One move at a time: nothing can be pressed until the answer comes, and a refusal is a toast */
   async function send(action: ClientAction) {
     if (sending) return
     setSending(true)
@@ -197,17 +206,16 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the history follows the log and the catalog; `nickname` is a new function on every render and says the same thing
   }, [log, catalog])
-  /** What a reveal says under its faces: who did it, then the sentence of the history */
-  const caption = (reveal: Reveal) => {
-    const by = "by" in reveal.event ? reveal.event.by : null
-    return `${by ? `${nickname(by)} · ` : ""}${sentenceOf(reveal.event, { words: catalog.words, names: catalog.names, nickname })}`
-  }
   const playing = timeline.v > openedAt
+  // What the last move shows to be read waits on the table for the time it takes to read it, and the controls wait for it to go; what the viewer has to do is said by the ticker, the table writes no sentence
+  const reveal = useReveal(timeline.v, playing ? timeline.reveals : NO_REVEALS)
+  const step: Step = reveal ? { kind: "none" } : stepOf(view, choice)
+  const prompt = sending ? null : promptOf(step, words)
 
   return (
     <GameHud
       onLeave={onLeave}
-      ticker={<Ticker activePlayerId={ended ? null : turn} waitingFor={ended ? undefined : game.waitingFor} status={!ended && <RoundStatus catalog={catalog} />} history={history} />}
+      ticker={<Ticker activePlayerId={ended ? null : turn} waitingFor={ended ? undefined : game.waitingFor} prompt={ended ? null : prompt} status={!ended && <RoundStatus catalog={catalog} />} history={history} />}
       overlay={
         <>
           {announcement}
@@ -223,10 +231,12 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
         catalog={catalog}
         onAction={(action) => void send(action)}
         busy={sending}
-        v={timeline.v}
+        choice={choice}
+        step={step}
+        onChoice={setPicked}
         entrances={playing ? timeline.entrances : NO_ENTRANCES}
-        reveals={playing ? timeline.reveals : NO_REVEALS}
-        caption={caption}
+        drawn={playing ? timeline.drawn : NO_DRAWS}
+        reveal={reveal}
         deal={openedAt === 0 || playing}
         held={held}
         onLoaded={onLoaded}

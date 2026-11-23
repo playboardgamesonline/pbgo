@@ -2,7 +2,7 @@ import { aspectScale, boxesOverlap, frameBoxOfPoses, HELD_FAN_SETTINGS, inFrame,
 import { PerspectiveCamera, Vector3 } from "three"
 import { describe, expect, it } from "vitest"
 import { CAMERA, fitFor } from "./camera"
-import { areaGap, areaPoses, CARD, chairsOf, guessPlaces, HAND_MAX, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_SETTINGS, lineOf, lines, middleBoxes, padPlace, pairPlaces, quadOf, reachQuads, seats, seenQuads, STRIP, stripBox, tableLines, VIEW_TILT } from "./layout"
+import { areaGap, areaPoses, CARD, chairsOf, controlsBox, dealPlace, guessPlaces, HAND_MAX, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_SETTINGS, lineOf, lines, MIDDLE, middleBoxes, quadOf, reachQuads, revealPoses, seats, seenQuads, tableLines, VIEW_TILT } from "./layout"
 
 const ids = (count: number) => Array.from({ length: count }, (_, i) => `p${i}`)
 
@@ -154,7 +154,7 @@ describe("the line of a seat", () => {
 /** What is on the table of `count` players as polygons on it, by what it is: for every seat its plate, its play area and its hand, for an opponent, the room of its press, and the middle of the table */
 function shapes(count: number, seated: boolean) {
   const all = tableLines(count, seated)
-  const middle = [...middleBoxes(count === 2), stripBox()].map((box, i) => ({ what: `the middle ${i}`, shape: quadOf(box, { x: 0, z: 0, yaw: 0 }) }))
+  const middle = [...middleBoxes(count === 2), controlsBox()].map((box, i) => ({ what: `the middle ${i}`, shape: quadOf(box, { x: 0, z: 0, yaw: 0 }) }))
   const things = all.flatMap((line, i) => [
     { what: `plate of seat ${i}`, shape: quadOf(line.plateBox, line.seat), seat: i },
     { what: `play area of seat ${i}`, shape: quadOf(line.play, line.seat), seat: i },
@@ -188,16 +188,28 @@ describe("the table", () => {
     expect(over).toEqual([])
   })
 
-  it("keeps the strip of the controls clear of the deck and the card set aside, and the pads inside it", () => {
-    const strip = stripBox()
-    for (const faceUp of [false, true]) for (const box of middleBoxes(faceUp)) expect(boxesOverlap(strip, box), `face up ${faceUp}`).toBe(false)
-    for (const pad of [padPlace(), ...pairPlaces(), ...guessPlaces()]) {
-      expect(pad.x - pad.width / 2).toBeGreaterThanOrEqual(strip.minX - 1e-9)
-      expect(pad.x + pad.width / 2).toBeLessThanOrEqual(strip.maxX + 1e-9)
-      expect(pad.z - pad.depth / 2).toBeGreaterThanOrEqual(strip.minZ - 1e-9)
-      expect(pad.z + pad.depth / 2).toBeLessThanOrEqual(strip.maxZ + 1e-9)
+  it("keeps the middle's controls clear of the deck and the card set aside, with the Deal button, the nine characters and the faces of a reveal inside it", () => {
+    const controls = controlsBox()
+    for (const faceUp of [false, true]) for (const box of middleBoxes(faceUp)) expect(boxesOverlap(controls, box), `face up ${faceUp}`).toBe(false)
+    const inside = (x: number, z: number, width: number, depth: number) => {
+      expect(x - width / 2).toBeGreaterThanOrEqual(controls.minX - 1e-9)
+      expect(x + width / 2).toBeLessThanOrEqual(controls.maxX + 1e-9)
+      expect(z - depth / 2).toBeGreaterThanOrEqual(controls.minZ - 1e-9)
+      expect(z + depth / 2).toBeLessThanOrEqual(controls.maxZ + 1e-9)
     }
-    expect(STRIP.half).toBeGreaterThan(0)
+    for (const pad of [dealPlace(), ...guessPlaces()]) inside(pad.x, pad.z, pad.width, pad.depth)
+    for (const count of [1, 2]) for (const pose of revealPoses(count)) inside(pose.position.x, pose.position.z, CARD.width * MIDDLE.reveal.scale, CARD.height * MIDDLE.reveal.scale)
+  })
+
+  it("lays the nine characters a Guard can name in two rows, five then four, centred, in the order of their value", () => {
+    const places = guessPlaces()
+    expect(places).toHaveLength(9)
+    expect(places.slice(0, 5).map((place) => place.z)).toEqual(Array(5).fill(places[0]!.z))
+    expect(places.slice(5).map((place) => place.z)).toEqual(Array(4).fill(places[5]!.z))
+    expect(places[5]!.z).toBeGreaterThan(places[0]!.z)
+    expect(places[0]!.x + places[4]!.x).toBeCloseTo(0, 9)
+    expect(places[5]!.x + places[8]!.x).toBeCloseTo(0, 9)
+    expect(places.slice(0, 5).map((place) => place.x)).toEqual([...places.slice(0, 5).map((place) => place.x)].sort((a, b) => a - b))
   })
 })
 
