@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { boxesOverlap, boxOfPoses, boxOfRect, centreOf } from "../box"
 import { row, seats } from "../layout"
-import { PLATE_LETTERS, plateAbove, plateBoxOf, plateOf, plateWidth, SEAT_SETTINGS } from "./placement"
+import { PLATE_LETTERS, plateAbove, plateBoxOf, plateOf, plateWidth, SEAT_SETTINGS, scaledSeat } from "./placement"
 
 // The places the template's scene wrote inline before the plate moved here (`scene.tsx` and its `AVATAR` constant): the plate of a seat placed from its spot has not moved since, but for the info line, which stands a little lower, and the avatar, which is always to the left.
 const AVATAR = { size: 0.56, gap: 0.18 }
@@ -128,5 +128,45 @@ describe("plateBoxOf", () => {
     const plate = plateOf({ x: 0, z: 0 }, false)
     const box = plateBoxOf(plate, SEAT_SETTINGS, 5)
     expect(box.maxX - box.minX).toBe(5)
+  })
+})
+
+describe("the room of a name", () => {
+  it("holds more than the six letters a layout leaves for a plate, so that a name that is not wide is never shrunk", () => {
+    expect(SEAT_SETTINGS.nameRoom).toBeGreaterThan(PLATE_LETTERS * 0.5 * SEAT_SETTINGS.nameHeight)
+  })
+})
+
+describe("scaledSeat", () => {
+  const SIZES = ["nameHeight", "nameLift", "lineHeight", "lineDrop", "nameRoom", "avatarSize", "avatarGap", "crownSize", "crownRight", "crownBack", "plateGap"] as const
+
+  it("multiplies every size and every gap, and leaves the reach factors and the opacity", () => {
+    const small = scaledSeat(0.5)
+    for (const key of SIZES) expect(small[key], key).toBeCloseTo(SEAT_SETTINGS[key] / 2, 10)
+    for (const key of ["reachX", "reachZ", "viewerReachX", "viewerReachZ", "awayOpacity"] as const) expect(small[key], key).toBe(SEAT_SETTINGS[key])
+  })
+
+  it("names every setting there is: a setting added later that is a size has to be scaled here", () => {
+    const sizes = new Set<string>(SIZES)
+    const factors = new Set(["reachX", "reachZ", "viewerReachX", "viewerReachZ", "awayOpacity"])
+    expect(Object.keys(SEAT_SETTINGS).filter((key) => !sizes.has(key) && !factors.has(key))).toEqual([])
+  })
+
+  it("makes a copy: the settings the debug panel edits are not touched", () => {
+    const before = { ...SEAT_SETTINGS }
+    scaledSeat(2)
+    expect(SEAT_SETTINGS).toEqual(before)
+  })
+
+  it("makes a plate that is as wide as its size says, and the layout works its boxes out with the same settings", () => {
+    const half = scaledSeat(0.5)
+    expect(plateWidth(half)).toBeCloseTo(plateWidth() / 2, 10)
+    const cards = { minX: -2, maxX: 2, minZ: 1, maxZ: 3 }
+    const full = plateBoxOf(plateAbove(cards))
+    const small = plateBoxOf(plateAbove(cards, half), half)
+    expect(small.maxX - small.minX).toBeCloseTo((full.maxX - full.minX) / 2, 10)
+    expect(small.maxZ - small.minZ).toBeCloseTo((full.maxZ - full.minZ) / 2, 10)
+    // its foot stands nearer the cards by the gap it scaled
+    expect(cards.minZ - small.minZ).toBeLessThan(cards.minZ - full.minZ)
   })
 })

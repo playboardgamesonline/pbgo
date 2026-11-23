@@ -79,6 +79,8 @@ The props are `SeatProps`:
 | `status` | A word on the same info line, after the score ("132 pts · Stayed"), plain text, written the same way |
 | `trailing` | What stands to the right of the name, in a frame whose origin is the name's right edge (`0.2` is just right of the last letter): tokens, a count, an icon |
 | `crownIcon` | The crown's icon, the skin's `hostIcon`; without one, a drawn crown |
+| `room` | The widest the name may be, in world units: a longer name shrinks to it with its proportions, never cut. `SEAT_SETTINGS.nameRoom` when not given, which only a name of wide capitals goes beyond ([Long names](#long-names)) |
+| `settings` | The settings the plate follows, `SEAT_SETTINGS` unless the board makes its plates smaller at a bigger table (`scaledSeat`, [Where the plate stands](#where-the-plate-stands)): the layout that places the plates is given the same |
 | `font` | The CSS font of the lettering; `PLATE_FONT` (Geist) by default. `PLATE_FONT` and `PLATE_WEIGHT` are exported: a game that uploaded its own display font to its Sanity project gives it from `useLettering()` (`lettering.display`, which is `"Site Title", ${PLATE_FONT}`, and `lettering.weight`: Flip 7's plates) so that the plates, and the buttons and counts of the table, are drawn in it, and the kit's own is what the lettering reads in until it has loaded |
 | `nameStyle`, `lineStyle` | What is changed in the `TextStyle` of the name and of the info line |
 | `children` | What else stands at the seat, in the frame of the world: the cards held there, as a `Zone` given the same `frame` |
@@ -144,12 +146,15 @@ Everything of a player stands on one line, the axis of their seat: the line from
 | `reachX`, `reachZ` | How far out of the ring an opponent's plate stands when it has no `above`, as factors of the spot |
 | `viewerReachX`, `viewerReachZ` | The same for the viewer's plate |
 | `nameHeight`, `nameLift` | The size of the name's letters, and how far toward the middle of the table it stands from the centre of the plate |
+| `nameRoom` | The widest a name may be: a longer one shrinks to this width, with its proportions, instead of reaching the plate of the next seat. Twelve letters of the platform's font make about 3.5, so only a name of wide capitals is touched |
 | `lineHeight`, `lineDrop` | The same for the info line, which drops toward the cards |
 | `avatarSize`, `avatarGap` | The avatar's diameter and its gap to the first letter |
 | `crownSize`, `crownRight`, `crownBack` | The crown's size, and how far its foot stands from the avatar's centre: to the right and toward the middle of the table |
 | `awayOpacity` | How opaque the plate of a player who is away stays |
 
 `SEAT_SETTINGS` is a plain object (its type is `SeatSettings`) that the Seat folder of the table's debug panel edits (`SEAT_FIELDS` lists its knobs, and a `Seat` follows them as they move). With the panel's View folder on, every `Seat` also marks the middle of its plate, the box the plate covers and the box of the cards it stands beyond, in its frame. `plateAbove`, `plateOf`, `plateBoxOf` and `seatStateOf` are the same numbers and rules as pure functions: `placement.test.ts` checks them (the plate is on the middle's side of the cards, clear of them, and the places a plate placed from its spot has had since the template wrote them), and `state.test.ts` checks the states.
+
+A board whose plates should be smaller at a bigger table gives `Seat` the `settings` of `scaledSeat(factor)`, a copy of `SEAT_SETTINGS` with every size and every gap multiplied (the reach factors and the opacity are not), and gives its layout the same (`plateAbove`, `plateBoxOf` and `plateWidth` take them), so that the plate that is drawn and the room that is left for it agree. The kit has no rule for the factor of a table of eight: it is the board's.
 
 ## Whose turn it is
 
@@ -181,6 +186,7 @@ A nickname is typed by its player, so it can be any length, and a plate, a list 
 - Characters are counted as the eye counts them, not as JavaScript does: an emoji, a letter with its accent written as a combining mark and a family joined by zero-width joiners are each one character, so a name is never cut in the middle of one. `Intl.Segmenter` does it; a runtime without it counts code points.
 - The full name stays the accessible one: the DOM that draws a short name carries the whole of it in `title`. The canvas of a `Seat` has no DOM, so the plate's name reads as drawn there; the full name is in the list of the players beside the board.
 - Only what is drawn is cut. The state, the log, the chat and the profile keep the name the player typed. To change the limit, change `NAME_LIMIT`: `short-name.test.ts` follows it.
+- A name of twelve wide capitals (a `W` is nearly as wide as it is tall) is wider than twelve letters of an ordinary name, and a plate cannot grow with it: past `SEAT_SETTINGS.nameRoom` (or the `room` of a `Seat`) the name is drawn smaller, with the avatar and what stands after it following its edges (`maxWidth` of `TableText`, which any lettering of the table can take). A name that fits is drawn as it was.
 
 ## The avatar
 

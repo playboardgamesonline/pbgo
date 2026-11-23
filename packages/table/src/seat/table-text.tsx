@@ -4,7 +4,7 @@ import { useCursor } from "@react-three/drei"
 import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { CanvasTexture, type MeshBasicMaterial, SRGBColorSpace } from "three"
-import { TEXT_PX } from "./text-px"
+import { fitScale, TEXT_PX } from "./text-px"
 
 /** The font of the lettering on the table unless a game gives its own */
 export const TABLE_FONT = 'ui-rounded, "Avenir Next", "Nunito", system-ui, sans-serif'
@@ -155,6 +155,7 @@ export function TableText({
   onClick,
   onHover,
   layer = 0,
+  maxWidth,
   children,
   trailing,
 }: {
@@ -170,6 +171,8 @@ export function TableText({
   onClick?: () => void
   onHover?: (hovered: boolean) => void
   layer?: number
+  /** The widest the lettering may be, in world units: a text that is wider shrinks, with its proportions, to be this wide. What sits before and after it follows its edges. No limit by default */
+  maxWidth?: number
   /** What sits before the text, in a frame whose origin is the text's left edge (x grows to the right: `-0.2` is just left of the first letter) */
   children?: ReactNode
   /** What sits after the text, in a frame whose origin is the text's right edge (`0.2` is just right of the last letter) */
@@ -185,7 +188,9 @@ export function TableText({
   useEffect(() => () => texture.dispose(), [texture])
   const [hovered, setHovered] = useState(false)
   useCursor(hovered && !!onClick)
-  const totalHeight = height * scale
+  // a text that is wider than its room is smaller, so that what sits at its edges stays at them
+  const shown = height * fitScale(textWidth, height, maxWidth)
+  const totalHeight = shown * scale
   const material = useRef<MeshBasicMaterial>(null)
   useFrame(({ clock }) => {
     if (!material.current) return
@@ -222,8 +227,8 @@ export function TableText({
         <meshBasicMaterial ref={material} map={texture} transparent depthWrite={false} toneMapped={false} />
       </mesh>
       {/* a canvas pixel is `height / TEXT_PX` world units: the edges of the text, whatever the glyphs measured */}
-      {children && <group position-x={-(textWidth * height) / TEXT_PX / 2}>{children}</group>}
-      {trailing && <group position-x={(textWidth * height) / TEXT_PX / 2}>{trailing}</group>}
+      {children && <group position-x={-(textWidth * shown) / TEXT_PX / 2}>{children}</group>}
+      {trailing && <group position-x={(textWidth * shown) / TEXT_PX / 2}>{trailing}</group>}
     </group>
   )
 }
