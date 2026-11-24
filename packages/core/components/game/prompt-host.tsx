@@ -11,6 +11,7 @@ import { ToggleGroup, ToggleGroupItem } from "@pbgo/ui/platform/toggle-group"
 import { cn } from "@pbgo/ui/utils"
 import { ApiClientError } from "../../lib/api"
 import { type Asking, answersOf, type ChoiceField, closePrompt, currentPrompt, type Draft, type NumberField, initialDraft, subscribePrompt, type TextField } from "./prompt"
+import { SeatLabel } from "./seat-label"
 
 /**
  * The window of `ask`, `askText`, `askNumber`, `askChoice` and `askChoices`, in the platform's look: a field for each thing asked, an error under the one that is not right, and the two buttons. Mount it once, anywhere in the page, as
@@ -50,7 +51,7 @@ function Window({ asking, open }: { asking: Asking | null; open: boolean }) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && closePrompt(null)}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className={fields.some((field) => field.kind === "choice" && field.display === "cards") ? "sm:max-w-xl" : "sm:max-w-sm"}>
         <form onSubmit={submit} noValidate className="grid gap-6">
           <DialogHeader>
             <DialogTitle className="text-xl leading-tight">{prompt?.title}</DialogTitle>
@@ -174,45 +175,62 @@ function NumberView({ field, name, value, wrong, first, onChange }: { field: Num
 }
 
 function ChoiceView({ field, name, picked, onChange, onInstant }: { field: ChoiceField; name: string; picked: number[]; onChange: (picked: number[]) => void; onInstant?: (picked: number[]) => void }) {
-  // Options that are only a few words sit side by side; options with a line under them or a picture are rows
-  const compact = field.options.every((option) => !option.description && !option.image)
+  // Options that are only a few words sit side by side; options with a line under them, a picture or a player are rows; cards, which have a picture, are tiles in a grid
+  const cards = field.display === "cards"
+  const compact = !cards && field.options.every((option) => !option.description && !option.image && !option.player)
   const most = field.many?.max
   const items = field.options.map((option, index) => (
     <ToggleGroupItem
       key={index}
       value={String(index)}
       disabled={option.disabled}
-      className={cn(compact ? "h-10" : "h-auto min-h-10 w-full justify-start gap-3 py-2 text-left whitespace-normal")}
+      aria-label={option.label}
+      className={cn(cards && option.image ? "h-auto min-w-0 flex-col gap-1 p-1 whitespace-normal" : compact ? "h-10" : "h-auto min-h-10 w-full justify-start gap-3 py-2 text-left whitespace-normal")}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- the picture of an option is the game's own, served by its media proxy: the window cannot know its size for next/image */}
-      {option.image ? <img src={option.image} alt="" className="size-8 shrink-0 rounded-md object-cover" /> : null}
-      {compact ? (
-        option.label
+      {cards && option.image ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- the picture of an option is the board's own, a data URL it painted or an address of its media proxy: the window cannot know its size for next/image */}
+          <img src={option.image} alt="" className="aspect-[38/53] w-full rounded-sm object-cover" />
+          <span className="text-center text-xs leading-tight">{option.label}</span>
+        </>
+      ) : option.player ? (
+        <SeatLabel nickname={option.player.nickname} color={option.player.color} imageUrl={option.player.imageUrl} size="md" />
       ) : (
-        <span className="flex min-w-0 flex-col">
-          <span>{option.label}</span>
-          {option.description ? <span className="text-xs opacity-70">{option.description}</span> : null}
-        </span>
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- the picture of an option is the game's own, served by its media proxy: the window cannot know its size for next/image */}
+          {option.image ? <img src={option.image} alt="" className="size-8 shrink-0 rounded-md object-cover" /> : null}
+          {compact ? (
+            option.label
+          ) : (
+            <span className="flex min-w-0 flex-col">
+              <span>{option.label}</span>
+              {option.description ? <span className="text-xs opacity-70">{option.description}</span> : null}
+            </span>
+          )}
+        </>
       )}
     </ToggleGroupItem>
   ))
-  const className = cn("w-full", compact ? "grid grid-cols-[repeat(auto-fit,minmax(4.5rem,1fr))] gap-2" : "flex flex-col gap-2")
+  const className = cn("w-full", cards ? "grid grid-cols-5 gap-2" : compact ? "grid grid-cols-[repeat(auto-fit,minmax(4.5rem,1fr))] gap-2" : "flex flex-col gap-2")
   return (
     <>
       {field.many ? (
-        <ToggleGroup type="multiple" aria-label={name} className={className} value={picked.map(String)} onValueChange={(next) => onChange(next.map(Number))}>
+        <ToggleGroup data-field={field.id} type="multiple" aria-label={name} className={className} value={picked.map(String)} onValueChange={(next) => onChange(next.map(Number))}>
           {items}
         </ToggleGroup>
       ) : (
         <ToggleGroup
+          data-field={field.id}
           type="single"
           aria-label={name}
           className={className}
           value={picked[0] === undefined ? "" : String(picked[0])}
           onValueChange={(next) => {
-            const chosen = next === "" ? [] : [Number(next)]
+            // one option is chosen, as in a group of radio buttons: pressing the one that is chosen keeps it, and a field that is asked for is never emptied by a second press
+            if (next === "") return
+            const chosen = [Number(next)]
             onChange(chosen)
-            if (chosen.length > 0) onInstant?.(chosen)
+            onInstant?.(chosen)
           }}
         >
           {items}

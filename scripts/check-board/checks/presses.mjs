@@ -2,7 +2,7 @@
 // of it has to move the table on (its version changes), unless the plan says the press is `local`: it only changes what the board offers (a card picked before the control that sends it). The other seats play through the API. A press that does nothing is a control under the banner, the HUD or another card; the report says what is on top of it.
 import { writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { scanPressables } from "../probe.mjs"
+import { pageControl, scanPressables } from "../probe.mjs"
 import { runCheck, skipped } from "../run.mjs"
 import { sleep, waitFor } from "../util.mjs"
 
@@ -55,7 +55,21 @@ export async function presses(ctx, seats) {
       let broke = null
       // The control the game's `find` picks may be under an announcement or a card that is still flying for a moment: it is waited for until it can be pressed, and said to be covered only when it stays so
       let covered = null
-      const found = await waitFor(
+      // A control that is the page's and not the table's (`plan.dom`: `{ selector, index }`, a button of a panel the game draws over the board, an option of a window the platform opens): it is looked for in the page, and pressed there once it has stopped moving in
+      let windowed = null
+      if (plan.dom) {
+        const read = () => page.eval(pageControl, plan.dom.selector, plan.dom.index ?? 0)
+        const opened = await waitFor(async () => ((await read()).ok ? true : null), { timeoutMs: 15_000, everyMs: 400 })
+        if (!opened) {
+          await evidence(`${plan.label}-missing`)
+          throw new Error(`"${plan.label}": the page offered no control ${plan.dom.index ?? 0} for ${plan.dom.selector} within 15 s (${(await read()).why})`)
+        }
+        await sleep(600)
+        windowed = await read()
+      }
+      const found = windowed?.ok
+        ? { pressable: { pixel: windowed.pixel, path: `the control "${windowed.text}" of the page (${plan.dom.selector})`, world: null }, shown: [] }
+        : await waitFor(
         async () => {
           try {
             covered = null

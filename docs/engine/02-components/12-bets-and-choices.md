@@ -173,7 +173,8 @@ The windows of the platform are functions that give back a promise, from `@pbgo/
 
 - Every window has a `title` and a `description` that say what is asked, and two buttons whose words (`confirm`, `cancel`) the game gives in the player's language, English unless given. All of them are the game's words, from the view, the skin or Sanity, never a literal in the scene.
 - A number is chosen with a stepper and the field beside it, which takes the arrow keys and the keyboard of the device; it is kept to the range and the steps, and what is not right is said under the field with the platform's wording of `INVALID_NUMBER`.
-- Options that are a few words sit side by side; options with a line under them or a picture (`description`, `image`) are rows. An option that is `disabled` is there and cannot be chosen. A choice of several shows how many are chosen of how many may be.
+- Options that are a few words sit side by side; options with a line under them, a picture or a player (`description`, `image`, `player`) are rows; with `display: "cards"` the options that have an `image` are tiles in a grid, the picture and the label under it. An option that is `disabled` is there and cannot be chosen. A choice of several shows how many are chosen of how many may be.
+- An option that stands for a player has a `player` (`nickname`, `color`, and the account's `imageUrl` when there is one): the window draws the seat's avatar and nickname (`SeatLabel`, the same everywhere a player is named) in place of the label, which stays what a screen reader reads. A choice that has one is the way to pick a player on a screen.
 - The window checks what the player confirmed with the same functions of the kit and the same rules, and gives back the cleaned answers. A window that is not right stays open and says which field is not.
 - One window is open at a time: asking for another closes the first as cancelled. `PromptHost` draws the window, `GameHud` mounts it once. A button of the page can call any of these functions too, which is the way to a field with the keyboard and with a screen reader.
 
@@ -188,9 +189,27 @@ const bid = await ask({
 if (bid) post({ type: "bid", count: bid.count, face: bid.face })
 ```
 
+### A player and a card on one screen
+
+A move that needs a player and a card, or a number and a face, is better made on a screen of its own than on the table: the window has room for the players, the cards at a size that can be read, and a button that says what it does. Ask for both in one `ask`, a field each, and the player confirms once. A player is an option with a `player`, a card an option with an `image` in a choice that says `display: "cards"`; the pictures are an address of the page or a data URL that the board painted (the face it already draws, drawn small).
+
+```ts
+const answers = await ask({
+  title: `${texts.play} · ${names.guard}`,
+  confirm: texts.play,
+  fields: [
+    { id: "player", kind: "choice", label: texts.chooseOther, value: targets.length === 1 ? targets[0] : undefined, options: targets.map((id) => ({ value: id, label: nickname(id), player: { nickname: nickname(id), color: colorOf(id) } })) },
+    { id: "character", kind: "choice", label: texts.nameCharacter, display: "cards", options: GUESSES.map((type) => ({ value: type, label: `${CARDS[type].value} · ${names[type]}`, image: smallFace(type) })) },
+  ],
+})
+if (answers) post({ type: "play", card: guard.id, target: answers.player, guess: answers.character })
+else putTheGuardBack()
+```
+
+Love Letter's Guard is made this way (`scene.tsx`): the card is pressed in the hand, and the window gives the player to name and the character to guess, then Play. A move that needs one player only (a Priest, a Baron, a King) stays on the table, where the lit players are pressed. The window comes up over the table and blurs it, so a choice that depends on what lies on the table (the cards that are done with) is read before it is asked, or kept to the table. A bet on a number is the same screen with a `number` field (`askNumber`), as in Skull King or Pili Pili.
+
 ### Not built
 
 - A dial for a very wide range, and a long list of options that is searched.
-- A window that shows what is picked on, a die or a card, instead of a label: the pick is made on the table, by clicking the die or the card, or by dragging it onto a zone ([Dragging](19-dragging.md)), or with the pieces of [the next section](#with-the-games-own-pieces).
 - A window in the game's own look: the windows are the platform's, and a game that wants its own look asks on the table.
 - A rule that a bid beats the last one, a bet that must differ from the others, a limit that depends on the state: each is the game's, in its engine.

@@ -34,8 +34,8 @@ describe("what the board offers on the viewer's turn", () => {
     expect(stepOf(turn([face(1, "countess"), face(2, "king")], { playable: [1] }), NO_CHOICE)).toEqual({ kind: "pick", forced: true })
   })
 
-  it("lights the players that can be picked for a Guard, a Priest, a Baron or a King, never the viewer", () => {
-    for (const type of ["guard", "priest", "baron", "king"] as const) {
+  it("lights the players that can be picked for a Priest, a Baron or a King, never the viewer", () => {
+    for (const type of ["priest", "baron", "king"] as const) {
       const hand = [face(1, type), face(2, "spy")]
       const choice = chosen(pressCard(turn(hand), NO_CHOICE, hand[0]!))!
       expect(stepOf(turn(hand), choice), type).toEqual({ kind: "target", card: hand[0], targets: ["ben", "cleo"], self: false })
@@ -44,21 +44,21 @@ describe("what the board offers on the viewer's turn", () => {
 
   it("lights the viewer as well for a Prince, who can pick any player, and only the viewer when the others are out or protected", () => {
     const hand = [face(1, "prince"), face(2, "spy")]
-    expect(stepOf(turn(hand), { card: 1, target: null })).toEqual({ kind: "target", card: hand[0], targets: ["ada", "ben", "cleo"], self: true })
-    expect(stepOf(turn(hand, { targets: [] }), { card: 1, target: null })).toEqual({ kind: "target", card: hand[0], targets: ["ada"], self: true })
+    expect(stepOf(turn(hand), { card: 1 })).toEqual({ kind: "target", card: hand[0], targets: ["ada", "ben", "cleo"], self: true })
+    expect(stepOf(turn(hand, { targets: [] }), { card: 1 })).toEqual({ kind: "target", card: hand[0], targets: ["ada"], self: true })
   })
 
-  it("goes on to the nine characters once a Guard has a player, and back to the players when that player can no longer be picked", () => {
+  it("asks a Guard's player and the character it names together, in a window, for the players that can be picked", () => {
     const hand = [face(1, "guard"), face(2, "spy")]
-    const picked: Choice = { card: 1, target: "ben" }
-    expect(stepOf(turn(hand), picked)).toEqual({ kind: "guess", card: hand[0], target: "ben", targets: ["ben", "cleo"] })
-    expect(stepOf(turn(hand, { targets: ["cleo"] }), picked)).toEqual({ kind: "target", card: hand[0], targets: ["cleo"], self: false })
+    const picked: Choice = { card: 1 }
+    expect(stepOf(turn(hand), picked)).toEqual({ kind: "name", card: hand[0], targets: ["ben", "cleo"] })
+    expect(stepOf(turn(hand, { targets: ["cleo"] }), picked)).toEqual({ kind: "name", card: hand[0], targets: ["cleo"] })
   })
 
   it("never offers a card the Countess rule forbids, even when it is the one that was picked", () => {
     const hand = [face(1, "countess"), face(2, "king")]
     const view = turn(hand, { playable: [1] })
-    expect(stepOf(view, { card: 2, target: null })).toEqual({ kind: "pick", forced: true })
+    expect(stepOf(view, { card: 2 })).toEqual({ kind: "pick", forced: true })
     expect(pressable(view, hand[0]!)).toBe(true)
     expect(pressable(view, hand[1]!)).toBe(false)
     expect(pressCard(view, NO_CHOICE, hand[1]!)).toBeNull()
@@ -88,32 +88,30 @@ describe("pressing a card of the hand on the viewer's turn", () => {
     }
   })
 
-  it("holds a card that picks a player until that player is pressed, and a Prince's own player is always there to be pressed", () => {
+  it("holds a card that picks a player until that player is chosen (pressed on the table, or in a Guard's window), and a Prince's own player is always there to be pressed", () => {
     for (const type of ["guard", "priest", "baron", "king", "prince"] as const) {
       const hand = [face(1, type), face(2, "spy")]
-      expect(chosen(pressCard(turn(hand), NO_CHOICE, hand[0]!)), type).toEqual({ card: 1, target: null })
+      expect(chosen(pressCard(turn(hand), NO_CHOICE, hand[0]!)), type).toEqual({ card: 1 })
     }
     const prince = [face(1, "prince"), face(2, "spy")]
-    expect(chosen(pressCard(turn(prince, { targets: [] }), NO_CHOICE, prince[0]!))).toEqual({ card: 1, target: null })
+    expect(chosen(pressCard(turn(prince, { targets: [] }), NO_CHOICE, prince[0]!))).toEqual({ card: 1 })
   })
 
   it("puts the card held back when it is pressed again, and holds another when another is pressed", () => {
     const hand = [face(1, "guard"), face(2, "king")]
-    const held: Choice = { card: 1, target: "ben" }
+    const held: Choice = { card: 1 }
     expect(chosen(pressCard(turn(hand), held, hand[0]!))).toEqual(NO_CHOICE)
-    expect(chosen(pressCard(turn(hand), held, hand[1]!))).toEqual({ card: 2, target: null })
+    expect(chosen(pressCard(turn(hand), held, hand[1]!))).toEqual({ card: 2 })
   })
 
-  it("plays the card held on the player pressed, but for a Guard, which goes on to the nine characters", () => {
-    const priest = stepOf(turn([face(1, "priest"), face(2, "spy")]), { card: 1, target: null }) as Extract<Step, { kind: "target" }>
-    expect(pressPlayer(priest, { card: 1, target: null }, "ben")).toEqual({ kind: "send", action: { type: "play", card: 1, target: "ben" } })
-    const guard = stepOf(turn([face(1, "guard"), face(2, "spy")]), { card: 1, target: null }) as Extract<Step, { kind: "target" }>
-    expect(pressPlayer(guard, { card: 1, target: null }, "ben")).toEqual({ kind: "choose", choice: { card: 1, target: "ben" } })
+  it("plays the card held on the player pressed on the table", () => {
+    const priest = stepOf(turn([face(1, "priest"), face(2, "spy")]), { card: 1 }) as Extract<Step, { kind: "target" }>
+    expect(pressPlayer(priest, "ben")).toEqual({ kind: "send", action: { type: "play", card: 1, target: "ben" } })
   })
 
-  it("plays the Guard naming the character that is pressed, to the player chosen", () => {
-    const guess = stepOf(turn([face(1, "guard"), face(2, "spy")]), { card: 1, target: "ben" }) as Extract<Step, { kind: "guess" }>
-    expect(pressName(guess, "baron")).toEqual({ kind: "send", action: { type: "play", card: 1, target: "ben", guess: "baron" } })
+  it("plays the Guard naming the character that is chosen in its window, to the player chosen there", () => {
+    const guard = stepOf(turn([face(1, "guard"), face(2, "spy")]), { card: 1 }) as Extract<Step, { kind: "name" }>
+    expect(pressName(guard, "ben", "baron")).toEqual({ kind: "send", action: { type: "play", card: 1, target: "ben", guess: "baron" } })
   })
 })
 
@@ -128,7 +126,7 @@ describe("a Chancellor's keep", () => {
 
   it("holds the card pressed as the one kept, then sends the card pressed next as the one that goes under the deck first and the other last", () => {
     const kept = chosen(pressCard(keep, NO_CHOICE, hand[1]!))!
-    expect(kept).toEqual({ card: 2, target: null })
+    expect(kept).toEqual({ card: 2 })
     const step = stepOf(keep, kept) as Extract<Step, { kind: "order" }>
     expect(step.kind).toBe("order")
     expect(step.kept).toEqual(hand[1])
@@ -138,7 +136,7 @@ describe("a Chancellor's keep", () => {
   })
 
   it("puts the card kept back when it is pressed again", () => {
-    expect(chosen(pressCard(keep, { card: 2, target: null }, hand[1]!))).toEqual(NO_CHOICE)
+    expect(chosen(pressCard(keep, { card: 2 }, hand[1]!))).toEqual(NO_CHOICE)
   })
 
   it("sends the move at once for a hand of two: the card pressed is kept and the other goes under the deck, with nothing to order", () => {
@@ -162,13 +160,13 @@ describe("dealing the next round", () => {
 })
 
 describe("what was picked", () => {
-  it("ends when it no longer fits the view: the card left the hand, the turn passed, the player can no longer be picked, the rule forbids the card or nobody is left to pick", () => {
+  it("ends when it no longer fits the view: the card left the hand, the turn passed, the rule forbids the card or nobody is left to pick", () => {
     const hand = [face(1, "guard"), face(2, "spy")]
-    const picked: Choice = { card: 1, target: "ben" }
+    const picked: Choice = { card: 1 }
     expect(validChoice(turn(hand), picked)).toBe(picked)
     expect(validChoice(turn([face(5, "king"), face(2, "spy")]), picked)).toEqual(NO_CHOICE)
     expect(validChoice(viewOf({ hand, phase: { kind: "turn", player: "ben", targets: ["ada"] } }), picked)).toEqual(NO_CHOICE)
-    expect(validChoice(turn(hand, { targets: ["cleo"] }), picked)).toEqual({ card: 1, target: null })
+    expect(validChoice(turn(hand, { targets: ["cleo"] }), picked)).toEqual({ card: 1 })
     expect(validChoice(turn(hand, { playable: [2] }), picked)).toEqual(NO_CHOICE)
     expect(validChoice(turn(hand, { targets: [] }), picked)).toEqual(NO_CHOICE)
     expect(validChoice({ ...turn(hand), me: null }, picked)).toEqual(NO_CHOICE)
@@ -177,7 +175,7 @@ describe("what was picked", () => {
 
   it("holds the card kept after a Chancellor while the keep goes on, and ends with it", () => {
     const hand = [face(1, "guard"), face(2, "chancellor"), face(3, "king")]
-    const picked: Choice = { card: 2, target: null }
+    const picked: Choice = { card: 2 }
     expect(validChoice(viewOf({ hand, phase: { kind: "keep", player: "ada" } }), picked)).toBe(picked)
     expect(validChoice(viewOf({ hand: [face(1, "guard")], phase: { kind: "keep", player: "ada" } }), picked)).toEqual(NO_CHOICE)
     expect(validChoice(viewOf({ hand, phase: { kind: "turn", player: "ada", targets: [] } }), picked)).toEqual(NO_CHOICE)
@@ -200,7 +198,7 @@ describe("what the ticker is told to say", () => {
     expect(promptOf({ kind: "pick", forced: true }, words)).toBe("<mustPlayCountess>")
     expect(promptOf({ kind: "target", card: face(1, "priest"), targets: ["ben"], self: false }, words)).toBe("<chooseOther>")
     expect(promptOf({ kind: "target", card: face(1, "prince"), targets: ["ada", "ben"], self: true }, words)).toBe("<chooseAny>")
-    expect(promptOf({ kind: "guess", card: face(1, "guard"), target: "ben", targets: ["ben"] }, words)).toBe("<nameCharacter>")
+    expect(promptOf({ kind: "name", card: face(1, "guard"), targets: ["ben"] }, words)).toBe("<nameCharacter>")
     expect(promptOf({ kind: "keep" }, words)).toBe("<keepOne>")
     expect(promptOf({ kind: "order", kept: face(2, "chancellor"), others: [face(1, "guard"), face(3, "king")] }, words)).toBe("<putBack>")
     // the Deal button says what it does by its label
@@ -210,10 +208,9 @@ describe("what the ticker is told to say", () => {
 })
 
 describe("the cards the lens may hold", () => {
-  it("are the faces on the table: the hand, the play areas, the hands laid down and the cards set aside, with the nine faces of a guess and the reveal when they are there", () => {
+  it("are the faces on the table: the hand, the play areas, the hands laid down and the cards set aside, with the two faces of a reveal when they are there", () => {
     const view = { ...viewOf({ hand: [face(1, "guard"), face(2, "spy")] }), faceUp: [face(7, "priest")], players: [{ id: "ben", cards: 1, hand: [face(8, "king")], area: [face(9, "baron")], out: false, shielded: false, tokens: 0 }] }
-    expect([...lensIds(view, false, false)].sort()).toEqual([1, 2, 7, 8, 9])
-    expect([...lensIds(view, true, false)].filter((id) => id < 0)).toEqual([-1, -2, -3, -4, -5, -6, -7, -8, -9])
-    expect([...lensIds(view, false, true)].filter((id) => id < 0)).toEqual([-100, -101])
+    expect([...lensIds(view, false)].sort()).toEqual([1, 2, 7, 8, 9])
+    expect([...lensIds(view, true)].filter((id) => id < 0)).toEqual([-100, -101])
   })
 })

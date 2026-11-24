@@ -4,20 +4,20 @@ import type { Vocabulary } from "../../lib/words"
 /**
  * What the viewer does with the mouse, as plain data, so that the rules of it are tested without a browser. The engine decides and the board offers: `me.playable` says which cards can be played (the Countess rule) and `phase.targets` which players can be
  * picked, and the board never offers a move the engine would refuse. A choice between objects is made by pressing the objects: a card is pressed to play it (at once when it picks nobody, else it is held until the player it picks is pressed), a player by their
- * cards, a character by its face, the card to keep and then the card that goes under the deck first by the cards themselves. A button is for the one action with no object, dealing.
+ * cards, the card to keep and then the card that goes under the deck first by the cards themselves. A choice with no object to press on the table is made in a window: a Guard's player and the character it names, together, in one screen of the platform. A button is for the one action with no object, dealing.
  */
 
-/** What the viewer has picked so far: a card of their hand (the card to play that picks a player, or after a Chancellor the card to keep) and the player a Guard names a character for */
-export type Choice = { card: number | null; target: string | null }
+/** What the viewer has picked so far: a card of their hand (the card to play that picks a player, or after a Chancellor the card to keep) */
+export type Choice = { card: number | null }
 
-export const NO_CHOICE: Choice = { card: null, target: null }
+export const NO_CHOICE: Choice = { card: null }
 
 /**
  * What the board offers now.
  * - `none`: nothing to do (not the viewer's move, a spectator, a player who is out).
  * - `pick`: on their turn, a card of the hand to play. `forced`: the Countess is the only one that can be played. A card that picks nobody is played by pressing it, and so is one that picks another player when nobody can be picked (it is played with no effect).
- * - `target`: the card picked picks a player: `targets` are the ones that can be picked, the viewer included for a Prince (`self`).
- * - `guess`: a Guard picked `target`: the nine other characters are offered.
+ * - `target`: the card picked (a Priest, a Baron, a King, a Prince) picks a player: `targets` are the ones that can be picked, the viewer included for a Prince (`self`), pressed on the table.
+ * - `name`: a Guard is picked: its player and the character it names are chosen in one window of the platform, which the board opens (the player among `targets`, the character among the nine others), and the Guard is played when it is confirmed.
  * - `keep`: a Chancellor was played: the card of the hand to keep.
  * - `order`: `kept` was picked: the `others` go under the deck, and the one that is pressed goes first.
  * - `deal`: the round is counted and the viewer takes the first turn of the next one: a Deal button.
@@ -26,7 +26,7 @@ export type Step =
   | { kind: "none" }
   | { kind: "pick"; forced: boolean }
   | { kind: "target"; card: Face; targets: string[]; self: boolean }
-  | { kind: "guess"; card: Face; target: string; targets: string[] }
+  | { kind: "name"; card: Face; targets: string[] }
   | { kind: "keep" }
   | { kind: "order"; kept: Face; others: Face[] }
   | { kind: "deal" }
@@ -54,11 +54,11 @@ export function stepOf(view: PlayerView, choice: Choice): Step {
   const card = faceIn(me.hand, choice.card)
   if (!card || !me.playable.includes(card.id) || !needsPlayer(card, phase.targets)) return { kind: "pick", forced: me.playable.length < me.hand.length }
   if (CARDS[card.type].target === "any") return { kind: "target", card, targets: [me.id, ...phase.targets], self: true }
-  if (card.type === "guard" && choice.target !== null && phase.targets.includes(choice.target)) return { kind: "guess", card, target: choice.target, targets: phase.targets }
+  if (card.type === "guard") return { kind: "name", card, targets: phase.targets }
   return { kind: "target", card, targets: phase.targets, self: false }
 }
 
-/** The choice the view allows: the one given when it still fits, else nothing picked. A card that left the hand, a turn that passed, a player that is no longer to be picked, or a card that picks nobody now end what was picked. */
+/** The choice the view allows: the one given when it still fits, else nothing picked. A card that left the hand, a turn that passed, or a card that picks nobody now end what was picked. */
 export function validChoice(view: PlayerView, choice: Choice): Choice {
   if (choice.card === null) return choice
   const { me, phase } = view
@@ -66,7 +66,6 @@ export function validChoice(view: PlayerView, choice: Choice): Choice {
   const card = me ? faceIn(me.hand, choice.card) : undefined
   if (!me || !mine || !card) return NO_CHOICE
   if (phase.kind === "turn" && (!me.playable.includes(choice.card) || !needsPlayer(card, phase.targets))) return NO_CHOICE
-  if (choice.target !== null && !(phase.kind === "turn" && phase.targets.includes(choice.target))) return { ...choice, target: null }
   return choice
 }
 
@@ -110,20 +109,17 @@ export function pressCard(view: PlayerView, choice: Choice, face: Face): Press |
     const kept = faceIn(me.hand, choice.card)
     if (kept) return { kind: "send", action: keepAction(kept, [face, ...me.hand.filter((held) => held.id !== kept.id && held.id !== face.id)]) }
     const others = me.hand.filter((held) => held.id !== face.id)
-    return others.length > 1 ? { kind: "choose", choice: { card: face.id, target: null } } : { kind: "send", action: keepAction(face, others) }
+    return others.length > 1 ? { kind: "choose", choice: { card: face.id } } : { kind: "send", action: keepAction(face, others) }
   }
   if (phase.kind !== "turn") return null
-  return needsPlayer(face, phase.targets) ? { kind: "choose", choice: { card: face.id, target: null } } : { kind: "send", action: playAction(face) }
+  return needsPlayer(face, phase.targets) ? { kind: "choose", choice: { card: face.id } } : { kind: "send", action: playAction(face) }
 }
 
-/** What pressing a player does while one is to be chosen: a Guard goes on to the nine characters, any other card is played with them */
-export function pressPlayer(step: Extract<Step, { kind: "target" | "guess" }>, choice: Choice, id: string): Press {
-  if (step.card.type === "guard") return { kind: "choose", choice: { ...choice, target: id } }
-  return { kind: "send", action: playAction(step.card, id) }
-}
+/** What pressing a player does while one is to be chosen on the table: the card picked (a Priest, a Baron, a King, a Prince) is played with them */
+export const pressPlayer = (step: Extract<Step, { kind: "target" }>, id: string): Press => ({ kind: "send", action: playAction(step.card, id) })
 
-/** What pressing one of the nine characters does: the Guard is played, naming it, to the player chosen */
-export const pressName = (step: Extract<Step, { kind: "guess" }>, type: CharacterKey): Press => ({ kind: "send", action: playAction(step.card, step.target, type) })
+/** What confirming the window of a Guard does: the Guard is played, naming the character to the player chosen */
+export const pressName = (step: Extract<Step, { kind: "name" }>, target: string, type: CharacterKey): Press => ({ kind: "send", action: playAction(step.card, target, type) })
 
 /** What the viewer is told to do, in the game's words, for the ticker: nothing when there is nothing to press but a button that says it itself (Deal) */
 export function promptOf(step: Step, words: Vocabulary): string | null {
@@ -132,7 +128,7 @@ export function promptOf(step: Step, words: Vocabulary): string | null {
       return step.forced ? words.mustPlayCountess : words.pickCard
     case "target":
       return step.self ? words.chooseAny : words.chooseOther
-    case "guess":
+    case "name":
       return words.nameCharacter
     case "keep":
       return words.keepOne
@@ -144,14 +140,13 @@ export function promptOf(step: Step, words: Vocabulary): string | null {
 }
 
 /**
- * The ids by which the lens knows the cards that are on the table now, for the board to let go of a card that has gone (a card that is played, a choice that ends, a reveal that is over gets no pointer-out event): the faces in the play areas, in the viewer's hand, in the hands
- * laid down and set aside face up, by their id in the game; the nine faces of a Guard's guess and the two of a reveal take negative numbers of their own (`-1` to `-9`, and `-100` and `-101`).
+ * The ids by which the lens knows the cards that are on the table now, for the board to let go of a card that has gone (a card that is played, a choice that ends, a reveal that is over gets no pointer-out event): the faces in the hands and the play areas, the hand of the viewer, the cards
+ * laid down and set aside face up, by their id in the game; the two faces of a reveal take negative numbers of their own (`-100` and `-101`).
  */
-export function lensIds(view: PlayerView, guessing: boolean, revealing: boolean): Set<number> {
+export function lensIds(view: PlayerView, revealing: boolean): Set<number> {
   const ids = new Set<number>()
   for (const player of view.players) for (const face of [...player.area, ...(player.hand ?? [])]) ids.add(face.id)
   for (const face of [...(view.me?.hand ?? []), ...view.faceUp]) ids.add(face.id)
-  if (guessing) for (let i = 1; i <= 9; i++) ids.add(-i)
   if (revealing) for (const id of [-100, -101]) ids.add(id)
   return ids
 }
