@@ -205,14 +205,27 @@ const config = {
       await settle()
       return record(async () => table.act(0, { type: "flip", position: await lastHidden(table) }), { seconds: 8 })
     },
-    // two columns go at the count: the viewer has two columns of three equal cards face down, the others have played their last turn, and the viewer's move ends the round: the count turns the cards over and throws both columns away, one after the other. It comes after the last turn: the one who ended the round has their points doubled, which can end the game, and no case can be played after that
+    // two columns go at the count: the viewer has two columns of three equal cards face down, the others have played their last turn, and the viewer's move ends the round: the count turns the cards over and throws both columns away, one after the other. The one who ended the
+    // round has their points doubled when they are not the lowest, which takes the game to its end more often than not, and no case can be played after that, so it is the last move of a table: run it on its own (`--scenarios columns`, or `column,opponent,columns`). After the cases
+    // above it finds a round counted and does nothing, and it could not follow the last turn: the others' last turns are played to bring the table back to the viewer, and the count of that round, which doubles the viewer, ends the game on the way about once in two
     async columns({ table, record, settle }) {
-      if ((await table.state(0)).status !== "playing") return undefined
+      const state = await table.state(0)
+      if (state.status !== "playing" || state.view.players.some((seat) => seat.total !== 0)) return undefined
       await atViewer(table)
       await table.rig("columnsAtTheCount")
       await table.act(0, { type: "take" })
       await settle()
-      return record(() => table.act(0, { type: "place", position: 4 }), { seconds: 6.5, step: 0.4, count: 16, columns: 4 })
+      // the card goes in the middle row of the first column that is not one of the two (those are face down, every other card is face up)
+      const { cells } = (await table.state(0)).view.players[0]
+      const column = [0, 1, 2, 3].find((candidate) => [0, 1, 2].every((row) => cells[candidate * 3 + row]?.up))
+      if (column === undefined) throw new Error("the viewer has no column to put the card in but the two that are rigged: the case needs three columns at least")
+      const recorded = await record(() => table.act(0, { type: "place", position: column * 3 + 1 }), { seconds: 6.5, step: 0.4, count: 16, columns: 4 })
+      // both columns must have gone at that count, or the case shows nothing of what it is for
+      const { log } = await table.state(0)
+      const latest = Math.max(...log.map((line) => line.v))
+      const thrown = log.filter((line) => line.v === latest && line.event.kind === "column").length
+      if (thrown !== 2) throw new Error(`the count threw ${thrown} columns away, not two`)
+      return recorded
     },
     // the end of the game, from the start of a table: the viewer's total is rigged to 94 (`nearTarget` writes a finished round down, so it only makes sense before any round was counted: after one it would end the game at once), the viewer ends the
     // round, the others play their last turn, and the last move, which counts the round and ends the game, is recorded: the winner and the end screen. Run it on its own (`--scenarios over`): after the cases above it finds a round counted and does nothing
