@@ -1,6 +1,6 @@
 import { CARDS, type CharacterKey, type Face, type PlayerView, type PublicSeat } from "@love-letter/engine"
 import { describe, expect, it } from "vitest"
-import { tableCards } from "./middle"
+import { columnCounts, tableCards } from "./middle"
 
 const face = (id: number, type: CharacterKey): Face => ({ id, type })
 
@@ -138,5 +138,35 @@ describe("the card the viewer has picked", () => {
   it("changes nothing when none is picked", () => {
     const view = viewOf([seat("ada", [face(1, "spy")]), seat("ben", [face(2, "guard")])])
     expect(tableCards(view, null)).toEqual(tableCards(view))
+  })
+})
+
+describe("the columns of the middle", () => {
+  it("count the cards of each value from the lowest to the highest, one column for each value that has a card", () => {
+    const view = viewOf([
+      seat("ada", [face(1, "guard"), face(2, "king"), face(3, "guard")]),
+      seat("ben", [face(4, "guard"), face(5, "princess")], { out: true }),
+      seat("cleo", [face(6, "king"), face(7, "guard"), face(8, "spy")], { out: true }),
+    ])
+    const { middle } = tableCards(view)
+    expect(middle.map((card) => card.type)).toEqual(["spy", "guard", "guard", "guard", "guard", "king", "king", "princess"])
+    // no Priest, no Baron, no Handmaid, no Prince, no Chancellor and no Countess: those columns are not there
+    expect(columnCounts(middle)).toEqual([1, 4, 2, 1])
+  })
+
+  it("are none for no card, and one of one for a single card", () => {
+    expect(columnCounts([])).toEqual([])
+    expect(columnCounts([face(1, "countess")])).toEqual([1])
+  })
+
+  it("keep every card of the list: their counts add up to the number of cards, whatever the round", () => {
+    const view = viewOf([
+      seat("ada", [face(1, "prince"), face(2, "prince"), face(3, "handmaid"), face(4, "guard")]),
+      seat("ben", [face(5, "baron"), face(6, "priest"), face(7, "guard"), face(8, "chancellor"), face(9, "countess")]),
+    ])
+    const { middle } = tableCards(view)
+    const counts = columnCounts(middle)
+    expect(counts.reduce((sum, count) => sum + count, 0)).toBe(middle.length)
+    expect(counts).toEqual([2, 1, 1, 1, 2, 1, 1])
   })
 })

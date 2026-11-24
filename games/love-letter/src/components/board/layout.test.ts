@@ -2,7 +2,7 @@ import { aspectScale, boxesOverlap, frameBoxOfPoses, HELD_FAN_SETTINGS, inFrame,
 import { PerspectiveCamera, Vector3 } from "three"
 import { describe, expect, it } from "vitest"
 import { CAMERA, fitFor } from "./camera"
-import { areaGap, areaPoses, CARD, chairsOf, controlBoxes, columnPoses, columnsBox, dealPlace, guessPlaces, HAND_MAX, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_SETTINGS, lineOf, lines, MIDDLE, middleBoxes, quadOf, reachQuads, revealPoses, seats, seenQuads, tableLines, VIEW_TILT } from "./layout"
+import { areaGap, areaOf, areaPoses, CARD, cardScaleOf, chairsOf, columnPoses, columnSizes, columnsBox, controlBoxes, dealPlace, dealtFrom, faceUpPoses, HAND_MAX, HAND_SETTINGS, heldFrom, heldLayout, heldShadowOf, LAYOUT_SETTINGS, lineOf, lines, MIDDLE, middleBoxes, quadOf, reachQuads, revealedPoses, revealPoses, seats, seenQuads, tableLines, VIEW_TILT } from "./layout"
 
 const ids = (count: number) => Array.from({ length: count }, (_, i) => `p${i}`)
 
@@ -110,7 +110,7 @@ describe("the line of a seat", () => {
     const seat = seats(ids(4), "p0").get("p1")!
     const { hand } = lineOf(seat, false, 4)
     for (let n = 1; n <= HAND_MAX; n++) {
-      const box = frameBoxOfPoses(heldLayout(n, seat), CARD, seat, { tilt: VIEW_TILT })!
+      const box = frameBoxOfPoses(heldLayout(n, seat, 4), CARD, seat, { tilt: VIEW_TILT })!
       expect(box.minX).toBeGreaterThanOrEqual(hand.minX - 1e-9)
       expect(box.maxX).toBeLessThanOrEqual(hand.maxX + 1e-9)
       expect(box.minZ).toBeGreaterThanOrEqual(hand.minZ - 1e-9)
@@ -134,8 +134,8 @@ describe("the line of a seat", () => {
   it("sends the card that is played from an end of the hand, the one on the left as the viewer sees it", () => {
     for (const [id, seat] of seats(ids(5), "p0")) {
       if (id === "p0") continue
-      const from = heldFrom(seat, 3)
-      const poses = heldLayout(3, seat).map((pose) => inFrame(seat, pose))
+      const from = heldFrom(seat, 3, 6)
+      const poses = heldLayout(3, seat, 6).map((pose) => inFrame(seat, pose))
       // the first or the last card of the fan, in the world: which of the two is on the viewer's left depends on the way the seat is turned
       const ends = [poses[0]!, poses[2]!]
       expect(ends.some((end) => Math.hypot(end.position.x - from.position.x, end.position.z - from.position.z) < 1e-6), id).toBe(true)
@@ -143,10 +143,20 @@ describe("the line of a seat", () => {
   })
 
   it("has a round shadow under a hand that is the size of its fan: no smaller than its footprint and not much larger", () => {
-    for (let n = 1; n <= HAND_MAX; n++) {
-      const half = ((n - 1) * HELD_FAN_SETTINGS.gap + CARD.width * HELD_FAN_SETTINGS.scale) / 2
-      expect(HELD_SHADOW.radius(n) / half, `a hand of ${n}`).toBeGreaterThan(0.9)
-      expect(HELD_SHADOW.radius(n) / half, `a hand of ${n}`).toBeLessThan(1.75)
+    for (const chairs of [2, 4, 6]) {
+      for (let n = 1; n <= HAND_MAX; n++) {
+        const half = ((n - 1) * HELD_FAN_SETTINGS.gap + CARD.width * cardScaleOf(chairs)) / 2
+        expect(heldShadowOf(chairs).radius(n) / half, `a hand of ${n}, ${chairs} chairs`).toBeGreaterThan(0.9)
+        expect(heldShadowOf(chairs).radius(n) / half, `a hand of ${n}, ${chairs} chairs`).toBeLessThan(1.75)
+      }
+    }
+  })
+
+  it("holds cards of the size of every card of the table, whatever the table", () => {
+    for (const chairs of [2, 3, 4, 5, 6]) {
+      const seat = seats(ids(chairs), "p0").get("p1")!
+      for (let n = 1; n <= HAND_MAX; n++) for (const pose of heldLayout(n, seat, chairs)) expect(pose.scale, `${chairs} chairs`).toBeCloseTo(cardScaleOf(chairs), 9)
+      expect(heldFrom(seat, 2, chairs).scale, `${chairs} chairs`).toBeCloseTo(cardScaleOf(chairs), 9)
     }
   })
 })
@@ -154,7 +164,7 @@ describe("the line of a seat", () => {
 /** What is on the table of `count` players as polygons on it, by what it is: for every seat its plate, its play area and its hand, for an opponent, the room of its press, and the middle of the table */
 function shapes(count: number, seated: boolean) {
   const all = tableLines(count, seated)
-  const middle = middleBoxes(count === 2).map((box, i) => ({ what: `the middle ${i}`, shape: quadOf(box, { x: 0, z: 0, yaw: 0 }) }))
+  const middle = middleBoxes(count === 2, chairsOf(count, seated)).map((box, i) => ({ what: `the middle ${i}`, shape: quadOf(box, { x: 0, z: 0, yaw: 0 }) }))
   const things = all.flatMap((line, i) => [
     { what: `plate of seat ${i}`, shape: quadOf(line.plateBox, line.seat), seat: i },
     { what: `play area of seat ${i}`, shape: quadOf(line.play, line.seat), seat: i },
@@ -188,22 +198,18 @@ describe("the table", () => {
     expect(over).toEqual([])
   })
 
-  it("keeps the boxes of the middle clear of one another, the Deal button and the row of the nine characters alone sharing their place, since one is there at a time", () => {
-    const boxes = middleBoxes(true)
-    const { deal, guess } = controlBoxes()
-    const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+  it("keeps the boxes of the middle clear of one another: the deck with its count, the cards set aside face up, the columns and the Deal button", () => {
     const over: string[] = []
-    for (let i = 0; i < boxes.length; i++) {
-      for (let j = i + 1; j < boxes.length; j++) {
-        const sharing = (same(boxes[i], deal) && same(boxes[j], guess)) || (same(boxes[i], guess) && same(boxes[j], deal))
-        if (!sharing && boxesOverlap(boxes[i]!, boxes[j]!)) over.push(`${i} and ${j}`)
-      }
+    for (const chairs of [2, 3, 4, 5, 6]) {
+      // the three cards set aside face up are there at a table of two players, which a spectator sees as three chairs
+      const boxes = middleBoxes(chairs <= 3, chairs)
+      for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) if (boxesOverlap(boxes[i]!, boxes[j]!)) over.push(`${i} and ${j}, ${chairs} chairs`)
     }
     expect(over).toEqual([])
   })
 
-  it("holds the Deal button, the nine characters and the faces of a reveal inside the room of the controls", () => {
-    const { deal, guess, reveal } = controlBoxes()
+  it("holds the Deal button and the faces of a reveal inside the room of the controls", () => {
+    const { deal, reveal } = controlBoxes()
     const inside = (box: { minX: number; maxX: number; minZ: number; maxZ: number }, x: number, z: number, width: number, depth: number) => {
       expect(x - width / 2).toBeGreaterThanOrEqual(box.minX - 1e-9)
       expect(x + width / 2).toBeLessThanOrEqual(box.maxX + 1e-9)
@@ -212,91 +218,188 @@ describe("the table", () => {
     }
     const pad = dealPlace()
     inside(deal, pad.x, pad.z, pad.width, pad.depth)
-    for (const place of guessPlaces()) inside(guess, place.x, place.z, place.width, place.depth)
     for (const count of [1, 2]) for (const pose of revealPoses(count)) inside(reveal, pose.position.x, pose.position.z, CARD.width * MIDDLE.reveal.scale, CARD.height * MIDDLE.reveal.scale)
   })
 
-  it("lays the nine characters a Guard can name in one row, centred, in the order of their value", () => {
-    const places = guessPlaces()
-    expect(places).toHaveLength(9)
-    expect(places.map((place) => place.z)).toEqual(Array(9).fill(places[0]!.z))
-    expect(places[0]!.x + places[8]!.x).toBeCloseTo(0, 9)
-    expect(places.map((place) => place.x)).toEqual([...places.map((place) => place.x)].sort((a, b) => a - b))
+  it("lays no copy of the cards below them: the characters a Guard can name are not on the table", () => {
+    expect(Object.keys(MIDDLE)).not.toContain("guess")
+    expect(Object.keys(controlBoxes())).toEqual(["deal", "reveal"])
   })
 })
 
 describe("the columns of the cards in the middle", () => {
-  const width = CARD.width * MIDDLE.columns.scale
-  const height = CARD.height * MIDDLE.columns.scale
-  const pitch = width * (1 + MIDDLE.columns.gap)
-  /** A round that has gone far: copies of most values, six Guards */
-  const FULL = [0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 7, 8, 9]
+  const deck = () => middleBoxes(false)[0]!
+  const widthOf = (chairs?: number) => CARD.width * columnSizes([1], chairs).scale
+  /** The counts of every table of columns the middle can hold, from one column of one card to ten columns, the tallest of up to six cards */
+  const roundsOf = () => Array.from({ length: 10 }, (_, i) => i + 1).flatMap((columns) => [1, 2, 3, 4, 5, 6].map((tallest) => Array.from({ length: columns }, (_, column) => (column === columns - 1 ? tallest : 1))))
 
   it("has a slot for each card, none for none", () => {
     expect(columnPoses([])).toEqual([])
-    expect(columnPoses(FULL)).toHaveLength(FULL.length)
+    for (const counts of [[1], [2, 4, 1], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], [2, 6, 2, 2, 2, 2, 2, 1, 1, 1]]) expect(columnPoses(counts)).toHaveLength(counts.reduce((sum, count) => sum + count, 0))
   })
 
-  it("puts each card in the column of its value, side by side in ascending order from the left, the first of them right beside the deck, to its right", () => {
-    const xs = columnPoses([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).map((pose) => pose.position.x)
-    xs.forEach((x, value) => expect(x, `value ${value}`).toBeCloseTo(MIDDLE.columns.x + value * pitch, 9))
-    expect(xs).toEqual([...xs].sort((a, b) => a - b))
-    const deck = middleBoxes(false)[0]!
-    expect(xs[0]! - width / 2).toBeGreaterThan(deck.maxX)
-    // right beside it: the gap between the deck and the first column is less than a card of the columns
-    expect(xs[0]! - width / 2 - deck.maxX).toBeLessThan(width)
-  })
-
-  it("spaces the columns: no card of one column touches the next", () => {
-    expect(pitch).toBeGreaterThan(width)
-    const poses = columnPoses(FULL)
-    for (const a of poses) for (const b of poses) if (a.position.x !== b.position.x) expect(Math.abs(a.position.x - b.position.x)).toBeGreaterThanOrEqual(pitch - 1e-9)
-  })
-
-  it("lays the copies of a value one under the other, each `cascade` of a card's height under the one before it and a hair higher, the first at the top of the column", () => {
-    const poses = columnPoses([1, 1, 1, 2])
-    const top = columnsBox().minZ
-    expect(poses[0]!.position.z).toBeCloseTo(top + height / 2, 9)
-    expect(poses[1]!.position.z - poses[0]!.position.z).toBeCloseTo(MIDDLE.columns.cascade * height, 9)
-    expect(poses[2]!.position.z - poses[1]!.position.z).toBeCloseTo(MIDDLE.columns.cascade * height, 9)
-    expect(poses[1]!.position.y).toBeGreaterThan(poses[0]!.position.y)
-    expect(poses[2]!.position.y).toBeGreaterThan(poses[1]!.position.y)
-    // the card of another value starts its own column at the top
-    expect(poses[3]!.position.z).toBeCloseTo(top + height / 2, 9)
-  })
-
-  it("keeps the banner, the name and the medallion with the value of each copy in sight: a copy covers no more than the lower two thirds of the one above it", () => {
-    expect(MIDDLE.columns.cascade).toBeGreaterThanOrEqual(0.25)
-    expect(MIDDLE.columns.cascade).toBeLessThanOrEqual(1)
-  })
-
-  it("never moves a card sideways because another joins: a card's column depends on its value alone", () => {
-    const before = columnPoses([0, 1, 4])
-    const after = columnPoses([0, 1, 1, 2, 4, 9])
-    expect(after[0]!.position.x).toBe(before[0]!.position.x)
-    expect(after[1]!.position.x).toBe(before[1]!.position.x)
-    expect(after[4]!.position.x).toBe(before[2]!.position.x)
-  })
-
-  it("holds the most there are of a value: six copies fit under their column, and a whole round inside the box of the columns", () => {
-    const box = columnsBox()
-    for (const pose of columnPoses(FULL)) {
-      expect(pose.position.x - width / 2).toBeGreaterThanOrEqual(box.minX - 1e-9)
-      expect(pose.position.x + width / 2).toBeLessThanOrEqual(box.maxX + 1e-9)
-      expect(pose.position.z - height / 2).toBeGreaterThanOrEqual(box.minZ - 1e-9)
-      expect(pose.position.z + height / 2).toBeLessThanOrEqual(box.maxZ + 1e-9)
+  it("lays the columns from the left to the right, one for each value that has a card, the first card of each as high as the deck, side by side with a gap and no card over the next column", () => {
+    for (const chairs of [2, 6]) {
+      const counts = [2, 4, 2, 1, 2]
+      const poses = columnPoses(counts, chairs)
+      const firsts = counts.map((_, column) => poses[counts.slice(0, column).reduce((sum, count) => sum + count, 0)]!)
+      firsts.forEach((pose, column) => {
+        expect(pose.position.z - (CARD.height * pose.scale) / 2, `column ${column}, ${chairs} chairs`).toBeCloseTo(deck().minZ + (chairs === 2 ? 0 : 0) * 0 + (middleBoxes(false, chairs)[0]!.minZ - deck().minZ), 9)
+        if (column > 0) expect(pose.position.x - firsts[column - 1]!.position.x, `column ${column}, ${chairs} chairs`).toBeCloseTo(widthOf(chairs) * (1 + MIDDLE.columns.gap), 9)
+      })
+      // the copies of a column stand on its axis: no card leans into the next column
+      let index = 0
+      counts.forEach((count, column) => {
+        for (let copy = 0; copy < count; copy++) expect(poses[index++]!.position.x, `column ${column}, ${chairs} chairs`).toBeCloseTo(firsts[column]!.position.x, 9)
+      })
     }
   })
 
-  it("has a box of its own among those of the middle, beside the deck on the right and clear of the room of the controls above and below it", () => {
+  it("cascades the copies of a column down, each a share of its height below the one before and a hair higher, so that the last one played is whole at the foot", () => {
+    const counts = [1, 5, 2]
+    const poses = columnPoses(counts)
+    const { scale, step } = columnSizes(counts)
+    const guards = poses.slice(1, 6)
+    guards.forEach((pose, copy) => {
+      expect(pose.position.z - guards[0]!.position.z, `copy ${copy}`).toBeCloseTo(copy * step * CARD.height * scale, 9)
+      if (copy > 0) expect(pose.position.y).toBeGreaterThan(guards[copy - 1]!.position.y)
+    })
+    // a copy shows its banner and its value above the next one: the share it lies down is more than the banner's
+    expect(step).toBeGreaterThanOrEqual(MIDDLE.columns.stepMin)
+    expect(MIDDLE.columns.stepMax).toBeGreaterThan(0.2)
+  })
+
+  it("closes the cascade up as the tallest column grows, never below the least and never past the most, and lays the copies of a short column the most apart", () => {
+    for (const chairs of [2, 6]) {
+      let last = Infinity
+      for (let tallest = 1; tallest <= 6; tallest++) {
+        const { step } = columnSizes([1, tallest, 1], chairs)
+        expect(step, `${tallest} cards, ${chairs} chairs`).toBeGreaterThanOrEqual(MIDDLE.columns.stepMin - 1e-9)
+        expect(step, `${tallest} cards, ${chairs} chairs`).toBeLessThanOrEqual(MIDDLE.columns.stepMax + 1e-9)
+        expect(step, `${tallest} cards, ${chairs} chairs`).toBeLessThanOrEqual(last + 1e-9)
+        last = step
+      }
+      expect(columnSizes([1, 2, 1], chairs).step).toBe(MIDDLE.columns.stepMax)
+    }
+  })
+
+  it("centres the block of columns on the table while it has the room for that, and keeps to the side of the deck past it", () => {
+    for (const chairs of [2, 6]) {
+      const { minX: left, maxX: right } = columnsBox(chairs)
+      for (let columns = 1; columns <= 10; columns++) {
+        const counts = Array.from({ length: columns }, () => 1)
+        const width = widthOf(chairs)
+        const xs = columnPoses(counts, chairs).map((pose) => pose.position.x)
+        const first = xs[0]! - width / 2
+        const last = xs[xs.length - 1]! + width / 2
+        const label = `${columns} columns, ${chairs} chairs`
+        expect(first, label).toBeGreaterThanOrEqual(left - 1e-9)
+        expect(last, label).toBeLessThanOrEqual(right + 1e-9)
+        // centred when it can be: the middle of the block is the middle of the table
+        if (first > left + 1e-9 && last < right - 1e-9) expect((first + last) / 2, label).toBeCloseTo(0, 9)
+        // else it is pushed against the side of its room
+        else expect(first <= left + 1e-9 || last >= right - 1e-9, label).toBe(true)
+      }
+    }
+  })
+
+  it("keeps the columns a card's width and a gap apart while the room allows it, closes them up as they are many, and never lets one lie over the next", () => {
+    for (const chairs of [2, 3, 4, 5, 6]) {
+      const width = widthOf(chairs)
+      let last = Infinity
+      for (let columns = 2; columns <= 10; columns++) {
+        const { pitch } = columnSizes(Array.from({ length: columns }, () => 1), chairs)
+        expect(pitch, `${columns} columns, ${chairs} chairs`).toBeGreaterThanOrEqual(width - 1e-9)
+        expect(pitch, `${columns} columns, ${chairs} chairs`).toBeLessThanOrEqual(width * (1 + MIDDLE.columns.gap) + 1e-9)
+        expect(pitch, `${columns} columns, ${chairs} chairs`).toBeLessThanOrEqual(last + 1e-9)
+        last = pitch
+      }
+      // the usual gap holds up to the eight columns that a round has all but never, at every table
+      expect(columnSizes(Array.from({ length: 8 }, () => 1), chairs).pitch, `${chairs} chairs`).toBeCloseTo(width * (1 + MIDDLE.columns.gap), 9)
+    }
+  })
+
+  it("never leaves its box, whatever the round and the table: the cards of the widest and of the tallest columns end where the room ends, the cascade included", () => {
+    for (const chairs of [2, 3, 4, 5, 6]) {
+      const box = columnsBox(chairs)
+      for (const counts of roundsOf()) {
+        const { scale } = columnSizes(counts, chairs)
+        const label = `${counts.join(",")}, ${chairs} chairs`
+        for (const pose of columnPoses(counts, chairs)) {
+          expect(pose.position.x - (CARD.width * scale) / 2, label).toBeGreaterThanOrEqual(box.minX - 1e-9)
+          expect(pose.position.x + (CARD.width * scale) / 2, label).toBeLessThanOrEqual(box.maxX + 1e-9)
+          expect(pose.position.z - (CARD.height * scale) / 2, label).toBeGreaterThanOrEqual(box.minZ - 1e-9)
+          expect(pose.position.z + (CARD.height * scale) / 2, label).toBeLessThanOrEqual(box.maxZ + 1e-9)
+        }
+      }
+    }
+  })
+
+  it("keeps every card where it is when a copy joins a column that is not the tallest: only the new card is added, and the others shift only when the columns change in number or the tallest in height", () => {
+    const before = columnPoses([1, 3, 1])
+    const after = columnPoses([2, 3, 1])
+    const same = (a: Pose, b: Pose) => ["x", "z"].every((axis) => Math.abs(a.position[axis as "x" | "z"] - b.position[axis as "x" | "z"]) < 1e-9) && Math.abs(a.scale - b.scale) < 1e-9
+    expect(same(before[0]!, after[0]!)).toBe(true)
+    for (let copy = 0; copy < 3; copy++) expect(same(before[1 + copy]!, after[2 + copy]!), `guard ${copy}`).toBe(true)
+    expect(same(before[4]!, after[5]!)).toBe(true)
+  })
+
+  it("has more room at a table of three chairs or fewer, where no seat stands at the sides of the middle", () => {
+    expect(columnsBox(2).maxX).toBe(MIDDLE.columns.wideRight)
+    expect(columnsBox(MIDDLE.columns.wideChairs).maxX).toBe(MIDDLE.columns.wideRight)
+    expect(columnsBox(MIDDLE.columns.wideChairs + 1).maxX).toBe(MIDDLE.columns.right)
+    expect(columnsBox(6).maxX).toBe(MIDDLE.columns.right)
+    // the middle that a table is given is the one of its chairs: a spectator of three players sees the ring of four
+    expect(middleBoxes(false, chairsOf(3, true))).toContainEqual(columnsBox(3))
+    expect(middleBoxes(false, chairsOf(3, false))).toContainEqual(columnsBox(4))
+  })
+
+  it("has a box of its own among those of the middle, to the right of the deck, as high as it and clear of the Deal button below it", () => {
+    for (const chairs of [2, 6]) {
+      const box = columnsBox(chairs)
+      expect(middleBoxes(false, chairs)).toContainEqual(box)
+      const { deal } = controlBoxes()
+      expect(deal.minZ).toBeGreaterThan(box.maxZ)
+      expect(box.minX).toBeGreaterThan(middleBoxes(false, chairs)[0]!.maxX)
+      expect(box.minZ).toBeCloseTo(CARD.height * cardScaleOf(chairs) * -0.5 + LAYOUT_SETTINGS.deckZ, 9)
+    }
+  })
+
+  it("is the room the faces of a reveal lie over: they are inside the box of the columns", () => {
     const box = columnsBox()
-    expect(middleBoxes(false)).toContainEqual(box)
-    const { reveal, deal, guess } = controlBoxes()
-    expect(reveal.maxZ).toBeLessThan(box.minZ)
-    expect(deal.minZ).toBeGreaterThan(box.maxZ)
-    expect(guess.minZ).toBeGreaterThan(box.maxZ)
-    // the top of the columns is the top of the deck
-    expect(box.minZ).toBeCloseTo(middleBoxes(false)[0]!.minZ, 6)
+    const { reveal } = controlBoxes()
+    expect(reveal.minX).toBeGreaterThanOrEqual(box.minX)
+    expect(reveal.maxX).toBeLessThanOrEqual(box.maxX)
+    expect(reveal.minZ).toBeGreaterThanOrEqual(box.minZ)
+    expect(reveal.maxZ).toBeLessThanOrEqual(box.maxZ)
+  })
+})
+
+describe("the cards that lie on the table", () => {
+  it("are all of one size, as at a real table: the deck, the cards set aside face up, the columns, the play areas of the viewer and of the opponents, and the cards laid face up between two rounds", () => {
+    for (const chairs of [2, 3, 4, 5, 6]) {
+      const scale = cardScaleOf(chairs)
+      const label = `${chairs} chairs`
+      expect(areaOf(chairs, true).scale, label).toBe(scale)
+      expect(areaOf(chairs, false).scale, label).toBe(scale)
+      for (const pose of faceUpPoses(3, chairs)) expect(pose.scale, label).toBe(scale)
+      for (const pose of columnPoses([2, 5, 1, 1], chairs)) expect(pose.scale, label).toBe(scale)
+      expect(columnSizes([1, 2, 3], chairs).scale, label).toBe(scale)
+      expect(dealtFrom(chairs).scale, label).toBe(scale)
+      const line = lineOf(seats(ids(chairs), "p0").get("p1")!, false, chairs)
+      for (const pose of revealedPoses(2, line)) expect(pose.scale, label).toBe(scale)
+      expect(middleBoxes(true, chairs)[0]!.maxX - middleBoxes(true, chairs)[0]!.minX, label).toBeCloseTo(CARD.width * scale, 9)
+    }
+  })
+
+  it("are smaller as the table fills, in steps from the table of two to the table of six", () => {
+    let last = Infinity
+    for (const chairs of [2, 3, 4, 5, 6]) {
+      expect(cardScaleOf(chairs)).toBeLessThanOrEqual(last + 1e-9)
+      last = cardScaleOf(chairs)
+    }
+    expect(cardScaleOf(2)).toBeCloseTo(LAYOUT_SETTINGS.cardScale2, 9)
+    expect(cardScaleOf(6)).toBeCloseTo(LAYOUT_SETTINGS.cardScale6, 9)
   })
 })
 
@@ -406,28 +509,53 @@ describe("the viewer's hand on the screen", () => {
   })
 })
 
+describe("the viewer's hand on the screen and the middle of the table", () => {
+  it("never covers the deck, nor the three cards set aside face up at two players, in any window, whatever the hand holds", () => {
+    const over: string[] = []
+    for (const { count } of TABLES.filter((table) => table.seated)) {
+      const [deck, faceUp] = middleBoxes(count === 2, chairsOf(count, true))
+      const shapes = { deck: deck!, ...(count === 2 ? { "cards set aside face up": faceUp! } : {}) }
+      for (const aspect of ASPECTS) {
+        const camera = cameraOf(count, aspect, true)
+        const view = screenViewOf({ m00: camera.projectionMatrix.elements[0]!, m11: camera.projectionMatrix.elements[5]! }, HAND_SETTINGS.distance)
+        for (const size of [1, 2, HAND_MAX]) {
+          screenHandLayout(size, view, CARD, HAND_SETTINGS).forEach((pose, i) => {
+            const card = cardOnScreen(camera, pose, true)
+            for (const [name, box] of Object.entries(shapes)) if (overlaps(card, flatOnScreen(camera, quadOf(box, { x: 0, z: 0, yaw: 0 })))) over.push(`card ${i} of a hand of ${size} and the ${name}, ${count} players, aspect ${aspect}`)
+          })
+        }
+      }
+    }
+    expect(over).toEqual([])
+  })
+})
+
 describe("the cards the others hold", () => {
   it("stand straight up and keep close: a hand is no wider than its cards and a little more, so that an opponent's cards are told apart and counted", () => {
     const seat = seats(ids(4), "p0").get("p1")!
     for (let n = 1; n <= HAND_MAX; n++) {
-      const cards = heldLayout(n, seat)
+      const cards = heldLayout(n, seat, 4)
       const left = Math.min(...cards.map((pose) => pose.position.x))
       const right = Math.max(...cards.map((pose) => pose.position.x))
       expect(right - left, `a hand of ${n}`).toBeLessThan((n - 1) * 0.4 + 0.1)
     }
   })
 
-  it("lie on the table of every seat in the picture, whole, in every window", () => {
+  it("lie on the table of every seat in the picture, whole, in every window, and so do they when they are picked: lifted by a quarter of a card's height and grown a tenth", () => {
     const outside: string[] = []
+    // the look of a card that is picked (`selectedLift` and `selectedScale` of the kit's card states): it rises by a share of its own height and grows about its middle
+    const picked = (pose: Pose): Pose => ({ ...pose, position: pose.position.clone().add(new Vector3(0, 0.25 * CARD.height * pose.scale, 0)), scale: pose.scale * 1.1 })
     for (const { count, seated } of TABLES) {
       for (const aspect of ASPECTS) {
         const camera = cameraOf(count, aspect, seated)
         for (const line of tableLines(count, seated)) {
           if (line.viewer) continue
           for (let n = 1; n <= HAND_MAX; n++) {
-            heldLayout(n, line.seat).forEach((pose, i) => {
-              const shown = cardOnScreen(camera, inFrame(line.seat, pose))
-              if (!shown.every((point) => Math.abs(point.x) < 1 && point.y < 1 && point.y > -1)) outside.push(`card ${i} of a hand of ${n}, ${count} players${seated ? "" : ", spectator"}, aspect ${aspect}`)
+            heldLayout(n, line.seat, chairsOf(count, seated)).forEach((pose, i) => {
+              for (const [look, shape] of [["held", (given: Pose) => given], ["picked", picked]] as const) {
+                const shown = cardOnScreen(camera, shape(inFrame(line.seat, pose)))
+                if (!shown.every((point) => Math.abs(point.x) < 1 && point.y < 1 && point.y > -1)) outside.push(`card ${i} of a hand of ${n}, ${look}, ${count} players${seated ? "" : ", spectator"}, aspect ${aspect}`)
+              }
             })
           }
         }
@@ -438,12 +566,24 @@ describe("the cards the others hold", () => {
 })
 
 describe("what the camera is given", () => {
-  it("is the plate and the play area of every seat, and the middle with its mirror image: one quad each, and the area of each seat to reach", () => {
+  it("is the plate and the play area of every seat and the middle, and a point for the mirror image of each of their corners: one quad each, and the area of each seat to reach with the hand of each opponent where it is seen", () => {
     for (const { count, seated } of TABLES) {
       const own = count * 2
       const middle = middleBoxes(count === 2).length
-      expect(seenQuads(count, seated), where({ count, seated })).toHaveLength(own + 2 * middle)
-      expect(reachQuads(count, seated), where({ count, seated })).toHaveLength(count)
+      expect(seenQuads(count, seated), where({ count, seated })).toHaveLength(5 * (own + middle))
+      expect(reachQuads(count, seated), where({ count, seated })).toHaveLength(2 * count - (seated ? 1 : 0))
+    }
+  })
+
+  it("reaches as far to the left as to the right at every depth, so that the camera stands across the table whatever the plates trail to, and counts no area the platform's boxes could cover for the points that make it so", () => {
+    for (const { count, seated } of TABLES) {
+      const quads = seenQuads(count, seated)
+      const key = (point: { x: number; z: number }) => `${point.x.toFixed(6)},${point.z.toFixed(6)}`
+      const points = new Set(quads.flat().map(key))
+      for (const point of quads.flat()) expect(points.has(key({ x: -point.x, z: point.z })), where({ count, seated })).toBe(true)
+      const shapes = count * 2 + middleBoxes(count === 2, chairsOf(count, seated)).length
+      expect(quads.slice(0, shapes).every((quad) => quad.length === 4), where({ count, seated })).toBe(true)
+      expect(quads.slice(shapes).every((quad) => quad.length === 1), where({ count, seated })).toBe(true)
     }
   })
 

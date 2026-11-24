@@ -1,7 +1,8 @@
 "use client"
 
-import { CARDS, type Face, GUESSES, type PlayerView, type PublicSeat } from "@love-letter/engine"
+import { CARDS, type CharacterKey, type Face, GUESSES, type PlayerView, type PublicSeat } from "@love-letter/engine"
 import { useGame } from "@pbgo/core/components/game/context"
+import { type Answers, ask, closePrompt, currentPrompt } from "@pbgo/core/components/game/prompt"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import {
   type CardState,
@@ -33,20 +34,37 @@ import {
   Zone,
   type ZoneCard,
 } from "@pbgo/table"
-import { useDeferredValue, useEffect, useMemo, useState } from "react"
+import { useDeferredValue, useEffect, useEffectEvent, useMemo, useState } from "react"
 import type { ClientCatalog } from "../../lib/catalog"
 import { holdHovered, holdPicked, releaseHovered, releaseHoveredUnless } from "../../lib/lens"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { areaPoses, CARD, columnPoses, dealPlace, dealtFrom, faceUpPoses, guessPoses, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, revealedPoses } from "./layout"
+import { areaPoses, CARD, cardScaleOf, chairsOf, columnPoses, dealPlace, dealtFrom, faceUpPoses, HAND_SETTINGS, heldFrom, heldLayout, heldShadowOf, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, revealedPoses } from "./layout"
 import { type Arrival, PACE_FIELDS, PACE_SETTINGS, type Reveal } from "./pacing"
-import { tableCards } from "./middle"
+import { columnCounts, tableCards } from "./middle"
 import { RevealView } from "./sequence"
 import { CARD_SIZE, useFaces } from "./textures"
 import { type Choice, type ClientAction, lensIds, NO_CHOICE, pressCard, pressName, pressPlayer, type Press, type Step } from "./turn"
 
 /** How far the pool of light of the table reaches, in world units: past it the table is its plain edge colour */
 const POOL_RADIUS = 22
+
+/** A face as a small picture for a window: the canvas that the table painted it on, drawn small, as a data URL (kept for the page: the faces are painted once) */
+const SMALL_FACES = new WeakMap<HTMLCanvasElement, string>()
+function faceImage(source: HTMLCanvasElement, width = 170): string {
+  const known = SMALL_FACES.get(source)
+  if (known) return known
+  const small = document.createElement("canvas")
+  small.width = width
+  small.height = Math.round((width * source.height) / source.width)
+  small.getContext("2d")?.drawImage(source, 0, 0, small.width, small.height)
+  const url = small.toDataURL("image/webp", 0.85)
+  SMALL_FACES.set(source, url)
+  return url
+}
+
+/** The knobs of the Held hands folder but the size of a card, which is the table's (`cardScaleOf` of the layout) and not the folder's */
+const HELD_HAND_FIELDS = Object.fromEntries(Object.entries(HELD_FAN_FIELDS).filter(([key]) => key !== "scale"))
 
 export type SceneProps = {
   view: PlayerView
@@ -91,14 +109,14 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
   // The table's own folders (camera, cards, seats, lights...) are made by the shared `Table`; the game binds the knobs of its layout. The cards the others hold are a small fan of backs that stands, and the viewer's own are held on the screen: the kit's Held hands and Hand folders
   useSettings("Layout", LAYOUT_SETTINGS, LAYOUT_FIELDS, { order: 1 })
   useSettings("Pace", PACE_SETTINGS, PACE_FIELDS, { order: 2 })
-  useSettings("Held hands", HELD_FAN_SETTINGS, HELD_FAN_FIELDS, { order: 3 })
+  useSettings("Held hands", HELD_FAN_SETTINGS, HELD_HAND_FIELDS, { order: 3 })
   useSettings("Hand", HAND_SETTINGS, SCREEN_HAND_FIELDS, { order: 4 })
   const { theme } = useSiteSettings()
   // The lettering on the table is the kit's (`useLettering`): the fonts the game uploaded to its Sanity project, the display font for names, buttons and counts, the body font for the card texts, else the kit's own
   const lettering = useLettering()
   const faces = useFaces(catalog, { nameFont: lettering.display, textFont: lettering.body, ink: theme.surfaceDark })
   const { words, names } = catalog
-  const { nickname } = useGame()
+  const { nickname, color: seatColorOf } = useGame()
   const meId = view.me?.id ?? null
   const ids = view.players.map((player) => player.id)
   // The line of every player, along the axis of their seat: the plate, the play area and the hand, in the frame of the seat
@@ -118,33 +136,68 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
     if (press.kind === "choose") onChoice(press.choice)
     else onAction(press.action)
   }
-  const dealt = dealtFrom()
+  // the chairs of the table, and the size every card of its surface has
+  const chairs = chairsOf(view.players.length, view.me !== null)
+  const cardScale = cardScaleOf(chairs)
+  const dealt = dealtFrom(chairs)
   /** Where a card that came in with the last move comes in from, in the world: above the deck, or out of the hand of the player who played it (the left end of the hand they held, as the viewer sees it). The viewer's own cards come out of the hand held on the screen, which the card remembers */
   const originOf = (by: string, from: Arrival["from"] = "hand"): Pose | undefined => {
     if (from === "deck") return dealt
     const line = placed.get(by)
     if (!line || by === meId) return undefined
-    return heldFrom(line.seat, (view.players.find((player) => player.id === by)?.cards ?? 0) + 1)
+    return heldFrom(line.seat, (view.players.find((player) => player.id === by)?.cards ?? 0) + 1, chairs)
   }
   // where the faces of a reveal come out of: an opponent's hand, or where the viewer's own hand would be on the table, at the foot of their line
   const handOf = (id: string): Pose => {
     const line = placed.get(id)!
-    return id === meId ? inFrame(line.seat, onTable(0, 0, { y: 0.4, scale: HELD_FAN_SETTINGS.scale })) : heldFrom(line.seat, Math.max(1, view.players.find((player) => player.id === id)?.cards ?? 1))
+    return id === meId ? inFrame(line.seat, onTable(0, 0, { y: 0.4, scale: cardScale })) : heldFrom(line.seat, Math.max(1, view.players.find((player) => player.id === id)?.cards ?? 1), chairs)
   }
   // the cards of the hands come in from the deck once the table is dealing; none lies on the table while the start screen is up, so that the opening deal is seen
   const entering = deal && !onStartScreen ? dealt : undefined
   // The cards the lens can hold up that are on the table now: the one it holds is let go when its card is not (a card that goes gets no pointer-out event)
-  const guessing = step.kind === "guess"
-  const alive = useMemo(() => lensIds(view, guessing, !!reveal), [view, guessing, reveal])
+  const alive = useMemo(() => lensIds(view, !!reveal), [view, reveal])
   useEffect(() => releaseHoveredUnless(alive), [alive])
+
+  // A Guard: its player and the character it names are chosen in one screen of the platform, a window with the players to pick and the nine characters as cards, and Play to confirm. The choices with no object on the table to press are made there, where the
+  // pictures and the words are big enough to read. Confirming plays the Guard; closing the window puts it back in the hand
+  const guard = step.kind === "name" ? step : null
+  const guardId = guard?.card.id ?? null
+  const guardTargets = guard?.targets.join(",") ?? ""
+  const answered = useEffectEvent((answers: Answers | null) => {
+    if (step.kind !== "name") return
+    if (answers) apply(pressName(step, answers.player as string, answers.character as CharacterKey))
+    else onChoice(NO_CHOICE)
+  })
+  useEffect(() => {
+    if (!guard || busy) return
+    let asking = true
+    void ask({
+      title: `${words.play} · ${names[guard.card.type]}`,
+      confirm: words.play,
+      fields: [
+        { id: "player", kind: "choice", label: words.chooseOther, value: guard.targets.length === 1 ? guard.targets[0] : undefined, options: guard.targets.map((id) => ({ value: id, label: nickname(id), player: { nickname: nickname(id), color: seatColorOf(id) } })) },
+        {
+          id: "character",
+          kind: "choice",
+          label: words.nameCharacter,
+          display: "cards",
+          options: GUESSES.map((type) => ({ value: type, label: `${CARDS[type].value} · ${names[type]}`, image: faceImage(faces.source(type)) })),
+        },
+      ],
+    }).then((answers) => asking && answered(answers))
+    return () => {
+      asking = false
+      if (currentPrompt()) closePrompt(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the window is opened for a Guard and its players, and again when a move is sent and answered: the words, the names and the faces are the page's and do not change
+  }, [guardId, guardTargets, busy])
 
   // The players the picked card can choose are pressed by their cards: an invisible area over each (`Hotspot`) says how it is touched, and their cards are in the state `interactive`, `hover` and `pressed`; a Guard's chosen player is `selected`, the others stay to change one's mind
   const [touches, setTouches] = useState<Record<string, Touch>>({})
-  const choosable = !busy && (step.kind === "target" || step.kind === "guess") ? step.targets : []
-  const chosen = step.kind === "guess" ? step.target : null
+  const choosable = !busy && step.kind === "target" ? step.targets : []
   const stateOf = (id: string): CardState | undefined => {
     if (!choosable.includes(id)) return undefined
-    return effectiveState(id === chosen ? "selected" : "interactive", touches[id] ?? NO_TOUCH)
+    return effectiveState("interactive", touches[id] ?? NO_TOUCH)
   }
 
   /** A card of the view as the table draws it: its face, the back it lies on, and the lens that holds it up for reading while the pointer is on it. A card of the hand held on the screen comes in from the deck in the frame of the screen (`toFrame`) */
@@ -163,7 +216,7 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
   }
 
   // A card that picks a player lies on the table in front of the viewer while they choose it, and the others' cards of the round are in the middle or in front of their players (`tableCards`): the hand holds what is left
-  const picked = step.kind === "target" || step.kind === "guess" ? step.card : null
+  const picked = step.kind === "target" || step.kind === "name" ? step.card : null
   const { middle, front } = tableCards(view, picked)
   const hand = (view.me?.hand ?? []).filter((face) => face.id !== picked?.id)
   // the card kept after a Chancellor, or the one under the pointer, is brought forward in the hand
@@ -175,7 +228,7 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
       case "pick":
         return view.me?.playable.includes(face.id) ? "interactive" : "disabled"
       case "target":
-      case "guess":
+      case "name":
         return face.id === choice.card ? "selected" : view.me?.playable.includes(face.id) ? "interactive" : "disabled"
       case "keep":
         return "interactive"
@@ -188,7 +241,7 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
   /** What a screen reader says of a card of the hand: what pressing it does, and its name */
   const handName = (face: Face) => {
     if (step.kind === "keep") return `${words.keep} · ${names[face.type]}`
-    if (step.kind === "pick" || step.kind === "target" || step.kind === "guess") return `${words.play} · ${names[face.type]}`
+    if (step.kind === "pick" || step.kind === "target" || step.kind === "name") return `${words.play} · ${names[face.type]}`
     return names[face.type]
   }
   const handCards = (toFrame: (pose: Pose) => Pose): ZoneCard[] =>
@@ -225,12 +278,12 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
       key={`press-${id}`}
       {...hotspotOf({ frame: line.seat, box: line.press })}
       ariaLabel={fill(words.targetPlayer, { target: nickname(id) })}
-      {...(step.kind === "target" || step.kind === "guess" ? { onPress: () => apply(pressPlayer(step, choice, id)) } : {})}
+      {...(step.kind === "target" ? { onPress: () => apply(pressPlayer(step, id)) } : {})}
       onTouch={(touch) => setTouches((now) => ({ ...now, [id]: touch }))}
     />
   )
 
-  const { deck, aside, faceUp } = middlePlaces()
+  const { deck, faceUp } = middlePlaces()
   const dealing = dealPlace()
   return (
     <>
@@ -272,11 +325,11 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
                 <HeldHand
                   count={onStartScreen ? 0 : player.cards}
                   frame={line.seat}
-                  layout={(n) => heldLayout(n, line.seat)}
+                  layout={(n) => heldLayout(n, line.seat, chairs)}
                   size={CARD_SIZE}
                   back={faces.back}
                   {...(entering ? { enter: { ...entering, delay: drawn.get(player.id) ?? 0 } } : {})}
-                  shadow={HELD_SHADOW}
+                  shadow={heldShadowOf(chairs)}
                   {...(lit ? { state: lit } : {})}
                 />
               ))}
@@ -296,15 +349,14 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
         </ScreenHand>
       )}
 
-      {/* The cards that are done with: every card played or discarded this round that does not stay in front of its player, in columns right beside the deck, to its right, one for each value from the lowest to the highest, the copies of a value one under the other, so that what is gone is read at a glance */}
-      <Zone layout={columnPoses(middle.map((face) => CARDS[face.type].value))} size={CARD_SIZE} cards={middle.map((face) => cardOf(face))} />
+      {/* The cards that are done with: every card played or discarded this round that does not stay in front of its player, in columns, one for each value that has a card, from the lowest value to the highest, the copies of a value cascading down their column, so that what is gone is read at a glance */}
+      <Zone layout={columnPoses(columnCounts(middle), chairs)} size={CARD_SIZE} cards={middle.map((face) => cardOf(face))} />
 
       {/* The deck: only its size is known, so it is a count, face down, which the pile writes under itself */}
-      <Pile frame={{ x: deck.x, z: deck.z }} count={view.deck.size} size={CARD_SIZE} back={faces.back} scale={LAYOUT_SETTINGS.deckScale} limit={14} />
+      <Pile frame={{ x: deck.x, z: deck.z }} count={view.deck.size} size={CARD_SIZE} back={faces.back} scale={cardScale} limit={14} />
 
-      {/* The card set aside face down, apart from the deck: which one it is, nobody knows. At two players three more are set aside face up, and everybody reads them */}
-      {view.aside === 1 && <Zone frame={{ x: aside.x, z: aside.z }} layout={[onTable(0, 0, { face: "down", scale: LAYOUT_SETTINGS.asideScale, yaw: 0.14 })]} size={CARD_SIZE} cards={[{ key: "aside", front: faces.back, back: faces.back }]} />}
-      {view.faceUp.length > 0 && <Zone frame={{ x: faceUp.x, z: faceUp.z }} layout={faceUpPoses(view.faceUp.length)} size={CARD_SIZE} cards={view.faceUp.map((face) => cardOf(face))} />}
+      {/* At two players three cards are set aside face up, and everybody reads them. The card set aside face down is out of the game and nobody knows it: the table does not show it */}
+      {view.faceUp.length > 0 && <Zone frame={{ x: faceUp.x, z: faceUp.z }} layout={faceUpPoses(view.faceUp.length, chairs)} size={CARD_SIZE} cards={view.faceUp.map((face) => cardOf(face))} />}
 
       {/* Between two rounds the player who takes the first turn deals the next one: the one action of the game that has no object */}
       {step.kind === "deal" && <FloorButton at={dealing} width={dealing.width} depth={dealing.depth} tone="primary" label={words.deal} disabled={busy} onPress={() => apply({ kind: "send", action: { type: "deal" } })} />}
@@ -312,23 +364,6 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
       {/* What the last move shows to be read: a Guard's guess, a Priest's look, a Baron's comparison, a King's trade, in the middle of the table for the time it takes to read it */}
       {reveal && (
         <RevealView reveal={reveal} faces={faces} originOf={handOf} onHover={(id, type, over) => (over && type ? holdHovered({ id, type, source: faces.source(type) }) : releaseHovered(id))} />
-      )}
-
-      {/* A Guard's guess: the nine characters it can name, as small faces. A press names one, and the Guard is played; the lens reads the one under the pointer */}
-      {step.kind === "guess" && (
-        <Zone
-          layout={guessPoses()}
-          size={CARD_SIZE}
-          cards={GUESSES.map((type, i) => ({
-            key: `guess-${type}`,
-            front: faces.face(type),
-            back: faces.back,
-            state: busy ? ("base" as const) : ("interactive" as const),
-            onPress: () => apply(pressName(step, type)),
-            ariaLabel: names[type],
-            onHover: (over) => (over ? holdHovered({ id: -1 - i, type, source: faces.source(type) }) : releaseHovered(-1 - i)),
-          }))}
-        />
       )}
     </>
   )
@@ -343,7 +378,7 @@ export function Scene(props: SceneProps) {
   const seated = props.view.me !== null
   const camera = useMemo(() => cameraFor(players, viewport, seated), [players, viewport, seated])
   // A card picked that picks a player lies in front of the viewer: a press on the empty table puts it back in the hand, as pressing it again or pressing another card does (the Prince's own area answers a press, so it is the way back when the Prince is the card)
-  const letGo = (props.step.kind === "target" || props.step.kind === "guess") && !props.busy ? () => props.onChoice(NO_CHOICE) : undefined
+  const letGo = (props.step.kind === "target" || props.step.kind === "name") && !props.busy ? () => props.onChoice(NO_CHOICE) : undefined
   // The mat is data, the kit lays it: the table is its edge colour, flat and endless, with no grain and no picture, and the pool of light the cards lie on, `surface` in the middle falling away to `surfaceDark`, is the only thing on it that changes
   return (
     <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, light: { center: theme.surface, radius: POOL_RADIUS } }} held={props.held} onLoaded={props.onLoaded} onEmptyPress={letGo}>

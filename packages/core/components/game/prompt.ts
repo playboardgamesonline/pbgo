@@ -8,17 +8,22 @@ export type { ChoiceValue }
  * and `PromptHost` (`prompt-host.tsx`, mounted by `GameHud`) draws the window.
  */
 
-/** One option of a choice: what it is, what it says, and optionally a line under it and a picture */
+/** A player that an option stands for: what the seat label draws (`SeatLabel`), the avatar on the seat's colour and the nickname */
+export type PromptPlayer = { nickname: string; color: string; imageUrl?: string | null }
+
+/** One option of a choice: what it is, what it says, and optionally a line under it, a picture, or the player it stands for */
 export type PromptOption<V extends ChoiceValue = ChoiceValue> = {
   value: V
   /** What the option says, in the game's words */
   label: string
   /** A line under the label, in the game's words */
   description?: string
-  /** The address of a picture shown with the label: the face of a die, a card */
+  /** The address of a picture shown with the label: the face of a die, a card (an address of the page, or a data URL of a picture the board painted) */
   image?: string
   /** The option is there but cannot be chosen now */
   disabled?: boolean
+  /** The option is a player: their avatar and nickname are drawn in place of the label, which stays what a screen reader reads */
+  player?: PromptPlayer
 }
 
 type Named = { id: string; label?: string }
@@ -27,8 +32,11 @@ type Named = { id: string; label?: string }
 export type TextField = Named & { kind: "text"; value?: string; placeholder?: string; rules?: TextRules }
 /** A field for a number between `min` and `max`, on `step`s counted from `min` */
 export type NumberField = Named & { kind: "number"; value?: number; min: number; max: number; step?: number }
-/** A field for one option among `options`, or several of them with `many` (the least and the most that may be chosen) */
-export type ChoiceField = Named & { kind: "choice"; options: readonly PromptOption[]; value?: ChoiceValue | readonly ChoiceValue[]; many?: { min?: number; max?: number } }
+/**
+ * A field for one option among `options`, or several of them with `many` (the least and the most that may be chosen). With `display: "cards"` the options that have an `image` are drawn as cards in a grid, the picture and the label under it: how a card or a character that has
+ * no object on the table to press is chosen, and `display` is left out for the buttons and the rows
+ */
+export type ChoiceField = Named & { kind: "choice"; options: readonly PromptOption[]; value?: ChoiceValue | readonly ChoiceValue[]; many?: { min?: number; max?: number }; display?: "cards" }
 export type Field = TextField | NumberField | ChoiceField
 
 /** What the player gave: the text, the number, the option, or the options (in the order of the options) of each field, by its `id` */

@@ -336,6 +336,19 @@ export function clickButton(source) {
   return (button.textContent || "").trim()
 }
 
+/**
+ * A control of the page that is no object of the table (a button of a panel the game draws over it, an option of a window the platform opens): the `index`th enabled element that matches `selector`, as a pixel to press, with its text. The scan of the board's controls does not see
+ * what the page draws, so a plan that has to press such a control says where to look
+ */
+export function pageControl(selector, index) {
+  const matches = [...document.querySelectorAll(selector)].filter((element) => !element.disabled && element.getAttribute("aria-disabled") !== "true")
+  const element = matches[index]
+  if (!element) return { ok: false, why: `${matches.length} enabled elements match ${selector}` }
+  const r = element.getBoundingClientRect()
+  if (r.width < 4 || r.height < 4) return { ok: false, why: "the control has no size yet" }
+  return { ok: true, count: matches.length, pixel: [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)], text: (element.textContent || "").trim() }
+}
+
 /** The text of the first button that matches, enabled or not; null when there is none */
 export function findButton(source) {
   const pattern = new RegExp(source, "i")

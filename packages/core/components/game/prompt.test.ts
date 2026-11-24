@@ -135,3 +135,44 @@ describe("answersOf", () => {
     expect(answersOf([{ id: "n", kind: "choice", options: [{ value: 10, label: "Ten" }, { value: 20, label: "Twenty" }] }], { n: [1] })).toEqual({ ok: true, answers: { n: 20 } })
   })
 })
+
+describe("a screen that chooses a player and a card", () => {
+  const players = [
+    { value: "ben", label: "Ben", player: { nickname: "Ben", color: "#c06" } },
+    { value: "cleo", label: "Cleo", player: { nickname: "Cleo", color: "#06c", imageUrl: null } },
+  ]
+  const cards = [
+    { value: "priest", label: "2 · Priest", image: "data:image/webp;base64,AAAA" },
+    { value: "baron", label: "3 · Baron", image: "data:image/webp;base64,BBBB" },
+    { value: "king", label: "7 · King", image: "data:image/webp;base64,CCCC" },
+  ]
+  const fields: Field[] = [
+    { id: "player", kind: "choice", label: "Choose another player", options: players },
+    { id: "card", kind: "choice", label: "Name a character", display: "cards", options: cards },
+  ]
+
+  it("asks for the two at once, the players with their seat and the cards with their picture, and gives back both", async () => {
+    const promise = ask({ title: "Play · Guard", confirm: "Play", fields })
+    expect(currentPrompt()?.prompt.confirm).toBe("Play")
+    expect(currentPrompt()?.prompt.fields).toEqual(fields)
+    closePrompt({ player: "cleo", card: "baron" })
+    expect(await promise).toEqual({ player: "cleo", card: "baron" })
+  })
+
+  it("starts on the player that is the only one to pick, and on nothing for the card", () => {
+    const only: Field[] = [{ ...fields[0]!, options: players.slice(0, 1), value: "ben" } as Field, fields[1]!]
+    expect(initialDraft(only)).toEqual({ player: [0], card: [] })
+  })
+
+  it("takes the player and the card when both are chosen, and names the one that is not", () => {
+    expect(answersOf(fields, { player: [1], card: [2] })).toEqual({ ok: true, answers: { player: "cleo", card: "king" } })
+    expect(answersOf(fields, { player: [1], card: [] })).toEqual({ ok: false, invalid: ["card"] })
+    expect(answersOf(fields, { player: [], card: [] })).toEqual({ ok: false, invalid: ["player", "card"] })
+  })
+
+  it("does not take a player or a card that cannot be chosen", () => {
+    const some: Field[] = [{ ...fields[0]!, options: [{ ...players[0]!, disabled: true }, players[1]!] } as Field, fields[1]!]
+    expect(answersOf(some, { player: [0], card: [0] })).toEqual({ ok: false, invalid: ["player"] })
+    expect(answersOf(some, { player: [1], card: [0] })).toEqual({ ok: true, answers: { player: "cleo", card: "priest" } })
+  })
+})

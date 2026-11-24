@@ -2,7 +2,7 @@ import { CARDS, type Face, type PlayerView } from "@love-letter/engine"
 
 /**
  * Where the cards of the round lie, as plain data, so that the rules of it are tested without a browser. The engine keeps, for each player, the cards they played or discarded this round (`area`, oldest first); the board does not lay them out by player. A card that is done
- * with goes to the middle of the table, to the column of its value beside the deck (one column for each value, from the Spy to the Princess, the copies one under the other), so that what is gone can be read at a glance. Two kinds of card stay in front of their player, because they still count: a Spy until the round ends (it earns a token then) and a Handmaid
+ * with goes to the middle of the table, to the columns beside the deck (one column for each value that has a card, from the lowest value to the highest, the Spy to the Princess, the copies of a value one below the other), so that what is gone can be read at a glance. Two kinds of card stay in front of their player, because they still count: a Spy until the round ends (it earns a token then) and a Handmaid
  * while it protects (until the start of its player's next turn). The view says which: `shielded` is the protection, and the Spy is a Spy.
  */
 export type TableCards = {
@@ -39,4 +39,22 @@ export function tableCards(view: PlayerView, picked: Face | null = null): TableC
   // `sort` is stable: the cards of one value stay in the order they were gathered in
   middle.sort((a, b) => CARDS[a.type].value - CARDS[b.type].value)
   return { middle, front }
+}
+
+/**
+ * The number of cards in each column of the middle, from the lowest value to the highest, for the cards `tableCards` gives (sorted by value): one column for each value that has a card, so that a value that nobody has played has none and the columns close up. The cards of a column
+ * are consecutive in the list, so the columns are laid in the order of the list and each card keeps the place it has in it.
+ */
+export function columnCounts(middle: readonly Face[]): number[] {
+  const counts: number[] = []
+  let last: number | null = null
+  for (const face of middle) {
+    const value = CARDS[face.type].value
+    if (value === last) counts[counts.length - 1]!++
+    else {
+      counts.push(1)
+      last = value
+    }
+  }
+  return counts
 }

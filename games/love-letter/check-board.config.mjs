@@ -49,10 +49,10 @@ const config = {
   },
 
   // What the viewer presses, in the order the game offers it. Objects are pressed, so a move is one press or a few: a card that picks nobody is played by pressing it (`play`), a card that picks a player is held by pressing it (`card`, a `local` press: the table does not
-  // move) and then played by pressing the player's cards (`target`); for a Guard the player is pressed too (`name`, local) and then one of the nine faces (`guess`). After a Chancellor the card to keep is pressed (`keep`: held when there are three cards, sent at once
+  // move) and then played by pressing the player's cards (`target`); for a Guard the window that the board opens is used: its player (`name`, local, a `dom` control), then one of the nine characters (`guess`, local) and Play (`validate`). After a Chancellor the card to keep is pressed (`keep`: held when there are three cards, sent at once
   // when there are two) and then the card that goes under the deck first (`order`). Deal is the one button, when it is the viewer's to deal. Everything else the viewer does is played through the API.
   presses: {
-    expect: ["card", "play", "target", "name", "guess", "keep", "order", "deal"],
+    expect: ["card", "play", "target", "name", "guess", "validate", "keep", "order", "deal"],
     max: 90,
     budgetSeconds: 360,
     plan({ state, me, exercised }) {
@@ -100,14 +100,18 @@ const config = {
           }
           return { label: "card", local: true, prepare }
         }
-        // after the card: a player to press (a Prince can always press its own player), and for a Guard the nine faces
+        // after the card: a player to press (a Prince can always press its own player); for a Guard the window of the platform opens, where the player is pressed (`name`, unless there is one only, chosen already), then the character (`guess`), then Play (`play`)
         if (move.type === "guard") {
-          if (move.stage === "picked") {
+          if (move.stage === "picked" && phase.targets.length > 1) {
             move.stage = "named"
-            return { label: "name", local: true }
+            return { label: "name", local: true, dom: { selector: '[role="dialog"] [data-field="player"] [role="radio"]', index: 0 } }
+          }
+          if (move.stage === "picked" || move.stage === "named") {
+            move.stage = "guessed"
+            return { label: "guess", local: true, dom: { selector: '[role="dialog"] [data-field="character"] [role="radio"]', index: 2 } }
           }
           move.final = true
-          return { label: "guess" }
+          return { label: "validate", dom: { selector: '[role="dialog"] button[type="submit"]', index: 0 } }
         }
         move.final = true
         return { label: "target" }
@@ -115,14 +119,14 @@ const config = {
       move = null
       return null
     },
-    // Where the controls lie, from what the board offers: the cards of the hand, held at the bottom left of the screen in the frame of the camera (so far above the table, y beyond 4, and told apart by their place across the screen), the Deal button and the nine
-    // faces of a Guard below the columns of the middle (x within 3, z between 1.5 and 2.5, lying on the table), and the area of a player, a `Hotspot` that lies at a card's height (y about 0.35) so that the whole area answers, cards included
+    // Where the controls lie, from what the board offers: the cards of the hand, held at the bottom left of the screen in the frame of the camera (so far above the table, y beyond 4, and told apart by their place across the screen), the Deal button below the columns of the middle (x within 4, z
+    // between 0.6 and 1.6, lying on the table), and the area of a player, a `Hotspot` that lies at a card's height (y about 0.35) so that the whole area answers, cards included. A Guard's player and the nine characters are not on the table: they are in the platform's window (the plan's `dom`)
     find({ label, pressables, state }) {
       const world = (pressable) => pressable.world
       const inHand = (pressable) => world(pressable) && world(pressable)[1] > 4
       // a card that is still coming in from the deck is not in the hand yet, and a card in the air is pressed where it no longer is: `still` waits for the cards to have landed
       // (the plane under the whole table that takes a press where nothing answers, which the board lays while a card is picked, is no control of the middle: it is as wide as the table)
-      const inMiddle = (pressable) => world(pressable) && Math.abs(world(pressable)[0]) < 3 && world(pressable)[2] > 1.5 && world(pressable)[2] < 2.5 && world(pressable)[1] < 0.1 && Math.max(pressable.size?.[0] ?? 0, pressable.size?.[2] ?? 0) < 20
+      const inMiddle = (pressable) => world(pressable) && Math.abs(world(pressable)[0]) < 4 && world(pressable)[2] > 0.6 && world(pressable)[2] < 1.6 && world(pressable)[1] < 0.1 && Math.max(pressable.size?.[0] ?? 0, pressable.size?.[2] ?? 0) < 20
       // a player's area is a large invisible plane at a card's height; the card the viewer has picked lies on the table in front of them, lifted to about the same height, and is no area (it is smaller: a card is about one unit wide)
       const isZone = (pressable) => world(pressable) && world(pressable)[1] > 0.3 && world(pressable)[1] < 0.4 && Math.max(pressable.size?.[0] ?? 0, pressable.size?.[2] ?? 0) > 2
       const byX = (a, b) => world(a)[0] - world(b)[0]
@@ -148,7 +152,6 @@ const config = {
         return cards[index]
       }
       if (label === "deal") return middle.find((pressable) => Math.abs(world(pressable)[0]) < 0.3)
-      if (label === "guess") return middle.find((pressable) => pressable.reachable) ?? middle[3]
       if (label === "target" || label === "name") return zones.find((pressable) => pressable.reachable) ?? zones[0]
       return undefined
     },

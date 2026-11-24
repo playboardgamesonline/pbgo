@@ -7,6 +7,12 @@ import { reachQuads, seenQuads, VIEW_TILT } from "./layout"
  */
 export const CAMERA: CameraSettings = { tilt: VIEW_TILT, yaw: 0, distance: 23, fov: 34, targetX: 0, targetZ: 0.8 }
 
+/**
+ * How near the camera may stand, in the kit's units of distance (the kit's own is 13): the table is small round a big middle, so the camera stands nearer than the kit lets it by default, and the cards are as big as the window allows. How near it really stands is still
+ * the window's: `fitCamera` stands as near as keeps the whole table in it.
+ */
+export const NEAREST = 8
+
 /** Where the share photo of the game over is taken from. The Share Photo folder edits this object, the photo reads it when it is taken */
 export const PHOTO: CameraSettings = { tilt: 40, yaw: 0, distance: 44, fov: 28, targetX: 0, targetZ: 0 }
 
@@ -15,7 +21,7 @@ export const PHOTO: CameraSettings = { tilt: 40, yaw: 0, distance: 44, fov: 28, 
  * are pressed in the window too and, while it can, clear of what the platform draws over the board. A spectator has no seat in front.
  */
 export const fitFor = (players: number, viewport: Viewport, base: CameraSettings = CAMERA, seated = true): Fit =>
-  fitCamera(viewport, base, { seen: seenQuads(players, seated), reach: reachQuads(players, seated), avoid: hudBoxes(viewport, players) })
+  fitCamera(viewport, base, { seen: seenQuads(players, seated), reach: reachQuads(players, seated), avoid: hudBoxes(viewport, players), nearest: NEAREST })
 
 /** The camera of `fitFor`, for the board */
 export const cameraFor = (n: number, viewport: Viewport, seated = true): CameraSettings => fitFor(n, viewport, CAMERA, seated).camera
