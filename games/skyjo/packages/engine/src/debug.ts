@@ -1,8 +1,8 @@
-import { closeStep } from "@pbgo/engine-kit"
+import { closeStep, nextSeat } from "@pbgo/engine-kit"
 import { autoPlayFor } from "./autoplay"
 import { type Ctx, gridOf, isOver, open, valueOf, waitingFor } from "./machine"
 import { columnCells } from "./scoring"
-import type { State } from "./types"
+import { COLUMNS, type State } from "./types"
 
 /**
  * The debug panel (`GAME.debug`), for development only. `turn`, `round` and `over` play for the players the game waits for, as an absent
@@ -97,6 +97,20 @@ function turnUp(ctx: Ctx, seat: number, except: number[]): void {
   })
 }
 
+/**
+ * The current player shows two cards of the column `column` face up, worth what the top of the discard is, and the third of them face down: placing the card on the discard in the third cell throws the column away.
+ */
+const columnOnTopOf = (column: number) => (state: State) =>
+  edit(state, (ctx, seat) => {
+    const { s } = ctx
+    const [a = 0, b = 1, c = 2] = columnCells(column)
+    const top = s.discard[0]
+    if (top === undefined) return
+    const value = valueOf(s, top)
+    const grid = gridOf(s, seat)
+    if (grid[a] && grid[b] && grid[c] && swapIn(ctx, seat, a, value, true) && swapIn(ctx, seat, b, value, true)) grid[c]!.up = false
+  })
+
 export const debugCommands: Record<string, (state: State) => State> = {
   /** The current turn is played out. */
   turn: finishTurn,
@@ -111,16 +125,30 @@ export const debugCommands: Record<string, (state: State) => State> = {
       const hidden = grid.findIndex((cell) => cell !== null && !cell.up)
       turnUp(ctx, seat, hidden < 0 ? [] : [hidden])
     }),
-  /** The current player shows two 5s in the first column and the top of the discard is a 5: placing it in the third cell throws the column away. */
-  columnOnTop: (state) =>
+  /** The current player shows two cards worth what the top of the discard is in the first column: placing it in the third cell throws the column away. */
+  columnOnTop: columnOnTopOf(0),
+  /** The same in the second column (cells 3 to 5), so that the gap it leaves is not at the end of the grid: placing the card in the sixth cell throws the column away. */
+  middleColumnOnTop: columnOnTopOf(1),
+  /**
+   * The current player has two of their columns (the first and the third they have left) made of three equal cards face down (3s and 9s), every other card face up, and the other players have all played their last turn: whatever the player plays ends the round, and its
+   * count turns the cards over and throws both columns away, one after the other. The player after them is the one who ended it. It does nothing for a grid with fewer than two columns left.
+   */
+  columnsAtTheCount: (state) =>
     edit(state, (ctx, seat) => {
       const { s } = ctx
-      const [a = 0, b = 1, c = 2] = columnCells(0)
-      const top = s.discard[0]
-      if (top === undefined) return
-      const value = valueOf(s, top)
       const grid = gridOf(s, seat)
-      if (grid[a] && grid[b] && grid[c] && swapIn(ctx, seat, a, value, true) && swapIn(ctx, seat, b, value, true)) grid[c]!.up = false
+      const left = Array.from({ length: COLUMNS }, (_, column) => column).filter((column) => columnCells(column).every((position) => grid[position]))
+      const first = left[0]
+      const third = left[2] ?? left[1]
+      if (first === undefined || third === undefined) return
+      const columns = [
+        { cells: columnCells(first), value: 3 },
+        { cells: columnCells(third), value: 9 },
+      ]
+      if (!columns.every(({ cells, value }) => cells.every((position) => swapIn(ctx, seat, position, value, false)))) return
+      turnUp(ctx, seat, columns.flatMap(({ cells }) => cells))
+      s.ender = nextSeat(s.seats.length, seat)
+      s.last = s.seats.flatMap((_, other) => (other === seat ? [] : [other]))
     }),
   /** The next card of the draw pile is the lowest card there is: a draw is worth keeping. */
   lowOnTop: (state) =>

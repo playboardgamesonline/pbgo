@@ -2,13 +2,15 @@
 
 import type { CardFace, PlayerView, PublicCell, PublicSeat } from "@skyjo/engine"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { ActionLabel, cardRise, effectiveState, FloorButton, NO_TOUCH, onTable, Pile, pileAboveAt, pileFootprint, PlayerSeat, type Pose, type Spot, Table, type Touch, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
+import { ActionLabel, cardRise, effectiveState, FloorButton, NO_TOUCH, onTable, Pile, pileAboveAt, pileFootprint, PlayerSeat, type Pose, type Spot, Table, type Touch, useSequence, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useMemo, useState } from "react"
 import type { ClientCatalog } from "../../lib/catalog"
 import { fill, type Vocabulary } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
+import { type Landing, removalSequence, type RemovalState, restoredCells, type Stage, shownColumns } from "./columns"
 import { cellPlace, cellPose, floorPlan, LAYOUT_FIELDS, LAYOUT_SETTINGS, pilePlaces, plateSettings, seatsOf } from "./layout"
-import { cardKey, cellKey, type Entrance, HELD_KEY, type Origin, PACE_FIELDS, PACE_SETTINGS } from "./pacing"
+import { cardKey, cellKey, type Entrance, HELD_KEY, type Origin, PACE_FIELDS, PACE_SETTINGS, type Removal } from "./pacing"
+import { ThrownColumn } from "./thrown-column"
 import { CARD_SIZE, matOf, useFaces } from "./textures"
 
 /** The most cards under the top of the discard that are drawn: a deeper pile looks no different */
@@ -36,8 +38,14 @@ export type SceneProps = {
   onDeal: () => void
   /** Where what the last move brought comes from, and the seconds it waits before it sets out (`timelineOf`) */
   entrances: ReadonlyMap<string, Entrance>
-  /** The cards of the columns the last move threw away: they lie on the discard until it has played out */
-  columns: readonly CardFace[]
+  /** The columns the last move threw away, in the order they go and when each begins (`timelineOf`): each lies where it did until its turn, then the three cards slide together into a stack, the stack flies to the discard, and the columns left close the gap */
+  removals: readonly Removal[]
+  /** The card that a placement put on the discard in the move that threw a column away: the stack lands on it */
+  replaced: CardFace | null
+  /** The version of the table that the last move gave (`Timeline.v`): a move that throws columns away has its own film */
+  v: number
+  /** The visitor asks for less motion: what moves is where it ends at once */
+  reduced: boolean
   /** The last move is still playing out: the seats say what the table said before it, until it has */
   busy: boolean
   /** The start screen is up: the camera's entrance waits for it to go (`held` of the shared `Table`), and the cards of the deal wait with it */
@@ -100,7 +108,10 @@ function pressable(view: PlayerView): ReadonlySet<number> {
   return none
 }
 
-function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, onThrow, onFlip, onDeal, entrances, columns, busy, held }: SceneProps) {
+/** How long a card takes to settle on a new slot when the visitor asks for less motion: no time at all, it is there */
+const SNAP = 0.001
+
+function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, onThrow, onFlip, onDeal, entrances, removals, replaced, v, reduced, busy, held }: SceneProps) {
   // The table's own folders (camera, cards, seats, lights...) are made by the shared `Table`; the game binds the knobs of its layout and of its pace
   useSettings("Layout", LAYOUT_SETTINGS, LAYOUT_FIELDS, { order: 1 })
   useSettings("Pace", PACE_SETTINGS, PACE_FIELDS, { order: 2 })
@@ -127,6 +138,28 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
   if (!busy && settled !== now) setSettled(now)
   const said = busy ? settled : now
 
+  // The columns the last move threw away go one after the other, each in its turn (`removalSequence`): until then it lies where it did, then the three cards slide together into a stack, the stack flies to the discard and lands on it, and the columns left slide together to
+  // close the gap. The view already has the move done, so this is what the board holds back: a table that is opened or reloaded has no removals to play and draws the grids as they are, closed. A move that has come has not begun when it is drawn the first time, whatever
+  // the sequence says of the move before it
+  const film = useMemo(() => removalSequence(v, removals), [v, removals])
+  const sequence = useSequence<RemovalState>({ active: removals.length > 0, start: film.start, final: film.final, steps: film.steps, key: v })
+  const progress = removals.length === 0 ? null : sequence.state?.v === v ? sequence.state : film.start
+  const stageOf = (k: number): Stage => progress?.stages[k] ?? "landed"
+  const closedOf = (k: number) => progress?.closed[k] ?? true
+  const filming = progress !== null && progress.stages.some((stage) => stage !== "landed")
+
+  // What each seat lays out: the columns it still has in the view and those whose removal has not closed yet (their room is kept, a column that waits has its cards in it), so that the grid is centred on what is there. The cells that lie in it: the view's, and the three
+  // of every column that waits its turn, as they lay before the move
+  const seatsGrid = new Map(
+    view.players.map((player) => {
+      const own = removals.flatMap((removal, k) => (removal.player === player.id ? [{ removal, k }] : []))
+      const shown = shownColumns(player.cells, own.filter(({ k }) => !closedOf(k)).map(({ removal }) => removal.column))
+      const present = player.cells.flatMap((cell, position) => (cell === null ? [] : [{ cell, position }]))
+      const waiting = own.filter(({ k }) => stageOf(k) === "waiting").flatMap(({ removal }) => restoredCells(removal))
+      return [player.id, { shown, cells: [...present, ...waiting].sort((a, b) => a.position - b.position) }] as const
+    }),
+  )
+
   // The top two cards of the discard keep their place: the one that was on top stays face up under the one that comes, so that the pile never shows a back where a card lay a moment ago
   const top = view.discard.top
   const [pair, setPair] = useState<{ top: CardFace | null; under: CardFace | null }>({ top, under: null })
@@ -146,7 +179,8 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
       case "cell": {
         const seat = laid.get(origin.player)
         if (!seat) return withDelay(onTable(deck.x, deck.z, { y: 1.4, face: "down", scale: R.pileScale }))
-        const cell = cellPlace(seat, origin.position)
+        // where the cell lies in the grid as it is laid out now: a grid that lost a column is closed over it
+        const cell = cellPlace(seat, origin.position, seatsGrid.get(origin.player)?.shown)
         return withDelay(onTable(cell.x, cell.z, { y: 0.3, face: origin.up ? "up" : "down", yaw: cell.yaw, scale: seat.scale }))
       }
     }
@@ -157,15 +191,17 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
     return entrance ? poseOf(entrance.origin, entrance.delay) : null
   }
 
-  // The cards of the viewer's grid they can press are `interactive`: the table lights them and lifts them under the pointer, and keeps a hidden button for each so that the keyboard reaches it. The others are as they lie
+  // The cards of the viewer's grid they can press are `interactive`: the table lights them and lifts them under the pointer, and keeps a hidden button for each so that the keyboard reaches it. The others are as they lie. A visitor who asks for less motion has a card
+  // that is laid out again, a grid that closes over a gap, there at once
   const cardOf = (cell: Exclude<PublicCell, null>, player: string, position: number): ZoneCard => {
     const chosen = player === meId && presses.has(position)
-    const choice: Pick<ZoneCard, "state" | "onPress" | "ariaLabel"> = chosen
+    const choice: Pick<ZoneCard, "state" | "onPress" | "ariaLabel" | "speed"> = chosen
       ? { state: "interactive", onPress: () => pressCell(position), ariaLabel: fill(words.cell, { column: Math.floor(position / 3) + 1, row: (position % 3) + 1 }) }
       : {}
+    const settle = reduced ? { speed: SNAP } : {}
     return cell.up
-      ? { key: `c-${cell.card.id}`, id: cell.card.id, front: faces.face(cell.card.type), back: faces.back, from: fromOf(cellKey(player, position)), ...choice }
-      : { key: `h-${player}-${position}`, front: faces.back, back: faces.back, from: fromOf(cellKey(player, position)), ...choice }
+      ? { key: `c-${cell.card.id}`, id: cell.card.id, front: faces.face(cell.card.type), back: faces.back, from: fromOf(cellKey(player, position)), ...settle, ...choice }
+      : { key: `h-${player}-${position}`, front: faces.back, back: faces.back, from: fromOf(cellKey(player, position)), ...settle, ...choice }
   }
 
   // The card in hand: seen by the viewer when it came from the pile, by everybody when it came from the discard, a back for the others
@@ -175,18 +211,23 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
     ? [{ key: HELD_KEY, id: inHand.card?.id, front: handFace, back: faces.back, state: inHand.player === meId ? "selected" : "base", from: fromOf(HELD_KEY) }]
     : []
 
-  // The discard: a few cards of depth as backs, the card that was on top, the cards of the column that was just thrown (until the move has played out) and the top card
+  // The discard: a few cards of depth as backs, the card that was on top and the top card. While columns are on their way to it the top card of the view is not there yet (it is the first card of the last column, which has not landed): the pile shows the card that was on top,
+  // the card a placement put on it, and the last column that has landed, which lies on them
   const depth = Math.max(0, Math.min(view.discard.size - (top ? 1 : 0) - (under ? 1 : 0), DISCARD_DEPTH))
-  const thrown = busy ? columns.filter((card) => card.id !== top?.id) : []
-  const discardCards: ZoneCard[] = [
-    ...Array.from({ length: depth }, (_, i): ZoneCard => ({ key: `under-${i}`, front: faces.back, back: faces.back })),
-    ...(under && under.id !== top?.id ? [under] : []).map((card): ZoneCard => ({ key: `c-${card.id}`, id: card.id, front: faces.face(card.type), back: faces.back })),
-    ...thrown.map((card): ZoneCard => ({ key: `c-${card.id}`, id: card.id, front: faces.face(card.type), back: faces.back, from: fromOf(cardKey(card.id)) })),
-    ...(top ? [{ key: `c-${top.id}`, id: top.id, front: faces.face(top.type), back: faces.back, from: fromOf(cardKey(top.id)) } satisfies ZoneCard] : []),
-  ]
+  const faceUp = (card: CardFace, extra: Partial<ZoneCard> = {}): ZoneCard => ({ key: `c-${card.id}`, id: card.id, front: faces.face(card.type), back: faces.back, ...extra })
+  const underCard = under && under.id !== top?.id ? [faceUp(under)] : []
+  // what lies on the card that was on top while columns are on their way: the card a placement put there, and the last stack that landed, its first card (the top card of the view) on top; once they have all landed, the top card of the view alone
+  const landedLast = filming ? removals.filter((_, k) => stageOf(k) === "landed").at(-1) : undefined
+  const replacedCard = filming && replaced ? [faceUp(replaced, { from: fromOf(cardKey(replaced.id)) })] : []
+  const landedStack = landedLast ? [...landedLast.cards].reverse().map((card) => faceUp(card)) : []
+  const topCard = !filming && top ? [faceUp(top, { from: fromOf(cardKey(top.id)) })] : []
+  const discardCards: ZoneCard[] = [...Array.from({ length: depth }, (_, i): ZoneCard => ({ key: `under-${i}`, front: faces.back, back: faces.back })), ...underCard, ...replacedCard, ...landedStack, ...topCard]
+  const beneath = depth + underCard.length + replacedCard.length
   // What pressing the discard does: take its top card on the viewer's choice, or throw the card they drew onto it. A card taken from the discard cannot be thrown back: it must be placed
   const discardAction: DiscardAction | null = viewerChooses ? { label: words.takeDiscard, onPress: onTake } : viewerThrows ? { label: words.throwAway, onPress: onThrow } : null
   const discardPoses: Pose[] = discardCards.map((_, i) => onTable(0, 0, { y: 0.03 + 0.02 * i, face: i < depth ? "down" : "up", lean: `discard-${i}`, scale: R.pileScale }))
+  // where a stack lands: on the card that lies on top of the pile, which is the last stack that landed when there is one, at the height of the bottom card of the stack
+  const landing: Landing = { x: discard.x, z: discard.z, y: 0.03 + 0.02 * (beneath + landedStack.length), scale: R.pileScale }
 
   return (
     <>
@@ -199,20 +240,41 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
         // the points of the round just counted, doubled when the count is not what the cards show (the ender's penalty)
         const doubled = roundScore !== undefined && roundScore !== player.score
         const status = roundOver && roundScore !== undefined ? fill(doubled ? words.roundPointsDoubled : words.roundPoints, { points: roundScore > 0 ? `+${roundScore}` : roundScore }) : lastTurnOf(seat.lastTurn, words)
-        const cells = player.cells.flatMap((cell, position) => (cell === null ? [] : [{ cell, position }]))
+        const { shown, cells } = seatsGrid.get(player.id)!
         return (
           <group key={player.id}>
             {/* The plate stands on the middle's side of the grid, in the frame of the seat, turned as the name is */}
             <PlayerSeat id={player.id} frame={place.frame} above={place.above} line={pointsText(seat.total)} status={status} settings={plateSettings()} />
-            {/* What lies in front of the player: twelve cells of three rows by four columns, face down until turned, a hole where a column was thrown away, in the frame of the seat, so that the grid faces the middle as the name does. The cards of the opening deal are not on
-                the table while the start screen is up: they mount, and are dealt round the table, when it goes (a card that is already there when its entrance is given does not fly) */}
+            {/* What lies in front of the player: twelve cells of three rows by four columns, face down until turned, in the frame of the seat, so that the grid faces the middle as the name does. A column that was thrown away leaves no cell, and the grid is closed over it,
+                centred on the axis of the seat: the columns slide together when the column has gone (`shown`). The cards of the opening deal are not on the table while the start screen is up: they mount, and are dealt round the table, when it goes (a card that is already
+                there when its entrance is given does not fly) */}
             <Zone
               frame={place.frame}
-              layout={cells.map(({ cell, position }) => cellPose(position, cell.up, place.scale))}
+              layout={cells.map(({ cell, position }) => cellPose(position, cell.up, place.scale, shown))}
               size={CARD_SIZE}
               cards={held ? [] : cells.map(({ cell, position }) => cardOf(cell, player.id, position))}
             />
           </group>
+        )
+      })}
+
+      {/* The columns on their way: the three cards slide together into a stack where the column stood, and the stack flies to the discard */}
+      {removals.map((removal, k) => {
+        const stage = stageOf(k)
+        const seat = laid.get(removal.player)
+        if (!seat || (stage !== "gathering" && stage !== "travelling")) return null
+        return (
+          <ThrownColumn
+            key={`${v}:${k}`}
+            seat={seat}
+            column={removal.column}
+            shown={seatsGrid.get(removal.player)?.shown ?? []}
+            landing={landing}
+            cards={removal.cards.map((card) => ({ id: card.id, front: faces.face(card.type) }))}
+            back={faces.back}
+            travelling={stage === "travelling"}
+            seconds={removal.timing.travel}
+          />
         )
       })}
 

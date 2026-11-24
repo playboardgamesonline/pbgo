@@ -19,8 +19,17 @@ export const PACE_SETTINGS = {
   /** The card in hand put in a cell (and the card it replaces going to the discard), or thrown away */
   place: 0.8,
   discard: 0.6,
-  /** A column of three equal cards thrown away */
-  column: 0.9,
+  /**
+   * A column of three equal cards thrown away is one motion in four parts: the three cards wait where they lie, so that the eye reads the column (`columnHold`), slide together into a stack (`columnGather`), the stack flies to the discard and lands on it (`columnTravel`),
+   * and the columns left slide together to close the gap and stay centred (`columnClose`, which begins `columnCloseAt` after the stack has set out). The count of a round can throw away several, one after the other: all the columns of a move take `columns` seconds at the most,
+   * past that each is played faster.
+   */
+  columnHold: 0.3,
+  columnGather: 0.45,
+  columnTravel: 0.85,
+  columnCloseAt: 0.4,
+  columnClose: 0.5,
+  columns: 5,
   /** The start of the round, the last turn, the discard shuffled into a new pile, the count of a round, the end of the game, the start of a round */
   start: 0.3,
   last: 0.4,
@@ -40,7 +49,12 @@ export const PACE_FIELDS: Record<keyof typeof PACE_SETTINGS, Field> = {
   draw: ["card drawn (s)", 0.1, 2, 0.01],
   place: ["card placed (s)", 0.1, 2, 0.01],
   discard: ["card thrown away (s)", 0.1, 2, 0.01],
-  column: ["column thrown away (s)", 0.1, 2, 0.01],
+  columnHold: ["column read before it goes (s)", 0, 1.5, 0.01],
+  columnGather: ["column gathered in a stack (s)", 0.1, 2, 0.01],
+  columnTravel: ["stack flies to the discard (s)", 0.2, 2, 0.01],
+  columnCloseAt: ["gap closes, after the stack sets out (s)", 0, 2, 0.01],
+  columnClose: ["gap closes in (s)", 0.1, 2, 0.01],
+  columns: ["all the columns of a move, at the most (s)", 1, 12, 0.1],
   start: ["start of the turns (s)", 0, 2, 0.01],
   last: ["last turn (s)", 0, 2, 0.01],
   reshuffle: ["pile reshuffled (s)", 0, 2, 0.01],
@@ -60,8 +74,8 @@ export const cellKey = (player: string, position: number) => `cell:${player}:${p
 export const cardKey = (id: number) => `card:${id}`
 export const HELD_KEY = "held"
 
-/** How long each thing that happened keeps the table busy, in seconds */
-function beatOf(event: SkyjoEvent): number {
+/** How long each thing that happened keeps the table busy, in seconds. A column thrown away takes its whole motion (`removalTiming`), which depends on how many the move throws away */
+function beatOf(event: SkyjoEvent, removal: RemovalTiming): number {
   const P = PACE_SETTINGS
   switch (event.kind) {
     case "reveal":
@@ -75,7 +89,7 @@ function beatOf(event: SkyjoEvent): number {
     case "discard":
       return P.discard
     case "column":
-      return P.column
+      return removal.total
     case "start":
       return P.start
     case "last":
@@ -91,22 +105,64 @@ function beatOf(event: SkyjoEvent): number {
   }
 }
 
+/** The parts of the motion of a column thrown away, in seconds from the moment it begins (`PACE_SETTINGS`, each column played faster when a move throws away several) */
+export type RemovalTiming = {
+  /** The three cards wait where they lie, so that the column is read */
+  hold: number
+  /** They slide together into a stack */
+  gather: number
+  /** The stack flies to the discard and lands on it */
+  travel: number
+  /** The columns left begin to close the gap this long after the stack has set out, and take `close` to do it */
+  closeAt: number
+  close: number
+  /** The whole motion: nothing else of the move begins before it is over, and the next column does not begin before it */
+  total: number
+}
+
+/**
+ * The motion of one column thrown away when a move throws away `count` of them (the count of a round throws away one for every triple of every grid, one after the other): the times of `PACE_SETTINGS`, all together at the most `columns` seconds, so each is
+ * played faster than that when there are many. The stack has set out for `travel` seconds, or the gap has closed, whichever is the later, when the column is over.
+ */
+export function removalTiming(count = 1): RemovalTiming {
+  const P = PACE_SETTINGS
+  const full = P.columnHold + P.columnGather + Math.max(P.columnTravel, P.columnCloseAt + P.columnClose)
+  const fit = Math.min(1, P.columns / (Math.max(1, count) * full))
+  return {
+    hold: P.columnHold * fit,
+    gather: P.columnGather * fit,
+    travel: P.columnTravel * fit,
+    closeAt: P.columnCloseAt * fit,
+    close: P.columnClose * fit,
+    total: full * fit,
+  }
+}
+
+/** A column of three equal cards thrown away in the last move, and the second of the move it begins at: the cards are the three of the column, the first being the top of the discard once they have landed */
+export type Removal = { player: string; column: number; cards: CardFace[]; at: number; timing: RemovalTiming }
+
 export type Timeline = Pace & {
   /** Where what the last move brought comes from, and the seconds it waits before it sets out, by key (`cellKey`, `cardKey`, `HELD_KEY`) */
   entrances: Map<string, Entrance>
-  /** The cards of the columns the last move threw away: they stay on the discard, one on the other, until the move has played out */
-  columns: CardFace[]
+  /** The columns the last move threw away, in the order they went and when each begins: each is one motion (`removalTiming`), played one after the other */
+  removals: Removal[]
+  /** The card that a placement put on the discard in the move that threw a column away, which the columns land on: null when there is none */
+  replaced: CardFace | null
 }
 
 /**
  * When each thing of the last move happens, from the lines of the log (`useGameLog`): the log says what happened and in what order, the board decides how long each takes (`paceOf`). The view is drawn at once and is what is there; this is what the board waits with:
- * the cards come in one after the other, and the words that say how the move ended wait for it to end. `players` are the ids in seat order, for the cells of a deal. With `instant` (the visitor asks for less motion) nothing waits.
+ * the cards come in one after the other, the columns thrown away go one after the other, and the words that say how the move ended wait for it to end. `players` are the ids in seat order, for the cells of a deal. With `instant` (the visitor asks for less motion)
+ * nothing waits.
  */
 export function timelineOf(lines: readonly LogLine<SkyjoEvent>[], players: readonly string[], instant = false): Timeline {
   const entrances = new Map<string, Entrance>()
-  const columns: Timeline["columns"] = []
+  const removals: Removal[] = []
+  let replaced: CardFace | null = null
   const P = PACE_SETTINGS
-  const pace = paceOf(lines, { beat: beatOf, landing: P.landing, instant }, (event, cursor) => {
+  const latest = lines.reduce((greatest, line) => Math.max(greatest, line.v), 0)
+  const timing = removalTiming(lines.filter((line) => line.v === latest && line.event.kind === "column").length)
+  const pace = paceOf(lines, { beat: (event) => beatOf(event, timing), landing: P.landing, instant }, (event, cursor) => {
     const come = (key: string, origin: Origin, delay = cursor.at) => void entrances.set(key, { origin, delay: cursor.land(delay) })
     switch (event.kind) {
       case "reveal":
@@ -132,21 +188,18 @@ export function timelineOf(lines: readonly LogLine<SkyjoEvent>[], players: reado
         // the card in hand goes into the cell, and the card it replaces goes to the discard, together
         come(cellKey(event.by, event.position), { kind: "held" })
         come(cardKey(event.replaced.id), { kind: "cell", player: event.by, position: event.position, up: event.replacedUp })
+        replaced = event.replaced
         break
       case "discard":
         come(cardKey(event.card.id), { kind: "held" })
         break
-      case "column": {
-        // the three cards fly from their cells to the discard, one after the other
-        event.cards.forEach((card, row) => {
-          columns.push(card)
-          come(cardKey(card.id), { kind: "cell", player: event.by, position: event.column * 3 + row, up: true }, cursor.at + row * 0.12)
-        })
+      case "column":
+        // the three cards stay where they lie until this column's turn comes, then gather, fly together and land: the board plays it from `removals`, not from the entrances of the cards
+        removals.push({ player: event.by, column: event.column, cards: event.cards, at: cursor.at, timing })
         break
-      }
       default:
         break
     }
   })
-  return { ...pace, entrances, columns }
+  return { ...pace, entrances, removals, replaced: removals.length > 0 ? replaced : null }
 }

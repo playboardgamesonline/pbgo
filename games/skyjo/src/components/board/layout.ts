@@ -1,3 +1,4 @@
+import { COLUMNS, ROWS } from "@skyjo/engine"
 import { boxOfPoses, byPlayers, cornersOfBox, type Field, onAxis, onTable, PILE_LABEL_GAP, PILE_LABEL_HEIGHT, type Place, plateAbove, plateBoxOf, type Pose, pointInFrame, SEAT_SETTINGS, type SeatSettings, seats, type Spot, type TableBox } from "@pbgo/table"
 
 /** A seat at the table: where it stands and the yaw that turns what lies there to face the middle, as the player who sits there sees it: the viewer's seat is at yaw 0, the one across at half a turn, one on their left at -π/2 */
@@ -79,22 +80,34 @@ export function gridSize(scale: number): { width: number; depth: number } {
   return { width: 3 * pitch.x + card.width, depth: 2 * pitch.z + card.height }
 }
 
-/** Where the cell `position` (`column * 3 + row`) of a grid lies, in the frame of its seat: columns left to right, the first row farthest from its player, toward the middle of the table */
-export function cellSpot(position: number, scale: number): Place {
-  const pitch = pitchOf(scale)
-  const column = Math.floor(position / 3)
-  const row = position % 3
-  return { x: (column - 1.5) * pitch.x, z: (row - 1) * pitch.z }
+/** The four columns of a whole grid, by number: what is laid out until a column is thrown away */
+export const WHOLE_GRID: readonly number[] = Array.from({ length: COLUMNS }, (_, column) => column)
+
+/**
+ * Where the column `column` of a grid stands along the row of its seat, in the frame of the seat, when the columns `shown` are laid out: they are centred on the axis of the seat, a pitch apart, so a grid that lost a column closes over the gap and stays centred in its seat
+ * zone (the plate above it keeps the box of the whole grid). A column that is not among `shown` keeps the place it has in a whole grid.
+ */
+export function columnSpot(column: number, scale: number, shown: readonly number[] = WHOLE_GRID): number {
+  const { x } = pitchOf(scale)
+  const rank = shown.indexOf(column)
+  return rank < 0 ? (column - (COLUMNS - 1) / 2) * x : (rank - (shown.length - 1) / 2) * x
+}
+
+/** Where the cell `position` (`column * 3 + row`) of a grid lies, in the frame of its seat: columns left to right, the first row farthest from its player, toward the middle of the table. `shown` are the columns laid out (`columnSpot`), the whole grid by default */
+export function cellSpot(position: number, scale: number, shown: readonly number[] = WHOLE_GRID): Place {
+  const column = Math.floor(position / ROWS)
+  const row = position % ROWS
+  return { x: columnSpot(column, scale, shown), z: (row - (ROWS - 1) / 2) * pitchOf(scale).z }
 }
 
 /** The slot of the cell `position` in the frame of its seat: a card lying face up or face down, a hair higher than the one above it so that cards that overlap never fight for a pixel. */
-export function cellPose(position: number, up: boolean, scale: number): Pose {
-  const { x, z } = cellSpot(position, scale)
-  return onTable(x, z, { y: 0.03 + 0.004 * (position % 3), face: up ? "up" : "down", scale })
+export function cellPose(position: number, up: boolean, scale: number, shown: readonly number[] = WHOLE_GRID): Pose {
+  const { x, z } = cellSpot(position, scale, shown)
+  return onTable(x, z, { y: 0.03 + 0.004 * (position % ROWS), face: up ? "up" : "down", scale })
 }
 
 /**
- * The box of the whole grid of a seat in its frame (the twelve cards, holes included: a column thrown away leaves its room), brought onto the axis of the seat: the plate stands above it, centred on the line (`above` of a `Seat`). The cards lie flat, so no tilt.
+ * The box of the whole grid of a seat in its frame (the twelve cards, as if no column had been thrown away: the plate stays where it is when the grid closes over a gap, the columns left are centred inside this box), brought onto the axis of the seat: the plate stands above it, centred on the line (`above` of a `Seat`). The cards lie flat, so no tilt.
  */
 export function gridBox(scale: number): TableBox {
   const poses = Array.from({ length: 12 }, (_, position) => cellPose(position, true, scale))
@@ -123,9 +136,9 @@ export function seatsOf(ids: readonly string[], meId: string | null): Map<string
   )
 }
 
-/** Where the cell `position` of a seat's grid lies on the table, as a place and the yaw of its frame */
-export function cellPlace({ frame, scale }: SeatLayout, position: number): Place & { yaw: number } {
-  return { ...pointInFrame(frame, cellSpot(position, scale)), yaw: frame.yaw }
+/** Where the cell `position` of a seat's grid lies on the table, as a place and the yaw of its frame; `shown` are the columns laid out (`columnSpot`), the whole grid by default */
+export function cellPlace({ frame, scale }: SeatLayout, position: number, shown: readonly number[] = WHOLE_GRID): Place & { yaw: number } {
+  return { ...pointInFrame(frame, cellSpot(position, scale, shown)), yaw: frame.yaw }
 }
 
 /** Where the draw pile, the card in hand and the discard lie: the piles either side of the middle of the table, the card in hand between them. */

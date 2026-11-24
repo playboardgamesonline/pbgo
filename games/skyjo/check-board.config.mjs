@@ -130,7 +130,15 @@ const config = {
       await table.rig("columnOnTop")
       await table.act(0, { type: "take" })
       await settle()
-      return record(() => table.act(0, { type: "place", position: 2 }), { seconds: 6 })
+      return record(() => table.act(0, { type: "place", position: 2 }), { seconds: 4.5, step: 0.25, count: 16, columns: 4 })
+    },
+    // the first opponent, across the table or at a side, has the second column of its grid made of two equal cards and puts the third over a face-down one: the gap is in the middle of a grid that is turned, and closes over it
+    async opponent({ table, record, settle }) {
+      await table.advance({ until: (state, waited) => waited === 1 && state.view.phase.kind === "choose", label: "the first opponent's turn" })
+      await table.rig("middleColumnOnTop", 1)
+      await table.act(1, { type: "take" })
+      await settle()
+      return record(() => table.act(1, { type: "place", position: 5 }), { seconds: 4.5, step: 0.25, count: 16, columns: 4 })
     },
     // the viewer draws a card and puts it over a face-down one
     async place({ table, record, settle }) {
@@ -196,6 +204,15 @@ const config = {
       await table.act(0, { type: "discard" })
       await settle()
       return record(async () => table.act(0, { type: "flip", position: await lastHidden(table) }), { seconds: 8 })
+    },
+    // two columns go at the count: the viewer has two columns of three equal cards face down, the others have played their last turn, and the viewer's move ends the round: the count turns the cards over and throws both columns away, one after the other. It comes after the last turn: the one who ended the round has their points doubled, which can end the game, and no case can be played after that
+    async columns({ table, record, settle }) {
+      if ((await table.state(0)).status !== "playing") return undefined
+      await atViewer(table)
+      await table.rig("columnsAtTheCount")
+      await table.act(0, { type: "take" })
+      await settle()
+      return record(() => table.act(0, { type: "place", position: 4 }), { seconds: 6.5, step: 0.4, count: 16, columns: 4 })
     },
     // the end of the game, from the start of a table: the viewer's total is rigged to 94 (`nearTarget` writes a finished round down, so it only makes sense before any round was counted: after one it would end the game at once), the viewer ends the
     // round, the others play their last turn, and the last move, which counts the round and ends the game, is recorded: the winner and the end screen. Run it on its own (`--scenarios over`): after the cases above it finds a round counted and does nothing
