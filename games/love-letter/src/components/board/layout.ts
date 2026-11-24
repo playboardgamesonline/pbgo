@@ -37,7 +37,7 @@ export const LAYOUT_SETTINGS = {
   /** How far toward the viewer the foot of their own line lies (their hand is held on the screen, so it is where the hand would be) */
   viewerZ: 4.2,
   /**
-   * The size of every card on the table, a share of the card of the kit, for a table of two and for a table of six: the deck, the cards set aside face up, the cards of the columns, those of the play areas and in front of the players, and the hands that the opponents hold
+   * The size of every card on the table, a share of the card of the kit, for a table of two and for a table of six: the deck, the cards set aside, the cards of the columns, those of the play areas and in front of the players, and the hands that the opponents hold
    * are all of one size, as at a real table. A small table has bigger cards and room, a full one smaller ones (in steps in between). The viewer's hand, held on the screen, and the faces that are shown to be read (a Priest's look, a Baron's comparison, a King's trade) are not on the table and have sizes of their own
    */
   cardScale2: 0.55,
@@ -54,13 +54,13 @@ export const LAYOUT_SETTINGS = {
   /** The room round a player's cards and plate that a press counts in, in world units */
   hotspotPadding: 0.02,
   /**
-   * The deck on the left of the middle, with the columns of the cards that are done with to its right (`MIDDLE`), the first cards of the columns lying as high as the deck, and at two players the three cards set aside face up under the deck: where each lies. The card set
-   * aside face down at the start of a round is out of the game and nobody knows it: the table does not show it
+   * The deck on the left of the middle, with the columns of the cards that are done with to its right (`MIDDLE`), the first cards of the columns lying as high as the deck, and the cards set aside at the start of a round in one column on its left (`MIDDLE.aside`): where
+   * the deck lies, along x for a table of two and for a table of six (in steps in between) and along z. A table of two is nearer the middle: the cards set aside, which stand beyond the deck, would lie under the log of the turns that the platform draws at the top left of the
+   * window, and the camera would have to stand back. At a full table the seats at the sides of the middle leave the deck less room: it stands where the cards set aside clear them.
    */
-  deckX: -3.2,
+  deckX2: -2.3,
+  deckX6: -3.05,
   deckZ: -0.85,
-  faceUpX: -2.6,
-  faceUpZ: 1.1,
 }
 
 export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
@@ -82,10 +82,9 @@ export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
   gap: ["gap (cards)", 0.8, 1.4, 0.01],
   closest: ["closest (cards)", 0.05, 0.6, 0.01],
   hotspotPadding: ["press room round a player", 0, 1, 0.01],
-  deckX: ["deck x", -8, 0, 0.05],
+  deckX2: ["deck x · 2 players", -8, 0, 0.05],
+  deckX6: ["deck x · 6 players", -8, 0, 0.05],
   deckZ: ["deck z", -4, 4, 0.05],
-  faceUpX: ["face up x", -8, 8, 0.05],
-  faceUpZ: ["face up z", -4, 4, 0.05],
 }
 
 /** The chairs of a table: its players, and one more for a spectator, who has none in front (the ring of `seats` is that of the table with one more player) */
@@ -108,7 +107,7 @@ export function seats(ids: readonly string[], meId: string | null): Map<string, 
 /** What a play area is laid out in: how big its cards are and the width its row may take before its cards overlap more */
 export type Area = { scale: number; width: number }
 
-/** The size of every card that lies on a table of `chairs` chairs: the same for the deck, the cards set aside face up, the cards of the columns and those of the play areas, smaller as the table fills */
+/** The size of every card that lies on a table of `chairs` chairs: the same for the deck, the cards set aside, the cards of the columns and those of the play areas, smaller as the table fills */
 export const cardScaleOf = (chairs: number) => between(chairs, LAYOUT_SETTINGS.cardScale2, LAYOUT_SETTINGS.cardScale6)
 
 /** The play area of a seat of a table of `chairs` chairs: the viewer's, or an opponent's, which is narrower as the table fills. Its cards are the size of every card of the table */
@@ -230,23 +229,28 @@ export function tableLines(n: number, seated = true): Line[] {
   return [...lines(ids, seated ? "0" : null).values()]
 }
 
-/** Where the deck and, under it, the cards set aside face up lie */
-export function middlePlaces(): { deck: Place; faceUp: Place } {
+/** Where the deck lies at a table of `chairs` chairs */
+export function middlePlaces(chairs = FULL_TABLE): { deck: Place } {
   const R = LAYOUT_SETTINGS
-  return { deck: { x: R.deckX, z: R.deckZ }, faceUp: { x: R.faceUpX, z: R.faceUpZ } }
+  return { deck: { x: between(chairs, R.deckX2, R.deckX6), z: R.deckZ } }
 }
 
-/** The slots of the three cards set aside face up at two players, in the frame of their place */
-export const faceUpPoses = (n: number, chairs: number): Pose[] => row(n, { gap: CARD.width * cardScaleOf(chairs) * 1.1, rise: 0.012, scale: cardScaleOf(chairs) })
+/** How many cards are set aside face up, at a table of two players: the card set aside face down is on every table */
+export const ASIDE_FACE_UP = 3
 
 /**
  * The middle of the table. The deck is on the left, and the cards of the round that are done with (`tableCards` of `middle.ts`) lie in columns, one for each value that has a card, from the lowest value on the left to the highest on the right, as on a table of cards: the copies of a
  * value cascade down their column, each lower than the one before so that the banner and the value of every card stay in sight, the last one played lying whole at the foot. The columns close up and stay centred as one comes and another goes, and the cards are as big as the room lets
- * them be. The faces of a reveal show for the time it takes to read them over the columns (a Priest's look, a Baron's comparison, a King's trade); below them lies the Deal button, for the player who deals. Under the deck lie, at two players, the three cards set aside face up. The characters a
- * Guard can name are not laid on the table, where a row of them would read as a copy of the cards that lie there: a panel over the corner of the screen offers them. It all lies well above the bottom band of the window that the banner of the cookie settings covers, and clear of the plates, the areas
- * and the hands of every table: `layout.test.ts` and `camera.test.ts` hold both. The table writes no sentence: what to do is said by the ticker.
+ * them be. The faces of a reveal show for the time it takes to read them over the columns (a Priest's look, a Baron's comparison, a King's trade); below them lies the Deal button, for the player who deals. On the left of the deck lie the cards that were set aside when the round was dealt, in
+ * one column: the one face down, as high as the deck, and under it, at two players, the three face up. The characters a Guard can name are not laid on the table, where a row of them would read as a copy of the cards that lie there: a window offers them. It all lies well above the bottom band of
+ * the window that the banner of the cookie settings covers, and clear of the plates, the areas and the hands of every table: `layout.test.ts` and `camera.test.ts` hold both. The table writes no sentence: what to do is said by the ticker.
  */
 export const MIDDLE = {
+  /**
+   * The cards set aside, in one column on the left of the deck: the gap between the deck and the column (a share of a card's width), the clear space between the card face down and the first one face up (a share of a card's height), and how far each card face up lies below the one
+   * before it (a share of a card's height), which is as far as the copies of a column of the cards that are done with: the banner and the value of each stay in sight
+   */
+  aside: { gap: 0.2, apart: 0.12, step: 0.25 },
   /**
    * The columns: the gap between the deck and the room of the columns, how far to the right the room reaches (x of its right edge: `right` where seats stand at the sides of the middle, `wideRight` at a table of `wideChairs` chairs or fewer, which has none), how far down the tallest column may
    * reach (z of its foot), the gap between two columns (a share of a card's width), and how far each copy lies below the one before (a share of a card's height), as most and as least. The cards are the size of every card of the table (`cardScaleOf`) and the first of each column lies as high as
@@ -270,7 +274,7 @@ export const revealPoses = (count: number): Pose[] => Array.from({ length: count
 
 /** Where the room of the columns starts and how far it reaches along x: right of the deck, and as far as `MIDDLE.columns` says for a table of `chairs` chairs: farther where no seat stands at the sides of the middle */
 function columnsRoom(chairs = FULL_TABLE) {
-  const left = LAYOUT_SETTINGS.deckX + (CARD.width * cardScaleOf(chairs)) / 2 + MIDDLE.columns.left
+  const left = middlePlaces(chairs).deck.x + (CARD.width * cardScaleOf(chairs)) / 2 + MIDDLE.columns.left
   return { left, right: chairs <= MIDDLE.columns.wideChairs ? MIDDLE.columns.wideRight : MIDDLE.columns.right }
 }
 
@@ -327,15 +331,42 @@ export function controlBoxes(): { deal: TableBox; reveal: TableBox } {
   }
 }
 
-/** The boxes of the middle of the table, in the world: the deck with its count under it, the cards set aside face up (three of them), the columns of the cards that are done with, and the room of the Deal button */
+/** Where the column of the cards set aside lies at a table of `chairs` chairs: x of its axis, a card's width and a gap to the left of the deck, and z of the top edge of its first card, as high as the deck */
+function asideSpot(chairs = FULL_TABLE): { x: number; top: number } {
+  const width = CARD.width * cardScaleOf(chairs)
+  return { x: middlePlaces(chairs).deck.x - width * (1 + MIDDLE.aside.gap), top: columnsTop(chairs) }
+}
+
+/**
+ * The slots of the cards set aside when a round is dealt, in one column on the left of the deck, the size of every card of the table: the one face down (`down`), whole and as high as the deck, and under it the cards face up (`up`, `faceUp` of them, three at two players), the
+ * first a little way below it and each of the others below the one before, a share of its height, and a hair higher, so that the banner and the value of each stay in sight and the last is whole at the foot. The slots of the cards face up do not move when the card face down is
+ * gone (a Prince takes it when the deck is empty).
+ */
+export function asidePoses(faceUp: number, chairs = FULL_TABLE): { down: Pose; up: Pose[] } {
+  const { apart, step } = MIDDLE.aside
+  const scale = cardScaleOf(chairs)
+  const height = CARD.height * scale
+  const { x, top } = asideSpot(chairs)
+  const down = onTable(x, top + height / 2, { face: "down", scale })
+  const up = Array.from({ length: faceUp }, (_, i) => shifted(onTable(x, top + height * (1.5 + apart + i * step), { scale }), { y: i * 0.012 }))
+  return { down, up }
+}
+
+/** The box of the column of the cards set aside, at a table of `chairs` chairs: one card tall, or all of it with the cards face up (`faceUp` of them) */
+export function asideBox(faceUp: number, chairs = FULL_TABLE): TableBox {
+  const width = CARD.width * cardScaleOf(chairs)
+  const height = CARD.height * cardScaleOf(chairs)
+  const { x, top } = asideSpot(chairs)
+  const foot = faceUp > 0 ? top + height * (2 + MIDDLE.aside.apart + (faceUp - 1) * MIDDLE.aside.step) : top + height
+  return { minX: x - width / 2, maxX: x + width / 2, minZ: top, maxZ: foot }
+}
+
+/** The boxes of the middle of the table, in the world: the deck with its count under it, the column of the cards set aside (with the three face up at two players), the columns of the cards that are done with, and the room of the Deal button */
 export function middleBoxes(faceUp: boolean, chairs = FULL_TABLE): TableBox[] {
-  const { deck, faceUp: up } = middlePlaces()
+  const { deck } = middlePlaces(chairs)
   const width = CARD.width * cardScaleOf(chairs)
   const depth = CARD.height * cardScaleOf(chairs)
-  const boxes: TableBox[] = [boxOfRect({ x: deck.x, z: deck.z + 0.4, width, depth: depth + 0.8 })]
-  if (faceUp) boxes.push(boxOfRect({ x: up.x, z: up.z, width: width * 3.2, depth }))
-  boxes.push(columnsBox(chairs), controlBoxes().deal)
-  return boxes
+  return [boxOfRect({ x: deck.x, z: deck.z + 0.4, width, depth: depth + 0.8 }), asideBox(faceUp ? ASIDE_FACE_UP : 0, chairs), columnsBox(chairs), controlBoxes().deal]
 }
 
 /** The corners on the table of a box drawn in the frame of a seat, going round: what the camera has to bring into the window, and what the tests lay over one another */
@@ -386,6 +417,6 @@ const HAND_RISE = 1.7
 
 /** Where the cards are dealt from: above the deck, face down */
 export function dealtFrom(chairs = FULL_TABLE): Pose {
-  const { deck } = middlePlaces()
+  const { deck } = middlePlaces(chairs)
   return onTable(deck.x, deck.z, { y: 1.6, face: "down", scale: cardScaleOf(chairs) })
 }
