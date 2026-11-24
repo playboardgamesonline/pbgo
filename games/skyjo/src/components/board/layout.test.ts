@@ -1,9 +1,11 @@
 import { cornersOfBox, PILE_LABEL_GAP, PILE_LABEL_HEIGHT, type Place, polygonsOverlap, pointInFrame, SEAT_SETTINGS } from "@pbgo/table"
 import { describe, expect, it } from "vitest"
-import { CARD, cardSize, cellPlace, cellPose, cellSpot, FLOOR, floorPlan, gridBox, gridSize, LAYOUT_SETTINGS, PLATE_AIR, pilePlaces, pitchOf, plateBox, plateSettings, seatsOf, tableParts, tableQuads } from "./layout"
+import { CARD, cardScaleOf, COUNT_WIDTH, cardSize, cellOrigin, cellPlace, cellPose, cellSpot, chairsOf, discardPose, flightFrom, FLOOR, floorPlan, gridBox, gridSize, heldPose, LAYOUT_SETTINGS, landingOn, PLATE_AIR, pilePlaces, pitchOf, plateBox, plateSettings, seatsOf, tableParts, tableQuads } from "./layout"
 
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
 const SIZES = [2, 3, 4, 5, 6, 7, 8]
+/** The chairs a table has: two to eight, and nine for a spectator of eight, whose ring has one chair more than a game seats */
+const CHAIRS = [2, 3, 4, 5, 6, 7, 8, 9]
 
 /** A rectangle on the table, whose sides run along x and z, as its corners going round */
 const rect = (x: number, z: number, halfWidth: number, halfDepth: number): Place[] => [
@@ -62,11 +64,11 @@ describe("the seats", () => {
     }
   })
 
-  it("grow from a table of two to a table of eight: smaller cards for opponents", () => {
+  it("grow from a table of two to a table of eight: smaller cards for every seat", () => {
     const scales = SIZES.map((n) => seatsOf(ids(n), "p0").get("p1")!.scale)
     for (let i = 1; i < scales.length; i++) expect(scales[i]!).toBeLessThanOrEqual(scales[i - 1]! + 1e-9)
-    expect(scales[0]).toBeCloseTo(LAYOUT_SETTINGS.opponentScale2)
-    expect(scales.at(-1)).toBeCloseTo(LAYOUT_SETTINGS.opponentScale8)
+    expect(scales[0]).toBeCloseTo(LAYOUT_SETTINGS.cardScale2)
+    expect(scales.at(-1)).toBeCloseTo(LAYOUT_SETTINGS.cardScale8)
   })
 
   it("are a function of the seat order alone: renaming the players moves nothing", () => {
@@ -75,10 +77,16 @@ describe("the seats", () => {
     expect([...a.values()]).toEqual([...b.values()])
   })
 
-  it("put the viewer's grid in front, bigger than the opponents'", () => {
-    for (const n of SIZES) {
-      const placed = seatsOf(ids(n), "p0")
-      expect(placed.get("p0")!.scale).toBeGreaterThan(placed.get("p1")!.scale)
+  it("give the viewer's grid the cards of the others': one size for every seat, as at a real table", () => {
+    for (const seated of [true, false]) {
+      for (const n of SIZES) {
+        const seatList = [...seatsOf(ids(n), seated ? "p0" : null).values()]
+        const label = `${n} players${seated ? "" : ", spectator"}`
+        expect(new Set(seatList.map((seat) => seat.scale)).size, label).toBe(1)
+        expect(seatList[0]!.scale, label).toBe(cardScaleOf(chairsOf(n, seated)))
+        // the grids are the same size too, so the plates stand the same way above each
+        for (const seat of seatList) expect(seat.above, label).toEqual(seatList[0]!.above)
+      }
     }
   })
 })
@@ -231,41 +239,125 @@ describe("the middle of the table", () => {
     expect(held.x).toBeLessThan(discard.x)
     expect(deck.z).toBe(held.z)
     expect(held.z).toBe(discard.z)
+    expect(deck.x + discard.x).toBeCloseTo(0, 9)
+    expect(discard.x).toBe(LAYOUT_SETTINGS.pilesX)
+  })
+
+  it("keeps the three cards of the middle apart, at every table, with room for the word over each pile", () => {
+    const { deck, held, discard } = pilePlaces()
+    for (const chairs of CHAIRS) {
+      const gap = held.x - deck.x - CARD.width * cardScaleOf(chairs)
+      expect(gap, `${chairs} chairs`).toBeGreaterThan(0.2)
+      expect(discard.x - held.x - CARD.width * cardScaleOf(chairs), `${chairs} chairs`).toBeCloseTo(gap, 9)
+    }
+    // the two words, "Draw" and "Take the discard", float over the piles in the lettering of the kit, which has a size of its own: the piles keep that far apart, whatever the cards, so that the words do not touch
+    expect(discard.x - deck.x).toBeGreaterThanOrEqual(2.4)
   })
 
   it("keeps a room over the piles, one gap from them, and lays the deal button in it", () => {
-    const { deal, above } = floorPlan()
-    const pile = (CARD.height * LAYOUT_SETTINGS.pileScale) / 2
-    const { deck } = pilePlaces()
-    // the room lies above the piles, one gap from them
-    expect(deck.z - pile - (above.z + above.depth / 2)).toBeCloseTo(FLOOR.gap)
-    // the button is across the two piles, in the room
-    expect(deal.x).toBe(0)
-    expect(deal.z).toBe(above.z)
-    expect(deal.depth).toBeLessThanOrEqual(above.depth)
-    expect(deal.width).toBeLessThanOrEqual(above.width)
+    for (const chairs of CHAIRS) {
+      const { deal, above } = floorPlan(chairs)
+      const pile = (CARD.height * cardScaleOf(chairs)) / 2
+      const { deck } = pilePlaces()
+      // the room lies above the piles, one gap from them
+      expect(deck.z - pile - (above.z + above.depth / 2), `${chairs} chairs`).toBeCloseTo(FLOOR.gap)
+      // the button is across the two piles, in the room
+      expect(deal.x).toBe(0)
+      expect(deal.z).toBe(above.z)
+      expect(deal.depth).toBeLessThanOrEqual(above.depth)
+      expect(deal.width, `${chairs} chairs`).toBeLessThanOrEqual(above.width)
+    }
   })
 
   it("keeps the deal button clear of the piles and of the card in hand", () => {
-    const { deal } = floorPlan()
-    const { deck, held, discard } = pilePlaces()
-    const R = LAYOUT_SETTINGS
-    const pad = rect(deal.x, deal.z, deal.width / 2, deal.depth / 2)
-    for (const [place, scale] of [[deck, R.pileScale], [discard, R.pileScale], [held, R.heldScale]] as const) expect(polygonsOverlap(pad, rect(place.x, place.z, (CARD.width * scale) / 2, (CARD.height * scale) / 2))).toBe(false)
+    for (const chairs of CHAIRS) {
+      const { deal } = floorPlan(chairs)
+      const { deck, held, discard } = pilePlaces()
+      const scale = cardScaleOf(chairs)
+      const pad = rect(deal.x, deal.z, deal.width / 2, deal.depth / 2)
+      for (const place of [deck, discard, held]) expect(polygonsOverlap(pad, rect(place.x, place.z, (CARD.width * scale) / 2, (CARD.height * scale) / 2)), `${chairs} chairs`).toBe(false)
+    }
   })
 
   it("holds in the strip the piles, the card in hand, the count under each pile and the room over them", () => {
-    const { strip, above } = floorPlan()
-    const { deck, held, discard } = pilePlaces()
-    const R = LAYOUT_SETTINGS
-    const within = (inner: { x: number; z: number; halfWidth: number; halfDepth: number }) =>
-      inner.x - inner.halfWidth >= strip.x - strip.width / 2 - 1e-9 &&
-      inner.x + inner.halfWidth <= strip.x + strip.width / 2 + 1e-9 &&
-      inner.z - inner.halfDepth >= strip.z - strip.depth / 2 - 1e-9 &&
-      inner.z + inner.halfDepth <= strip.z + strip.depth / 2 + 1e-9
-    for (const [place, scale] of [[deck, R.pileScale], [discard, R.pileScale], [held, R.heldScale]] as const) expect(within({ x: place.x, z: place.z, halfWidth: (CARD.width * scale) / 2, halfDepth: (CARD.height * scale) / 2 })).toBe(true)
-    expect(within({ x: above.x, z: above.z, halfWidth: strip.width / 2, halfDepth: above.depth / 2 })).toBe(true)
-    // the count of a pile lies under it, in the strip: its middle is the kit's gap under the edge of the pile
-    expect(within({ x: deck.x, z: deck.z + (CARD.height * R.pileScale) / 2 + PILE_LABEL_GAP, halfWidth: 0.4, halfDepth: PILE_LABEL_HEIGHT / 2 })).toBe(true)
+    for (const chairs of CHAIRS) {
+      const { strip, above } = floorPlan(chairs)
+      const { deck, held, discard } = pilePlaces()
+      const scale = cardScaleOf(chairs)
+      const within = (inner: { x: number; z: number; halfWidth: number; halfDepth: number }) =>
+        inner.x - inner.halfWidth >= strip.x - strip.width / 2 - 1e-9 &&
+        inner.x + inner.halfWidth <= strip.x + strip.width / 2 + 1e-9 &&
+        inner.z - inner.halfDepth >= strip.z - strip.depth / 2 - 1e-9 &&
+        inner.z + inner.halfDepth <= strip.z + strip.depth / 2 + 1e-9
+      for (const place of [deck, discard, held]) expect(within({ x: place.x, z: place.z, halfWidth: (CARD.width * scale) / 2, halfDepth: (CARD.height * scale) / 2 }), `${chairs} chairs`).toBe(true)
+      expect(within({ x: above.x, z: above.z, halfWidth: strip.width / 2, halfDepth: above.depth / 2 }), `${chairs} chairs`).toBe(true)
+      // the count of a pile lies under it, in the strip: its middle is the kit's gap under the edge of the pile
+      expect(within({ x: deck.x, z: deck.z + (CARD.height * scale) / 2 + PILE_LABEL_GAP, halfWidth: COUNT_WIDTH / 2, halfDepth: PILE_LABEL_HEIGHT / 2 }), `${chairs} chairs`).toBe(true)
+    }
+  })
+})
+
+describe("the cards that lie on the table", () => {
+  /** The width and the depth of a rectangle made of four corners going round, whichever way it is turned */
+  const sizeOf = (corners: Place[]) => ({ along: Math.hypot(corners[1]!.x - corners[0]!.x, corners[1]!.z - corners[0]!.z), across: Math.hypot(corners[2]!.x - corners[1]!.x, corners[2]!.z - corners[1]!.z) })
+
+  it("are all of one size, as at a real table: the cards of every grid, the viewer's and the others', the draw pile, the discard, the card in hand, and the poses a card flies in from", () => {
+    for (const seated of [true, false]) {
+      for (const n of SIZES) {
+        const chairs = chairsOf(n, seated)
+        const scale = cardScaleOf(chairs)
+        const label = `${n} players${seated ? "" : ", spectator"}`
+        // the cards of every grid, the viewer's too
+        for (const seat of seatsOf(ids(n), seated ? "p0" : null).values()) {
+          expect(seat.scale, label).toBe(scale)
+          for (let position = 0; position < 12; position++) {
+            expect(cellPose(position, position % 2 === 0, seat.scale).scale, label).toBe(scale)
+            expect(cellOrigin(seat, position, position % 2 === 0).scale, label).toBe(scale)
+          }
+        }
+        // the piles and the card in hand, as the table draws them
+        const parts = tableParts(n, seated)
+        for (const [name, polygon] of [["draw pile", parts.deck], ["discard", parts.discard], ["card in hand", parts.held]] as const) {
+          expect(sizeOf(polygon).along, `${label}, ${name}`).toBeCloseTo(CARD.width * scale, 9)
+          expect(sizeOf(polygon).across, `${label}, ${name}`).toBeCloseTo(CARD.height * scale, 9)
+        }
+        // where a card flies in from, and the slots of the discard and of the card in hand
+        for (const origin of ["deck", "discard", "held"] as const) expect(flightFrom(origin, chairs).scale, `${label}, from ${origin}`).toBe(scale)
+        // where a stack thrown away lands: on the discard, as big as the cards it was made of
+        expect(landingOn(0.07, chairs).scale, label).toBe(scale)
+        for (const up of [true, false]) {
+          expect(heldPose(up, chairs).scale, label).toBe(scale)
+          for (const index of [0, 5, 9]) expect(discardPose(index, up, chairs).scale, label).toBe(scale)
+        }
+      }
+    }
+  })
+
+  it("are as wide on the piles as in the viewer's grid: a card is a card wherever it lies", () => {
+    for (const n of SIZES) {
+      const viewer = seatsOf(ids(n), "p0").get("p0")!
+      const parts = tableParts(n)
+      const pile = Math.min(...[parts.deck, parts.discard].map((polygon) => Math.hypot(polygon[1]!.x - polygon[0]!.x, polygon[1]!.z - polygon[0]!.z)))
+      expect(cardSize(viewer.scale).width, `${n} players`).toBeCloseTo(pile, 9)
+    }
+  })
+
+  it("are smaller as the table fills, in steps from the table of two to the table of eight, and smaller again at nine chairs", () => {
+    let last = Infinity
+    for (const chairs of CHAIRS) {
+      expect(cardScaleOf(chairs), `${chairs} chairs`).toBeLessThanOrEqual(last + 1e-9)
+      last = cardScaleOf(chairs)
+    }
+    expect(cardScaleOf(2)).toBeCloseTo(LAYOUT_SETTINGS.cardScale2, 9)
+    expect(cardScaleOf(8)).toBeCloseTo(LAYOUT_SETTINGS.cardScale8, 9)
+    expect(cardScaleOf(9)).toBeCloseTo(LAYOUT_SETTINGS.cardScale8 * LAYOUT_SETTINGS.crowded, 9)
+    expect(cardScaleOf(9)).toBeLessThan(cardScaleOf(8))
+  })
+
+  it("count a spectator's table as one chair more than its players", () => {
+    expect(chairsOf(5)).toBe(5)
+    expect(chairsOf(5, false)).toBe(6)
+    expect(seatsOf(ids(5), null).get("p0")!.scale).toBe(cardScaleOf(6))
+    expect(seatsOf(ids(8), null).get("p0")!.scale).toBe(cardScaleOf(9))
   })
 })

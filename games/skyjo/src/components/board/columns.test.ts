@@ -2,7 +2,7 @@ import type { CardFace, PublicCell } from "@skyjo/engine"
 import { Vector3 } from "three"
 import { describe, expect, it } from "vitest"
 import { flightAt, flightOf, removalSequence, restoredCells, shownColumns, STACK, stackAt, stackPlan, stackPoses, type Vec } from "./columns"
-import { cellSpot, columnSpot, pitchOf, pilePlaces, seatsOf, WHOLE_GRID } from "./layout"
+import { cellSpot, chairsOf, columnSpot, landingOn, pitchOf, seatsOf, WHOLE_GRID } from "./layout"
 import { type Removal, removalTiming } from "./pacing"
 
 const face = (id: number, type = "card-5"): CardFace => ({ id, type })
@@ -210,8 +210,8 @@ describe("the flight of a stack", () => {
 
 describe("a stack at every seat of every table", () => {
   const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i}`)
-  const { discard } = pilePlaces()
-  const landing = { x: discard.x, z: discard.z, y: 0.07, scale: 0.818 }
+  /** Where a stack lands at a table of `chairs` chairs: the discard, whose cards are as big as every card of the table */
+  const landingOf = (chairs: number) => landingOn(0.07, chairs)
 
   /** Where a card of a stack is when the stack has landed, and which way its top edge points on the table, as a turn about the vertical axis: 0 is away from the viewer */
   function landedCard(plan: ReturnType<typeof stackPlan>, row: number) {
@@ -222,7 +222,7 @@ describe("a stack at every seat of every table", () => {
 
   it("is where it formed when it sets out, and keeps its three cards one over the other on the way: the same place, the first row always on top", () => {
     const seat = seatsOf(ids(5), "p0").get("p2")!
-    const plan = stackPlan(seat, 1, WHOLE_GRID, landing)
+    const plan = stackPlan(seat, 1, WHOLE_GRID, landingOf(5))
     const start = stackAt(plan, 0)
     plan.poses.forEach((pose, row) => {
       expect(start[row]!.position.distanceTo(pose.position)).toBeLessThan(1e-9)
@@ -239,9 +239,10 @@ describe("a stack at every seat of every table", () => {
     }
   })
 
-  it("sets out from the middle row of the column and lands on the discard, the cards one over the other, facing as the discard does, at the scale of its cards", () => {
+  it("sets out from the middle row of the column and lands on the discard, the cards one over the other, facing as the discard does, at the scale of its cards, which is the scale of the cards it left: the stack does not grow on the way", () => {
     for (const seated of [true, false]) {
       for (const n of [2, 3, 4, 5, 6, 7, 8]) {
+        const landing = landingOf(chairsOf(n, seated))
         const placed = seatsOf(ids(n), seated ? "p0" : null)
         for (const id of ids(n)) {
           const seat = placed.get(id)!
@@ -249,6 +250,7 @@ describe("a stack at every seat of every table", () => {
             const shown = WHOLE_GRID
             const plan = stackPlan(seat, gone, shown, landing)
             const label = `${n} players${seated ? "" : ", spectator"}, ${id}, column ${gone}`
+            expect(plan.flight.grow, label).toBeCloseTo(1, 9)
             // the stack is on the slot of the middle row of its column, wherever the seat is and however it is turned
             const middle = cellSpot(gone * 3 + 1, seat.scale, shown)
             const centre = { x: seat.frame.x + middle.x * Math.cos(seat.frame.yaw) + middle.z * Math.sin(seat.frame.yaw), z: seat.frame.z - middle.x * Math.sin(seat.frame.yaw) + middle.z * Math.cos(seat.frame.yaw) }

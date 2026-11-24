@@ -2,13 +2,13 @@
 
 import type { CardFace, PlayerView, PublicCell, PublicSeat } from "@skyjo/engine"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { ActionLabel, cardRise, effectiveState, FloorButton, NO_TOUCH, onTable, Pile, pileAboveAt, pileFootprint, PlayerSeat, type Pose, type Spot, Table, type Touch, useSequence, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
+import { ActionLabel, cardRise, effectiveState, FloorButton, NO_TOUCH, Pile, pileAboveAt, pileFootprint, PlayerSeat, type Pose, type Spot, Table, type Touch, useSequence, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useMemo, useState } from "react"
 import type { ClientCatalog } from "../../lib/catalog"
 import { fill, type Vocabulary } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
 import { type Landing, removalSequence, type RemovalState, restoredCells, type Stage, shownColumns } from "./columns"
-import { cellPlace, cellPose, floorPlan, LAYOUT_FIELDS, LAYOUT_SETTINGS, pilePlaces, plateSettings, seatsOf } from "./layout"
+import { cardScaleOf, cellOrigin, cellPose, chairsOf, discardPose, flightFrom, floorPlan, heldPose, LAYOUT_FIELDS, LAYOUT_SETTINGS, landingOn, pilePlaces, plateSettings, seatsOf } from "./layout"
 import { cardKey, cellKey, type Entrance, HELD_KEY, type Origin, PACE_FIELDS, PACE_SETTINGS, type Removal } from "./pacing"
 import { ThrownColumn } from "./thrown-column"
 import { CARD_SIZE, matOf, useFaces } from "./textures"
@@ -122,9 +122,11 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
   const key = ids.join("|")
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the ids
   const laid = useMemo(() => seatsOf(ids, meId), [key, meId])
-  const R = LAYOUT_SETTINGS
+  // the chairs of the table, and the size every card on it has, the viewer's grid and the piles too: the middle of the table is laid out for it
+  const chairs = chairsOf(view.players.length, meId !== null)
+  const scale = cardScaleOf(chairs)
   const { deck, held: handAt, discard } = pilePlaces()
-  const plan = floorPlan()
+  const plan = floorPlan(chairs)
   const phase = view.phase
   const viewerChooses = phase.kind === "choose" && phase.player === meId
   const viewerThrows = phase.kind === "place" && phase.player === meId && phase.from === "deck"
@@ -171,17 +173,14 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
     const withDelay = (pose: Pose): Pose => ({ ...pose, delay })
     switch (origin.kind) {
       case "deck":
-        return withDelay(onTable(deck.x, deck.z, { y: 1.4, face: "down", scale: R.pileScale }))
       case "discard":
-        return withDelay(onTable(discard.x, discard.z, { y: 0.4, face: "up", scale: R.pileScale }))
       case "held":
-        return withDelay(onTable(handAt.x, handAt.z, { y: 0.8, face: "up", scale: R.heldScale }))
+        return withDelay(flightFrom(origin.kind, chairs))
       case "cell": {
         const seat = laid.get(origin.player)
-        if (!seat) return withDelay(onTable(deck.x, deck.z, { y: 1.4, face: "down", scale: R.pileScale }))
+        if (!seat) return withDelay(flightFrom("deck", chairs))
         // where the cell lies in the grid as it is laid out now: a grid that lost a column is closed over it
-        const cell = cellPlace(seat, origin.position, seatsGrid.get(origin.player)?.shown)
-        return withDelay(onTable(cell.x, cell.z, { y: 0.3, face: origin.up ? "up" : "down", yaw: cell.yaw, scale: seat.scale }))
+        return withDelay(cellOrigin(seat, origin.position, origin.up, seatsGrid.get(origin.player)?.shown))
       }
     }
   }
@@ -225,9 +224,9 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
   const beneath = depth + underCard.length + replacedCard.length
   // What pressing the discard does: take its top card on the viewer's choice, or throw the card they drew onto it. A card taken from the discard cannot be thrown back: it must be placed
   const discardAction: DiscardAction | null = viewerChooses ? { label: words.takeDiscard, onPress: onTake } : viewerThrows ? { label: words.throwAway, onPress: onThrow } : null
-  const discardPoses: Pose[] = discardCards.map((_, i) => onTable(0, 0, { y: 0.03 + 0.02 * i, face: i < depth ? "down" : "up", lean: `discard-${i}`, scale: R.pileScale }))
+  const discardPoses: Pose[] = discardCards.map((_, i) => discardPose(i, i >= depth, chairs))
   // where a stack lands: on the card that lies on top of the pile, which is the last stack that landed when there is one, at the height of the bottom card of the stack
-  const landing: Landing = { x: discard.x, z: discard.z, y: 0.03 + 0.02 * (beneath + landedStack.length), scale: R.pileScale }
+  const landing: Landing = landingOn(0.03 + 0.02 * (beneath + landedStack.length), chairs)
 
   return (
     <>
@@ -284,7 +283,7 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
         count={view.deck.size}
         size={CARD_SIZE}
         back={faces.back}
-        scale={R.pileScale}
+        scale={scale}
         limit={14}
         action={viewerChooses ? { label: words.draw, onPress: onDraw } : undefined}
       />
@@ -293,7 +292,7 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
       <Discard frame={{ x: discard.x, z: discard.z }} layout={discardPoses} cards={discardCards} action={discardAction} />
 
       {/* The card in hand, between the piles: face up for the player who drew it (and for everybody when it came from the discard), face down for the others */}
-      <Zone frame={{ x: handAt.x, z: handAt.z }} layout={[onTable(0, 0, { y: 0.2, face: inHand?.card ? "up" : "down", scale: R.heldScale })]} size={CARD_SIZE} cards={handCard} />
+      <Zone frame={{ x: handAt.x, z: handAt.z }} layout={[heldPose(!!inHand?.card, chairs)]} size={CARD_SIZE} cards={handCard} />
 
       {/* Between two rounds the dealer deals the next one: an action with no object on the table, so a button, over the piles */}
       {dealing && <FloorButton at={plan.deal} width={plan.deal.width} depth={plan.deal.depth} tone="primary" label={words.deal} onPress={onDeal} />}
