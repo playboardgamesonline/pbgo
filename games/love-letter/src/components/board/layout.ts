@@ -226,7 +226,7 @@ export function middlePlaces(): { deck: Place; aside: Place; faceUp: Place } {
 /** The slots of the three cards set aside face up at two players, in the frame of their place */
 export const faceUpPoses = (n: number): Pose[] => row(n, { gap: CARD.width * LAYOUT_SETTINGS.faceUpScale * 1.1, rise: 0.012, scale: LAYOUT_SETTINGS.faceUpScale })
 
-/** The box of the deck with its count under it, of the card set aside, and of the cards set aside face up (three of them), in the world */
+/** The boxes of the middle of the table, in the world: the deck with its count under it, the card set aside, the cards set aside face up (three of them) and the row of the cards that are done with */
 export function middleBoxes(faceUp: boolean): TableBox[] {
   const R = LAYOUT_SETTINGS
   const { deck, aside, faceUp: up } = middlePlaces()
@@ -235,6 +235,7 @@ export function middleBoxes(faceUp: boolean): TableBox[] {
     boxOfRect({ x: aside.x, z: aside.z, width: CARD.width * R.asideScale, depth: CARD.height * R.asideScale }),
   ]
   if (faceUp) boxes.push(boxOfRect({ x: up.x, z: up.z, width: CARD.width * R.faceUpScale * 3.2, depth: CARD.height * R.faceUpScale }))
+  boxes.push(discardBox())
   return boxes
 }
 
@@ -251,6 +252,11 @@ export const MIDDLE = {
   guess: { scale: 0.62, rows: [5, 4] as readonly number[], gap: 0.1, z: -0.55 },
   /** The faces of a reveal: one in the middle, two a card and a half apart, how high they lie and how big they are */
   reveal: { z: 0.55, y: 0.2, scale: 0.9, apart: 1.9 },
+  /**
+   * The cards of the round that are done with (`tableCards` of `middle.ts`), in one row above the controls, from the lowest value to the highest: where the row is centred, how big each card is (a share of a card of the table), the width the row may take, and how far a card
+   * lies from the one before it, as a share of a card's width, when it is of another value (`step`: the medallion with the value is the left third of a face, so a step a little over a third keeps it in sight) and when it is of the same value (`stack`: the copies pile up)
+   */
+  discard: { x: 0, z: -1.9, scale: 0.72, width: 4, step: 0.42, stack: 0.14 },
 }
 
 /** A thing lying on the table: where it lies and how big it is, in world units, along x and z */
@@ -274,6 +280,28 @@ export const guessPoses = (count = 9): Pose[] => guessPlaces(count).map((place) 
 
 /** Where the faces of a reveal of `count` cards lie, in the frame of the table, side by side */
 export const revealPoses = (count: number): Pose[] => Array.from({ length: count }, (_, i) => onTable((i - (count - 1) / 2) * MIDDLE.reveal.apart, MIDDLE.reveal.z, { y: MIDDLE.reveal.y, scale: MIDDLE.reveal.scale }))
+
+/**
+ * The slots of the cards in the middle, one for each value of `values` (the values printed on the cards, in ascending order): a row centred on its place, each card a hair higher than the one before so that the ones that overlap never fight for a pixel. A card lies `step` of a
+ * card's width from the one before it, `stack` when both have the same value; a row that is wider than its room packs closer, all its gaps together
+ */
+export function discardPoses(values: readonly number[]): Pose[] {
+  const { x, z, scale, width, step, stack } = MIDDLE.discard
+  const card = CARD.width * scale
+  const gaps = values.map((value, i) => (i === 0 ? 0 : (value === values[i - 1] ? stack : step) * card))
+  const spread = gaps.reduce((sum, gap) => sum + gap, 0)
+  const fit = spread > 0 ? Math.min(1, (width - card) / spread) : 1
+  let along = 0
+  const offsets = gaps.map((gap) => (along += gap * fit))
+  const total = offsets[offsets.length - 1] ?? 0
+  return offsets.map((offset, i) => shifted(onTable(x + offset - total / 2, z, { scale }), { y: i * 0.012 }))
+}
+
+/** The box of the row in the middle at its widest, above the controls and clear of the plates, the areas and the hands of every table (`layout.test.ts`) */
+export function discardBox(): TableBox {
+  const { x, z, scale, width } = MIDDLE.discard
+  return boxOfRect({ x, z, width, depth: CARD.height * scale })
+}
 
 /** The box that holds the Deal button, the nine characters and the faces of a reveal (two at the most), whichever is drawn */
 export function controlsBox(): TableBox {

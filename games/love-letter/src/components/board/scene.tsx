@@ -1,6 +1,6 @@
 "use client"
 
-import { type Face, GUESSES, type PlayerView, type PublicSeat } from "@love-letter/engine"
+import { CARDS, type Face, GUESSES, type PlayerView, type PublicSeat } from "@love-letter/engine"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import {
@@ -38,11 +38,12 @@ import type { ClientCatalog } from "../../lib/catalog"
 import { holdHovered, holdPicked, releaseHovered, releaseHoveredUnless } from "../../lib/lens"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { areaPoses, CARD, dealPlace, dealtFrom, faceUpPoses, guessPoses, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, revealedPoses } from "./layout"
+import { areaPoses, CARD, dealPlace, dealtFrom, discardPoses, faceUpPoses, guessPoses, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, revealedPoses } from "./layout"
 import { type Arrival, PACE_FIELDS, PACE_SETTINGS, type Reveal } from "./pacing"
+import { tableCards } from "./middle"
 import { RevealView } from "./sequence"
 import { CARD_SIZE, useFaces } from "./textures"
-import { type Choice, type ClientAction, lensIds, pressCard, pressName, pressPlayer, type Press, type Step } from "./turn"
+import { type Choice, type ClientAction, lensIds, NO_CHOICE, pressCard, pressName, pressPlayer, type Press, type Step } from "./turn"
 
 /** How far the pool of light of the table reaches, in world units: past it the table is its plain edge colour */
 const POOL_RADIUS = 22
@@ -161,9 +162,12 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
     }
   }
 
-  const hand = view.me?.hand ?? []
-  // the card picked, or under the pointer, is brought forward in the hand
-  const raised = hand.findIndex((face) => face.id === (choice.card ?? hovered))
+  // A card that picks a player lies on the table in front of the viewer while they choose it, and the others' cards of the round are in the middle or in front of their players (`tableCards`): the hand holds what is left
+  const picked = step.kind === "target" || step.kind === "guess" ? step.card : null
+  const { middle, front } = tableCards(view, picked)
+  const hand = (view.me?.hand ?? []).filter((face) => face.id !== picked?.id)
+  // the card kept after a Chancellor, or the one under the pointer, is brought forward in the hand
+  const raised = hand.findIndex((face) => face.id === ((picked ? null : choice.card) ?? hovered))
   /** How a card of the viewer's hand stands: it can be pressed while there is something to do with it, picked when it is held, and dark when the Countess rule forbids it; the table draws the rest */
   const handState = (face: Face): CardState => {
     if (busy) return "base"
@@ -191,7 +195,11 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
     (onStartScreen ? [] : hand).map((face) => ({
       ...cardOf(face, {}, toFrame),
       state: handState(face),
-      onPress: () => apply(pressCard(view, choice, face)),
+      onPress: () => {
+        // the card leaves the hand from under the pointer, and a card that goes gets no pointer-out event: the lens would stay up over the table
+        releaseHovered(face.id)
+        apply(pressCard(view, choice, face))
+      },
       ariaLabel: handName(face),
       onHover: (over) => {
         setHovered((current) => (over ? face.id : current === face.id ? null : current))
@@ -199,6 +207,17 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
         else releaseHovered(face.id)
       },
     }))
+
+  /** The card picked, laid in front of the viewer: it stands as picked, and pressed again it goes back to the hand */
+  const laidCard = (face: Face): ZoneCard =>
+    cardOf(face, {
+      state: "selected",
+      onPress: () => {
+        releaseHovered(face.id)
+        apply(pressCard(view, choice, face))
+      },
+      ariaLabel: handName(face),
+    })
 
   /** The area that a press counts in to choose a player, over their cards and their plate, in the frame of their seat */
   const hotspot = (id: string, line: Line) => (
@@ -220,6 +239,8 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
         const viewer = player.id === meId
         const lit = stateOf(player.id)
         const areaZ = (line.play.minZ + line.play.maxZ) / 2
+        // what stays in front of the player: a Spy, a Handmaid that protects, and for the viewer the card they have picked; everything else they played is in the middle
+        const inFront = front.get(player.id) ?? []
         // the hand of an opponent: a few backs, only counted, or their cards face up once a round that ended on a comparison laid them down
         const flat = !viewer && player.hand !== null
         const middle = pointInFrame(line.seat, centreOf(line.play))
@@ -236,12 +257,12 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
               lineStyle={{ weight: lettering.weight }}
               trailing={<Tokens id={player.id} count={player.tokens} color={theme.accent} />}
             />
-            {/* What lies in front of the player: every card they played or discarded this round, face up, oldest first, in a row on the axis of their seat. A player who is out has them grey */}
+            {/* What stays in front of the player, face up, in a row on the axis of their seat: the Spies they played, the Handmaid that protects them, and for the viewer the card they have picked and not yet played. The other cards they played are in the middle */}
             <Zone
               frame={line.seat}
-              layout={areaPoses(player.area.length, line.area, areaZ)}
+              layout={areaPoses(inFront.length, line.area, areaZ)}
               size={CARD_SIZE}
-              cards={player.area.map((face) => cardOf(face, player.out ? { state: "out" as const } : lit ? { state: lit } : {}))}
+              cards={inFront.map((face) => (face.id === picked?.id ? laidCard(face) : cardOf(face, lit ? { state: lit } : {})))}
             />
             {/* An opponent's hand: a small fan of backs that stands, with a round shadow under it. The viewer's own is held on the screen */}
             {!viewer &&
@@ -260,7 +281,7 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
                 />
               ))}
             {/* A player with no card to light is chosen too: a pool of light lies where their cards would */}
-            {lit && player.area.length === 0 && (player.cards === 0 || viewer) && (
+            {lit && inFront.length === 0 && (player.cards === 0 || viewer) && (
               <LightPool size={{ width: CARD.width * line.area.scale, height: CARD.height * line.area.scale }} state={lit} position={[middle.x, 0.012, middle.z]} yaw={line.seat.yaw} />
             )}
             {choosable.includes(player.id) && hotspot(player.id, line)}
@@ -274,6 +295,9 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
           {(screen) => <Zone layout={screenHandLayout(hand.length, screen, CARD_SIZE, HAND_SETTINGS, raised)} size={CARD_SIZE} {...(entering ? { enter: screen.local(entering) } : {})} cards={handCards(screen.local)} />}
         </ScreenHand>
       )}
+
+      {/* The cards that are done with: every card played or discarded this round that does not stay in front of its player, in one row above the controls of the middle, from the lowest value to the highest, so that what is gone is read at a glance */}
+      <Zone layout={discardPoses(middle.map((face) => CARDS[face.type].value))} size={CARD_SIZE} cards={middle.map((face) => cardOf(face))} />
 
       {/* The deck: only its size is known, so it is a count, face down, which the pile writes under itself */}
       <Pile frame={{ x: deck.x, z: deck.z }} count={view.deck.size} size={CARD_SIZE} back={faces.back} scale={LAYOUT_SETTINGS.deckScale} limit={14} />
@@ -318,9 +342,11 @@ export function Scene(props: SceneProps) {
   const viewport = useDeferredValue(useViewport())
   const seated = props.view.me !== null
   const camera = useMemo(() => cameraFor(players, viewport, seated), [players, viewport, seated])
+  // A card picked that picks a player lies in front of the viewer: a press on the empty table puts it back in the hand, as pressing it again or pressing another card does (the Prince's own area answers a press, so it is the way back when the Prince is the card)
+  const letGo = (props.step.kind === "target" || props.step.kind === "guess") && !props.busy ? () => props.onChoice(NO_CHOICE) : undefined
   // The mat is data, the kit lays it: the table is its edge colour, flat and endless, with no grain and no picture, and the pool of light the cards lie on, `surface` in the middle falling away to `surfaceDark`, is the only thing on it that changes
   return (
-    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, light: { center: theme.surface, radius: POOL_RADIUS } }} held={props.held} onLoaded={props.onLoaded}>
+    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, light: { center: theme.surface, radius: POOL_RADIUS } }} held={props.held} onLoaded={props.onLoaded} onEmptyPress={letGo}>
       <World {...props} />
     </Table>
   )

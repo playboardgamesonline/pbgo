@@ -2,7 +2,7 @@ import { aspectScale, boxesOverlap, frameBoxOfPoses, HELD_FAN_SETTINGS, inFrame,
 import { PerspectiveCamera, Vector3 } from "three"
 import { describe, expect, it } from "vitest"
 import { CAMERA, fitFor } from "./camera"
-import { areaGap, areaPoses, CARD, chairsOf, controlsBox, dealPlace, guessPlaces, HAND_MAX, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_SETTINGS, lineOf, lines, MIDDLE, middleBoxes, quadOf, reachQuads, revealPoses, seats, seenQuads, tableLines, VIEW_TILT } from "./layout"
+import { areaGap, areaPoses, CARD, chairsOf, controlsBox, dealPlace, discardBox, discardPoses, guessPlaces, HAND_MAX, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_SETTINGS, lineOf, lines, MIDDLE, middleBoxes, quadOf, reachQuads, revealPoses, seats, seenQuads, tableLines, VIEW_TILT } from "./layout"
 
 const ids = (count: number) => Array.from({ length: count }, (_, i) => `p${i}`)
 
@@ -210,6 +210,81 @@ describe("the table", () => {
     expect(places[0]!.x + places[4]!.x).toBeCloseTo(0, 9)
     expect(places[5]!.x + places[8]!.x).toBeCloseTo(0, 9)
     expect(places.slice(0, 5).map((place) => place.x)).toEqual([...places.slice(0, 5).map((place) => place.x)].sort((a, b) => a - b))
+  })
+})
+
+describe("the row of the cards in the middle", () => {
+  const card = CARD.width * MIDDLE.discard.scale
+  /** The values of a round that has gone far: a card or two of each, five Guards */
+  const FULL = [0, 0, 1, 1, 1, 1, 1, 2, 2, 3, 3, 4, 5, 5, 6, 7]
+  /** As many different values as the box holds, one of each and the copies on top */
+  const SPREAD = [0, 0, 1, 1, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+  const xsOf = (values: number[]) => discardPoses(values).map((pose) => pose.position.x)
+
+  it("has a slot for each card, none for none, and is centred on its place", () => {
+    expect(discardPoses([])).toEqual([])
+    for (const values of [[3], [0, 1], FULL, SPREAD]) {
+      const xs = xsOf(values)
+      expect(xs, `${values.length} cards`).toHaveLength(values.length)
+      expect(xs[0]! + xs[xs.length - 1]!, `${values.length} cards`).toBeCloseTo(2 * MIDDLE.discard.x, 9)
+    }
+  })
+
+  it("lies from the left to the right in the order of the values, each card a hair higher than the one before and all at the same z", () => {
+    const poses = discardPoses(SPREAD)
+    poses.forEach((pose, i) => {
+      expect(pose.position.z).toBeCloseTo(MIDDLE.discard.z, 9)
+      expect(pose.scale).toBe(MIDDLE.discard.scale)
+      if (i > 0) {
+        expect(pose.position.x).toBeGreaterThan(poses[i - 1]!.position.x)
+        expect(pose.position.y).toBeGreaterThan(poses[i - 1]!.position.y)
+      }
+    })
+  })
+
+  it("piles the copies of one value closer than it spaces two values, so that a pile is told from a row", () => {
+    const xs = xsOf([1, 1, 1, 2, 3])
+    const stack = xs[1]! - xs[0]!
+    expect(xs[2]! - xs[1]!).toBeCloseTo(stack, 9)
+    expect(xs[3]! - xs[2]!).toBeGreaterThan(stack * 2)
+    expect(xs[4]! - xs[3]!).toBeCloseTo(xs[3]! - xs[2]!, 9)
+  })
+
+  it("keeps the value of every card in sight: a card of another value lies at least a third of a card's width from the one before it, whatever the round", () => {
+    for (const values of [FULL, SPREAD, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]) {
+      const xs = xsOf(values)
+      values.forEach((value, i) => {
+        if (i > 0 && value !== values[i - 1]) expect(xs[i]! - xs[i - 1]!, `a card of ${value} among ${values.length}`).toBeGreaterThanOrEqual(card / 3)
+      })
+    }
+  })
+
+  it("is no wider than its box, and packs closer when the round has gone so far that the cards would not fit", () => {
+    const width = (values: number[]) => {
+      const xs = xsOf(values)
+      return xs[xs.length - 1]! - xs[0]! + card
+    }
+    for (const values of [[0], [0, 1], FULL, SPREAD, Array.from({ length: 21 }, (_, i) => i % 10)]) expect(width(values.sort((a, b) => a - b))).toBeLessThanOrEqual(MIDDLE.discard.width + 1e-9)
+    // fewer cards than the room holds keep their natural gaps
+    expect(width([0, 1, 2])).toBeLessThan(MIDDLE.discard.width / 2)
+  })
+
+  it("has a box of its own among those of the middle, above the controls and clear of them and of the deck and the card set aside", () => {
+    const box = discardBox()
+    expect(middleBoxes(false)).toContainEqual(box)
+    expect(middleBoxes(true)).toContainEqual(box)
+    expect(box.maxZ).toBeLessThan(controlsBox().minZ)
+    expect(boxesOverlap(box, controlsBox())).toBe(false)
+    const others = middleBoxes(true).filter((other) => JSON.stringify(other) !== JSON.stringify(box))
+    expect(others).toHaveLength(middleBoxes(true).length - 1)
+    for (const other of others) expect(boxesOverlap(box, other)).toBe(false)
+    // and every card of the row lies inside it
+    for (const pose of discardPoses(SPREAD)) {
+      expect(pose.position.x - card / 2).toBeGreaterThanOrEqual(box.minX - 1e-9)
+      expect(pose.position.x + card / 2).toBeLessThanOrEqual(box.maxX + 1e-9)
+      expect(pose.position.z - (CARD.height * MIDDLE.discard.scale) / 2).toBeGreaterThanOrEqual(box.minZ - 1e-9)
+      expect(pose.position.z + (CARD.height * MIDDLE.discard.scale) / 2).toBeLessThanOrEqual(box.maxZ + 1e-9)
+    }
   })
 })
 

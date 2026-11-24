@@ -121,8 +121,10 @@ const config = {
       const world = (pressable) => pressable.world
       const inHand = (pressable) => world(pressable) && world(pressable)[1] > 4
       // a card that is still coming in from the deck is not in the hand yet, and a card in the air is pressed where it no longer is: `still` waits for the cards to have landed
-      const inMiddle = (pressable) => world(pressable) && Math.abs(world(pressable)[0]) < 2.6 && world(pressable)[2] > -1.4 && world(pressable)[2] < 1.7 && world(pressable)[1] < 0.1
-      const isZone = (pressable) => world(pressable) && world(pressable)[1] > 0.3 && world(pressable)[1] < 0.4
+      // (the plane under the whole table that takes a press where nothing answers, which the board lays while a card is picked, is no control of the middle: it is as wide as the table)
+      const inMiddle = (pressable) => world(pressable) && Math.abs(world(pressable)[0]) < 2.6 && world(pressable)[2] > -1.4 && world(pressable)[2] < 1.7 && world(pressable)[1] < 0.1 && Math.max(pressable.size?.[0] ?? 0, pressable.size?.[2] ?? 0) < 20
+      // a player's area is a large invisible plane at a card's height; the card the viewer has picked lies on the table in front of them, lifted to about the same height, and is no area (it is smaller: a card is about one unit wide)
+      const isZone = (pressable) => world(pressable) && world(pressable)[1] > 0.3 && world(pressable)[1] < 0.4 && Math.max(pressable.size?.[0] ?? 0, pressable.size?.[2] ?? 0) > 2
       const byX = (a, b) => world(a)[0] - world(b)[0]
       const middle = pressables.filter(inMiddle).sort(byX)
       const cards = pressables.filter(inHand).sort((a, b) => (a.center?.[0] ?? 0) - (b.center?.[0] ?? 0))
