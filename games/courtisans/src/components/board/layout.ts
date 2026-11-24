@@ -1,5 +1,5 @@
 import { FAMILIES, HAND_SIZE, type VisibleCard, type Family, type Level, type PlayerView } from "@courtisans/engine"
-import { type CardSize, FACE_DOWN, FACE_UP, frameBoxOfPoses, heldFan, heldLeftPose, heldShadow, hotspotOf, inFrame, joinBoxes, lean, onAxis, onTable, padBox, type Pose, plateAbove, plateBoxOf, pointInFrame, RESTING_HEIGHT, SCREEN_HAND_SETTINGS, SEAT_SETTINGS, type Spot, type TableBox } from "@pbgo/table"
+import { type CardSize, FACE_DOWN, FACE_UP, frameBoxOfPoses, HELD_FAN_SETTINGS, heldFan, heldLeftPose, heldShadow, hotspotOf, inFrame, joinBoxes, lean, onAxis, onTable, padBox, type Pose, plateAbove, plateBoxOf, pointInFrame, RESTING_HEIGHT, SCREEN_HAND_SETTINGS, SEAT_SETTINGS, type Spot, type TableBox } from "@pbgo/table"
 import { Quaternion, Vector3 } from "three"
 import { MAT_ORDER } from "../../lib/catalog"
 import { CAMERA } from "./camera"
@@ -12,14 +12,26 @@ export const CARD_W = STEP * 0.92
 export const CARD_H = (CARD_W * 890) / 472
 export const MISSION_W = 2.4
 export const MISSION_H = (MISSION_W * 452) / 688
-export const DOMAIN_SCALE = 1.1
 export const OFFSET = 0.42
 export const LAYOUT_SETTINGS = { randomRotation: 0.017, pileSpacing: 0.02, deckSpacing: 0.017 }
+
+/**
+ * The scale of every courtier that lies on the table: the cards of the Queen's table beyond the edges of the mat, the draw pile, the cards of every domain and the hands that the opponents hold are all of one size, as at a real table. It is a constant, not a function of the
+ * table: the mat has a size of its own and the camera is fixed, so the table does not grow or shrink with the players. And it is the most the Queen's table allows: a card of it is as wide as 0.92 of the step between two columns of the mat (`CARD_W`), so the cards of two columns
+ * are a hair apart and a bigger card would close the gap. The viewer's hand, held on the screen, the faces held up to be read and a card that flies away when it is eliminated are not on the table and have sizes of their own
+ */
+export const CARD_SCALE = 1
+
+/**
+ * The scale of a mission that lies on the table: the pile it is dealt from, the missions at rest in front of each player and the ones shown at the end. A mission is a landscape card of another size (`MISSION_W`, which the camera holds the player's own at), so the one size of the
+ * table is by width: a mission on it is as wide as a courtier
+ */
+export const MISSION_SCALE = (CARD_W * CARD_SCALE) / MISSION_W
 
 /** The viewer's hand, held at the bottom left of the screen: the numbers of the table's own, which are the ones Courtisans holds its hand with */
 export const HAND_SETTINGS = { ...SCREEN_HAND_SETTINGS }
 
-/** The size of a courtier and of a mission, the same for every card of its kind */
+/** The size of a courtier and of a mission at scale 1, the same for every card of its kind: a card on the table is drawn at `CARD_SCALE` of the first and `MISSION_SCALE` of the second */
 export const CARD_SIZE: CardSize = { width: CARD_W, height: CARD_H }
 export const MISSION_SIZE: CardSize = { width: MISSION_W, height: MISSION_H }
 
@@ -30,9 +42,13 @@ export const columnX = (column: Column) => -MAT_W / 2 + MARGIN + STEP * (MAT_ORD
 /** The families that have a column on the mat, left to right */
 export const TABLE_FAMILIES = MAT_ORDER.filter((c): c is Family => c !== "queen")
 
+/** The width and the height of a courtier on the table, in world units */
+export const DL = CARD_W * CARD_SCALE
+export const DH = CARD_H * CARD_SCALE
+
 export function tablePose(column: Column, level: Level, rank: number, id?: number): Pose {
-  const edge = MAT_D / 2 + CARD_H / 2 + rank * OFFSET
-  return onTable(columnX(column), level === "up" ? -edge : edge, { y: RESTING_HEIGHT + rank * LAYOUT_SETTINGS.pileSpacing, lean: id === undefined ? undefined : String(id) })
+  const edge = MAT_D / 2 + DH / 2 + rank * OFFSET
+  return onTable(columnX(column), level === "up" ? -edge : edge, { y: RESTING_HEIGHT + rank * LAYOUT_SETTINGS.pileSpacing, lean: id === undefined ? undefined : String(id), scale: CARD_SCALE })
 }
 
 export const columnOf = (card: VisibleCard): Column => card.family ?? "queen"
@@ -48,35 +64,34 @@ export const LANE_REACH = 1.05
 /** The area that takes the press of a lane, of the width of its band: from the edge of the mat outward, over the cards that lie there */
 export function laneArea(column: Column, light: boolean, width: number): { at: Required<Spot>; width: number; depth: number } {
   const frame = laneFrame(column, light)
-  const depth = CARD_H * LANE_REACH
+  const depth = DH * LANE_REACH
   return { at: { ...frame, z: frame.z + ((light ? -1 : 1) * depth) / 2 }, width, depth }
 }
 
-/** Missions placed face down on the table, right of each player board, along the edge facing the table. */
-export const MISSION_REST = { scale: 0.62, gap: 0.35, spacing: 0.14 }
+/** Missions placed face down on the table, right of each player board, along the edge facing the table, `MISSION_SCALE` big like every mission on the table. */
+export const MISSION_REST = { gap: 0.35, spacing: 0.14 }
 export function missionRestPose(zone: { center: Vector3; width: number; labelPos: Vector3; labelYaw: number }, index: number, key: string, faceUp = false): Pose {
-  const w = MISSION_W * MISSION_REST.scale
-  const h = MISSION_H * MISSION_REST.scale
+  const w = MISSION_W * MISSION_SCALE
+  const h = MISSION_H * MISSION_SCALE
   const yaw = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), zone.labelYaw)
   const local = new Vector3(zone.width / 2 + MISSION_REST.gap + w / 2, 0.05 + index * 0.02, 0.25 + h / 2 + index * (h + MISSION_REST.spacing)).applyQuaternion(yaw)
   return {
     position: zone.labelPos.clone().add(local).setY(0.05 + index * 0.02),
     quaternion: yaw.multiply(lean(`${key}:${index}`, 0.06)).multiply(faceUp ? FACE_UP : FACE_DOWN),
-    scale: MISSION_REST.scale,
+    scale: MISSION_SCALE,
   }
 }
 
 export const DRAW_PILE = new Vector3(MAT_W / 2 + 1.2, 0, 0)
-export const deckTopPose = (n: number) => onTable(DRAW_PILE.x, DRAW_PILE.z, { y: RESTING_HEIGHT + Math.min(n, 60) * LAYOUT_SETTINGS.deckSpacing, face: "down", lean: `pioche${n}`, leanAmplitude: 0.04 })
+export const deckTopPose = (n: number) =>
+  onTable(DRAW_PILE.x, DRAW_PILE.z, { y: RESTING_HEIGHT + Math.min(n, 60) * LAYOUT_SETTINGS.deckSpacing, face: "down", lean: `pioche${n}`, leanAmplitude: 0.04, scale: CARD_SCALE })
 
 /** Pile of missions, face down, left of the board (mirror of the draw pile); missions are dealt from it after the cards of the draw pile. */
-export const MISSION_PILE = { x: -(MAT_W / 2 + 1.2), z: 0, size: 8, scale: 0.85, spacing: 0.022 }
-export const missionPilePose = (n: number, scale = MISSION_PILE.scale): Pose =>
-  onTable(MISSION_PILE.x, MISSION_PILE.z, { y: RESTING_HEIGHT + n * MISSION_PILE.spacing, face: "down", lean: `mission-pile${n}`, leanAmplitude: 0.05, scale })
+export const MISSION_PILE = { x: -(MAT_W / 2 + 1.2), z: 0, size: 8, spacing: 0.022 }
+export const missionPilePose = (n: number): Pose =>
+  onTable(MISSION_PILE.x, MISSION_PILE.z, { y: RESTING_HEIGHT + n * MISSION_PILE.spacing, face: "down", lean: `mission-pile${n}`, leanAmplitude: 0.05, scale: MISSION_SCALE })
 
 const FAMILY_ORDER: Family[] = [...FAMILIES]
-export const DL = CARD_W * DOMAIN_SCALE
-export const DH = CARD_H * DOMAIN_SCALE
 const OVERLAP = 0.42
 const GAP = 0.35
 
@@ -95,10 +110,14 @@ export type Seat = { frame: SeatSpot; maxWidth: number; viewer: boolean }
  */
 const REACH = DH / 2 + 0.4
 
-/** Where the line of the hand of each seat stands: across the table, at the sides, and in front for the viewer, whose domain lies beyond it */
-const ACROSS = -10.6
-const SIDE = 13.2
-const SIDE_Z = -2.2
+/**
+ * Where the line of the hand of each seat stands: across the table, at the sides, and in front for the viewer, whose domain lies beyond it. The hands stand as tall as a card of the table, and the camera sees the tops of the ones across farther up the picture than their feet: the line across
+ * stands near enough the middle for the tops to be in it, as near as the cards of the Queen's table let the plates stand. The line at a side stands far enough out for the cards, seen edge on, to be in the picture, and lower than the middle of the side (`SIDE_Z`) so that the seats at the sides do not
+ * meet the ones across in the corners
+ */
+const ACROSS = -9.4
+const SIDE = 13
+const SIDE_Z = -1.5
 const FRONT = 5.4
 
 /** The viewer's domain lies a little farther from the middle than its hand line would put it, so that their name stands clear of the cards of the Queen's table, which come down toward it two deep before they reach the plate */
@@ -112,20 +131,20 @@ const OPPOSITE = (x = 0): SeatSpot => ({ x, z: ACROSS + REACH, yaw: Math.PI })
 const OPPONENTS: Record<number, Omit<Seat, "viewer">[]> = {
   1: [{ frame: OPPOSITE(), maxWidth: 12 }],
   2: [
-    { frame: LEFT(), maxWidth: 10 },
-    { frame: RIGHT(), maxWidth: 10 },
+    { frame: LEFT(), maxWidth: 9.2 },
+    { frame: RIGHT(), maxWidth: 9.2 },
   ],
   3: [
-    { frame: LEFT(), maxWidth: 10 },
+    { frame: LEFT(), maxWidth: 9.2 },
     { frame: OPPOSITE(), maxWidth: 12 },
-    { frame: RIGHT(), maxWidth: 10 },
+    { frame: RIGHT(), maxWidth: 9.2 },
   ],
   // The two seats across take the corners of the table, so the seats at the sides are not as long, or their domains would meet in the corner
   4: [
-    { frame: LEFT(), maxWidth: 9.4 },
-    { frame: OPPOSITE(-6), maxWidth: 9.5 },
-    { frame: OPPOSITE(6), maxWidth: 9.5 },
-    { frame: RIGHT(), maxWidth: 9.4 },
+    { frame: LEFT(), maxWidth: 8.5 },
+    { frame: OPPOSITE(-6), maxWidth: 8.6 },
+    { frame: OPPOSITE(6), maxWidth: 8.6 },
+    { frame: RIGHT(), maxWidth: 8.5 },
   ],
 }
 
@@ -148,14 +167,25 @@ export function seats(view: PlayerView): Map<string, Seat> {
 }
 
 /**
- * The cards another player holds, in the frame of the line of their hand (`heldFrame`): a small fan of backs that stands. The round shadow under them (`HELD_SHADOW`) lies at the origin of the frame.
+ * The settings of the hands the opponents hold: the kit's, which its debug folder still tunes (but for the size of a card, which is not a knob), with the size of every card of the table in place of its own, and the reach of the shadow under a hand following the size of the cards
+ */
+const HELD_SETTINGS: typeof HELD_FAN_SETTINGS = new Proxy(HELD_FAN_SETTINGS, {
+  get: (target, key) => {
+    const value = target[key as keyof typeof HELD_FAN_SETTINGS]
+    if (key === "scale") return CARD_SCALE
+    return key === "shadowBase" || key === "shadowPerCard" ? value * (CARD_SCALE / target.scale) : value
+  },
+})
+
+/**
+ * The cards another player holds, in the frame of the line of their hand (`heldFrame`): a small fan of backs that stands, `CARD_SCALE` big like every card of the table. The round shadow under them (`HELD_SHADOW`) lies at the origin of the frame.
  */
 export function heldLayout(n: number, seat: Seat): Pose[] {
-  return heldFan(n, seat.frame.yaw, CARD_SIZE)
+  return heldFan(n, seat.frame.yaw, CARD_SIZE, HELD_SETTINGS)
 }
 
 /** The small round shadow under an opponent's hand: how far it reaches for `n` cards, and how dark it is */
-export const HELD_SHADOW = heldShadow()
+export const HELD_SHADOW = heldShadow(HELD_SETTINGS)
 
 /** The frame of the line of a seat's hand: beyond its domain, turned as the seat is */
 export function heldFrame(seat: Seat): SeatSpot {
@@ -249,7 +279,7 @@ export function arrangeDomain(
   const f = natural > maxWidth && natural > fixed ? Math.max(0.3, (maxWidth - fixed) / (natural - fixed)) : 1
   const width = groups.length ? fixed + (natural - fixed) * f : DL * 2
 
-  const place = (u: number, y: number, q: Quaternion): Pose => inFrame(frame, { position: new Vector3(u, y, 0), quaternion: q, scale: DOMAIN_SCALE })
+  const place = (u: number, y: number, q: Quaternion): Pose => inFrame(frame, { position: new Vector3(u, y, 0), quaternion: q, scale: CARD_SCALE })
 
   const poses = new Map<number, Pose>()
   const piles: DomainPile[] = []

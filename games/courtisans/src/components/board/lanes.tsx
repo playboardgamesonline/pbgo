@@ -3,7 +3,7 @@
 import { type Family, type CourtisansResults } from "@courtisans/engine"
 import { Hotspot, LightBand, NO_TOUCH, type Touch, useSettings, useSettingsVersion } from "@pbgo/table"
 import { useState } from "react"
-import { CARD_H, type Column, laneArea, laneFrame, STEP, TABLE_FAMILIES } from "./layout"
+import { type Column, DH, laneArea, laneFrame, STEP, TABLE_FAMILIES } from "./layout"
 import type { EndingState } from "./ending"
 
 /**
@@ -61,7 +61,7 @@ export function MatLine({ column, light, lift = 1 }: { column: Column; light: bo
     <LightBand
       frame={laneFrame(column, light)}
       width={STEP * r.width}
-      length={CARD_H * r.logLength}
+      length={DH * r.logLength}
       y={r.elevation}
       fade={r.fade}
       color={light ? r.lightColor : r.disgraceColor}
