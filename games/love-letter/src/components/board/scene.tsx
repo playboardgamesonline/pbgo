@@ -38,7 +38,7 @@ import type { ClientCatalog } from "../../lib/catalog"
 import { holdHovered, holdPicked, releaseHovered, releaseHoveredUnless } from "../../lib/lens"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { areaPoses, CARD, dealPlace, dealtFrom, discardPoses, faceUpPoses, guessPoses, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, revealedPoses } from "./layout"
+import { areaPoses, CARD, columnPoses, dealPlace, dealtFrom, faceUpPoses, guessPoses, HAND_SETTINGS, heldFrom, HELD_SHADOW, heldLayout, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, revealedPoses } from "./layout"
 import { type Arrival, PACE_FIELDS, PACE_SETTINGS, type Reveal } from "./pacing"
 import { tableCards } from "./middle"
 import { RevealView } from "./sequence"
@@ -296,8 +296,8 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
         </ScreenHand>
       )}
 
-      {/* The cards that are done with: every card played or discarded this round that does not stay in front of its player, in one row above the controls of the middle, from the lowest value to the highest, so that what is gone is read at a glance */}
-      <Zone layout={discardPoses(middle.map((face) => CARDS[face.type].value))} size={CARD_SIZE} cards={middle.map((face) => cardOf(face))} />
+      {/* The cards that are done with: every card played or discarded this round that does not stay in front of its player, in columns right beside the deck, to its right, one for each value from the lowest to the highest, the copies of a value one under the other, so that what is gone is read at a glance */}
+      <Zone layout={columnPoses(middle.map((face) => CARDS[face.type].value))} size={CARD_SIZE} cards={middle.map((face) => cardOf(face))} />
 
       {/* The deck: only its size is known, so it is a count, face down, which the pile writes under itself */}
       <Pile frame={{ x: deck.x, z: deck.z }} count={view.deck.size} size={CARD_SIZE} back={faces.back} scale={LAYOUT_SETTINGS.deckScale} limit={14} />

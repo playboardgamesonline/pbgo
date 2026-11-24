@@ -2,7 +2,7 @@ import { CARDS, type Face, type PlayerView } from "@love-letter/engine"
 
 /**
  * Where the cards of the round lie, as plain data, so that the rules of it are tested without a browser. The engine keeps, for each player, the cards they played or discarded this round (`area`, oldest first); the board does not lay them out by player. A card that is done
- * with goes to one area in the middle of the table, sorted by the value printed on it, so that what is gone can be read at a glance. Two kinds of card stay in front of their player, because they still count: a Spy until the round ends (it earns a token then) and a Handmaid
+ * with goes to the middle of the table, to the column of its value beside the deck (one column for each value, from the Spy to the Princess, the copies one under the other), so that what is gone can be read at a glance. Two kinds of card stay in front of their player, because they still count: a Spy until the round ends (it earns a token then) and a Handmaid
  * while it protects (until the start of its player's next turn). The view says which: `shielded` is the protection, and the Spy is a Spy.
  */
 export type TableCards = {

@@ -51,15 +51,18 @@ export const LAYOUT_SETTINGS = {
   closest: 0.34,
   /** The room round a player's cards and plate that a press counts in, in world units */
   hotspotPadding: 0.04,
-  /** The deck on the left of the middle and the card set aside on its right, with the controls of the moment between them (the middle band of the table), and the three cards set aside face up at two players under the card set aside: where each lies and how big it is */
-  deckX: -3.1,
-  deckZ: 0.2,
+  /**
+   * The deck on the left of the middle, with the columns of the cards that are done with right beside it, to its right (`MIDDLE`), and the card set aside under it, and at two players the three cards set aside face up under that: where each lies and how big it is. The top
+   * of the deck is the top of the columns
+   */
+  deckX: -3.2,
+  deckZ: -0.2,
   deckScale: 0.85,
-  asideX: 3.1,
-  asideZ: 0.2,
+  asideX: -3.2,
+  asideZ: 1.95,
   asideScale: 0.6,
-  faceUpX: 3.5,
-  faceUpZ: 1.3,
+  faceUpX: -3.2,
+  faceUpZ: 2.92,
   faceUpScale: 0.5,
 }
 
@@ -217,7 +220,7 @@ export function tableLines(n: number, seated = true): Line[] {
   return [...lines(ids, seated ? "0" : null).values()]
 }
 
-/** Where the deck, the card set aside beside it and the cards set aside face up lie */
+/** Where the deck, the card set aside under it and the cards set aside face up under that lie */
 export function middlePlaces(): { deck: Place; aside: Place; faceUp: Place } {
   const R = LAYOUT_SETTINGS
   return { deck: { x: R.deckX, z: R.deckZ }, aside: { x: R.asideX, z: R.asideZ }, faceUp: { x: R.faceUpX, z: R.faceUpZ } }
@@ -226,37 +229,25 @@ export function middlePlaces(): { deck: Place; aside: Place; faceUp: Place } {
 /** The slots of the three cards set aside face up at two players, in the frame of their place */
 export const faceUpPoses = (n: number): Pose[] => row(n, { gap: CARD.width * LAYOUT_SETTINGS.faceUpScale * 1.1, rise: 0.012, scale: LAYOUT_SETTINGS.faceUpScale })
 
-/** The boxes of the middle of the table, in the world: the deck with its count under it, the card set aside, the cards set aside face up (three of them) and the row of the cards that are done with */
-export function middleBoxes(faceUp: boolean): TableBox[] {
-  const R = LAYOUT_SETTINGS
-  const { deck, aside, faceUp: up } = middlePlaces()
-  const boxes: TableBox[] = [
-    boxOfRect({ x: deck.x, z: deck.z + 0.4, width: CARD.width * R.deckScale, depth: CARD.height * R.deckScale + 0.8 }),
-    boxOfRect({ x: aside.x, z: aside.z, width: CARD.width * R.asideScale, depth: CARD.height * R.asideScale }),
-  ]
-  if (faceUp) boxes.push(boxOfRect({ x: up.x, z: up.z, width: CARD.width * R.faceUpScale * 3.2, depth: CARD.height * R.faceUpScale }))
-  boxes.push(discardBox())
-  return boxes
-}
-
 /**
- * The middle of the table, between the deck and the card set aside: where the Deal button lies for the player who deals, the nine characters a Guard can name and the faces a reveal shows (a Priest's look, a Baron's comparison, a King's trade), one thing at a time. It
- * lies well above the bottom band of the window that the banner of the cookie settings covers, and clear of everything else on the table: `layout.test.ts` and `camera.test.ts` hold both. The table writes no sentence: what to do is said by the ticker.
+ * The middle of the table. The deck is on the left, and right beside it, to its right, lie the cards of the round that are done with (`tableCards` of `middle.ts`): one column for each value, from the Spy (0) to the Princess (9), side by side in ascending order, the copies of a
+ * value one under the other so that each stays in sight. Above the columns the faces of a reveal show for the time it takes to read them (a Priest's look, a Baron's comparison, a King's trade); below them lie, one thing at a time, the Deal button for the player who deals and
+ * the nine characters a Guard can name, in a row. Under the deck lie the card set aside and, at two players, the three set aside face up. It all lies well above the bottom band of the window that the banner of the cookie settings covers, and clear of the plates, the areas
+ * and the hands of every table: `layout.test.ts` and `camera.test.ts` hold both. The table writes no sentence: what to do is said by the ticker.
  */
 export const MIDDLE = {
-  /** Half the width of the middle: the deck lies left of it and the card set aside right of it */
-  half: 2.4,
-  /** The Deal button, centred */
-  deal: { z: 0.2, width: 2.8, depth: 1.1 },
-  /** The nine characters a Guard can name, as small faces in two rows (five, then four, centred), in the order of their value: how big each is (a share of a card of the table), how many are in each row, the gap between two and where the first row lies along z */
-  guess: { scale: 0.62, rows: [5, 4] as readonly number[], gap: 0.1, z: -0.55 },
-  /** The faces of a reveal: one in the middle, two a card and a half apart, how high they lie and how big they are */
-  reveal: { z: 0.55, y: 0.2, scale: 0.9, apart: 1.9 },
   /**
-   * The cards of the round that are done with (`tableCards` of `middle.ts`), in one row above the controls, from the lowest value to the highest: where the row is centred, how big each card is (a share of a card of the table), the width the row may take, and how far a card
-   * lies from the one before it, as a share of a card's width, when it is of another value (`step`: the medallion with the value is the left third of a face, so a step a little over a third keeps it in sight) and when it is of the same value (`stack`: the copies pile up)
+   * The columns: where the centre of the first one lies along x, how big each card is (a share of a card of the table), the gap between two columns (a share of a card's width), how many values there are (a column for each, from 0) and how far each copy lies under the one
+   * before it, as a share of a card's height (a third of a face keeps its banner, its name and the medallion with the value in sight). `copies` is the most there are of one value, the Guards: the room under a column is made for them. They start along z where the deck does: the
+   * top edge of the first card of each column is the top edge of the deck
    */
-  discard: { x: 0, z: -1.9, scale: 0.72, width: 4, step: 0.42, stack: 0.14 },
+  columns: { x: -2.2, scale: 0.5, gap: 0.1, values: 10, cascade: 0.31, copies: 6 },
+  /** The Deal button, centred, below the columns */
+  deal: { z: 1.85, width: 2.8, depth: 0.8 },
+  /** The nine characters a Guard can name, as small faces in one row below the columns, centred, in the order of their value: how big each is (a share of a card of the table), the gap between two and where the row lies along z */
+  guess: { scale: 0.42, gap: 0.08, z: 1.85 },
+  /** The faces of a reveal, above the columns: one in the middle, two a little more than a card apart, how high they lie and how big they are */
+  reveal: { z: -1.9, y: 0.2, scale: 0.72, apart: 1.7 },
 }
 
 /** A thing lying on the table: where it lies and how big it is, in world units, along x and z */
@@ -265,14 +256,12 @@ export type Pad = { x: number; z: number; width: number; depth: number }
 /** The place of the Deal button */
 export const dealPlace = (): Pad => ({ x: 0, ...MIDDLE.deal })
 
-/** Where the nine characters a Guard can name lie, row by row from the left (the order of `GUESSES`): each a small face, `width` by `depth` on the table */
+/** Where the nine characters a Guard can name lie, from the left (the order of `GUESSES`): each a small face, `width` by `depth` on the table */
 export function guessPlaces(count = 9): Pad[] {
-  const { scale, rows, gap, z } = MIDDLE.guess
+  const { scale, gap, z } = MIDDLE.guess
   const width = CARD.width * scale
   const depth = CARD.height * scale
-  return rows
-    .flatMap((n, row) => Array.from({ length: n }, (_, i) => ({ x: (i - (n - 1) / 2) * (width + gap), z: z + row * (depth + gap), width, depth })))
-    .slice(0, count)
+  return Array.from({ length: count }, (_, i) => ({ x: (i - (count - 1) / 2) * (width + gap), z, width, depth }))
 }
 
 /** The slots of the nine small faces, in the frame of the table */
@@ -281,35 +270,60 @@ export const guessPoses = (count = 9): Pose[] => guessPlaces(count).map((place) 
 /** Where the faces of a reveal of `count` cards lie, in the frame of the table, side by side */
 export const revealPoses = (count: number): Pose[] => Array.from({ length: count }, (_, i) => onTable((i - (count - 1) / 2) * MIDDLE.reveal.apart, MIDDLE.reveal.z, { y: MIDDLE.reveal.y, scale: MIDDLE.reveal.scale }))
 
+/** How wide a card of the columns is, how tall, how far one column lies from the next (the gap between two included) and where the columns start along z: the top edge of the deck, as it is while the debug panel moves it */
+function columnSizes() {
+  const { scale, gap } = MIDDLE.columns
+  const width = CARD.width * scale
+  const { deckZ, deckScale } = LAYOUT_SETTINGS
+  return { width, height: CARD.height * scale, pitch: width * (1 + gap), top: deckZ - (CARD.height * deckScale) / 2 }
+}
+
 /**
- * The slots of the cards in the middle, one for each value of `values` (the values printed on the cards, in ascending order): a row centred on its place, each card a hair higher than the one before so that the ones that overlap never fight for a pixel. A card lies `step` of a
- * card's width from the one before it, `stack` when both have the same value; a row that is wider than its room packs closer, all its gaps together
+ * The slots of the cards that are done with, one for each value of `values` (the values printed on the cards, in the order the cards are given): each lies in the column of its value, the first of a value at the top of it and each copy `cascade` of a card's height under the
+ * one before it, a hair higher so that the ones that overlap never fight for a pixel. Which column a card is in depends on its value alone and its row on how many cards of that value come before it, so a card that joins never moves another sideways
  */
-export function discardPoses(values: readonly number[]): Pose[] {
-  const { x, z, scale, width, step, stack } = MIDDLE.discard
-  const card = CARD.width * scale
-  const gaps = values.map((value, i) => (i === 0 ? 0 : (value === values[i - 1] ? stack : step) * card))
-  const spread = gaps.reduce((sum, gap) => sum + gap, 0)
-  const fit = spread > 0 ? Math.min(1, (width - card) / spread) : 1
-  let along = 0
-  const offsets = gaps.map((gap) => (along += gap * fit))
-  const total = offsets[offsets.length - 1] ?? 0
-  return offsets.map((offset, i) => shifted(onTable(x + offset - total / 2, z, { scale }), { y: i * 0.012 }))
+export function columnPoses(values: readonly number[]): Pose[] {
+  const { x, scale, cascade } = MIDDLE.columns
+  const { height, pitch, top } = columnSizes()
+  const rows = new Map<number, number>()
+  return values.map((value) => {
+    const row = rows.get(value) ?? 0
+    rows.set(value, row + 1)
+    return shifted(onTable(x + value * pitch, top + height / 2 + row * cascade * height, { scale }), { y: row * 0.012 })
+  })
 }
 
-/** The box of the row in the middle at its widest, above the controls and clear of the plates, the areas and the hands of every table (`layout.test.ts`) */
-export function discardBox(): TableBox {
-  const { x, z, scale, width } = MIDDLE.discard
-  return boxOfRect({ x, z, width, depth: CARD.height * scale })
+/** The box of all the columns at their fullest: every value, and the most copies of one under it */
+export function columnsBox(): TableBox {
+  const { x, values, cascade, copies } = MIDDLE.columns
+  const { width, height, pitch, top } = columnSizes()
+  return { minX: x - width / 2, maxX: x + (values - 1) * pitch + width / 2, minZ: top, maxZ: top + height + (copies - 1) * cascade * height }
 }
 
-/** The box that holds the Deal button, the nine characters and the faces of a reveal (two at the most), whichever is drawn */
-export function controlsBox(): TableBox {
-  const faces = CARD.height * MIDDLE.reveal.scale
-  const pads = [dealPlace(), ...guessPlaces()]
-  const top = Math.min(MIDDLE.reveal.z - faces / 2, ...pads.map((pad) => pad.z - pad.depth / 2))
-  const bottom = Math.max(MIDDLE.reveal.z + faces / 2, ...pads.map((pad) => pad.z + pad.depth / 2))
-  return { minX: -MIDDLE.half, maxX: MIDDLE.half, minZ: top, maxZ: bottom }
+/** The box of the Deal button, of the row of the nine characters and of the faces of a reveal (two at the most): each lies where `MIDDLE` says, one at a time, and the room is kept for all */
+export function controlBoxes(): { deal: TableBox; guess: TableBox; reveal: TableBox } {
+  const pad = dealPlace()
+  const faces = guessPlaces()
+  const faceWidth = CARD.width * MIDDLE.reveal.scale
+  return {
+    deal: boxOfRect(pad),
+    guess: { minX: faces[0]!.x - faces[0]!.width / 2, maxX: faces[faces.length - 1]!.x + faces[faces.length - 1]!.width / 2, minZ: MIDDLE.guess.z - faces[0]!.depth / 2, maxZ: MIDDLE.guess.z + faces[0]!.depth / 2 },
+    reveal: boxOfRect({ x: 0, z: MIDDLE.reveal.z, width: MIDDLE.reveal.apart + faceWidth, depth: CARD.height * MIDDLE.reveal.scale }),
+  }
+}
+
+/** The boxes of the middle of the table, in the world: the deck with its count under it, the card set aside, the cards set aside face up (three of them), the columns, and the room of the controls */
+export function middleBoxes(faceUp: boolean): TableBox[] {
+  const R = LAYOUT_SETTINGS
+  const { deck, aside, faceUp: up } = middlePlaces()
+  const controls = controlBoxes()
+  const boxes: TableBox[] = [
+    boxOfRect({ x: deck.x, z: deck.z + 0.4, width: CARD.width * R.deckScale, depth: CARD.height * R.deckScale + 0.8 }),
+    boxOfRect({ x: aside.x, z: aside.z, width: CARD.width * R.asideScale, depth: CARD.height * R.asideScale }),
+  ]
+  if (faceUp) boxes.push(boxOfRect({ x: up.x, z: up.z, width: CARD.width * R.faceUpScale * 3.2, depth: CARD.height * R.faceUpScale }))
+  boxes.push(columnsBox(), controls.deal, controls.guess, controls.reveal)
+  return boxes
 }
 
 /** The corners on the table of a box drawn in the frame of a seat, going round: what the camera has to bring into the window, and what the tests lay over one another */
@@ -327,7 +341,7 @@ const mirrored = (box: TableBox): TableBox => ({ minX: -box.maxX, maxX: -box.min
  * only as far as its play area, which is always the room of the biggest.
  */
 export function seenQuads(n: number, seated = true): Place[][] {
-  const middle = [...middleBoxes(n === 2), controlsBox()]
+  const middle = middleBoxes(n === 2)
   return [
     ...tableLines(n, seated).flatMap((line) => [line.plateBox, line.play].map((box) => quadOf(box, line.seat))),
     ...middle.map(worldQuad),
