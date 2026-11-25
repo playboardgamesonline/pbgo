@@ -29,5 +29,15 @@ export const useHasBinding = () => useOptionalBinding() !== null
 
 export const useGameSlug = () => useBinding().SLUG
 
-/** API client of the game shown (`/api/<slug>/...`). */
-export const useApi = (): GameApi => createApi(useGameSlug())
+const ApiOverrideContext = createContext<GameApi | null>(null)
+
+/** Puts another client in the place of the game's API for everything below: the preview of a game in play answers the board's calls with its made-up table (`SandboxClient`), so that the board and the screen around it play as they do at a real one */
+export function ApiOverrideProvider({ api, children }: { api: GameApi; children: ReactNode }) {
+  return <ApiOverrideContext.Provider value={api}>{children}</ApiOverrideContext.Provider>
+}
+
+/** API client of the game shown (`/api/<slug>/...`), or the one an `ApiOverrideProvider` above puts in its place. */
+export const useApi = (): GameApi => {
+  const api = createApi(useGameSlug())
+  return useContext(ApiOverrideContext) ?? api
+}
