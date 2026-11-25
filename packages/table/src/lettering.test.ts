@@ -13,13 +13,19 @@ describe("the lettering of the table", () => {
   })
 
   it("is the kit's own for a game that uploaded none, or when no game is shown", () => {
-    expect(letteringOf({ fontDisplay: null, fontBody: null })).toEqual({ display: PLATE_FONT, body: TABLE_FONT, weight: LETTERING_WEIGHT })
-    expect(letteringOf(null)).toEqual({ display: PLATE_FONT, body: TABLE_FONT, weight: LETTERING_WEIGHT })
+    expect(letteringOf({ fontDisplay: null, fontBody: null, fontAccent: null })).toEqual({ display: PLATE_FONT, body: TABLE_FONT, accent: PLATE_FONT, weight: LETTERING_WEIGHT })
+    expect(letteringOf(null)).toEqual({ display: PLATE_FONT, body: TABLE_FONT, accent: PLATE_FONT, weight: LETTERING_WEIGHT })
   })
 
   it("follows each file on its own", () => {
-    expect(letteringOf({ fontDisplay: file, fontBody: null })).toMatchObject({ display: `"Site Title", ${PLATE_FONT}`, body: TABLE_FONT })
-    expect(letteringOf({ fontDisplay: null, fontBody: file })).toMatchObject({ display: PLATE_FONT, body: `"Site Body", ${TABLE_FONT}` })
+    expect(letteringOf({ fontDisplay: file, fontBody: null, fontAccent: null })).toMatchObject({ display: `"Site Title", ${PLATE_FONT}`, body: TABLE_FONT })
+    expect(letteringOf({ fontDisplay: null, fontBody: file, fontAccent: null })).toMatchObject({ display: PLATE_FONT, body: `"Site Body", ${TABLE_FONT}` })
+  })
+
+  it("writes the accent in the accent font the game uploaded, else in its display font", () => {
+    expect(letteringOf({ fontDisplay: file, fontBody: file, fontAccent: file }).accent).toBe(`"Site Accent", "Site Title", ${PLATE_FONT}`)
+    expect(letteringOf({ fontDisplay: file, fontBody: null, fontAccent: null }).accent).toBe(`"Site Title", ${PLATE_FONT}`)
+    expect(letteringOf({ fontDisplay: null, fontBody: null, fontAccent: file }).accent).toBe(`"Site Accent", ${PLATE_FONT}`)
   })
 
   it("is bold at 700", () => {

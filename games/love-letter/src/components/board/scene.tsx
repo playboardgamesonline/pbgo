@@ -112,9 +112,10 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
   useSettings("Held hands", HELD_FAN_SETTINGS, HELD_HAND_FIELDS, { order: 3 })
   useSettings("Hand", HAND_SETTINGS, SCREEN_HAND_FIELDS, { order: 4 })
   const { theme } = useSiteSettings()
-  // The lettering on the table is the kit's (`useLettering`): the fonts the game uploaded to its Sanity project, the display font for names, buttons and counts, the body font for the card texts, else the kit's own
+  // The lettering on the table is the kit's (`useLettering`): the fonts the game uploaded to its Sanity project, as the publisher's cards set them: the accent font (Enchanted Land) for the names on the faces, the body font (EB Garamond) for
+  // the card texts, and the display font (EB Garamond, bold) for the names of the players, the buttons and the counts; else the kit's own
   const lettering = useLettering()
-  const faces = useFaces(catalog, { nameFont: lettering.display, textFont: lettering.body, ink: theme.surfaceDark })
+  const faces = useFaces(catalog, { nameFont: lettering.accent, textFont: lettering.body, ink: theme.surfaceDark })
   const { words, names } = catalog
   const { nickname, color: seatColorOf } = useGame()
   const meId = view.me?.id ?? null
