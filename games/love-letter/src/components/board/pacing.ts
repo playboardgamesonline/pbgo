@@ -8,26 +8,26 @@ import type { Field } from "@pbgo/table"
  * (`scene.tsx` binds them with `useSettings`); nothing here moves anything, it only says when.
  */
 export const PACE_SETTINGS = {
-  /** A card drawn, played, discarded or laid down out of the round, and what is quick: a Handmaid, a card with no effect, the Chancellor's cards, the start of a round, the end of a round and of the game */
-  draw: 0.7,
-  play: 0.8,
-  discard: 0.8,
-  out: 0.7,
-  protect: 0.4,
-  chancellor: 0.7,
-  bottom: 0.6,
-  fizzled: 0.5,
-  round: 0.4,
-  end: 0.5,
-  over: 0.3,
+  /** A card drawn, played, discarded or laid down out of the round, and what is quick: a Handmaid, a card with no effect, the Chancellor's cards, the start of a round, the end of a round and of the game. Slow enough to follow with the eye, the deal of a round above all, which is the first thing a table shows */
+  draw: 0.95,
+  play: 1,
+  discard: 1,
+  out: 0.95,
+  protect: 0.6,
+  chancellor: 0.9,
+  bottom: 0.8,
+  fizzled: 0.7,
+  round: 0.9,
+  end: 0.8,
+  over: 0.5,
   /** What is shown to be read: a Guard's guess and its answer, a Priest's look, a Baron's comparison and a King's trade, the hands laid down when the deck runs out */
-  guess: 2.4,
-  look: 2.6,
-  compare: 3,
-  swap: 3,
-  reveal: 1.4,
+  guess: 3.2,
+  look: 3.4,
+  compare: 3.8,
+  swap: 3.8,
+  reveal: 2.2,
   /** How long a card needs to land once it has set out: a move is over when the last card has landed */
-  landing: 0.85,
+  landing: 1,
 }
 
 export const PACE_FIELDS: Record<keyof typeof PACE_SETTINGS, Field> = {

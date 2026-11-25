@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useAnnouncementSettings } from "@pbgo/core/components/game/announcement"
+import { ANNOUNCEMENT_PRESETS } from "@pbgo/core/lib/announcement-settings"
 import { GameProvider, useGame, useGameLog } from "@pbgo/core/components/game/context"
 import { DebugSlot } from "@pbgo/core/components/game/debug-controls"
 import { useDebugFolder } from "@pbgo/core/components/game/debug-folders"
@@ -25,7 +26,8 @@ import { cuesOf } from "../../lib/sounds"
 import { fill } from "../../lib/words"
 import { type Arrival, type Reveal, timelineOf } from "../board/pacing"
 import { useReveal } from "../board/sequence"
-import { type Choice, type ClientAction, NO_CHOICE, promptOf, type Step, stepOf, validChoice } from "../board/turn"
+import { type Choice, type ClientAction, NO_CHOICE, pickGuess, type Press, pressName, promptOf, type Step, stepOf, validChoice } from "../board/turn"
+import { GuessBar } from "./guess-bar"
 import { Lens } from "./lens"
 
 const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr: false })
@@ -34,6 +36,16 @@ const Scene = dynamic(() => import("../board/scene").then((m) => m.Scene), { ssr
 const NO_ENTRANCES: ReadonlyMap<number, Arrival> = new Map()
 const NO_DRAWS: ReadonlyMap<string, number> = new Map()
 const NO_REVEALS: readonly Reveal[] = []
+
+/**
+ * The announcements stay up longer than the platform's defaults: a game of reading, where the start of the game, a new round and the turn that comes to the viewer must be read before the table moves on. The presets are the platform's, only their time is the
+ * game's, and the TRANSITION tab of the debug panel edits them.
+ */
+const ANNOUNCEMENTS = {
+  start: { ...ANNOUNCEMENT_PRESETS.start, duration: 3.6 },
+  round: { ...ANNOUNCEMENT_PRESETS.round, duration: 2.8 },
+  turn: { ...ANNOUNCEMENT_PRESETS.turn, duration: 2.6 },
+}
 
 /** `held` and `onLoaded` are the start screen's (PLT-107): behind it the board is drawn and loads, says so, and holds its opening (the camera's entrance, the start announcement) until the screen goes */
 type Props = {
@@ -86,7 +98,7 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   const motion = useMotion()
   const timeline = useMemo(() => timelineOf(log, motion === "reduced"), [log, motion])
   const { busy, playing, openedAt } = useMoveClock(timeline, held)
-  const settings = useAnnouncementSettings()
+  const settings = useAnnouncementSettings(ANNOUNCEMENTS)
   const { announce, element: announcement, current } = useAnnouncements(settings, { paused: busy })
   const [sending, setSending] = useState(false)
   // What the viewer has picked this turn (`turn.ts`): the table draws the cards for it and the ticker says what to do next, so it is held here, above both. A pick that no longer fits the view (the card left the hand, the turn passed) is dropped
@@ -203,6 +215,12 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
   const reveal = useReveal(timeline.v, playing ? timeline.reveals : NO_REVEALS)
   const step: Step = reveal ? { kind: "none" } : stepOf(view, choice)
   const prompt = sending ? null : promptOf(step, words)
+  /** What the viewer pressed outside the table: a character of a Guard's row, or its button */
+  const apply = (press: Press | null) => {
+    if (!press || sending) return
+    if (press.kind === "choose") setPicked(press.choice)
+    else void send(press.action)
+  }
 
   return (
     <GameHud
@@ -211,6 +229,9 @@ function Board({ onUpdate, onLeave, held = false, onLoaded, data }: Props) {
       overlay={
         <>
           {announcement}
+          {step.kind === "name" && (
+            <GuessBar catalog={catalog} guess={step.guess} ready={!sending && pressName(step) !== null} disabled={sending} onGuess={(type) => apply(pickGuess(step, type))} onConfirm={() => apply(pressName(step))} />
+          )}
           <Lens />
           <StalledTurn onUpdate={onUpdate} />
           {ended && !current && !busy && <GameOver onUpdate={onUpdate} history={history} />}

@@ -100,18 +100,18 @@ const config = {
           }
           return { label: "card", local: true, prepare }
         }
-        // after the card: a player to press (a Prince can always press its own player); for a Guard the window of the platform opens, where the player is pressed (`name`, unless there is one only, chosen already), then the character (`guess`), then Play (`play`)
+        // after the card: a player to press (a Prince can always press its own player); for a Guard the player is pressed on the table too (`name`, unless there is one only, chosen already), then the character in the row at the foot of the screen (`guess`), then its button (`validate`)
         if (move.type === "guard") {
           if (move.stage === "picked" && phase.targets.length > 1) {
             move.stage = "named"
-            return { label: "name", local: true, dom: { selector: '[role="dialog"] [data-field="player"] [role="radio"]', index: 0 } }
+            return { label: "name", local: true }
           }
           if (move.stage === "picked" || move.stage === "named") {
             move.stage = "guessed"
-            return { label: "guess", local: true, dom: { selector: '[role="dialog"] [data-field="character"] [role="radio"]', index: 2 } }
+            return { label: "guess", local: true, dom: { selector: '[data-guess-bar] button[data-guess]', index: 2 } }
           }
           move.final = true
-          return { label: "validate", dom: { selector: '[role="dialog"] button[type="submit"]', index: 0 } }
+          return { label: "validate", dom: { selector: '[data-guess-bar] button[data-guess-confirm]', index: 0 } }
         }
         move.final = true
         return { label: "target" }
@@ -120,7 +120,7 @@ const config = {
       return null
     },
     // Where the controls lie, from what the board offers: the cards of the hand, held at the bottom left of the screen in the frame of the camera (so far above the table, y beyond 4, and told apart by their place across the screen), the Deal button below the columns of the middle (x within 4, z
-    // between 0.6 and 1.6, lying on the table), and the area of a player, a `Hotspot` that lies at a card's height (y about 0.35) so that the whole area answers, cards included. A Guard's player and the nine characters are not on the table: they are in the platform's window (the plan's `dom`)
+    // between 0.6 and 1.6, lying on the table), and the area of a player, a `Hotspot` that lies at a card's height (y about 0.35) so that the whole area answers, cards included. A Guard's player is an area too, and the nine characters are not on the table: they are the row at the foot of the screen (the plan's `dom`)
     find({ label, pressables, state }) {
       const world = (pressable) => pressable.world
       const inHand = (pressable) => world(pressable) && world(pressable)[1] > 4
