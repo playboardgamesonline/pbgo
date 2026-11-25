@@ -100,12 +100,12 @@ const config = {
       if (phase.kind === "between" && phase.dealer === me) return exercised.has("deal") ? null : { label: "deal" }
       return null
     },
-    // Where the controls lie, from what the board offers: the cards of the piles lie at z about 0.1 (the draw pile left of the middle, the discard right of it) and the word over each floats above them (y of 0.5 and more, up the screen: z under 0), the Deal button
-    // across the middle in the room over the piles (z under -1), the cards of the viewer's grid in front of them (z of 2.1 and more)
+    // Where the controls lie, from what the board offers: the cards of the piles lie in the middle of the table (z between -1 and 0.6: the draw pile left of the middle, the discard right of it) and the word over each floats above them (y of 0.6 and more, up the
+    // screen: z between -2 and -0.6), the Deal button across the middle in the room over the piles (z under -1), the cards of the viewer's grid in front of them (z of 2.1 and more)
     find({ label, pressables }) {
       const lies = (pressable) => pressable.world !== null
-      const pile = (pressable) => lies(pressable) && pressable.world[1] < 0.6 && pressable.world[2] > -0.3 && pressable.world[2] < 0.6
-      const word = (pressable) => lies(pressable) && pressable.world[1] >= 0.6 && pressable.world[2] > -1.2 && pressable.world[2] <= -0.3
+      const pile = (pressable) => lies(pressable) && pressable.world[1] < 0.6 && pressable.world[2] > -1 && pressable.world[2] < 0.6
+      const word = (pressable) => lies(pressable) && pressable.world[1] >= 0.6 && pressable.world[2] > -2 && pressable.world[2] <= -0.6
       const cells = pressables.filter((pressable) => lies(pressable) && pressable.world[2] >= 2.1)
       if (label === "draw") return pressables.find((pressable) => pile(pressable) && pressable.world[0] < -0.5)
       if (label === "drawWord") return pressables.find((pressable) => word(pressable) && pressable.world[0] < -0.5)
