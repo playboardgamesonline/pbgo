@@ -28,11 +28,13 @@ describe("the stickers of a seat", () => {
     })
   }
 
-  it("grow and shrink with the line: an opponent's line is smaller than the viewer's, and so are its stickers", () => {
-    const placed = lines(seatSpots(ids(8), "p0"), "p0")
-    const [mine, theirs] = [placed.get("p0")!, placed.get("p4")!]
-    expect(theirs.scale).toBeLessThan(mine.scale)
-    expect(stickerPlaces(theirs, BUST, BONUS).bust.width).toBeLessThan(stickerPlaces(mine, BUST, BONUS).bust.width)
+  it("grow and shrink with the cards of the table: every line of a table has the same size of stickers, and a fuller table has smaller ones", () => {
+    const [few, full] = [lines(seatSpots(ids(3), "p0"), "p0"), lines(seatSpots(ids(8), "p0"), "p0")]
+    const widths = (placed: typeof few) => [...placed.values()].map((line) => stickerPlaces(line, BUST, BONUS).bust.width)
+    expect(new Set(widths(full)).size).toBe(1)
+    expect(new Set(widths(few)).size).toBe(1)
+    expect(widths(full)[0]!).toBeLessThan(widths(few)[0]!)
+    const mine = full.get("p0")!
     expect(stickerPlaces(mine, BUST, BONUS).bust.width / (CARD.width * mine.scale)).toBeGreaterThan(2)
   })
 

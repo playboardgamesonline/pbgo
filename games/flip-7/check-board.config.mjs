@@ -72,12 +72,12 @@ const config = {
       if (phase.kind === "between" && phase.dealer === me) return exercised.has("deal") ? null : { label: "deal" }
       return null
     },
-    // Where the controls lie, from what the board offers: the draw pile is far left of the middle (x -2.5), at the z of the strip between the two piles (z 0, `pilesZ`): its top card is what Hit presses (the word over it, a pressable too, lies beyond its far edge, so
+    // Where the controls lie, from what the board offers: the draw pile is far left of the middle (x -2.4, `pilesX`), at the z of the strip between the two piles (z 0.3, `pilesZ`): its top card is what Hit presses (the word over it, a pressable too, lies beyond its far edge, so
     // the strip is told by its z). Across the strip, in the middle, lies the pad of Stay and of Deal. The areas of the seats, which are pressed to give an action card, are the other pressables (the viewer's own lies in front of them, in the middle)
     find({ label, pressables }) {
-      const strip = (pressable) => pressable.world !== null && Math.abs(pressable.world[2]) < 0.3
+      const strip = (pressable) => pressable.world !== null && Math.abs(pressable.world[2] - 0.3) < 0.5
       const at = (low, high) => (pressable) => strip(pressable) && pressable.world[0] > low && pressable.world[0] < high
-      if (label === "hit") return pressables.find(at(-4, -2))
+      if (label === "hit") return pressables.find(at(-4, -1.5))
       if (label === "stay" || label === "deal") return pressables.find(at(-0.5, 0.5))
       // a target that arises as a round begins lies under the announcement of the round for a few seconds: no area is reachable yet, and the tool waits for one rather than pressing what it cannot reach
       if (label === "target") return pressables.find((pressable) => pressable.reachable)
