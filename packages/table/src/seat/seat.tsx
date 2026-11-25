@@ -76,7 +76,7 @@ export type SeatProps = {
 
 /**
  * The plate of a player at the table, one block that turns as one: the avatar at the left (always to the LEFT of the lettering, as the plate is read), and beside it the name with the info line under it, left-aligned (the score, then a status as plain text, side by side), and a
- * `trailing` slot to the right of the lettering. The avatar stands level with the middle of the two lines, or with the name when it stands alone. The turn crown stands on the avatar's corner. Nothing lies under the plate: no light, no tint, in any state. The plate never
+ * `trailing` slot to the right of the lettering. The avatar stands level with the middle of the two lines, or with the name when it stands alone. The turn crown stands centred above the avatar, as the camera sees it. Nothing lies under the plate: no light, no tint, in any state. The plate never
  * reacts to the pointer: choosing a player is the job of the `Hotspot` over their cards.
  *
  * It stands above the player's cards (`above`), in the frame of the seat: on the side of the cards that faces the middle of the table, turned with the seat, so that the name is read over the cards by the player who sits there, at every seat.
@@ -122,7 +122,7 @@ export function Seat({
       <group position={[frame.x, 0, frame.z]} rotation-y={frame.yaw ?? 0}>
         <group position={[row.avatarX, TEXT_Y, plate.z]}>
           <SeatAvatarMesh nickname={nickname} color={color} imageUrl={imageUrl} theme={theme} size={S.avatarSize} position={[0, 0, 0]} opacity={opacity} />
-          <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[S.crownRight, 0, -S.crownBack]} yaw={frame.yaw ?? 0} />
+          <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[0, 0, 0]} reach={S.avatarSize / 2 + S.crownGap} yaw={frame.yaw ?? 0} />
         </group>
         <TableText text={nameText} style={name} height={S.nameHeight} maxWidth={roomOf} position={[row.textX + nameWidth / 2, TEXT_Y, row.nameZ]} font={font} opacity={opacity} capsCentred />
         {info !== "" && <TableText text={info} style={lineStyleOf} height={S.lineHeight} maxWidth={roomOf} position={[row.textX + infoWidth / 2, TEXT_Y, plate.lineZ]} font={font} opacity={opacity} capsCentred />}

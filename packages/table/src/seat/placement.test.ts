@@ -143,7 +143,7 @@ describe("the room of a name", () => {
 })
 
 describe("scaledSeat", () => {
-  const SIZES = ["nameHeight", "nameLift", "lineHeight", "lineDrop", "nameRoom", "avatarSize", "avatarGap", "crownSize", "crownRight", "crownBack", "plateGap"] as const
+  const SIZES = ["nameHeight", "nameLift", "lineHeight", "lineDrop", "nameRoom", "avatarSize", "avatarGap", "crownSize", "crownGap", "plateGap"] as const
 
   it("multiplies every size and every gap, and leaves the reach factors and the opacity", () => {
     const small = scaledSeat(0.5)
