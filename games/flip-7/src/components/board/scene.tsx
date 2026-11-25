@@ -3,13 +3,13 @@
 import type { CardFace, PlayerView, PublicSeat } from "@flip-7/engine"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { type CardState, effectiveState, FloorButton, Hotspot, hotspotOf, LightPool, NO_TOUCH, onTable, Pile, pile, PlayerSeat, Table, type Touch, useLettering, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
+import { type CardState, effectiveState, FloorButton, Glide, Hotspot, hotspotOf, LightPool, NO_TOUCH, onTable, Pile, pile, PlayerSeat, Table, type Touch, useLettering, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useMemo, useState } from "react"
 import type { ClientCatalog } from "../../lib/catalog"
 import { madeFlip7 } from "../../lib/flip7-line"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { cardScaleOf, cardsBox, chairsOf, dealtFrom, floorPlan, frameOf, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, seatSpots, stickerPlaces, zones } from "./layout"
+import { cardScaleOf, cardsBox, chairsOf, dealtFrom, floorPlan, frameOf, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, seatSpots, stickerPlaces, stripShift, zones } from "./layout"
 import { PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { Sticker } from "./stickers"
 import { CARD_SIZE, useFaces } from "./textures"
@@ -69,7 +69,12 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
   const myTurn = phase.kind === "turn" && phase.player === meId
   const choosing = phase.kind === "target" && phase.player === meId
   const dealing = phase.kind === "between" && phase.dealer === meId
-  const dealt = dealtFrom(chairs)
+  // While the discard has no card, which is the whole first round, the draw pile and the pad lie centred on the table; when it gets its first card they make room for it and glide to their places (`stripShift`, `Glide`). They stay there for the rest of the game: a discard that a
+  // reshuffle empties does not bring them back, and a table that is opened or reloaded in a later round finds them in place
+  const [discardSeen, setDiscardSeen] = useState(view.discard.length > 0)
+  if (!discardSeen && view.discard.length > 0) setDiscardSeen(true)
+  const shift = discardSeen ? 0 : stripShift(chairs)
+  const dealt = dealtFrom(chairs, shift)
   const plan = floorPlan(chairs)
   // What the visitor does to the area of each player that can get the action card (the pointer over it, the keyboard focus on it, the pointer down): the cards under it are lit from it
   const [touches, setTouches] = useState<Record<string, Touch>>({})
@@ -82,10 +87,11 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
 
   // A card the last move turned over comes in from above the draw pile after the time the timeline gives it, so that they come one after the other. Every other card is where it was, or flies from where it lay: the table remembers
   // where a card with the same id was a moment ago. The cards of the opening deal wait for the start screen to go
-  const cardsOf = (list: readonly CardFace[], state: CardState = "base"): ZoneCard[] =>
+  // `from` is where a card comes in from, in the frame of the group it is in: the table's for the lines, the strip's for the action card to give, which lies in the group that glides and so comes from the draw pile as it lies in that group, unshifted
+  const cardsOf = (list: readonly CardFace[], state: CardState = "base", origin: typeof dealt = dealt): ZoneCard[] =>
     (held ? [] : list).map((face) => {
       const delay = entrances.get(face.id)
-      return { key: face.id, id: face.id, front: faces.face(face.type), back: faces.back, state, from: delay === undefined ? null : { ...dealt, delay } }
+      return { key: face.id, id: face.id, front: faces.face(face.type), back: faces.back, state, from: delay === undefined ? null : { ...origin, delay } }
     })
   // The engine's discard is top first and a pile layout is bottom first
   const discarded = [...view.discard].reverse()
@@ -147,16 +153,30 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         )
       })}
 
-      {/* The draw pile: on the viewer's turn pressing it, or the word over it, turns the next card over (Hit). Only its size is known, so it is a count, which the pile writes under itself */}
-      <Pile
-        frame={{ x: deck.x, z: deck.z }}
-        count={view.deck.size}
-        size={CARD_SIZE}
-        back={faces.back}
-        scale={cardScale}
-        limit={14}
-        action={myTurn ? { label: words.hit, onPress: onHit } : undefined}
-      />
+      {/* The draw pile, the pad of Stay and Deal and the action card to give lie in one group that glides: while the discard has no card (the first round) they lie centred on the table, shifted to the right by `stripShift`, and when it gets its first card they make room for it and glide to their places, with the word over the pile and its count */}
+      <Glide at={{ x: shift, z: 0 }}>
+        {/* The draw pile: on the viewer's turn pressing it, or the word over it, turns the next card over (Hit). Only its size is known, so it is a count, which the pile writes under itself */}
+        <Pile
+          frame={{ x: deck.x, z: deck.z }}
+          count={view.deck.size}
+          size={CARD_SIZE}
+          back={faces.back}
+          scale={cardScale}
+          limit={14}
+          action={myTurn ? { label: words.hit, onPress: onHit } : undefined}
+        />
+
+        {/* On the viewer's turn Stay lies beside the draw pile, across the strip between the piles and as deep as the pile: a floor button, for an action that has no object, in the quieter tone. It is there but dim when the viewer holds nothing to bank */}
+        {myTurn && <FloorButton at={plan.pad} width={plan.pad.width} depth={plan.pad.depth} tone="neutral" label={words.stay} disabled={!phase.canStay} onPress={onStay} />}
+
+        {/* Between two rounds the dealer deals the next one, from the same pad, in the tone of the action that goes on */}
+        {dealing && <FloorButton at={plan.pad} width={plan.pad.width} depth={plan.pad.depth} tone="primary" label={words.deal} onPress={onDeal} />}
+
+        {/* An action card drawn lies face up beside the draw pile, for everybody, picked for the one who holds it: what to do is the ticker's sentence, and the players who can get it have their cards lit */}
+        {phase.kind === "target" && (
+          <Zone frame={{ x: plan.card.x, z: plan.card.z }} layout={[onTable(0, 0, { y: 0.05, scale: plan.card.scale })]} size={CARD_SIZE} cards={cardsOf([phase.card], choosing ? "selected" : "base", dealtFrom(chairs))} />
+        )}
+      </Glide>
 
       {/* The discard: every card of it keeps its id, so the cards of a line fly there when the next round is dealt */}
       <Zone
@@ -166,17 +186,6 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         size={CARD_SIZE}
         cards={cardsOf(discarded)}
       />
-
-      {/* On the viewer's turn Stay lies beside the draw pile, across the strip between the piles and as deep as the pile: a floor button, for an action that has no object, in the quieter tone. It is there but dim when the viewer holds nothing to bank */}
-      {myTurn && <FloorButton at={plan.pad} width={plan.pad.width} depth={plan.pad.depth} tone="neutral" label={words.stay} disabled={!phase.canStay} onPress={onStay} />}
-
-      {/* Between two rounds the dealer deals the next one, from the same pad, in the tone of the action that goes on */}
-      {dealing && <FloorButton at={plan.pad} width={plan.pad.width} depth={plan.pad.depth} tone="primary" label={words.deal} onPress={onDeal} />}
-
-      {/* An action card drawn lies face up beside the draw pile, for everybody, picked for the one who holds it: what to do is the ticker's sentence, and the players who can get it have their cards lit */}
-      {phase.kind === "target" && (
-        <Zone frame={{ x: plan.card.x, z: plan.card.z }} layout={[onTable(0, 0, { y: 0.05, scale: plan.card.scale })]} size={CARD_SIZE} cards={cardsOf([phase.card], choosing ? "selected" : "base")} />
-      )}
     </>
   )
 }

@@ -77,3 +77,17 @@ const p = from ?? left ?? target
 - A card that is already where it should be (same place, orientation and scale, within a hair) gets nothing back, so it does not fly.
 - A card with no `id` is not remembered, and a `Card` outside a `Table` has no memory to ask.
 - A card reads its `id` once, when it mounts. If the `id` of a card that stays changes, the memory still knows it by the first one, or not at all when it came with none.
+
+## A group that glides
+
+A card glides to a new slot of its own accord, but what is not a card does not: a pile's count, a pad, the word over a pile move at once when their place changes. A board that moves a whole part of the table puts that part in a `Glide` and changes where it lies. Shared, in `packages/table/src/zone/`: `glide.tsx` draws it, `glide-step.ts` holds what is pure (`glideStep`, `GLIDE_RATE`) and `glide-step.test.ts` tests it.
+
+| Prop | Role |
+| --- | --- |
+| `at` | `{ x, z }`: where the group lies on the table (default: the origin). It starts there, so a table that is opened or reloaded finds the group in place, and only a later change of `at` is a glide |
+| `children` | What the group holds, laid out as if the group lay at the origin of the table: everything is drawn in the group's frame, so it moves with it |
+
+- The group closes on its new place at `GLIDE_RATE` a second, about 95 % of the way in under half a second, and lands exactly on it. It never goes past it, and the same time covers the same way at any frame rate (`glideStep`).
+- A visitor who asks for less motion (`usePrefersReducedMotion`, as every block of the table) gets the group in its place at once, with no glide.
+- It is a plain group with no size, so it changes nothing else: the slots of the zones in it, the press areas of its pads and the places of its words are all in its frame. A card that arrives from another zone starts from where it was (the pose memory hands the pose back in the frame of the card's parent, which is the group), and a `from` that a board gives a card is in the frame of the group the card is in, so a card that flies in from a place outside the group is given a `from` that allows for where the group lies.
+- Put in a `Glide` only what moves together. In Flip 7 the draw pile, the pad of Stay and Deal and the action card to give lie in one while the discard has no card, centred on the table, and glide to their places when it gets its first card (`stripShift` in `games/flip-7/src/components/board/layout.ts`).
