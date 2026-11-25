@@ -2,7 +2,7 @@ import { CHARACTER_KEYS } from "@love-letter/engine"
 import { describe, expect, it } from "vitest"
 import { balance, FACE, largestFit, LINE_HEIGHT, NAME_PLATE, NAME_SIZE, setName, setText, TEXT_SIZE, textPlateOf, wrap } from "./lettering"
 
-/** A measure for tests: a letter is `share` of its size wide, whatever the letter (Minion Pro, the text, is about 0.42; Cabazon, the names, 0.4 for a letter of a name and 0.9 for a capital W) */
+/** A measure for tests: a letter is `share` of its size wide, whatever the letter (EB Garamond, the text, is about 0.42; Enchanted Land, the names, about 0.4 for a letter of a name and 0.9 for a capital W) */
 const measureAt = (share: number) => (size: number) => (text: string) => text.length * size * share
 
 describe("the plates of a face", () => {
