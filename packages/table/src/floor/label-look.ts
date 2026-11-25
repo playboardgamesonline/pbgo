@@ -2,20 +2,32 @@
 // `action-label.tsx` draws it and `label-look.test.ts` holds it.
 
 import { NO_TOUCH, type Touch } from "../card/states"
-import { TEXT_PX } from "../seat/text-px"
+import { LINE_PITCH, TEXT_PX } from "../seat/text-px"
 import { mix } from "./lift"
 
-/** The size of the lettering, a `height` of `TableText`, unless a board says another */
-export const LABEL_HEIGHT = 0.55
+/** The size of the lettering, a `height` of `TableText`, unless a board says another: the same for every label whatever its word and its language, which wraps onto a second line instead of being set smaller */
+export const LABEL_HEIGHT = 0.3
 
-/** The most width the lettering takes, in world units: a word that is longer is set smaller, on one line. About two cards and a half across */
-export const LABEL_ROOM = 3
+/** The most width a line of the lettering takes, in world units: a label whose words are wider wraps onto another line, at the same size. About two cards across */
+export const LABEL_ROOM = 2.4
+
+/** The weight of the lettering: lighter than the lettering of the plates, so that a label reads as a hint beside the object it names and not as a title over it */
+export const LABEL_WEIGHT = 500
+
+/** The shadow under the lettering, `colour|blur|offset`: soft, just enough to keep the white letters apart from a light table */
+export const LABEL_SHADOW = "rgba(0,0,0,0.5)|10|3"
+
+/** How opaque the label is: a little see-through at rest, so that it stays in the background of the table, fully so under the pointer and while the object is touched, and dim once it cannot be pressed */
+export const LABEL_OPACITY = { rest: 0.8, raised: 1, disabled: 0.4 } as const
+
+/** The least size of the letters on the screen, in pixels: in a small window the whole table is small, and a label that is a hint at a laptop's size would be too small to read, so it grows until its letters are this high and no more */
+export const LABEL_MIN_PX = 12
 
 /** The arrow, a rounded triangle that points down at the object: its width, its length and the radius of its corners, in world units */
-export const ARROW = { width: 0.44, length: 0.3, round: 0.07 } as const
+export const ARROW = { width: 0.3, length: 0.2, round: 0.05 } as const
 
 /** Between the tip of the arrow and the far edge of the object as the camera sees it, and between the base of the arrow and the lettering, in world units */
-export const LABEL_GAP = { tip: 0.12, lettering: 0.08 } as const
+export const LABEL_GAP = { tip: 0.1, lettering: 0.06 } as const
 
 /** The room an object takes on the table, which the label stands clear of: its width (along its own x), its depth (along its own z), in world units, and how far it is turned about the vertical axis (`yaw`, in radians, the turn of a `Spot`) */
 export type Footprint = { width: number; depth: number; yaw?: number }
@@ -32,7 +44,7 @@ export function reachAlong({ width, depth, yaw = 0 }: Footprint, dx: number, dz:
 }
 
 /** How far the arrow bobs down toward the object, in world units, and how fast, in radians a second. It never goes past the gap that is left between its tip and the object */
-export const BOB = { reach: 0.08, speed: 3.4 } as const
+export const BOB = { reach: 0.06, speed: 3.4 } as const
 
 /** The visible half height of the lettering, a share of its size: from the middle of its plane to the foot of its letters, descenders included */
 const LETTER_HALF = 0.4
@@ -45,34 +57,42 @@ const HIT_BELOW_TIP = 0.06
 const APPEAR_FROM = 0.8
 const GROW = 0.07
 
-/** How much of white is mixed into the colour of the state, at rest and when lifted: the lettering is lighter than the bloom of the object, so that it reads on the table */
-const WHITE = { rest: 0.3, raised: 0.55 }
+/** How much of white is mixed into the colour of the state, at rest and when lifted: the lettering is nearly white, with a tint of the object's bloom, so that it reads on the table and stays apart from the object's own light */
+const WHITE = { rest: 0.85, raised: 0.95 }
 
 const clamp = (n: number) => Math.min(1, Math.max(0, n))
 
-/** The size of the lettering that fits `room`: the one asked for, or smaller when the word is long (a word in another language). `textWidth` is how wide the word is painted, in canvas pixels (`paintText` of `TableText`) */
+/**
+ * The size of the lettering that fits `room`: the one asked for, which is every label's, or smaller only when a line is wider than the room by itself, a single word that cannot be broken (a very long word in another language): the lines are broken, a word is not cut, and a label
+ * whose words are all short enough is the same size as every other. `textWidth` is how wide its widest line is painted, in canvas pixels (`paintText` of `TableText`)
+ */
 export function fitHeight(textWidth: number, room: number, preferred: number): number {
   return Math.min(preferred, (Math.max(0.1, room) * TEXT_PX) / Math.max(1, textWidth))
 }
+
+/** How many canvas pixels a line of the lettering may take for it to be no wider than `room` world units at `height`: what the label breaks its words to (`paintText`'s `room`) */
+export const linePixels = (room: number, height: number): number => (Math.max(0.1, room) * TEXT_PX) / Math.max(0.01, height)
 
 /** Where the parts of a label stand in its own frame: the tip of the arrow is the origin, x runs across and y up, so the label hangs above the tip and the arrow points down at the object under it */
 export type LabelPlan = {
   /** The size of the lettering that is drawn: the one asked for, or smaller for a word that would not fit */
   height: number
-  /** The width the lettering takes at that size */
+  /** The width the lettering takes at that size: its widest line */
   width: number
-  /** How high the middle of the lettering's plane stands above the tip */
+  /** How high the middle of the lettering's plane stands above the tip: the last line is a gap over the arrow and the others hang above it, so a label of several lines grows upward, away from the object */
   letteringY: number
   /** What the pointer reaches: a box round the arrow and the lettering, a little below the tip and no more */
   hit: { x: number; y: number; width: number; height: number }
 }
 
-/** The plan of a label of a word `textWidth` canvas pixels wide, set to fit `room` and no bigger than `preferred` */
-export function labelPlan(textWidth: number, room: number, preferred: number = LABEL_HEIGHT): LabelPlan {
+/** The plan of a label whose widest line is `textWidth` canvas pixels wide, in `lines` lines, set to fit `room` and no bigger than `preferred` */
+export function labelPlan(textWidth: number, room: number, preferred: number = LABEL_HEIGHT, lines = 1): LabelPlan {
   const height = fitHeight(textWidth, room, preferred)
   const width = (textWidth * height) / TEXT_PX
-  const letteringY = ARROW.length + LABEL_GAP.lettering + LETTER_HALF * height
-  const top = letteringY + LETTER_HALF * height + HIT_PAD
+  // from the middle of the last line to the middle of the first
+  const block = Math.max(0, lines - 1) * LINE_PITCH * height
+  const letteringY = ARROW.length + LABEL_GAP.lettering + LETTER_HALF * height + block / 2
+  const top = letteringY + block / 2 + LETTER_HALF * height + HIT_PAD
   const bottom = -HIT_BELOW_TIP
   return { height, width, letteringY, hit: { x: 0, y: (top + bottom) / 2, width: Math.max(width, ARROW.width) + 2 * HIT_PAD, height: top - bottom } }
 }
@@ -91,6 +111,32 @@ export function touchOf(own: Touch, partner: Touch): Touch {
 export function labelColour(interactive: string, hover: string, lift: number, disabled = false): string {
   if (disabled) return mix(interactive, "#808080", 0.7)
   return mix(mix(interactive, "#ffffff", WHITE.rest), mix(hover, "#ffffff", WHITE.raised), clamp(lift))
+}
+
+/** How many pixels of the screen a world unit is at a depth, seen by a perspective camera of `fov` degrees (vertical) through a window `viewportHeight` pixels high: what the camera shows at that depth is `2 * depth * tan(fov / 2)` units high */
+export function unitPixels(fov: number, depth: number, viewportHeight: number): number {
+  return viewportHeight / (2 * Math.max(1e-6, depth) * Math.tan((fov * Math.PI) / 360))
+}
+
+/** How tall the letters of a label of this `height` are on the screen, in pixels, when a world unit is `pixelsPerUnit` pixels: the font is painted `EM` of the lettering's size high, a canvas pixel being `height / TEXT_PX` units */
+const EM = 140 / TEXT_PX
+export const lettersPixels = (height: number, pixelsPerUnit: number): number => EM * height * pixelsPerUnit
+
+/**
+ * How much bigger than its size the label is drawn so that its letters are `LABEL_MIN_PX` high on the screen at least: 1 whenever they are as high already, which is every window but a very small one. It never makes the label wider than its room (`room`, world
+ * units, against `width`, how wide its widest line is at its size), so that two labels side by side never touch however small the window: the room is the one thing that holds, and the letters are only as legible as it leaves them.
+ */
+export function readableBoost(height: number, pixelsPerUnit: number, width: number, room: number): number {
+  const letters = lettersPixels(height, pixelsPerUnit)
+  const wanted = letters > 0 ? LABEL_MIN_PX / letters : 1
+  const most = Math.max(1, room / Math.max(1e-6, width))
+  return Math.min(Math.max(1, wanted), most)
+}
+
+/** How opaque the label and its arrow are, 0 to 1: `LABEL_OPACITY.rest` at rest, up to `LABEL_OPACITY.raised` as the label lifts (`lift`, 0 to 1), and `LABEL_OPACITY.disabled` once disabled */
+export function labelOpacity(lift: number, disabled = false): number {
+  if (disabled) return LABEL_OPACITY.disabled
+  return LABEL_OPACITY.rest + (LABEL_OPACITY.raised - LABEL_OPACITY.rest) * clamp(lift)
 }
 
 /** How far down toward the object the arrow stands, in world units. At rest it bobs between its place and `BOB.reach` below it, and as the label lifts it settles at `BOB.reach`, as if it leaned on the object. With reduced motion it does not bob: it is in its place, and at `BOB.reach` when lifted */
