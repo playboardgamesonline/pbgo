@@ -13,10 +13,12 @@ import { copyButton, debugTab, useControls } from "@pbgo/core/components/game/de
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import { Aura, Card, type CardState, effectiveState, FACE_DOWN, FloorButton, HELD_FAN_FIELDS, HELD_FAN_SETTINGS, HeldHand, Hotspot, lean, LightPool, NO_TOUCH, onTable, Pile, type Pose, Playmat, PlayerSeat, SCREEN_HAND_FIELDS, ScreenHand, type ScreenHandView, type ScreenPointer, screenHandLayout, type SurfaceProps, Table, type Touch, useSettings, useSettingsVersion, Veil, Zone, type ZoneCard } from "@pbgo/table"
 import {
+  CARD_SCALE,
   CARD_SIZE,
   DH,
   DL,
   MISSION_H,
+  MISSION_SCALE,
   MISSION_SIZE,
   MISSION_W,
   DRAW_PILE,
@@ -89,13 +91,16 @@ type Transient = {
 
 const EMPTY: string[] = []
 
-/** Where the cards of a pile come in from, above it, when the pile is put on the mat */
-const PILE_ENTRY = (x: number, z: number) => onTable(x, z, { y: 3, face: "down" })
+/** Where the cards of a pile come in from, above it, when the pile is put on the mat: they are the size they land at */
+const PILE_ENTRY = (x: number, z: number, scale: number) => onTable(x, z, { y: 3, face: "down", scale })
+
+/** The knobs of the small fans of the others' hands but their card size: every card of the table is `CARD_SCALE`, the one number of the layout (`HELD_SETTINGS` of `layout.ts`) */
+const HELD_HAND_FIELDS = Object.fromEntries(Object.entries(HELD_FAN_FIELDS).filter(([key]) => key !== "scale"))
 
 function LayoutSettings() {
   // The viewer's hand is held at the bottom left of the screen: the Hand folder tunes it, as the Held hands folder tunes the small fans of the others
   useSettings("Hand", HAND_SETTINGS, SCREEN_HAND_FIELDS, { order: 2 })
-  useSettings("Held hands", HELD_FAN_SETTINGS, HELD_FAN_FIELDS, { order: 3 })
+  useSettings("Held hands", HELD_FAN_SETTINGS, HELD_HAND_FIELDS, { order: 3 })
   return <LaneSettings />
 }
 
@@ -567,10 +572,10 @@ function World({
           count={MISSION_PILE.size}
           size={MISSION_SIZE}
           back={tex.missionBack(missions[0]!)}
-          scale={MISSION_PILE.scale}
+          scale={MISSION_SCALE}
           step={MISSION_PILE.spacing}
           label={false}
-          enter={flow ? PILE_ENTRY(MISSION_PILE.x, MISSION_PILE.z) : undefined}
+          enter={flow ? PILE_ENTRY(MISSION_PILE.x, MISSION_PILE.z, MISSION_SCALE) : undefined}
           stagger={0.05}
         />
       )}
@@ -580,11 +585,12 @@ function World({
           count={view.deckCount}
           size={CARD_SIZE}
           back={tex.back}
+          scale={CARD_SCALE}
           limit={60}
           step={LAYOUT_SETTINGS.deckSpacing}
           lean="pioche"
           leanAmplitude={0.04}
-          enter={flow ? PILE_ENTRY(DRAW_PILE.x, DRAW_PILE.z) : undefined}
+          enter={flow ? PILE_ENTRY(DRAW_PILE.x, DRAW_PILE.z, CARD_SCALE) : undefined}
           stagger={0.015}
         />
       )}

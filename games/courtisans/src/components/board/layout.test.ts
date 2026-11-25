@@ -1,19 +1,23 @@
 import type { PlayerView, VisibleCard } from "@courtisans/engine"
-import { aspectScale, cornersOfBox, frameBoxOfPoses, placeCamera, plateAbove, plateBoxOf, type Place, polygonsOverlap, SEAT_SETTINGS, type TableBox } from "@pbgo/table"
+import { aspectScale, cornersOfBox, frameBoxOfPoses, HELD_FAN_SETTINGS, inFrame, placeCamera, plateAbove, plateBoxOf, type Place, polygonsOverlap, SEAT_SETTINGS, type TableBox } from "@pbgo/table"
 import { PerspectiveCamera, Vector3 } from "three"
 import { describe, expect, it } from "vitest"
 import { CAMERA } from "./camera"
 import {
   arrangeDomain,
-  CARD_H,
+  CARD_SCALE,
   CARD_SIZE,
-  CARD_W,
   columnX,
+  deckTopPose,
   DH,
   DL,
   DRAW_PILE,
   domainBox,
+  HAND_MAX,
   handBox,
+  HELD_SHADOW,
+  heldFrame,
+  heldFrom,
   heldLayout,
   seatHotspot,
   laneArea,
@@ -21,6 +25,9 @@ import {
   MAT_W,
   MISSION_H,
   MISSION_PILE,
+  missionPilePose,
+  missionRestPose,
+  MISSION_SCALE,
   MISSION_W,
   BUTTON_PAD,
   type Seat,
@@ -60,8 +67,8 @@ function rectangle(x: number, z: number, width: number, depth: number, yaw = 0):
 }
 
 const MAT = rectangle(0, 0, MAT_W, MAT_D)
-const DRAW = rectangle(DRAW_PILE.x, DRAW_PILE.z, CARD_W, CARD_H)
-const MISSIONS = rectangle(MISSION_PILE.x, MISSION_PILE.z, MISSION_W * MISSION_PILE.scale, MISSION_H * MISSION_PILE.scale)
+const DRAW = rectangle(DRAW_PILE.x, DRAW_PILE.z, DL, DH)
+const MISSIONS = rectangle(MISSION_PILE.x, MISSION_PILE.z, MISSION_W * MISSION_SCALE, MISSION_H * MISSION_SCALE)
 
 /** What a seat covers of the table, each as a polygon in the world */
 function shapesOf(seat: Seat) {
@@ -156,7 +163,7 @@ describe("the line of a seat", () => {
           for (const level of ["up", "down"] as const) {
             for (let rank = 0; rank < 2; rank++) {
               const pose = tablePose(column, level, rank)
-              const card = rectangle(pose.position.x, pose.position.z, CARD_W, CARD_H)
+              const card = rectangle(pose.position.x, pose.position.z, DL, DH)
               expect(polygonsOverlap(plate, card), `${label}: the plate of ${id} and ${column} ${level} ${rank}`).toBe(false)
             }
           }
@@ -298,5 +305,92 @@ describe("the lanes and the button of the Queen's table", () => {
         expect(Math.abs(shown.y), `at ${aspect}`).toBeLessThan(0.99)
       }
     }
+  })
+})
+
+describe("the cards that lie on the table", () => {
+  const COLUMNS = ["butterfly", "toad", "nightingale", "queen", "hare", "stag", "carp"] as const
+  const family = (f: VisibleCard["family"], id: number): VisibleCard => ({ id, family: f, role: null })
+  // Every family, some of them twice, so that a domain has piles of every kind: closed, spread open, and with cards turned over
+  const DOMAIN: VisibleCard[] = (["butterfly", "toad", "toad", "nightingale", "hare", "hare", "stag", "carp"] as const).map((f, i) => family(f, i))
+
+  it("are all of one size, as at a real table: the Queen's table, the draw pile, every domain and the hands that the opponents hold", () => {
+    const wrong: string[] = []
+    const check = (what: string, scale: number) => {
+      if (Math.abs(scale - CARD_SCALE) > 1e-9) wrong.push(`${what}: ${scale}`)
+    }
+    for (const column of COLUMNS) for (const level of ["up", "down"] as const) for (let rank = 0; rank < 4; rank++) check(`the Queen's table, ${column} ${level} ${rank}`, tablePose(column, level, rank, rank).scale)
+    for (const n of [0, 1, 30, 60, 90]) check(`the draw pile at ${n}`, deckTopPose(n).scale)
+    for (const { label, seats: places } of everyTable()) {
+      for (const [id, seat] of places) {
+        for (const pose of arrangeDomain(seat, DOMAIN).poses.values()) check(`${label}: the domain of ${id}`, pose.scale)
+        for (const pose of arrangeDomain(seat, DOMAIN, "toad", new Set([0, 3]), 1).poses.values()) check(`${label}: the domain of ${id}, a pile open, another lifted, two cards turned over`, pose.scale)
+        if (seat.viewer) continue
+        for (let n = 1; n <= HAND_MAX; n++) {
+          for (const pose of heldLayout(n, seat)) check(`${label}: a hand of ${n} of ${id}`, pose.scale)
+          check(`${label}: where a card played from a hand of ${n} of ${id} flies from`, heldFrom(seat, n).scale)
+        }
+      }
+    }
+    expect(wrong).toEqual([])
+  })
+
+  it("are of one size at every table: it does not depend on the players, the mat and the camera being fixed", () => {
+    const scales = new Set(everyTable().flatMap(({ seats: places }) => [...places.values()].flatMap((seat) => [...arrangeDomain(seat, DOMAIN).poses.values()].map((pose) => pose.scale))))
+    expect([...scales]).toEqual([CARD_SCALE])
+  })
+
+  it("keep the missions that lie on the table as wide as a courtier, in the pile they are dealt from and at rest, face down and face up", () => {
+    const seat = seats(viewOf(3, "p0")).get("p1")!
+    const { zone } = arrangeDomain(seat, DOMAIN)
+    const poses = [missionPilePose(0), missionPilePose(MISSION_PILE.size + 3), missionRestPose(zone, 0, "m"), missionRestPose(zone, 1, "m", true)]
+    for (const pose of poses) expect(MISSION_W * pose.scale).toBeCloseTo(DL, 9)
+    expect(MISSION_W * MISSION_SCALE).toBeCloseTo(DL, 9)
+  })
+
+  it("are no bigger than the mat lets them be: the cards of two neighbouring columns of the Queen's table stay a hair apart", () => {
+    const columns = COLUMNS.map((column) => ({ column, pose: tablePose(column, "up", 0) }))
+    for (let i = 1; i < columns.length; i++) {
+      const [a, b] = [columns[i - 1]!, columns[i]!]
+      const shape = (c: typeof a) => rectangle(c.pose.position.x, c.pose.position.z, DL, DH)
+      expect(polygonsOverlap(shape(a), shape(b), 0.1), `${a.column} and ${b.column}`).toBe(false)
+    }
+  })
+})
+
+describe("the hands that the opponents hold", () => {
+  it("have a round shadow that is the size of their fan: no smaller than its footprint and not much larger", () => {
+    for (let n = 1; n <= HAND_MAX; n++) {
+      const half = ((n - 1) * HELD_FAN_SETTINGS.gap + DL) / 2
+      expect(HELD_SHADOW.radius(n) / half, `a hand of ${n}`).toBeGreaterThan(0.9)
+      expect(HELD_SHADOW.radius(n) / half, `a hand of ${n}`).toBeLessThan(1.75)
+    }
+  })
+
+  it("stand in the picture, card by card as the camera sees them and not only as the boxes that hold them, at every window", () => {
+    const outside: string[] = []
+    for (const aspect of [1.33, 1.6, 1.78, 2.4]) {
+      const camera = new PerspectiveCamera(CAMERA.fov, aspect, 0.1, 200)
+      placeCamera(camera, CAMERA, { distanceScale: aspectScale(aspect) })
+      camera.updateProjectionMatrix()
+      camera.updateMatrixWorld()
+      for (const { label, seats: places } of everyTable()) {
+        for (const [id, seat] of places) {
+          if (seat.viewer) continue
+          for (let n = 1; n <= HAND_MAX; n++) {
+            for (const [k, given] of heldLayout(n, seat).entries()) {
+              const pose = inFrame(heldFrame(seat), given)
+              for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
+                const corner = new Vector3((sx * CARD_SIZE.width) / 2, (sy * CARD_SIZE.height) / 2, 0).multiplyScalar(pose.scale).applyQuaternion(pose.quaternion).add(pose.position)
+                const shown = corner.project(camera)
+                // a hair of air round the window
+                if (Math.abs(shown.x) >= 0.98 || Math.abs(shown.y) >= 0.98) outside.push(`${label} at ${aspect}: card ${k + 1} of a hand of ${n} of ${id} at (${shown.x.toFixed(3)}, ${shown.y.toFixed(3)})`)
+              }
+            }
+          }
+        }
+      }
+    }
+    expect(outside).toEqual([])
   })
 })
