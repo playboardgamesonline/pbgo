@@ -5,7 +5,7 @@ import { type CardSize, faceResolution, type MatLayer, standIn, type SurfaceProp
 import { use } from "react"
 import { CanvasTexture, SRGBColorSpace, type Texture } from "three"
 import type { ClientCatalog } from "../../lib/catalog"
-import { GLOW_STRENGTH, MOSAIC, RAINBOW } from "../../lib/palette"
+import { MOSAIC } from "../../lib/palette"
 import { CARD } from "./layout"
 
 /** Width and height of a card in world units: the same for every card of the game (the faces of Sanity are 296 by 476) */
@@ -79,16 +79,16 @@ const MAT_LAYERS: readonly MatLayer[] = [{ kind: "mosaic", ...MOSAIC }]
 /** How many world units one repeat of the mosaic covers: nine cells across, so a cell is about half a world unit, a bit more than a card's width */
 const MAT_TILE = 5
 
-/** How far the pool of light spreads, in world units: past it the table is the plain colour it fades into */
-const MAT_LIGHT_RADIUS = 22
+/** How far the pool of light spreads, in world units: past it the table is the plain colour it fades into. The window of a table of three reaches about 11 of them from the middle, so the green is the middle of the screen and the teal its edges: a wider pool keeps the table green all over */
+const MAT_LIGHT_RADIUS = 14
 
 /**
- * The mat the table lies on, as data for the shared `Table`: the dark end of the rainbow of the card back, a deep indigo felt (`surfaceDark` of the game's settings) under the mosaic, lit in the middle by a pool of the violet of `surface` with the faint rainbow
- * of the card back (`RAINBOW`) turning through it. The colours are the settings', so changing them in the gamemaster changes the mat.
+ * The mat the table lies on, as data for the shared `Table`: a deep teal felt (`surfaceDark` of the game's settings) under the mosaic, lit in the middle by a pool of the green of `surface`, so that the table goes from that green to that teal as it moves
+ * away from the piles. The colours are the settings', so changing them in the gamemaster changes the mat.
  */
 export const matOf = ({ surface, surfaceDark }: { surface: string; surfaceDark: string }): SurfaceProps => ({
   color: surfaceDark,
   layers: MAT_LAYERS,
   tile: MAT_TILE,
-  light: { center: surface, radius: MAT_LIGHT_RADIUS, glow: { colors: RAINBOW, strength: GLOW_STRENGTH } },
+  light: { center: surface, radius: MAT_LIGHT_RADIUS },
 })
