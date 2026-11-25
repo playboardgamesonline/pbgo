@@ -1,7 +1,31 @@
 import { describe, expect, it } from "vitest"
 import { NO_TOUCH } from "../card/states"
-import { TEXT_PX } from "../seat/text-px"
-import { ARROW, arrowOffset, arrowOutline, BOB, fitHeight, LABEL_GAP, LABEL_HEIGHT, LABEL_ROOM, labelColour, labelPlan, labelScale, pointerTouch, reachAlong, touchOf } from "./label-look"
+import { LETTERING_WEIGHT } from "../lettering"
+import { LINE_PITCH, TEXT_PX } from "../seat/text-px"
+import {
+  ARROW,
+  arrowOffset,
+  arrowOutline,
+  BOB,
+  fitHeight,
+  LABEL_GAP,
+  LABEL_HEIGHT,
+  LABEL_OPACITY,
+  LABEL_ROOM,
+  LABEL_WEIGHT,
+  LABEL_MIN_PX,
+  labelColour,
+  labelOpacity,
+  labelPlan,
+  labelScale,
+  lettersPixels,
+  linePixels,
+  pointerTouch,
+  reachAlong,
+  readableBoost,
+  touchOf,
+  unitPixels,
+} from "./label-look"
 
 describe("how large the lettering is", () => {
   it("is the size asked for when the word fits the room", () => {
@@ -18,6 +42,28 @@ describe("how large the lettering is", () => {
   it("is never nothing, whatever the room or the word", () => {
     expect(fitHeight(0, 3, 0.55)).toBe(0.55)
     expect(fitHeight(100 * TEXT_PX, 0, 0.55)).toBeGreaterThan(0)
+  })
+
+  it("is the size asked for whenever the widest line fits the room, whatever the words: a long label wraps, it is not set smaller", () => {
+    // once its words are broken a label's widest line is no wider than the room, so every label is drawn at the same size
+    const fits = linePixels(LABEL_ROOM, LABEL_HEIGHT)
+    for (const textWidth of [1, 0.2 * fits, 0.6 * fits, fits]) expect(fitHeight(textWidth, LABEL_ROOM, LABEL_HEIGHT)).toBeCloseTo(LABEL_HEIGHT, 10)
+  })
+
+  it("is smaller only for a word that is wider than the room by itself, which a label cannot break", () => {
+    expect(fitHeight(linePixels(LABEL_ROOM, LABEL_HEIGHT) * 1.5, LABEL_ROOM, LABEL_HEIGHT)).toBeLessThan(LABEL_HEIGHT)
+  })
+})
+
+describe("how many canvas pixels a line may take", () => {
+  it("is the room in the pixels of the lettering at its size", () => {
+    // a canvas pixel is `height / TEXT_PX` world units
+    expect((linePixels(2.4, 0.3) * 0.3) / TEXT_PX).toBeCloseTo(2.4)
+  })
+
+  it("is fewer for taller letters, and never nothing", () => {
+    expect(linePixels(2.4, 0.6)).toBeLessThan(linePixels(2.4, 0.3))
+    for (const [room, height] of [[0, 0.3], [-1, 0.3], [2.4, 0]] as const) expect(linePixels(room, height)).toBeGreaterThan(0)
   })
 })
 
@@ -56,6 +102,38 @@ describe("the plan of a label", () => {
 
   it("is centred across the label, over the object", () => {
     expect(labelPlan(4 * TEXT_PX, LABEL_ROOM).hit.x).toBe(0)
+  })
+
+  it("grows upward with its lines, away from the object: the last line stays a gap over the arrow and the others hang above it", () => {
+    const one = labelPlan(4 * TEXT_PX, LABEL_ROOM, LABEL_HEIGHT, 1)
+    const two = labelPlan(4 * TEXT_PX, LABEL_ROOM, LABEL_HEIGHT, 2)
+    const three = labelPlan(4 * TEXT_PX, LABEL_ROOM, LABEL_HEIGHT, 3)
+    // the plane of the lettering is centred on its block, so each line added lifts the middle by half a line
+    expect(two.letteringY - one.letteringY).toBeCloseTo((LINE_PITCH * LABEL_HEIGHT) / 2)
+    expect(three.letteringY - two.letteringY).toBeCloseTo((LINE_PITCH * LABEL_HEIGHT) / 2)
+    // the last line, half a block under the middle, stands where the only line of a label of one line does
+    expect(two.letteringY - (LINE_PITCH * LABEL_HEIGHT) / 2).toBeCloseTo(one.letteringY)
+    expect(three.letteringY - LINE_PITCH * LABEL_HEIGHT).toBeCloseTo(one.letteringY)
+  })
+
+  it("is a label of one line when it is given no lines, or none", () => {
+    expect(labelPlan(4 * TEXT_PX, LABEL_ROOM)).toEqual(labelPlan(4 * TEXT_PX, LABEL_ROOM, LABEL_HEIGHT, 1))
+    expect(labelPlan(4 * TEXT_PX, LABEL_ROOM, LABEL_HEIGHT, 0)).toEqual(labelPlan(4 * TEXT_PX, LABEL_ROOM, LABEL_HEIGHT, 1))
+  })
+
+  it("reaches all the lines with the pointer and still stops short of the object, whatever their number", () => {
+    for (const lines of [1, 2, 3]) {
+      const plan = labelPlan(6 * TEXT_PX, LABEL_ROOM, LABEL_HEIGHT, lines)
+      const top = plan.hit.y + plan.hit.height / 2
+      const bottom = plan.hit.y - plan.hit.height / 2
+      // the middle of the first line is half a block over the middle of the plane, and its capitals reach 0.4 of the size above it
+      expect(top).toBeGreaterThan(plan.letteringY + ((lines - 1) * LINE_PITCH * plan.height) / 2 + 0.4 * plan.height)
+      expect(bottom).toBeGreaterThan(-LABEL_GAP.tip)
+    }
+  })
+
+  it("is the same size for a label of two lines as for one: wrapping adds a line, never shrinks the letters", () => {
+    expect(labelPlan(5 * TEXT_PX, LABEL_ROOM, LABEL_HEIGHT, 2).height).toBe(labelPlan(TEXT_PX, LABEL_ROOM, LABEL_HEIGHT, 1).height)
   })
 })
 
@@ -152,6 +230,88 @@ describe("the colour of a label", () => {
 
   it("is always #rrggbb", () => {
     for (const lift of [0, 0.4, 1]) expect(labelColour(ACCENT, HOVER, lift)).toMatch(/^#[0-9a-f]{6}$/)
+  })
+})
+
+describe("the look of a label", () => {
+  const ACCENT = "#4aa8f0"
+  const HOVER = "#7fc4ff"
+  const channels = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+
+  it("is nearly white at rest, with only a tint of the object's colour: at most a quarter of the way from white to it", () => {
+    const rest = channels(labelColour(ACCENT, HOVER, 0))
+    channels(ACCENT).forEach((accent, i) => expect(255 - rest[i]!).toBeLessThanOrEqual(0.25 * (255 - accent)))
+  })
+
+  it("is lighter than the lettering of the plates, so that it stays in the background", () => {
+    expect(LABEL_WEIGHT).toBeLessThan(LETTERING_WEIGHT)
+  })
+
+  it("is a little see-through at rest and opaque under the pointer", () => {
+    expect(LABEL_OPACITY.rest).toBeLessThan(1)
+    expect(LABEL_OPACITY.raised).toBe(1)
+    expect(labelOpacity(0)).toBe(LABEL_OPACITY.rest)
+    expect(labelOpacity(1)).toBe(LABEL_OPACITY.raised)
+  })
+
+  it("brightens as it lifts, and holds a lift outside 0 to 1 at its ends", () => {
+    expect(labelOpacity(0.5)).toBeGreaterThan(labelOpacity(0))
+    expect(labelOpacity(0.5)).toBeLessThan(labelOpacity(1))
+    expect(labelOpacity(7)).toBe(labelOpacity(1))
+    expect(labelOpacity(-3)).toBe(labelOpacity(0))
+  })
+
+  it("is dim once disabled, whatever the lift, and dimmer than at rest", () => {
+    expect(labelOpacity(1, true)).toBe(LABEL_OPACITY.disabled)
+    expect(labelOpacity(0, true)).toBe(LABEL_OPACITY.disabled)
+    expect(LABEL_OPACITY.disabled).toBeLessThan(LABEL_OPACITY.rest)
+  })
+})
+
+describe("how many pixels a world unit is", () => {
+  it("is the window's height over what the camera shows at that depth", () => {
+    // a camera of 90 degrees shows 2 units at a depth of 1 and 20 at a depth of 10
+    expect(unitPixels(90, 1, 800)).toBeCloseTo(400)
+    expect(unitPixels(90, 10, 800)).toBeCloseTo(40)
+  })
+
+  it("is fewer further away and in a smaller window", () => {
+    expect(unitPixels(34, 14, 900)).toBeLessThan(unitPixels(34, 7, 900))
+    expect(unitPixels(34, 7, 600)).toBeLessThan(unitPixels(34, 7, 900))
+  })
+
+  it("never divides by nothing", () => {
+    expect(Number.isFinite(unitPixels(34, 0, 900))).toBe(true)
+  })
+})
+
+describe("how readable a label stays in a small window", () => {
+  it("is not made bigger when its letters are as high as they need to be already, which is the case of every window but a very small one", () => {
+    expect(readableBoost(LABEL_HEIGHT, 75, 1, LABEL_ROOM)).toBe(1)
+    expect(lettersPixels(LABEL_HEIGHT, 75)).toBeGreaterThan(LABEL_MIN_PX)
+  })
+
+  it("grows until its letters are as high as the least that reads", () => {
+    const small = 25
+    const boost = readableBoost(LABEL_HEIGHT, small, 0.8, LABEL_ROOM)
+    expect(boost).toBeGreaterThan(1)
+    expect(lettersPixels(LABEL_HEIGHT, small) * boost).toBeCloseTo(LABEL_MIN_PX)
+  })
+
+  it("grows more the smaller the window is", () => {
+    expect(readableBoost(LABEL_HEIGHT, 20, 0.8, LABEL_ROOM)).toBeGreaterThan(readableBoost(LABEL_HEIGHT, 30, 0.8, LABEL_ROOM))
+  })
+
+  it("never makes a line wider than its room, so that two labels side by side never touch: a line as wide as the room does not grow", () => {
+    expect(readableBoost(LABEL_HEIGHT, 10, LABEL_ROOM, LABEL_ROOM)).toBe(1)
+    // a line half as wide as the room can double at most
+    expect(readableBoost(LABEL_HEIGHT, 10, LABEL_ROOM / 2, LABEL_ROOM)).toBeCloseTo(2)
+  })
+
+  it("is 1 for a label with no size and a window with no pixels", () => {
+    expect(readableBoost(0, 25, 1, LABEL_ROOM)).toBe(1)
+    expect(readableBoost(LABEL_HEIGHT, 0, 1, LABEL_ROOM)).toBeGreaterThanOrEqual(1)
+    expect(Number.isFinite(readableBoost(LABEL_HEIGHT, 0, 1, LABEL_ROOM))).toBe(true)
   })
 })
 

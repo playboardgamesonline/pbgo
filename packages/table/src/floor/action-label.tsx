@@ -4,13 +4,32 @@ import { usePrefersReducedMotion } from "@pbgo/core/lib/use-motion"
 import { Billboard, useCursor } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { type Group, type Mesh, type MeshBasicMaterial, Shape, ShapeGeometry, Vector2, Vector3 } from "three"
+import { type Group, type Mesh, type MeshBasicMaterial, PerspectiveCamera, Shape, ShapeGeometry, Vector2, Vector3 } from "three"
 import { NO_TOUCH, type Touch } from "../card/states"
 import { useCardBlooms } from "../card/theme"
 import { useLettering } from "../lettering"
 import { RESTING_HEIGHT } from "../pose"
 import { paintText, useFontReady } from "../seat/table-text"
-import { arrowOffset, arrowOutline, type Footprint, LABEL_GAP, LABEL_HEIGHT, LABEL_ROOM, labelColour, labelPlan, labelScale, pointerTouch, reachAlong, touchOf } from "./label-look"
+import {
+  arrowOffset,
+  arrowOutline,
+  type Footprint,
+  LABEL_GAP,
+  LABEL_HEIGHT,
+  LABEL_ROOM,
+  LABEL_SHADOW,
+  LABEL_WEIGHT,
+  labelColour,
+  labelOpacity,
+  labelPlan,
+  labelScale,
+  linePixels,
+  pointerTouch,
+  reachAlong,
+  readableBoost,
+  touchOf,
+  unitPixels,
+} from "./label-look"
 import { liftTarget, stepLift } from "./lift"
 
 export type ActionLabelProps = {
@@ -28,19 +47,17 @@ export type ActionLabelProps = {
   touch?: Touch
   /** Told what the visitor does to the label, every time it changes, and `NO_TOUCH` when the label goes: the board states the object from it (`effectiveState`), so that the object lights as the label does */
   onTouch?: (touch: Touch) => void
-  /** The size of the lettering in world units (default `LABEL_HEIGHT`); a word too long for `room` is set smaller to fit it, on one line */
+  /** The size of the lettering in world units (default `LABEL_HEIGHT`, the same for every label): words that are too long for `room` wrap onto another line at this size, they are not set smaller */
   labelHeight?: number
-  /** The most width the lettering takes, in world units (default `LABEL_ROOM`): the room between the label and the next thing it would touch, which is another label when two objects are side by side */
+  /** The most width a line of the lettering takes, in world units (default `LABEL_ROOM`): the room between the label and the next thing it would touch, which is another label when two objects are side by side. A label whose words are wider than this wraps onto a second line */
   room?: number
   /** How far the object rises when it is lifted under the pointer, in world units (default 0): the label rises as far with it, so that the object never covers it. `cardRise` gives it for a card */
   rise?: number
 }
 
-const SHADOW = "rgba(0,0,0,0.7)|14|4"
-/** The camera's up in the table's frame, kept between frames so that a frame allocates nothing */
+/** The camera's up in the table's frame, and the place of the label's tip in the camera's frame, kept between frames so that a frame allocates nothing */
 const UP = new Vector3()
-/** How dim a label that cannot be pressed is */
-const DIM = 0.5
+const TIP = new Vector3()
 
 /**
  * The word that says what pressing an object does: "Draw" over the draw pile, "Take the discard" over the discard. It floats above the object, facing the camera (`Billboard`), with a small arrow under it that points down at the object and bobs toward it, and it is
@@ -62,15 +79,16 @@ export function ActionLabel({ at, over, label, onPress, disabled = false, touch 
   const [pressed, setPressed] = useState(false)
   useCursor(hovered && pressable)
 
-  // The lettering, painted white with its shadow: the material gives it its colour
+  // The lettering, painted white with its shadow, in as many lines as its words need to stay within the room at the size asked for: the material gives it its colour
   const fontReady = useFontReady(letters.display)
+  const linePx = linePixels(room, labelHeight)
   const lettering = useMemo(
-    () => paintText(label, { color: "#ffffff", weight: letters.weight, shadow: SHADOW }, letters.display),
+    () => paintText(label, { color: "#ffffff", weight: LABEL_WEIGHT, shadow: LABEL_SHADOW }, letters.display, linePx),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [label, letters.weight, letters.display, fontReady],
+    [label, letters.display, fontReady, linePx],
   )
   useEffect(() => () => lettering.texture.dispose(), [lettering])
-  const plan = useMemo(() => labelPlan(lettering.textWidth, room, labelHeight), [lettering.textWidth, room, labelHeight])
+  const plan = useMemo(() => labelPlan(lettering.textWidth, room, labelHeight, lettering.lines.length), [lettering.textWidth, lettering.lines.length, room, labelHeight])
   const planeHeight = plan.height * lettering.scale
   const outline = useMemo(() => new ShapeGeometry(new Shape(arrowOutline().map(([x, y]) => new Vector2(x, y)))), [])
   useEffect(() => () => outline.dispose(), [outline])
@@ -98,7 +116,7 @@ export function ActionLabel({ at, over, label, onPress, disabled = false, touch 
   const appear = useRef(0)
   const lift = useRef(0)
   const painted = useRef("")
-  useFrame(({ clock, camera }, dt) => {
+  useFrame(({ clock, camera, size }, dt) => {
     const group = root.current
     const tip = hang.current
     if (!group || !tip) return
@@ -110,10 +128,16 @@ export function ActionLabel({ at, over, label, onPress, disabled = false, touch 
     // keeps the screen's own column: the label is centred over the object as the camera sees it, which a point on the object's far edge, skewed by the perspective, is not. It grows about the tip, so it never leans into the object
     UP.set(0, 1, 0).applyQuaternion(camera.quaternion)
     tip.position.y = (over ? reachAlong(over, UP.x, UP.z) : 0) + LABEL_GAP.tip
-    tip.scale.setScalar(labelScale(appear.current, lift.current))
+    // In a small window the whole table is small: the label grows, about its tip, until its letters are readable, and never past its room
+    let boost = 1
+    if (camera instanceof PerspectiveCamera) {
+      tip.getWorldPosition(TIP).applyMatrix4(camera.matrixWorldInverse)
+      if (TIP.z < 0) boost = readableBoost(plan.height, unitPixels(camera.fov, -TIP.z, size.height), plan.width, room)
+    }
+    tip.scale.setScalar(labelScale(appear.current, lift.current) * boost)
     // The arrow bobs down toward the object
     if (arrow.current) arrow.current.position.y = disabled ? 0 : -arrowOffset(clock.elapsedTime, lift.current, reduced)
-    const opacity = appear.current * (disabled ? DIM : 1)
+    const opacity = appear.current * labelOpacity(lift.current, disabled)
     const colour = labelColour(blooms.interactive.color, blooms.hover.color, lift.current, disabled)
     if (colour !== painted.current) {
       painted.current = colour

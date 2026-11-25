@@ -4,7 +4,8 @@ import { useCursor } from "@react-three/drei"
 import { type ThreeEvent, useFrame } from "@react-three/fiber"
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { CanvasTexture, type MeshBasicMaterial, SRGBColorSpace } from "three"
-import { fitScale, TEXT_PX } from "./text-px"
+import { fitScale, LINE_PITCH, TEXT_PX } from "./text-px"
+import { widest, wrapText } from "./text-wrap"
 
 /** The font of the lettering on the table unless a game gives its own */
 export const TABLE_FONT = 'ui-rounded, "Avenir Next", "Nunito", system-ui, sans-serif'
@@ -35,20 +36,24 @@ function measuring(style: Pick<TextStyle, "weight" | "spacing">, font: string) {
 }
 
 /**
- * Paints a lettering on a canvas and makes a texture of it: the texture, its aspect ratio, the scale that turns a `height` into the plane's height, the width of the text alone, in canvas pixels (`TEXT_PX` of them make a `height`), and how far below the canvas centre the middle of the font's capitals lies (`capShift`, in the same pixels).
+ * Paints a lettering on a canvas and makes a texture of it: the texture, its aspect ratio, the scale that turns a `height` into the plane's height, the width of the text alone (of its widest line), in canvas pixels (`TEXT_PX` of them make a `height`), how far below the canvas centre the middle of the font's capitals lies (`capShift`, in the same pixels) and the lines it is painted in.
  * `TableText` draws it on a plane; a block that tints the lettering itself, as the action label does, paints it white and colours the material.
+ * The text is one line unless it is given a `room`, the most width a line takes in canvas pixels: a text wider than that is broken at its spaces (`wrapText`) and its lines hang centred one under the other, at the same size, a `LINE_PITCH` apart. A lettering that must not grow wider than its room wraps instead of shrinking, so that every one of them is the size it was asked for.
  */
-export function paintText(text: string, style: TextStyle, font: string) {
+export function paintText(text: string, style: TextStyle, font: string, room?: number) {
   const measure = measuring(style, font)
   const margin = style.bloom || style.aura ? 110 : 60
-  const textWidth = measure.measureText(text).width
+  const widthOf = (line: string) => measure.measureText(line).width
+  const lines = room === undefined ? [text] : wrapText(text, widthOf, room)
+  const textWidth = widest(lines, widthOf)
+  const pitch = TEXT_PX * LINE_PITCH
   // the capitals are not centred on the em-box's middle, which is where the text is anchored, in every font: this is how far below the canvas centre their own middle lies
   measure.textBaseline = "middle"
   const capitals = measure.measureText("H")
   const capShift = (capitals.actualBoundingBoxDescent - capitals.actualBoundingBoxAscent) / 2
   const canvas = document.createElement("canvas")
   canvas.width = Math.ceil(textWidth + margin * 2)
-  canvas.height = Math.ceil(SIZE * 1.35 + margin)
+  canvas.height = Math.ceil(SIZE * 1.35 + margin + pitch * (lines.length - 1))
   const ctx = canvas.getContext("2d")!
   ctx.font = measure.font
   ctx.letterSpacing = measure.letterSpacing
@@ -57,6 +62,8 @@ export function paintText(text: string, style: TextStyle, font: string) {
   ctx.lineJoin = "round"
   const x = canvas.width / 2
   const y = canvas.height / 2
+  // the lines hang centred on the canvas, one pitch apart, and every effect is painted for each of them
+  const each = (paint: (line: string, lineY: number) => void) => lines.forEach((line, i) => paint(line, y + (i - (lines.length - 1) / 2) * pitch))
   if (style.glow) {
     ctx.shadowColor = style.glow
     ctx.shadowBlur = 45
@@ -64,7 +71,7 @@ export function paintText(text: string, style: TextStyle, font: string) {
   if (style.outline) {
     ctx.lineWidth = 24
     ctx.strokeStyle = style.outline
-    ctx.strokeText(text, x, y)
+    each((line, lineY) => ctx.strokeText(line, x, lineY))
   }
   ctx.shadowBlur = 0
   if (style.bloom) {
@@ -77,7 +84,7 @@ export function paintText(text: string, style: TextStyle, font: string) {
     ] as const) {
       ctx.globalAlpha = alpha
       ctx.shadowBlur = blur
-      ctx.fillText(text, x, y)
+      each((line, lineY) => ctx.fillText(line, x, lineY))
     }
     ctx.globalAlpha = 1
     ctx.shadowBlur = 0
@@ -87,17 +94,17 @@ export function paintText(text: string, style: TextStyle, font: string) {
     ctx.shadowBlur = 55
     ctx.fillStyle = style.aura
     ctx.globalAlpha = 0.45
-    ctx.fillText(text, x, y + 6)
+    each((line, lineY) => ctx.fillText(line, x, lineY + 6))
     ctx.globalAlpha = 1
     ctx.shadowBlur = 0
   }
   if (style.relief) {
     ctx.fillStyle = style.relief
-    for (let k = 9; k >= 1; k--) ctx.fillText(text, x + k * 0.35, y + k)
+    for (let k = 9; k >= 1; k--) each((line, lineY) => ctx.fillText(line, x + k * 0.35, lineY + k))
     ctx.shadowColor = "rgba(0,0,0,0.35)"
     ctx.shadowBlur = 14
     ctx.shadowOffsetY = 8
-    ctx.fillText(text, x, y + 10)
+    each((line, lineY) => ctx.fillText(line, x, lineY + 10))
     ctx.shadowColor = "transparent"
     ctx.shadowBlur = 0
     ctx.shadowOffsetY = 0
@@ -109,11 +116,11 @@ export function paintText(text: string, style: TextStyle, font: string) {
     ctx.shadowOffsetY = Number(offset)
   }
   ctx.fillStyle = style.color
-  ctx.fillText(text, x, y)
+  each((line, lineY) => ctx.fillText(line, x, lineY))
   ctx.shadowColor = "transparent"
   ctx.shadowBlur = 0
   ctx.shadowOffsetY = 0
-  if (style.strike) ctx.fillRect(x - textWidth / 2, y + SIZE * 0.03, textWidth, SIZE * 0.07)
+  if (style.strike) each((line, lineY) => ctx.fillRect(x - widthOf(line) / 2, lineY + SIZE * 0.03, widthOf(line), SIZE * 0.07))
   if (style.relief) {
     const gloss = ctx.createLinearGradient(0, y - SIZE * 0.5, 0, y + SIZE * 0.2)
     gloss.addColorStop(0, "rgba(255,255,255,0.35)")
@@ -132,7 +139,7 @@ export function paintText(text: string, style: TextStyle, font: string) {
   const texture = new CanvasTexture(canvas)
   texture.colorSpace = SRGBColorSpace
   texture.anisotropy = 8
-  return { texture, ratio: canvas.width / canvas.height, scale: canvas.height / TEXT_PX, textWidth, capShift: Number.isFinite(capShift) ? capShift : 0 }
+  return { texture, ratio: canvas.width / canvas.height, scale: canvas.height / TEXT_PX, textWidth, capShift: Number.isFinite(capShift) ? capShift : 0, lines }
 }
 
 /** Whether `font` has loaded: a lettering is painted again when it has, so it never stays in the fallback's letters */

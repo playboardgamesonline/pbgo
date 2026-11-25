@@ -13,8 +13,8 @@ const CAMERA: CameraSettings = { tilt: 40, yaw: 0, distance: 13, fov: 34, target
 const DRAW: Spot = { x: -3.3, z: 0 }
 const DISCARD: Spot = { x: 3.3, z: 0 }
 const SCALE = 1.25
-// The piles are far apart, so each word has the room between them: a longer word would be set smaller to fit a narrower one
-const ROOM = 5
+// Each word has a room a little wider than a card: "Take the discard" does not fit it on one line, so it breaks onto a second line at the size of "Draw", it is never set smaller
+const ROOM = 2
 const DISCARD_LAYOUT = pile(1, { face: "up", scale: SCALE })
 
 export function ActionLabelScene({ count, can, discard, onDraw, onTake }: { count: number; can: boolean; discard: number; onDraw: () => void; onTake: () => void }) {
