@@ -71,6 +71,49 @@ describe("colours", () => {
   })
 })
 
+describe("the colours of a quiet pad, the neutral tone's", () => {
+  const TONE = "#b4c6d8"
+  const light = (hex: string) => [1, 3, 5].reduce((sum, i) => sum + parseInt(hex.slice(i, i + 2), 16), 0)
+
+  it("takes no colour of its own: a faint dark veil over the table in place of a tint, fainter than the tinted pad's", () => {
+    const quiet = floorColours(TONE, 0, false, true)
+    expect(light(quiet.fill)).toBeLessThan(light(TONE))
+    expect(quiet.fillOpacity).toBeLessThan(floorColours(TONE, 0).fillOpacity)
+  })
+
+  it("has a soft outline, which is see-through, where the tinted pad's is opaque", () => {
+    expect(floorColours(TONE, 0, false, true).rimOpacity).toBeLessThan(1)
+    expect(floorColours(TONE, 0).rimOpacity).toBe(1)
+    expect(floorColours(TONE, 1).rimOpacity).toBe(1)
+  })
+
+  it("still fills in, brightens and shows its outline more as the rim lifts", () => {
+    const rest = floorColours(TONE, 0, false, true)
+    const up = floorColours(TONE, 1, false, true)
+    expect(up.fillOpacity).toBeGreaterThan(rest.fillOpacity)
+    expect(up.rimOpacity).toBeGreaterThan(rest.rimOpacity)
+    expect(light(up.rimTop)).toBeGreaterThan(light(rest.rimTop))
+    expect(rest.rimSide).not.toBe(rest.rimTop)
+  })
+
+  it("is dimmer once disabled, and never more opaque than at rest", () => {
+    const disabled = floorColours(TONE, 0, true, true)
+    expect(disabled.fillOpacity).toBeLessThan(floorColours(TONE, 0, false, true).fillOpacity)
+    expect(disabled.rimOpacity).toBeLessThan(floorColours(TONE, 0, false, true).rimOpacity)
+  })
+
+  it("keeps the lettering nearly white, and the outline lighter than the tone", () => {
+    const quiet = floorColours(TONE, 0, false, true)
+    for (const i of [1, 3, 5]) expect(255 - parseInt(quiet.label.slice(i, i + 2), 16)).toBeLessThanOrEqual(0.2 * (255 - parseInt(TONE.slice(i, i + 2), 16)) + 1)
+    expect(light(quiet.rimTop)).toBeGreaterThan(light(TONE))
+  })
+
+  it("clamps a lift outside 0 to 1", () => {
+    expect(floorColours(TONE, 5, false, true)).toEqual(floorColours(TONE, 1, false, true))
+    expect(floorColours(TONE, -1, false, true)).toEqual(floorColours(TONE, 0, false, true))
+  })
+})
+
 describe("fitLabel", () => {
   it("keeps the height asked for when the text fits, and shrinks a long one to the width", () => {
     expect(fitLabel("HIT", 2, 0.5)).toBe(0.5)

@@ -12,8 +12,8 @@ scene-floor-buttons
 
 | Part | What it is | Where it comes from |
 | --- | --- | --- |
-| Pad | A rounded rectangle lying on the table: a tint of the tone at rest, brighter and more opaque as the rim lifts | `tone` |
-| Rim | The outline of the pad. Flat and thin at rest, a raised wall with a darker side under the pointer or the focus, pressed down a little while it is held | `rim`, the lift |
+| Pad | A rounded rectangle lying on the table: a tint of the tone at rest, brighter and more opaque as the rim lifts. A quiet pad, the neutral tone's, takes no colour of its own: a faint dark veil over the felt in place of a tint, which fills in a little as the rim lifts | `tone` |
+| Rim | The outline of the pad. Flat and thin at rest, a raised wall with a darker side under the pointer or the focus, pressed down a little while it is held. A quiet pad's outline is soft and see-through, and shows more as the rim lifts | `rim`, the lift |
 | Shadow | A soft dark spot under the rim that shows as it rises | the lift |
 | Label | The words, written flat on the pad with `TableText`, which rise with the rim so the wall does not bury them | `label`, in the game's words |
 | Hit area | The whole pad, invisible, what the pointer reaches | `width`, `depth` |
@@ -27,7 +27,7 @@ A `FloorButton` is shared: `packages/table/src/floor/floor-button.tsx`. The prop
 | --- | --- |
 | `at` | `{ x, z, yaw? }`: where the pad's centre lies and the way it faces. A pad of a seat takes the yaw of the seat |
 | `width`, `depth` | The pad's size in world units, `width` along its own x axis and `depth` along its own z axis. A button is as deep as the pile it sits beside |
-| `tone` | `primary` (the default) for the action that goes on, `neutral` for the quieter ones: the tint, the outline and the rim all come from it, and the game's theme gives each its colour ([Tones](#tones)). A board types no colour |
+| `tone` | `primary` (the default) for the action that goes on, `neutral` for the quieter ones, which are drawn quiet: the outline and the lettering come from it, and the game's theme gives each its colour ([Tones](#tones)). A board types no colour |
 | `label` | What is written on the pad, in the game's words and the visitor's language: the action it does. Required: a choice between objects is made by pressing the objects, not by a pad with no label |
 | `labelHeight` | The size of the letters in world units (default 0.55). A label too long for the pad, a word in another language, is set smaller to fit it on one line (`fitLabel` in `lift.ts`) |
 | `ariaLabel` | What a screen reader says and what the keyboard focus lands on; `label` when not given. |
@@ -48,6 +48,8 @@ A button has one of two tones, and the game's theme gives each its colour: `prim
 ```ts
 button: { primary: "accent", neutral: "#b4c6d8" }
 ```
+
+The `neutral` pad is a quiet one (`floorColours` with `quiet`): it takes no colour of its own, so the table shows through it, and the colour the game gives it only tints its outline and its lettering, which are nearly white. The `primary` pad is the one that is tinted by its tone.
 
 Each is a key of the theme (`accent`, `foreground`, `surface`…) or `#rrggbb` ([Game themes](../../design/04-in-game/03-game-themes.md)). `floorTones` gives the colour each tone stands for and `useFloorTones` reads it for the game shown. The lettering of a button is the table's, in the display font of the game (`useLettering`): a board gives no font, no weight and no colour.
 
