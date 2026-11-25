@@ -39,7 +39,7 @@ import type { ClientCatalog } from "../../lib/catalog"
 import { holdHovered, holdPicked, releaseHovered, releaseHoveredUnless } from "../../lib/lens"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { areaPoses, CARD, cardScaleOf, chairsOf, columnPoses, dealPlace, dealtFrom, faceUpPoses, HAND_SETTINGS, heldFrom, heldLayout, heldShadowOf, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, revealedPoses } from "./layout"
+import { areaPoses, asidePoses, CARD, cardScaleOf, chairsOf, columnPoses, dealPlace, dealtFrom, HAND_SETTINGS, heldFrom, heldLayout, heldShadowOf, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, revealedPoses } from "./layout"
 import { type Arrival, PACE_FIELDS, PACE_SETTINGS, type Reveal } from "./pacing"
 import { columnCounts, tableCards } from "./middle"
 import { RevealView } from "./sequence"
@@ -283,8 +283,12 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
     />
   )
 
-  const { deck, faceUp } = middlePlaces()
+  const { deck } = middlePlaces(chairs)
   const dealing = dealPlace()
+  // The cards set aside when the round was dealt, in one column on the left of the deck: the card face down, which nobody knows and which a Prince takes when the deck is empty, and at two players the three face up under it. The slots of the cards face up are the same
+  // with or without the card face down, so that none moves when it goes
+  const aside = asidePoses(view.faceUp.length, chairs)
+  const asideDown = view.aside > 0
   return (
     <>
       {view.players.map((player) => {
@@ -355,8 +359,19 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
       {/* The deck: only its size is known, so it is a count, face down, which the pile writes under itself */}
       <Pile frame={{ x: deck.x, z: deck.z }} count={view.deck.size} size={CARD_SIZE} back={faces.back} scale={cardScale} limit={14} />
 
-      {/* At two players three cards are set aside face up, and everybody reads them. The card set aside face down is out of the game and nobody knows it: the table does not show it */}
-      {view.faceUp.length > 0 && <Zone frame={{ x: faceUp.x, z: faceUp.z }} layout={faceUpPoses(view.faceUp.length, chairs)} size={CARD_SIZE} cards={view.faceUp.map((face) => cardOf(face))} />}
+      {/* The cards set aside, in one column on the left of the deck, the size of every card of the table: the one face down, which is out of the game and nobody knows, and at two players the three face up under it, which everybody reads. They come out of the deck one after the other
+          as the round is dealt (each round has its own, so that they come out again), and none lies on the table while the start screen is up, so that the opening deal is seen */}
+      {!onStartScreen && (asideDown || view.faceUp.length > 0) && (
+        <Zone
+          layout={asideDown ? [aside.down, ...aside.up] : aside.up}
+          size={CARD_SIZE}
+          {...(entering ? { enter: entering } : {})}
+          cards={[
+            ...(asideDown ? [{ key: `aside-${view.round}`, front: faces.back, back: faces.back }] : []),
+            ...view.faceUp.map((face) => cardOf(face, { key: `up-${view.round}-${face.id}` })),
+          ]}
+        />
+      )}
 
       {/* Between two rounds the player who takes the first turn deals the next one: the one action of the game that has no object */}
       {step.kind === "deal" && <FloorButton at={dealing} width={dealing.width} depth={dealing.depth} tone="primary" label={words.deal} disabled={busy} onPress={() => apply({ kind: "send", action: { type: "deal" } })} />}
