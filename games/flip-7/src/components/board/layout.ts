@@ -13,30 +13,30 @@ export type Place = { x: number; z: number }
 export const LAYOUT_SETTINGS = {
   /** The ellipse the lines of the seats are centred on, for a table of three and for a table of eight (in between, in steps). Its far end is the line of the seat across, its sides those of the seats at the sides; the viewer's line stands in front of it
    * at `viewerZ`. How far the camera stands is not a knob: it is fitted to the window (`fitCamera`) */
-  radiusX3: 5.83,
-  radiusX8: 5.75,
-  radiusZ3: 5.9,
-  radiusZ8: 6.27,
-  /** The size of the cards of the opponents, for a table of three and for a table of eight: a small table has big cards, a full one small ones */
-  opponentScale3: 0.91,
-  opponentScale8: 0.59,
-  /** The viewer's line: how far toward them it lies, how big its cards are and how wide it may spread */
-  viewerZ: 4.15,
-  viewerScale: 1,
+  radiusX3: 5.8,
+  radiusX8: 5.37,
+  radiusZ3: 6.1,
+  radiusZ8: 6.52,
+  /**
+   * The size of every card on the table, a share of the card of the game, for a table of three chairs and for a table of eight (in between, in steps): the viewer's line, the lines of the opponents, the cards set aside, the draw pile, the discard and the action card to give are
+   * all of one size, as at a real table. A small table has bigger cards and room, a full one smaller ones. The two stickers that lie by a line are pictures sized in the cards of the line, so they follow
+   */
+  cardScale3: 0.93,
+  cardScale8: 0.59,
+  /** The viewer's line: how far toward them it lies and how wide it may spread */
+  viewerZ: 3.9,
   viewerWidth: 13,
   /** How much of the distance to the next seat along the ring a line may take as its width: below 1 two neighbours leave a gap between them */
-  share: 0.92,
+  share: 0.94,
   /** The widest a gap between two cards of a line may be, as a share of the width of a card: a line that does not fit its room draws its cards closer, over one another */
   gap: 1.06,
   /** The closest two cards of a line may come, as a share of the width of a card, so that the figure of each stays readable */
   closest: 0.22,
-  /** The cards set aside (a Freeze or a Flip Three flipped during a Flip Three) lie this far beyond the line, in cards */
-  heldDrop: 1.05,
-  heldScale: 0.5,
-  /** The draw pile and the discard, either side of the middle, with the viewer's one button between them */
-  pilesX: 2.54,
-  pilesZ: 0,
-  pileScale: 0.9,
+  /** The cards set aside (a Freeze or a Flip Three flipped during a Flip Three) lie in a row of their own beyond the line, the middle of the row this far from the middle of the line, in cards: 1 is a card's height, so a card of the row and a card of the line touch */
+  heldDrop: 1.2,
+  /** The draw pile and the discard, either side of the middle, with the viewer's one button between them: a little below the middle, so that the word over the draw pile clears the plate of the seat at its left at a table of three */
+  pilesX: 2.38,
+  pilesZ: 0.3,
 }
 
 export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
@@ -44,19 +44,16 @@ export const LAYOUT_FIELDS: Record<keyof typeof LAYOUT_SETTINGS, Field> = {
   radiusX8: ["ring radius x · 8 players", 3, 14, 0.1],
   radiusZ3: ["ring radius z · 3 players", 2, 8, 0.1],
   radiusZ8: ["ring radius z · 8 players", 2, 10, 0.1],
-  opponentScale3: ["opponent card scale · 3", 0.3, 1.4, 0.01],
-  opponentScale8: ["opponent card scale · 8", 0.3, 1.2, 0.01],
+  cardScale3: ["card scale · 3 players", 0.3, 1.4, 0.01],
+  cardScale8: ["card scale · 8 players", 0.3, 1.2, 0.01],
   viewerZ: ["viewer line z", 0, 8, 0.05],
-  viewerScale: ["viewer card scale", 0.4, 1.6, 0.01],
   viewerWidth: ["viewer line width", 4, 20, 0.1],
   share: ["line share of the ring", 0.4, 1.2, 0.01],
   gap: ["gap (cards)", 0.8, 1.4, 0.01],
   closest: ["closest (cards)", 0.05, 0.6, 0.01],
-  heldDrop: ["set aside drop (cards)", 0.5, 2, 0.01],
-  heldScale: ["set aside scale", 0.3, 1, 0.01],
+  heldDrop: ["set aside drop (cards)", 1, 2, 0.01],
   pilesX: ["piles x", 1.5, 5, 0.05],
   pilesZ: ["piles z", -3, 3, 0.05],
-  pileScale: ["pile scale", 0.4, 1.4, 0.01],
 }
 
 /** The width and height of a card of the game, in world units: the faces of Sanity are 326 by 512 */
@@ -69,7 +66,7 @@ export const TABLE_PLAYERS: Between = [3, 8]
  * Where the player after the viewer sits, in degrees clockwise from the viewer's seat, for a table of each number of players: 90 is the viewer's left side, 180 straight across. It is also how far from the viewer the first and the last opponent keep: the wide line of the
  * viewer needs the room, and the more players the less each of them needs. The other opponents are spread evenly between the first and the last (`seats` of the table kit).
  */
-export const FIRST_OPPONENT: Readonly<Record<number, number>> = { 3: 145, 4: 90, 5: 90, 6: 66, 7: 62, 8: 60 }
+export const FIRST_OPPONENT: Readonly<Record<number, number>> = { 3: 136, 4: 90, 5: 87, 6: 69, 7: 60, 8: 60 }
 
 /** The seat of each player around the table, the ring of the kit with the radii, the angles and the viewer's place of this game: the viewer in front, the others in turn order, the turn passing to the viewer's left. A spectator has no seat in front. */
 export function seatSpots(ids: readonly string[], meId: string | null): Map<string, SeatSpot> {
@@ -79,14 +76,16 @@ export function seatSpots(ids: readonly string[], meId: string | null): Map<stri
   return new Map(ids.map((id, i): [string, SeatSpot] => [id, ring[i]!]))
 }
 
-/** The scale of the cards of the opponents at a table of `count` players: a spectator looks at a table with one more chair, and nine chairs on the ring of eight are closer together than the cards allow, so theirs are a little smaller */
-export function opponentScaleOf(count: number, seated: boolean): number {
-  const R = LAYOUT_SETTINGS
-  const scale = byPlayers(seated ? count : count + 1, [R.opponentScale3, R.opponentScale8], TABLE_PLAYERS)
-  return !seated && count >= TABLE_PLAYERS[1] ? scale * 0.82 : scale
-}
+/** The chairs of a table: its players, and one more for a spectator, who has none in front (the ring of `seats` is that of the table with one more player) */
+export const chairsOf = (players: number, seated = true): number => (seated ? players : players + 1)
 
-/** What a player's line is laid out in: where it lies, which way it faces (the yaw of its frame), how big its cards are, and the width it may take before its cards overlap */
+/** The chairs of the fullest table, for what is laid out for a table whose size is not said: the smallest cards */
+const FULL_TABLE = TABLE_PLAYERS[1]
+
+/** The size of every card that lies on a table of `chairs` chairs: the same for the lines of the viewer and of the opponents, the cards set aside, the draw pile, the discard and the action card to give, smaller as the table fills (in steps from three chairs to eight) */
+export const cardScaleOf = (chairs: number): number => byPlayers(chairs, [LAYOUT_SETTINGS.cardScale3, LAYOUT_SETTINGS.cardScale8], TABLE_PLAYERS)
+
+/** What a player's line is laid out in: where it lies, which way it faces (the yaw of its frame), how big its cards are (those of every card of the table), and the width it may take before its cards overlap */
 export type Line = { at: Place; yaw: number; scale: number; width: number }
 
 /** The frame of a seat, in which everything of the player is laid: the middle of its line and the way it faces. The top of the frame, its least z, is toward the middle of the table */
@@ -94,12 +93,12 @@ export const frameOf = (line: Pick<Line, "at" | "yaw">): SeatSpot => ({ x: line.
 
 /**
  * The line of every player, by id. The viewer's lies in front of them, as wide as the room their neighbours leave; an opponent's lies where its seat is, turned to face its player, and may take a share of the way to the next seat along the ring, so that two
- * lines never run into each other.
+ * lines never run into each other. Every line has the cards of the table's one size (`cardScaleOf`).
  */
 export function lines(spots: ReadonlyMap<string, SeatSpot>, meId: string | null): Map<string, Line> {
   const R = LAYOUT_SETTINGS
   const seated = meId !== null && spots.has(meId)
-  const scale = opponentScaleOf(spots.size, seated)
+  const scale = cardScaleOf(chairsOf(spots.size, seated))
   const ids = [...spots.keys()]
   // the seats in turn order from the viewer, and how far each is from the next along the ring
   const first = seated ? ids.indexOf(meId) : 0
@@ -115,16 +114,16 @@ export function lines(spots: ReadonlyMap<string, SeatSpot>, meId: string | null)
     out.set(id, { at: { x: spot.x, z: spot.z }, yaw: spot.yaw, scale, width: Math.min(R.viewerWidth, room) })
   })
   if (seated) {
-    // the viewer's line stretches until it meets the nearest thing beside it: the line of an opponent and its plate, each as the shape it covers on the table
+    // the viewer's line stretches until it meets the nearest thing beside it: the line of an opponent, its plate and the cards it sets aside, each as the shape it covers on the table
     let half = R.viewerWidth / 2
-    const band = { min: R.viewerZ - (CARD.height * R.viewerScale) / 2, max: R.viewerZ + (CARD.height * R.viewerScale) / 2 }
+    const band = { min: R.viewerZ - (CARD.height * scale) / 2, max: R.viewerZ + (CARD.height * scale) / 2 }
     for (const other of out.values()) {
-      for (const shape of [shapeOf(cardsBox(other), other), shapeOf(plateBox(other), other)]) {
+      for (const shape of [shapeOf(cardsBox(other), other), shapeOf(plateBox(other), other), shapeOf(heldBox(other), other)]) {
         // only a shape that reaches the band of the viewer's line is in its way
-        if (Math.max(...shape.map((corner) => corner.z)) > band.min && Math.min(...shape.map((corner) => corner.z)) < band.max) half = Math.min(half, Math.max(CARD.width * R.viewerScale, Math.min(...shape.map((corner) => Math.abs(corner.x))) - 0.3))
+        if (Math.max(...shape.map((corner) => corner.z)) > band.min && Math.min(...shape.map((corner) => corner.z)) < band.max) half = Math.min(half, Math.max(CARD.width * scale, Math.min(...shape.map((corner) => Math.abs(corner.x))) - 0.3))
       }
     }
-    out.set(meId, { at: { x: 0, z: R.viewerZ }, yaw: 0, scale: R.viewerScale, width: half * 2 })
+    out.set(meId, { at: { x: 0, z: R.viewerZ }, yaw: 0, scale, width: half * 2 })
   }
   return out
 }
@@ -146,16 +145,17 @@ export function linePoses(n: number, line: Pick<Line, "scale" | "width">): Pose[
 /** How far beyond the middle of the line, away from the middle of the table, the cards set aside lie, in the frame of the seat */
 const heldZ = (line: Pick<Line, "scale">): number => CARD.height * line.scale * LAYOUT_SETTINGS.heldDrop
 
-/** The slots of the cards set aside during a Flip Three, in the frame of their seat: a small row beyond the line, on the side of the player, away from the middle of the table, where the plate is not */
-export const heldPoses = (n: number, line: Pick<Line, "scale">): Pose[] =>
-  row(n, { gap: CARD.width * line.scale * LAYOUT_SETTINGS.heldScale * 1.1, z: heldZ(line), rise: 0.012, scale: line.scale * LAYOUT_SETTINGS.heldScale })
+/** The cards set aside during a Flip Three: three at the most, a Freeze or a Flip Three each */
+const HELD_MAX = 3
+
+/** The slots of the cards set aside during a Flip Three, in the frame of their seat: a row beyond the line, on the side of the player, away from the middle of the table, where the plate is not. The cards are the size of those of the line and spread as they do, closer when the line is narrow */
+export const heldPoses = (n: number, line: Pick<Line, "scale" | "width">): Pose[] => row(n, { gap: lineGap(n, line), z: heldZ(line), rise: 0.012, scale: line.scale })
 
 /** The box of the line of a seat at the room it may take, in the frame of the seat: what the plate stands above (the `above` of the seat) */
 export const cardsBox = (line: Pick<Line, "scale" | "width">, width: number = line.width): TableBox => boxOfRect({ x: 0, z: 0, width, depth: CARD.height * line.scale })
 
 /** The box of the cards set aside, three at the most side by side, in the frame of the seat */
-export const heldBox = (line: Pick<Line, "scale">): TableBox =>
-  boxOfRect({ x: 0, z: heldZ(line), width: 3 * CARD.width * line.scale * LAYOUT_SETTINGS.heldScale * 1.1, depth: CARD.height * line.scale * LAYOUT_SETTINGS.heldScale })
+export const heldBox = (line: Pick<Line, "scale" | "width">): TableBox => boxOfRect({ x: 0, z: heldZ(line), width: Math.min(line.width, CARD.width * line.scale * (1 + (HELD_MAX - 1) * LAYOUT_SETTINGS.gap)), depth: CARD.height * line.scale })
 
 /** The box of the plate of a seat, in its frame: the kit's plate, which stands on the side of the line that faces the middle of the table, centred on it, clear of it by `plateGap` */
 export const plateBox = (line: Pick<Line, "scale" | "width">): TableBox => plateBoxOf(plateAbove(cardsBox(line)))
@@ -180,17 +180,18 @@ export type Pad = { x: number; z: number; width: number; depth: number }
 export type FloorPlan = {
   /** The pad of the action that has no object: Stay on the viewer's turn, Deal for the dealer between two rounds. It lies across the strip, one gap from each pile, and as deep as the piles */
   pad: Pad
-  /** The action card drawn, face up, at the left of the strip, beside the draw pile, the size of the piles' cards */
+  /** The action card drawn, face up, at the left of the strip, beside the draw pile, the size of every card of the table */
   card: Place & { scale: number }
   /** The whole strip, for the footprints */
   strip: Pad
 }
 
-export function floorPlan(): FloorPlan {
-  const R = LAYOUT_SETTINGS
+/** The floor between the piles of a table of `chairs` chairs, whose piles are of the size of every card of the table */
+export function floorPlan(chairs: number = FULL_TABLE): FloorPlan {
+  const scale = cardScaleOf(chairs)
   const { deck, discard } = pilePlaces()
-  const cardWidth = CARD.width * R.pileScale
-  const depth = CARD.height * R.pileScale
+  const cardWidth = CARD.width * scale
+  const depth = CARD.height * scale
   const left = deck.x + cardWidth / 2
   const right = discard.x - cardWidth / 2
   const g = FLOOR.gap
@@ -199,24 +200,28 @@ export function floorPlan(): FloorPlan {
   const cardX = left + g + cardWidth / 2
   return {
     pad,
-    card: { x: cardX, z, scale: R.pileScale },
+    card: { x: cardX, z, scale },
     strip: { x: (left + right) / 2, z, width: right - left, depth },
   }
 }
 
-/** How far the count under the draw pile reaches past the edge of the pile, and the room the word over it (Hit) takes beyond its far edge, in world units: what the pile keeps clear on its two sides */
+/**
+ * How far the count under the draw pile reaches past the edge of the pile, and the room the word over it (Hit) takes beyond its far edge, in world units: what the pile keeps clear on its two sides. The word stands up the screen from the far edge of the pile, its arrow
+ * and its lettering a billboard, and a pile of cards is thick, which lifts it: as the camera sees them they take about as much of the table as 1.9 units of depth, and the room is 2.25 so that a plate never stands right against the lettering
+ */
 const PILE_COUNT = 0.8
-const PILE_WORD = 1.3
+const PILE_WORD = 2.25
 
 /**
- * What lies on the table that is not a seat, as the boxes the seats keep clear of, in the world: the strip between the piles (the pad and the card to give), the draw pile with its count under it and the word over it, and the discard.
+ * What lies on the table that is not a seat, as the boxes the seats keep clear of, in the world: the strip between the piles (the pad and the card to give), the draw pile with its count under it and the word over it, and the discard. The piles of a table of `chairs` chairs
+ * are of the size of every card of it.
  */
-export function fixedBoxes(): { name: string; box: TableBox }[] {
-  const R = LAYOUT_SETTINGS
+export function fixedBoxes(chairs: number = FULL_TABLE): { name: string; box: TableBox }[] {
+  const scale = cardScaleOf(chairs)
   const { deck, discard } = pilePlaces()
-  const { strip } = floorPlan()
-  const half = (CARD.width * R.pileScale) / 2
-  const depth = (CARD.height * R.pileScale) / 2
+  const { strip } = floorPlan(chairs)
+  const half = (CARD.width * scale) / 2
+  const depth = (CARD.height * scale) / 2
   return [
     { name: "strip", box: boxOfRect({ x: strip.x, z: strip.z, width: strip.width, depth: strip.depth }) },
     { name: "draw pile", box: { minX: deck.x - half, maxX: deck.x + half, minZ: deck.z - depth - PILE_WORD, maxZ: deck.z + depth + PILE_COUNT } },
@@ -225,7 +230,7 @@ export function fixedBoxes(): { name: string; box: TableBox }[] {
 }
 
 const WORLD: Spot = { x: 0, z: 0 }
-const fixedShapes = (): { name: string; shape: Quad }[] => fixedBoxes().map(({ name, box }) => ({ name, shape: cornersOfBox(box, WORLD) }))
+const fixedShapes = (chairs: number): { name: string; shape: Quad }[] => fixedBoxes(chairs).map(({ name, box }) => ({ name, shape: cornersOfBox(box, WORLD) }))
 
 /** How far a player's area reaches past their cards on every side when there is room, in world units: generous, so a click or a tap needs no aim. Each side stops short of whatever is there: the plate of another seat, a pile, the buttons. */
 export const ZONE_PADDING = 0.5
@@ -248,14 +253,14 @@ function playArea(line: Line, avoid: readonly Quad[], withHeld = true): TableBox
 }
 
 /**
- * The area of every seat, by id, for a table in which the lines lie as `placed` says: ONE area per player that the viewer presses to give them a card, their play area (`playArea`: the cards, the plate with the name inside it) and a generous padding all round (`ZONE_PADDING`), a
- * press anywhere in it, on the cards, the padding or the name, gives. Each side of the padding stops short of whatever the area keeps clear of, the plates of the other seats, the piles and the buttons, and where two areas overlap the padding of both gives back until they only touch
- * (`growAreas` of the table kit); with no padding left an area narrows along its line, never below its plate.
+ * The area of every seat, by id, for a table of `chairs` chairs in which the lines lie as `placed` says: ONE area per player that the viewer presses to give them a card, their play area (`playArea`: the cards, the plate with the name inside it) and a generous padding all round
+ * (`ZONE_PADDING`), a press anywhere in it, on the cards, the padding or the name, gives. Each side of the padding stops short of whatever the area keeps clear of, the plates of the other seats, the piles and the buttons, and where two areas overlap the padding of both gives back
+ * until they only touch (`growAreas` of the table kit); with no padding left an area narrows along its line, never below its plate.
  */
-export function zones(placed: ReadonlyMap<string, Line>): Map<string, Area> {
+export function zones(placed: ReadonlyMap<string, Line>, chairs: number = FULL_TABLE): Map<string, Area> {
   const plates = plateShapes(placed)
   const ids = [...placed.keys()]
-  const fixed = fixedShapes().map(({ shape }) => shape)
+  const fixed = fixedShapes(chairs).map(({ shape }) => shape)
   const seeds = new Map<string, AreaSeed>()
   for (const [id, line] of placed) {
     // what an area keeps clear of: the plates of the other seats, which are theirs, the piles and the buttons
@@ -272,7 +277,7 @@ const plateShapes = (placed: ReadonlyMap<string, Line>): Map<string, Quad> => ne
 export function zoneAreas(n: number, seated = true): Area[] {
   const ids = Array.from({ length: n }, (_, i) => String(i))
   const viewer = seated ? "0" : null
-  const all = zones(lines(seatSpots(ids, viewer), viewer))
+  const all = zones(lines(seatSpots(ids, viewer), viewer), chairsOf(n, seated))
   return ids.map((id) => all.get(id)!)
 }
 
@@ -292,14 +297,25 @@ export function tableShapes(n: number, full = false, seated = true): { name: str
     const nominal = CARD.width * line.scale * (1 + (id === viewer ? 3 : 2) * R.gap)
     out.push({ name: `line of seat ${id}`, shape: shapeOf(cardsBox(line, full ? line.width : Math.min(nominal, line.width)), line) })
   }
-  return [...out, ...fixedShapes()]
+  return [...out, ...fixedShapes(chairsOf(n, seated))]
+}
+
+/** The cards set aside of every seat of a table of `n` players, as the shapes they cover on it, in turn order from the viewer: three of them, the most there are, spread as the line spreads. They are not always there, so they are not in `tableShapes`, but nothing else may lie where they do */
+export function heldShapes(n: number, seated = true): { name: string; shape: Quad }[] {
+  const ids = Array.from({ length: n }, (_, i) => String(i))
+  const viewer = seated ? "0" : null
+  const placed = lines(seatSpots(ids, viewer), viewer)
+  return ids.map((id) => ({ name: `cards set aside of seat ${id}`, shape: shapeOf(heldBox(placed.get(id)!), placed.get(id)!) }))
 }
 
 /** What the camera centres the window on (`fitCamera`): the corners of each shape of the table (`tableShapes`), at their nominal sizes, what is drawn. A longer line spreads, and may reach farther than this. */
 export const seenQuads = (n: number, seated = true): Quad[] => tableShapes(n, false, seated).map(({ shape }) => shape)
 
-/** What the camera has to have in the window too, without it weighing on the centre (`fitCamera`): the areas that the viewer presses to give a card (`zoneAreas`), which reach a little past the plates and must never lie under a box of the platform. */
-export const reachQuads = (n: number, seated = true): Quad[] => zoneAreas(n, seated).map(cornersOfArea)
+/**
+ * What the camera has to have in the window too, without it weighing on the centre (`fitCamera`): the areas that the viewer presses to give a card (`zoneAreas`), which reach a little past the plates and must never lie under a box of the platform, and the cards set aside
+ * of every seat (`heldShapes`), wherever they would lie, so that a Freeze or a Flip Three that waits is never cut by the window, whatever the size of the table.
+ */
+export const reachQuads = (n: number, seated = true): Quad[] => [...zoneAreas(n, seated).map(cornersOfArea), ...heldShapes(n, seated).map(({ shape }) => shape)]
 
 /** Everything the camera has to bring into the window, what is seen and what is reached */
 export const tableQuads = (n: number, seated = true): Quad[] => [...seenQuads(n, seated), ...reachQuads(n, seated)]
@@ -332,8 +348,8 @@ export function stickerPlaces(line: Line, bustAspect: number, bonusAspect: numbe
   }
 }
 
-/** Where the cards are dealt from: above the draw pile, face down. */
-export function dealtFrom(): Pose {
+/** Where the cards are dealt from: above the draw pile, face down, the size of every card of a table of `chairs` chairs. */
+export function dealtFrom(chairs: number = FULL_TABLE): Pose {
   const { deck } = pilePlaces()
-  return onTable(deck.x, deck.z, { y: 1.6, face: "down", scale: LAYOUT_SETTINGS.pileScale })
+  return onTable(deck.x, deck.z, { y: 1.6, face: "down", scale: cardScaleOf(chairs) })
 }

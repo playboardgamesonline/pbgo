@@ -9,7 +9,7 @@ import type { ClientCatalog } from "../../lib/catalog"
 import { madeFlip7 } from "../../lib/flip7-line"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
-import { cardsBox, dealtFrom, floorPlan, frameOf, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, seatSpots, stickerPlaces, zones } from "./layout"
+import { cardScaleOf, cardsBox, chairsOf, dealtFrom, floorPlan, frameOf, heldPoses, LAYOUT_FIELDS, LAYOUT_SETTINGS, linePoses, lines, pilePlaces, seatSpots, stickerPlaces, zones } from "./layout"
 import { PACE_FIELDS, PACE_SETTINGS } from "./pacing"
 import { Sticker } from "./stickers"
 import { CARD_SIZE, useFaces } from "./textures"
@@ -59,16 +59,18 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` stands for the ids
   const spots = useMemo(() => seatSpots(ids, meId), [key, meId])
   const placed = useMemo(() => lines(spots, meId), [spots, meId])
-  const areas = useMemo(() => zones(placed), [placed])
+  // the chairs of the table, and the size every card of its surface has: the lines, the cards set aside, the piles and the action card to give
+  const chairs = chairsOf(ids.length, meId !== null)
+  const cardScale = cardScaleOf(chairs)
+  const areas = useMemo(() => zones(placed, chairs), [placed, chairs])
   const { nickname } = useGame()
-  const R = LAYOUT_SETTINGS
   const { deck, discard } = pilePlaces()
   const phase = view.phase
   const myTurn = phase.kind === "turn" && phase.player === meId
   const choosing = phase.kind === "target" && phase.player === meId
   const dealing = phase.kind === "between" && phase.dealer === meId
-  const dealt = dealtFrom()
-  const plan = floorPlan()
+  const dealt = dealtFrom(chairs)
+  const plan = floorPlan(chairs)
   // What the visitor does to the area of each player that can get the action card (the pointer over it, the keyboard focus on it, the pointer down): the cards under it are lit from it
   const [touches, setTouches] = useState<Record<string, Touch>>({})
 
@@ -151,7 +153,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
         count={view.deck.size}
         size={CARD_SIZE}
         back={faces.back}
-        scale={R.pileScale}
+        scale={cardScale}
         limit={14}
         action={myTurn ? { label: words.hit, onPress: onHit } : undefined}
       />
@@ -160,7 +162,7 @@ function World({ view, catalog, pointsText, onHit, onStay, onDeal, onTarget, ent
       <Zone
         frame={{ x: discard.x, z: discard.z }}
         // the discard grows to most of the box: its cards are laid closer as it grows, so that it never stands taller than a thin stack
-        layout={pile(discarded.length, { face: "up", lean: "discard", scale: R.pileScale, step: Math.min(0.02, 0.4 / Math.max(1, discarded.length)) })}
+        layout={pile(discarded.length, { face: "up", lean: "discard", scale: cardScale, step: Math.min(0.02, 0.4 / Math.max(1, discarded.length)) })}
         size={CARD_SIZE}
         cards={cardsOf(discarded)}
       />

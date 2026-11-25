@@ -1,7 +1,7 @@
 import { hudBoxes, PLATFORM_HUD, type Quad, type Rect, standingDistance, type Viewport, windowRectOf } from "@pbgo/table"
 import { describe, expect, it } from "vitest"
 import { CAMERA, fitFor } from "./camera"
-import { reachQuads, seenQuads } from "./layout"
+import { heldShapes, reachQuads, seenQuads } from "./layout"
 
 const PLAYERS = [3, 4, 5, 6, 7, 8]
 /** Windows a laptop or a desktop has, the width and the height of the browser's own content */
@@ -68,6 +68,20 @@ describe("the camera fitted to a window", () => {
         }
       }
     }
+  })
+
+  it("brings the cards set aside during a Flip Three into the window too, wherever they would lie, in every window and for every table", () => {
+    const failures: string[] = []
+    for (const viewport of [...DESKTOP, ...UPRIGHT]) {
+      for (const players of PLAYERS) {
+        const rects = rectsOf(players, viewport, true, heldShapes(players).map(({ shape }) => shape))
+        rects.forEach((rect, seat) => {
+          const inside = rect.left >= PLATFORM_HUD.gap - 1e-6 && rect.top >= PLATFORM_HUD.gap - 1e-6 && rect.right <= viewport.width - PLATFORM_HUD.gap + 1e-6 && rect.bottom <= viewport.height - PLATFORM_HUD.gap + 1e-6
+          if (!inside) failures.push(`${players} players in ${viewport.width}x${viewport.height}: the cards set aside by seat ${seat}`)
+        })
+      }
+    }
+    expect(failures).toEqual([])
   })
 
   it("keeps the cards big enough to read in every window of a laptop or a desktop: a unit of the table is at least 38 pixels at the point the camera looks at", () => {
