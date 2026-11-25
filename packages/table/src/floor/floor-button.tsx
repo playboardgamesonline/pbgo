@@ -112,6 +112,8 @@ export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55,
   const focused = useStandIn({ pressable, name: ariaLabel ?? label, onPress, anchor: root, onTable: true })
   useCursor(hovered && pressable)
   const colour = toneColour(tone, tones)
+  // The quieter tone is a quiet pad: no colour of its own (`floorColours`)
+  const quiet = tone === "neutral"
   const state = { hovered: pressable && hovered, focused: pressable && focused, pressed: pressable && pressed, disabled }
   const target = liftTarget(state)
 
@@ -131,9 +133,12 @@ export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55,
 
   // Paints the pad for a lift between 0 and 1: the rim's height, the colours, the shadow and the lettering's rise. Called every frame while the lift moves, and once at mount
   const paint = (value: number) => {
-    const colours = floorColours(colour, value, disabled)
+    const colours = floorColours(colour, value, disabled, quiet)
     if (wall.current) wall.current.scale.z = FLAT + (rim - FLAT) * value
-    top.current?.color.set(colours.rimTop)
+    if (top.current) {
+      top.current.color.set(colours.rimTop)
+      top.current.opacity = colours.rimOpacity
+    }
     side.current?.color.set(colours.rimSide)
     if (fill.current) {
       fill.current.color.set(colours.fill)
@@ -151,7 +156,7 @@ export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55,
   // A change of colour, size or disabled state repaints at once, whatever the lift
   useEffect(() => paint(lift.current))
 
-  const lettering: TextStyle = { color: floorColours(colour, 0, disabled).label, weight: letters.weight, shadow: "rgba(0,0,0,0.55)|10|3" }
+  const lettering: TextStyle = { color: floorColours(colour, 0, disabled, quiet).label, weight: letters.weight, shadow: "rgba(0,0,0,0.55)|10|3" }
   return (
     <group ref={root} position={[at.x, 0, at.z]} rotation-y={at.yaw ?? 0}>
       {/* The soft shadow under the rim: it shows as the rim lifts */}
@@ -167,7 +172,7 @@ export function FloorButton({ at, width, depth, tone, label, labelHeight = 0.55,
       {/* The rim: a thin outline lying on the table, a wall when it lifts */}
       <group rotation-x={-Math.PI / 2} position-y={RIM_Y}>
         <mesh ref={wall} geometry={geometry} renderOrder={3} scale-z={FLAT} raycast={() => null}>
-          <meshBasicMaterial ref={top} toneMapped={false} attach="material-0" />
+          <meshBasicMaterial ref={top} toneMapped={false} attach="material-0" transparent depthWrite={false} />
           <meshBasicMaterial ref={side} toneMapped={false} attach="material-1" />
         </mesh>
       </group>

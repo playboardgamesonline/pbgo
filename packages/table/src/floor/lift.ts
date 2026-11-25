@@ -38,22 +38,38 @@ export type FloorColours = {
   /** The flat pad, and how opaque it is: a tint at rest that fills in as the rim lifts */
   fill: string
   fillOpacity: number
-  /** The top of the rim (the thin outline at rest) and its wall, darker, which shows as the rim rises */
+  /** The top of the rim (the thin outline at rest) and its wall, darker, which shows as the rim rises, and how opaque the top is */
   rimTop: string
   rimSide: string
+  rimOpacity: number
   /** The lettering */
   label: string
 }
 
-/** The pad is tinted by the tone at rest and brightens as the rim lifts; a disabled one is dim and flat. The colours move toward white by lift, never past it. */
-export function floorColours(tone: string, lift: number, disabled = false): FloorColours {
+/**
+ * The pad is tinted by the tone at rest and brightens as the rim lifts; a disabled one is dim and flat. The colours move toward white by lift, never past it.
+ * A quiet pad, the neutral tone's (Stay, Keep, Swap: the actions that are not the one that goes on), takes no colour of its own, so that it stands on the table without competing with it: a faint dark veil over the felt, in place of a tint, a soft outline in place of a bright one,
+ * and nearly white lettering. It still fills in and brightens as the rim lifts.
+ */
+export function floorColours(tone: string, lift: number, disabled = false, quiet = false): FloorColours {
   const l = Math.min(1, Math.max(0, lift))
   const dim = disabled ? 0.45 : 1
+  if (quiet) {
+    return {
+      fill: mix(tone, "#000000", 0.85),
+      fillOpacity: (0.22 + 0.2 * l) * dim,
+      rimTop: mix(tone, "#ffffff", disabled ? 0.3 : 0.6 + 0.2 * l),
+      rimSide: mix(tone, "#000000", 0.5),
+      rimOpacity: (0.45 + 0.4 * l) * dim,
+      label: mix(tone, "#ffffff", disabled ? 0.5 : 0.85),
+    }
+  }
   return {
     fill: mix(tone, "#ffffff", 0.1 + 0.2 * l),
     fillOpacity: (0.3 + 0.32 * l) * dim,
     rimTop: mix(tone, "#ffffff", disabled ? 0.1 : 0.3 + 0.3 * l),
     rimSide: mix(tone, "#000000", 0.35),
+    rimOpacity: 1,
     label: mix(tone, "#ffffff", disabled ? 0.5 : 0.82),
   }
 }

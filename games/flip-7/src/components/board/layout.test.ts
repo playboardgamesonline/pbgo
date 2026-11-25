@@ -1,4 +1,4 @@
-import { hotspotOf, type Quad, SEAT_SETTINGS, polygonsOverlap } from "@pbgo/table"
+import { cornersOfArea, cornersOfBox, hotspotOf, type Quad, SEAT_SETTINGS, polygonsOverlap } from "@pbgo/table"
 import { describe, expect, it } from "vitest"
 import {
   CARD,
@@ -21,6 +21,7 @@ import {
   pilePlaces,
   plateBox,
   seatSpots,
+  stripShift,
   TABLE_PLAYERS,
   tableQuads,
   tableShapes,
@@ -324,6 +325,76 @@ describe("the piles", () => {
     expect(deck.x).toBeLessThan(0)
     expect(discard.x).toBeGreaterThan(0)
     expect(deck.z).toBe(discard.z)
+  })
+})
+
+describe("the strip while the discard has no card", () => {
+  const { deck, discard } = pilePlaces()
+  /** The tables the strip is laid for: every chairs count of a seated table, and a spectator's extra chair */
+  const CHAIRS = [3, 4, 5, 6, 7, 8, 9]
+
+  it("is the three, the draw pile, the pad and the discard, centred on the table once the discard is there", () => {
+    expect(deck.x + discard.x).toBeCloseTo(0)
+    for (const chairs of CHAIRS) expect(floorPlan(chairs).pad.x, `${chairs} chairs`).toBeCloseTo(0)
+  })
+
+  it("is shifted by half a card and a gap, so that the draw pile and the pad lie centred on the table with the discard away", () => {
+    for (const chairs of CHAIRS) {
+      const card = CARD.width * cardScaleOf(chairs)
+      const shift = stripShift(chairs)
+      expect(shift, `${chairs} chairs`).toBeCloseTo((card + FLOOR.gap) / 2)
+      const plan = floorPlan(chairs)
+      const left = deck.x + shift - card / 2
+      const right = plan.pad.x + shift + plan.pad.width / 2
+      expect((left + right) / 2, `${chairs} chairs`).toBeCloseTo(0)
+    }
+  })
+
+  it("is less at a fuller table, where the cards are smaller, and always to the right", () => {
+    let before = Infinity
+    for (const chairs of CHAIRS) {
+      expect(stripShift(chairs), `${chairs} chairs`).toBeGreaterThan(0)
+      expect(stripShift(chairs), `${chairs} chairs`).toBeLessThanOrEqual(before + 1e-9)
+      before = stripShift(chairs)
+    }
+  })
+
+  it("keeps the draw pile and the pad inside the room that the two piles and the strip keep clear of the seats, so that the camera and the press areas are what they are", () => {
+    for (const chairs of CHAIRS) {
+      const shift = stripShift(chairs)
+      const [, pileBox, discardBox] = fixedBoxes(chairs)
+      const plan = floorPlan(chairs)
+      expect(deck.x + shift - (CARD.width * cardScaleOf(chairs)) / 2, `${chairs} chairs`).toBeGreaterThanOrEqual(pileBox!.box.minX - 1e-9)
+      expect(plan.pad.x + shift + plan.pad.width / 2, `${chairs} chairs`).toBeLessThanOrEqual(discardBox!.box.maxX + 1e-9)
+    }
+  })
+
+  it("lies clear of every plate, line, card set aside and press area at every table, a spectator's included, with the count under the draw pile and the word over it", () => {
+    const failures: string[] = []
+    for (const seated of SETUPS) {
+      for (const n of SIZES) {
+        const chairs = chairsOf(n, seated)
+        const shift = stripShift(chairs)
+        const [strip, pileBox] = fixedBoxes(chairs)
+        const moved = [strip!, pileBox!].map(({ name, box }) => ({ name: `${name} shifted`, shape: cornersOfBox({ minX: box.minX + shift, maxX: box.maxX + shift, minZ: box.minZ, maxZ: box.maxZ }, { x: 0, z: 0 }) }))
+        const others = [
+          ...tableShapes(n, true, seated).filter(({ name }) => name.startsWith("plate") || name.startsWith("line")),
+          ...heldShapes(n, seated),
+          ...zoneAreas(n, seated).map((area, i) => ({ name: `area of seat ${i}`, shape: cornersOfArea(area) })),
+        ]
+        for (const a of moved) for (const b of others) if (polygonsOverlap(a.shape, b.shape)) failures.push(`${n} players${seated ? "" : ", spectator"}: the ${a.name} overlaps the ${b.name}`)
+      }
+    }
+    expect(failures).toEqual([])
+  })
+
+  it("deals from above the draw pile where it lies: the shift moves the place the cards come from, and no shift leaves it", () => {
+    for (const chairs of CHAIRS) {
+      const shift = stripShift(chairs)
+      expect(dealtFrom(chairs, shift).position.x, `${chairs} chairs`).toBeCloseTo(deck.x + shift)
+      expect(dealtFrom(chairs).position.x, `${chairs} chairs`).toBeCloseTo(deck.x)
+      expect(dealtFrom(chairs, shift).position.z, `${chairs} chairs`).toBe(deck.z)
+    }
   })
 })
 

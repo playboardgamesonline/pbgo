@@ -206,6 +206,15 @@ export function floorPlan(chairs: number = FULL_TABLE): FloorPlan {
 }
 
 /**
+ * How far the strip lies to the right of its place between the two piles while the discard has no card, which is the whole first round: the draw pile and the pad, with no discard beside them, lie centred on the table, half a card and a gap to the right of where they stand once the discard
+ * is there. The board puts them in a `Glide` that is shifted by this much and brings them to their places when the first card reaches the discard, and the cards are dealt from above the pile where it lies (`dealtFrom`). Shifted, the pile (with its count and its word) and the pad stay inside the room
+ * that the two piles and the strip keep clear of the seats (`fixedBoxes`), so the camera and the press areas are as they are, which `layout.test.ts` holds.
+ */
+export function stripShift(chairs: number = FULL_TABLE): number {
+  return (CARD.width * cardScaleOf(chairs) + FLOOR.gap) / 2
+}
+
+/**
  * How far the count under the draw pile reaches past the edge of the pile, and the room the word over it (Hit) takes beyond its far edge, in world units: what the pile keeps clear on its two sides. The word stands up the screen from the far edge of the pile, its arrow
  * and its lettering a billboard, and a pile of cards is thick, which lifts it: as the camera sees them they take about as much of the table as 1.9 units of depth, and the room is 2.25 so that a plate never stands right against the lettering
  */
@@ -348,8 +357,8 @@ export function stickerPlaces(line: Line, bustAspect: number, bonusAspect: numbe
   }
 }
 
-/** Where the cards are dealt from: above the draw pile, face down, the size of every card of a table of `chairs` chairs. */
-export function dealtFrom(chairs: number = FULL_TABLE): Pose {
+/** Where the cards are dealt from: above the draw pile where it lies (`shift`, how far the strip is moved from its place, `stripShift` or none), face down, the size of every card of a table of `chairs` chairs. */
+export function dealtFrom(chairs: number = FULL_TABLE, shift = 0): Pose {
   const { deck } = pilePlaces()
-  return onTable(deck.x, deck.z, { y: 1.6, face: "down", scale: cardScaleOf(chairs) })
+  return onTable(deck.x + shift, deck.z, { y: 1.6, face: "down", scale: cardScaleOf(chairs) })
 }
