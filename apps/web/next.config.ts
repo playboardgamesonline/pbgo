@@ -77,7 +77,7 @@ const nextConfig: NextConfig = {
       // game and render in its layout and skin: /gamemaster/<slug>/preview/game → app/[game]/preview/[kind]. Before the files,
       // or the gamemaster's own /gamemaster/[game]/[[...section]] page would answer first.
       beforeFiles: [
-        { source: `/gamemaster/:game(${SLUGS})/preview/:kind(game)`, destination: "/:game/preview/:kind" },
+        { source: `/gamemaster/:game(${SLUGS})/preview/:kind(game|play)`, destination: "/:game/preview/:kind" },
         // The platform is the door of the games (PLT-106): a game has no home of its own, its address shows its page on the hub, where a table is opened, joined and started. A rewrite, not a redirect: the address stays
         // `/<slug>` and the page (its canonical is `/game/<slug>`) is the hub's, in the hub's root layout. Every slug of the registry, a game that is not playable here included: its page says "Coming soon", and its tables
         // and API still answer 404. In `beforeFiles`, so that nothing of the `[game]` segment answers for the slug

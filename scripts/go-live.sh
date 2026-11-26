@@ -73,10 +73,10 @@ if ! is_project_id "$PID"; then
 fi
 echo "$PID" > "$DIR/.sanity-project-id"
 S -X PUT "$SANITY_API/projects/$PID/datasets/production" -d '{"aclMode":"public"}' >/dev/null
-for origin in "$SITE" "http://localhost:3100"; do
+for origin in $SANITY_SITE_ORIGINS; do
   S -X POST "$SANITY_API/projects/$PID/cors" -d "{\"origin\":\"$origin\",\"allowCredentials\":false}" >/dev/null
 done
-ok "Dataset production (public), CORS for $SITE and http://localhost:3100"
+ok "Dataset production (public), CORS for $SANITY_SITE_ORIGINS"
 
 # ---------- Project id and studio host in the code ----------
 # Studio host: its .env, else the one written in sanity.cli.ts, else the slug (studio_host, lib.sh)

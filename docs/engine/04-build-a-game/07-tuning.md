@@ -17,6 +17,7 @@ A situation of a game is reached once, then kept. The Table folder of the GAME t
 - *Copy state* copies the state of the table, saved with the ids of its seats in order (`SavedState`). *Load state from the clipboard* puts a saved state in the place of the state of the table, and the log starts again.
 - A saved state is portable: its seats are mapped on the seats of the table it is loaded into, in the same order (`restoreState`), so a situation copied from a 5-seat table loads into any 5-seat table of the game. A state the engine cannot read (`isOver`, `waitingFor`, `view` for each seat) is refused with `INVALID_STATE` and nothing is written. The same JSON is a fixture for an engine test.
 - The commands behind the buttons are `state` and `load` of the debug route (`POST /api/<slug>/games/<code>/debug`, [Debug commands](../01-the-game/11-the-contract.md#debug-commands)).
+- With no database at all (a Vercel preview, a session with no Supabase), the same commands and the same two buttons work at the made-up table of `/<slug>/preview/play`, where a situation is also asked for in the address (`?scenario=princessInHand&turns=6&seed=42`) and a link opens it again (`docs/gamemaster.md`, "Preview of a game in play").
 - For a test or a debug command of a game, `playUntil(game, state, stop)` of the kit plays for the player the game waits for until `stop` says so (the end of a round, the turn of a seat).
 
 ## What the table brings
