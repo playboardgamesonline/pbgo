@@ -49,7 +49,7 @@ describe("the timeline of the last move", () => {
     expect(t.entrances.get(HELD_KEY)).toEqual({ origin: { kind: "deck" }, delay: 0 })
     const into = t.entrances.get(cellKey("ana", 4))
     const out = t.entrances.get(cardKey(2))
-    expect(into).toEqual({ origin: { kind: "held" }, delay: PACE_SETTINGS.draw })
+    expect(into).toEqual({ origin: { kind: "held", player: "ana" }, delay: PACE_SETTINGS.draw })
     expect(out).toEqual({ origin: { kind: "cell", player: "ana", position: 4, up: false }, delay: PACE_SETTINGS.draw })
   })
 
@@ -60,7 +60,7 @@ describe("the timeline of the last move", () => {
 
   it("sends a thrown card from the hand to the discard", () => {
     const t = timelineOf([line(2, { kind: "discard", by: "bob", card: face(9) })], players)
-    expect(t.entrances.get(cardKey(9))).toEqual({ origin: { kind: "held" }, delay: 0 })
+    expect(t.entrances.get(cardKey(9))).toEqual({ origin: { kind: "held", player: "bob" }, delay: 0 })
   })
 
   it("plays a thrown column as one motion that begins when the move before it in the turn has landed, and has no entrance for its cards", () => {
