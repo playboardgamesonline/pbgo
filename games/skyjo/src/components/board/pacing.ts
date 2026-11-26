@@ -64,8 +64,8 @@ export const PACE_FIELDS: Record<keyof typeof PACE_SETTINGS, Field> = {
   landing: ["a card lands in (s)", 0.2, 2, 0.01],
 }
 
-/** Where a card flies in from: the draw pile, the discard, the card in hand, or a cell of a grid (face up or down, as it lay) */
-export type Origin = { kind: "deck" } | { kind: "discard" } | { kind: "held" } | { kind: "cell"; player: string; position: number; up: boolean }
+/** Where a card flies in from: the draw pile, the discard, the card in hand of `player` (between the piles, or at the bottom left of the screen for the viewer), or a cell of a grid (face up or down, as it lay) */
+export type Origin = { kind: "deck" } | { kind: "discard" } | { kind: "held"; player: string } | { kind: "cell"; player: string; position: number; up: boolean }
 
 export type Entrance = { origin: Origin; delay: number }
 
@@ -186,12 +186,12 @@ export function timelineOf(lines: readonly LogLine<SkyjoEvent>[], players: reado
         break
       case "place":
         // the card in hand goes into the cell, and the card it replaces goes to the discard, together
-        come(cellKey(event.by, event.position), { kind: "held" })
+        come(cellKey(event.by, event.position), { kind: "held", player: event.by })
         come(cardKey(event.replaced.id), { kind: "cell", player: event.by, position: event.position, up: event.replacedUp })
         replaced = event.replaced
         break
       case "discard":
-        come(cardKey(event.card.id), { kind: "held" })
+        come(cardKey(event.card.id), { kind: "held", player: event.by })
         break
       case "column":
         // the three cards stay where they lie until this column's turn comes, then gather, fly together and land: the board plays it from `removals`, not from the entrances of the cards

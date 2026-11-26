@@ -2,7 +2,7 @@
 
 import type { CardFace, PlayerView, PublicCell, PublicSeat } from "@skyjo/engine"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
-import { ActionLabel, cardRise, effectiveState, FloorButton, NO_TOUCH, Pile, pileAboveAt, pileFootprint, PlayerSeat, type Pose, type Spot, Table, type Touch, useSequence, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
+import { ActionLabel, cardRise, effectiveState, FloorButton, NO_TOUCH, Pile, pileAboveAt, pileFootprint, PlayerSeat, type Pose, SCREEN_HAND_SETTINGS, ScreenHand, screenHandLayout, type Spot, Table, type Touch, useSequence, useSettings, useViewport, Zone, type ZoneCard } from "@pbgo/table"
 import { useDeferredValue, useMemo, useState } from "react"
 import type { ClientCatalog } from "../../lib/catalog"
 import { fill, type Vocabulary } from "../../lib/words"
@@ -169,13 +169,15 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
   const under = pair.under
 
   /** A pose on the table: where a card flies in from */
-  const poseOf = (origin: Origin, delay: number): Pose => {
+  const poseOf = (origin: Origin, delay: number): Pose | null => {
     const withDelay = (pose: Pose): Pose => ({ ...pose, delay })
     switch (origin.kind) {
       case "deck":
       case "discard":
-      case "held":
         return withDelay(flightFrom(origin.kind, chairs))
+      case "held":
+        // the viewer's card in hand was held at the bottom left of the screen: the card sets out from where it was there, which the table remembers by its id (no pose given). Another player's lay between the piles
+        return origin.player === meId ? null : withDelay(flightFrom("held", chairs))
       case "cell": {
         const seat = laid.get(origin.player)
         if (!seat) return withDelay(flightFrom("deck", chairs))
@@ -203,12 +205,11 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
       : { key: `h-${player}-${position}`, front: faces.back, back: faces.back, from: fromOf(cellKey(player, position)), ...settle, ...choice }
   }
 
-  // The card in hand: seen by the viewer when it came from the pile, by everybody when it came from the discard, a back for the others
+  // The card in hand: seen by the viewer when it came from the pile, by everybody when it came from the discard, a back for the others. The viewer holds theirs at the bottom left of the screen (`ScreenHand`), as a hand is held; another player's lies between the piles
   const inHand = phase.kind === "place" ? phase : null
+  const viewerHolds = inHand !== null && inHand.player === meId
   const handFace = inHand?.card ? faces.face(inHand.card.type) : faces.back
-  const handCard: ZoneCard[] = inHand
-    ? [{ key: HELD_KEY, id: inHand.card?.id, front: handFace, back: faces.back, state: inHand.player === meId ? "selected" : "base", from: fromOf(HELD_KEY) }]
-    : []
+  const handCard = (from: Pose | null): ZoneCard[] => (inHand ? [{ key: HELD_KEY, id: inHand.card?.id, front: handFace, back: faces.back, from }] : [])
 
   // The discard: a few cards of depth as backs, the card that was on top and the top card. While columns are on their way to it the top card of the view is not there yet (it is the first card of the last column, which has not landed): the pile shows the card that was on top,
   // the card a placement put on it, and the last column that has landed, which lies on them
@@ -291,8 +292,18 @@ function World({ view, catalog, pointsText, onReveal, onTake, onDraw, onPlace, o
       {/* The discard: the card on top is pressed to take it, or to throw the card the viewer drew onto it, and the word over it says which */}
       <Discard frame={{ x: discard.x, z: discard.z }} layout={discardPoses} cards={discardCards} action={discardAction} />
 
-      {/* The card in hand, between the piles: face up for the player who drew it (and for everybody when it came from the discard), face down for the others */}
-      <Zone frame={{ x: handAt.x, z: handAt.z }} layout={[heldPose(!!inHand?.card, chairs)]} size={CARD_SIZE} cards={handCard} />
+      {/* Another player's card in hand, between the piles: face up when it came from the discard, face down when they drew it */}
+      <Zone frame={{ x: handAt.x, z: handAt.z }} layout={[heldPose(!!inHand?.card, chairs)]} size={CARD_SIZE} cards={viewerHolds ? [] : handCard(fromOf(HELD_KEY))} />
+
+      {/* The viewer's card in hand, held at the bottom left of the screen, face up: it flies there from the pile or the discard, and from there into their grid or onto the discard */}
+      {viewerHolds && (
+        <ScreenHand>
+          {(screen) => {
+            const from = fromOf(HELD_KEY)
+            return <Zone layout={screenHandLayout(1, screen, CARD_SIZE, SCREEN_HAND_SETTINGS)} size={CARD_SIZE} cards={handCard(from ? screen.local(from) : null)} />
+          }}
+        </ScreenHand>
+      )}
 
       {/* Between two rounds the dealer deals the next one: an action with no object on the table, so a button, over the piles */}
       {dealing && <FloorButton at={plan.deal} width={plan.deal.width} depth={plan.deal.depth} tone="primary" label={words.deal} onPress={onDeal} />}
