@@ -174,7 +174,7 @@ A player can leave a game in progress (the "Leave" row of the menu of the game, 
 
 ## Crown and the turn marker
 
-The turn marker is a small gold crown in 3D (a band, five points with a pearl on each, gems on the band), built from the primitives of three with no file to load, that stands centred above the avatar of the player whose turn it is, turns slowly and bobs. It is the same for every game: the skin's `hostIcon` stays the DOM's. Shared: `TurnCrown` in `packages/table/src/seat/crown.tsx`, which a [Seat](../02-components/03-seats.md#the-plate) shows for the player of the turn. The shared UI has its own marker for the DOM ([Turn crown](../../design/04-in-game/01-screens-and-game-flow.md#turn-crown)).
+The turn marker is a small, soft crown in 3D (a thick rounded band rising into five points, gold going to orange downward, `crownGeometry` in `crown-geometry.ts`), built in code with no file to load and drawn with a matcap, so it looks the same on a board with lights or without, that stands centred above the avatar of the player whose turn it is, turns slowly and bobs. It is the same for every game: the skin's `hostIcon` stays the DOM's. Shared: `TurnCrown` in `packages/table/src/seat/crown.tsx`, which a [Seat](../02-components/03-seats.md#the-plate) shows for the player of the turn. The shared UI has its own marker for the DOM ([Turn crown](../../design/04-in-game/01-screens-and-game-flow.md#turn-crown)).
 
 | Prop | Role |
 | --- | --- |
