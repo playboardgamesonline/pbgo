@@ -174,17 +174,18 @@ A player can leave a game in progress (the "Leave" row of the menu of the game, 
 
 ## Crown and the turn marker
 
-The turn marker is a crown that stands on the upper-right corner of the avatar of the player whose turn it is. Shared: `TurnCrown` in `packages/table/src/seat/crown.tsx`, which a [Seat](../02-components/03-seats.md#the-plate) shows for the player of the turn. The shared UI has its own marker for the DOM ([Turn crown](../../design/04-in-game/01-screens-and-game-flow.md#turn-crown)).
+The turn marker is a small, soft crown in 3D (a thick rounded band rising into five points, gold going to orange downward, `crownGeometry` in `crown-geometry.ts`), built in code with no file to load and drawn with a matcap, so it looks the same on a board with lights or without, that stands centred above the avatar of the player whose turn it is, turns slowly and bobs. It is the same for every game: the skin's `hostIcon` stays the DOM's. Shared: `TurnCrown` in `packages/table/src/seat/crown.tsx`, which a [Seat](../02-components/03-seats.md#the-plate) shows for the player of the turn. The shared UI has its own marker for the DOM ([Turn crown](../../design/04-in-game/01-screens-and-game-flow.md#turn-crown)).
 
 | Prop | Role |
 | --- | --- |
 | `show` | Whether the crown is up: it grows in when true and shrinks away when false |
-| `position` | Where it stands, in the frame it is placed in |
-| `icon` | The URL of the game's icon, the skin's `hostIcon`, a picture from Sanity; a game with none shows a drawn crown |
-| `size` | How big it grows |
+| `position` | The centre of the avatar, in the frame it is placed in |
+| `reach` | How far from that centre, away from the camera, its near side stands: the avatar's radius and `crownGap` |
+| `size` | Its height |
+| `yaw` | How far the frame it stands in is turned, which it takes back |
 
 - Every seat has its own crown, and `show`, set from the view, says which one is up. The crown does not travel around the table, so it never crosses the cards.
-- A `Seat` places it with the avatar, in the avatar's own frame, at the corner that `crownRight` and `crownBack` give it ([Where the plate stands](../02-components/03-seats.md#where-the-plate-stands)).
+- A `Seat` places it centred above the avatar as the camera sees it, `crownGap` beyond the avatar's far edge ([Where the plate stands](../02-components/03-seats.md#where-the-plate-stands)).
 - It is a plane that turns to face the camera about the vertical axis only, so it stays upright. While it is up it bobs and its gold pulses. It takes no pointer events ([Clicks and hover](05-actions.md#clicks-and-hover)).
 
 ## Whose turn it is on the screen

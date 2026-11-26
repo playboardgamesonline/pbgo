@@ -19,7 +19,7 @@ The list of the players under the dock (`components/game/table-players.tsx`) is 
 
 ## Turn crown
 
-The crown stands on the corner of the active player's avatar (`TurnCrown` of `@pbgo/table`, the way the seat label wears the host's crown in the DOM). Courtisans keeps its own, left of the nickname (`CrownMark`), until its board moves to the shared tools.
+A small, soft gold crown in 3D stands centred above the active player's avatar (`TurnCrown` of `@pbgo/table`, the way the seat label wears the host's crown in the DOM). Courtisans keeps its own, left of the nickname (`CrownMark`), until its board moves to the shared tools.
 
 ## Desktop only
 

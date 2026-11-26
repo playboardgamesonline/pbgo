@@ -21,12 +21,11 @@ export const SEAT_SETTINGS = {
   /** The widest a name, or an info line, may be: a longer one (twelve wide capitals) shrinks to this width, with its proportions, instead of reaching the plate of the next seat. Twelve letters of the platform's font are about six times the height of the lettering wide, so a name that is not wide is never touched */
   nameRoom: 3.8,
   /** The avatar's diameter and its gap to the lettering beside it */
-  avatarSize: 0.52,
+  avatarSize: 0.62,
   avatarGap: 0.16,
-  /** The crown's size, and how far its foot stands from the avatar's centre: toward the right, and toward the middle of the table */
+  /** The crown's size, and how far its foot stands beyond the edge of the avatar that is farthest from the camera: the crown stands centred above the avatar on the screen, whichever way the seat and the camera are turned */
   crownSize: 0.52,
-  crownRight: 0.17,
-  crownBack: 0.21,
+  crownGap: 0.02,
   /** The clear space between the edge of a player's cards that faces the middle and the foot of their plate, the bottom of its info line: how far beyond the cards the plate stands */
   plateGap: 0.25,
   /** How opaque the plate of a player who is away stays */
@@ -50,8 +49,7 @@ export function scaledSeat(factor: number, base: SeatSettings = SEAT_SETTINGS): 
     avatarSize: S.avatarSize * factor,
     avatarGap: S.avatarGap * factor,
     crownSize: S.crownSize * factor,
-    crownRight: S.crownRight * factor,
-    crownBack: S.crownBack * factor,
+    crownGap: S.crownGap * factor,
     plateGap: S.plateGap * factor,
   }
 }
@@ -73,8 +71,7 @@ export const SEAT_FIELDS = {
   avatarSize: ["avatar size", 0.2, 1.2, 0.01],
   avatarGap: ["avatar gap", 0, 0.6, 0.01],
   crownSize: ["crown size", 0.2, 1.4, 0.01],
-  crownRight: ["crown right of the avatar", -0.6, 0.8, 0.01],
-  crownBack: ["crown behind the avatar", -0.6, 0.8, 0.01],
+  crownGap: ["crown gap above the avatar", -0.4, 0.6, 0.01],
   plateGap: ["plate gap beyond the cards", 0, 1.5, 0.01],
   awayOpacity: ["away or out opacity", 0, 1, 0.01],
 } satisfies Record<keyof SeatSettings, Knob>
