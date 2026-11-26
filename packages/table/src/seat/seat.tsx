@@ -3,7 +3,6 @@
 import type { ReactNode } from "react"
 import { useGame } from "@pbgo/core/components/game/context"
 import { useSeatTheme } from "@pbgo/core/components/game/seat-label"
-import { useSkin } from "@pbgo/core/components/skin-provider"
 import { shortName } from "@pbgo/core/lib/short-name"
 import type { SeatTheme } from "@pbgo/core/lib/ui-theme"
 import type { TableBox } from "../box"
@@ -59,8 +58,6 @@ export type SeatProps = {
   status?: string
   /** What stands to the right of the plate, in a frame whose origin is the right edge of its lettering, level with the middle of the avatar (`0.2` is just right of the longer line): tokens, a count, an icon. For a game whose players hold things (Love Letter's affection tokens) */
   trailing?: ReactNode
-  /** The crown's icon, the skin's `hostIcon`; without one, a drawn crown */
-  crownIcon?: string | null
   /** The widest the name, and the info line, may be, in world units: a longer one shrinks to it, with its proportions. `SEAT_SETTINGS.nameRoom` by default, which only a name of wide capitals goes beyond */
   room?: number
   /** The settings the plate follows: `SEAT_SETTINGS` unless a board makes its plates smaller at a bigger table (`scaledSeat`), in which case the layout that places them is given the same */
@@ -95,7 +92,6 @@ export function Seat({
   line,
   status,
   trailing,
-  crownIcon,
   room,
   settings,
   font = PLATE_FONT,
@@ -122,7 +118,7 @@ export function Seat({
       <group position={[frame.x, 0, frame.z]} rotation-y={frame.yaw ?? 0}>
         <group position={[row.avatarX, TEXT_Y, plate.z]}>
           <SeatAvatarMesh nickname={nickname} color={color} imageUrl={imageUrl} theme={theme} size={S.avatarSize} position={[0, 0, 0]} opacity={opacity} />
-          <TurnCrown show={active} icon={crownIcon} size={S.crownSize} position={[0, 0, 0]} reach={S.avatarSize / 2 + S.crownGap} yaw={frame.yaw ?? 0} />
+          <TurnCrown show={active} size={S.crownSize} position={[0, 0, 0]} reach={S.avatarSize / 2 + S.crownGap} yaw={frame.yaw ?? 0} />
         </group>
         <TableText text={nameText} style={name} height={S.nameHeight} maxWidth={roomOf} position={[row.textX + nameWidth / 2, TEXT_Y, row.nameZ]} font={font} opacity={opacity} capsCentred />
         {info !== "" && <TableText text={info} style={lineStyleOf} height={S.lineHeight} maxWidth={roomOf} position={[row.textX + infoWidth / 2, TEXT_Y, plate.lineZ]} font={font} opacity={opacity} capsCentred />}
@@ -135,13 +131,12 @@ export function Seat({
 }
 
 /**
- * The `Seat` of a player of the table: with an `id` it takes the nickname, the seat colour, the account picture, the seat theme, the crown icon and the font of the seat
+ * The `Seat` of a player of the table: with an `id` it takes the nickname, the seat colour, the account picture, the seat theme and the font of the seat
  * label from the platform, and what the table says of the player: the turn (`waitingFor`) and away (`present`). A prop of the same name wins.
  */
-export function PlayerSeat({ id, ...props }: { id: string } & Omit<SeatProps, "nickname" | "color" | "imageUrl" | "theme" | "crownIcon">) {
+export function PlayerSeat({ id, ...props }: { id: string } & Omit<SeatProps, "nickname" | "color" | "imageUrl" | "theme">) {
   const { game, view, nickname, color, avatarUrl } = useGame()
   const theme = useSeatTheme()
-  const { hostIcon } = useSkin()
   const { active, away } = seatStateOf({ status: game.status, waitingFor: game.waitingFor, present: game.present, winners: view.results?.winners ?? [] }, id)
-  return <Seat nickname={nickname(id)} color={color(id)} imageUrl={avatarUrl(id)} theme={theme} crownIcon={hostIcon} active={active} away={away} {...props} />
+  return <Seat nickname={nickname(id)} color={color(id)} imageUrl={avatarUrl(id)} theme={theme} active={active} away={away} {...props} />
 }
