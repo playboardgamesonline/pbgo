@@ -39,6 +39,8 @@ export const RATE_LIMITS = {
   action: { limit: 20, windowMs: 10_000 },
   /** The countdown of a table's deadline came to 0 (`POST …/tick`): each board sends one, and a few more when the server's clock is a hair behind the board's */
   tick: { limit: 20, windowMs: 10_000 },
+  /** The made-up table of the preview of a game in play (`POST /gamemaster/api/<slug>/sandbox`): every move, every turn played for a made-up player, every seat looked from. Never on the production deployment but for the gamemaster */
+  sandbox: { limit: 60, windowMs: 10_000, by: "ip" },
   replay: { limit: 10, windowMs: 60_000 },
   /** What the game that just ended did to a member's rank points (`GET …/rank`): the end screen asks every couple of seconds until the game is written down, which it is in a moment */
   rank: { limit: 30, windowMs: 60_000 },
