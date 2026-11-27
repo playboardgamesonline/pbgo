@@ -1,13 +1,16 @@
 import { canPlayFor, playFor, waitingPlayers } from "@pbgo/engine-kit"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { SandboxClient } from "../components/game/sandbox"
 import { PreviewGame } from "../components/preview-game"
 import type { PlayableGame } from "../lib/binding"
 import { getLocale } from "../lib/locale-server"
 import { gameOptions } from "../lib/settings"
 import { loadSettings } from "../lib/settings-server"
+import { sandboxParams } from "../lib/sandbox"
 import { isAdmin } from "../server/admin"
 import { type GameRow, loadGameData, loadSetupData, newGame, publicGame } from "../server/games"
+import { sandboxAllowed, sandboxNew, sandboxView } from "../server/sandbox"
 
 export const previewMetadata: Metadata = { title: "Preview", robots: { index: false, follow: false } }
 
@@ -44,8 +47,25 @@ async function previewGame(game: PlayableGame) {
   return publicGame(game, { ...started, state, updated_at: new Date().toISOString() }, players[0]!.id)
 }
 
-/** Admin preview of the board (`/<slug>/preview/game`), shown in an iframe that receives the draft. */
-export async function PreviewPage({ game, kind }: { game: PlayableGame; kind: string }) {
+type Search = Record<string, string | string[] | undefined>
+
+/**
+ * The previews of a game (`/<slug>/preview/<kind>`):
+ * - `game`: the board at a sample game, still, in the gamemaster's iframe that sends it the draft of the Setup pages. The gamemaster only.
+ * - `play`: a made-up game to play against the real engine, with no database (`SandboxClient`, `lib/sandbox.ts`): `?players=4&turns=6&scenario=princessInHand&seat=1&seed=42`, and `bare` for no bar. Anybody on a preview deployment and
+ *   in development, the gamemaster only on the production deployment (`/gamemaster/<slug>/preview/play`, where the session is sent).
+ */
+export async function PreviewPage({ game, kind, searchParams = {} }: { game: PlayableGame; kind: string; searchParams?: Search }) {
+  if (kind === "play") {
+    if (!(await sandboxAllowed())) notFound()
+    const { GAME } = game.binding
+    const setup = sandboxParams(searchParams, GAME)
+    const [{ options }, locale] = await Promise.all([loadSettings(game), getLocale()])
+    const [setupData, data] = await Promise.all([loadSetupData(game, {}), loadGameData(game, locale)])
+    const table = sandboxNew(game, setup, options, setupData)
+    const viewer = table.players[setup.seat]!.id
+    return <SandboxClient initial={{ table, game: sandboxView(game, table, viewer) }} setup={setup} data={data} bare={searchParams.bare !== undefined} />
+  }
   if (!(await isAdmin())) notFound()
   if (kind === "game") {
     const [view, data] = await Promise.all([previewGame(game), loadGameData(game, await getLocale())])

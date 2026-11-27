@@ -111,6 +111,9 @@ is_project_id() { [[ "$1" =~ ^[a-z0-9-]+$ ]]; }
 token_name() { printf "SANITY_API_WRITE_TOKEN_%s" "$(printf "%s" "$1" | tr 'a-z-' 'A-Z_')"; }
 
 SANITY_API="https://api.sanity.io/v2021-06-07"
+# The browser origins every game's Sanity project lets in (CORS, no credentials): production, local development and the preview
+# deployments of Vercel, whose pages paint the pictures of the image CDN with CORS. go-live sets them, pnpm sanity:cors adds them to every project
+SANITY_SITE_ORIGINS="https://playboardgamesonline.app http://localhost:3100 https://*.vercel.app"
 # Token of the Sanity CLI login (`npx sanity login`), "" when logged out
 sanity_token() { node -e 'try{console.log(require(require("os").homedir()+"/.config/sanity/config.json").authToken||"")}catch{console.log("")}'; }
 S() { curl -s -H "Authorization: Bearer $STOKEN" -H "Content-Type: application/json" "$@"; }

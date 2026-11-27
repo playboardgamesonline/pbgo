@@ -5,6 +5,6 @@ export const dynamic = "force-dynamic"
 
 export const metadata = previewMetadata
 
-export default async function Preview({ params }: PageProps<"/[game]/preview/[kind]">) {
-  return <PreviewPage game={await previewableGameOf(params)} kind={(await params).kind} />
+export default async function Preview({ params, searchParams }: PageProps<"/[game]/preview/[kind]">) {
+  return <PreviewPage game={await previewableGameOf(params)} kind={(await params).kind} searchParams={await searchParams} />
 }

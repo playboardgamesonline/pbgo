@@ -1,8 +1,7 @@
 "use client"
 
-import { CARDS, type CharacterKey, type Face, GUESSES, type PlayerView, type PublicSeat } from "@love-letter/engine"
+import { CHARACTER_KEYS, type Face, type PlayerView, type PublicSeat } from "@love-letter/engine"
 import { useGame } from "@pbgo/core/components/game/context"
-import { type Answers, ask, closePrompt, currentPrompt } from "@pbgo/core/components/game/prompt"
 import { useSiteSettings } from "@pbgo/core/components/settings-provider"
 import {
   type CardState,
@@ -34,34 +33,22 @@ import {
   Zone,
   type ZoneCard,
 } from "@pbgo/table"
-import { useDeferredValue, useEffect, useEffectEvent, useMemo, useState } from "react"
+import { useDeferredValue, useEffect, useMemo, useState } from "react"
 import type { ClientCatalog } from "../../lib/catalog"
+import { publishFaces } from "../../lib/faces"
 import { holdHovered, holdPicked, releaseHovered, releaseHoveredUnless } from "../../lib/lens"
 import { fill } from "../../lib/words"
 import { cameraFor, PHOTO } from "./camera"
+import { matOf } from "./mat"
 import { areaPoses, asidePoses, CARD, cardScaleOf, chairsOf, columnPoses, dealPlace, dealtFrom, HAND_SETTINGS, heldFrom, heldLayout, heldShadowOf, LAYOUT_FIELDS, LAYOUT_SETTINGS, type Line, lines, middlePlaces, revealedPoses } from "./layout"
 import { type Arrival, PACE_FIELDS, PACE_SETTINGS, type Reveal } from "./pacing"
 import { columnCounts, tableCards } from "./middle"
 import { RevealView } from "./sequence"
 import { CARD_SIZE, useFaces } from "./textures"
-import { type Choice, type ClientAction, lensIds, NO_CHOICE, pressCard, pressName, pressPlayer, type Press, type Step } from "./turn"
+import { type Choice, type ClientAction, lensIds, NO_CHOICE, pickPlayer, pressCard, pressPlayer, type Press, type Step } from "./turn"
 
 /** How far the pool of light of the table reaches, in world units: past it the table is its plain edge colour */
 const POOL_RADIUS = 22
-
-/** A face as a small picture for a window: the canvas that the table painted it on, drawn small, as a data URL (kept for the page: the faces are painted once) */
-const SMALL_FACES = new WeakMap<HTMLCanvasElement, string>()
-function faceImage(source: HTMLCanvasElement, width = 170): string {
-  const known = SMALL_FACES.get(source)
-  if (known) return known
-  const small = document.createElement("canvas")
-  small.width = width
-  small.height = Math.round((width * source.height) / source.width)
-  small.getContext("2d")?.drawImage(source, 0, 0, small.width, small.height)
-  const url = small.toDataURL("image/webp", 0.85)
-  SMALL_FACES.set(source, url)
-  return url
-}
 
 /** The knobs of the Held hands folder but the size of a card, which is the table's (`cardScaleOf` of the layout) and not the folder's */
 const HELD_HAND_FIELDS = Object.fromEntries(Object.entries(HELD_FAN_FIELDS).filter(([key]) => key !== "scale"))
@@ -116,7 +103,7 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
   const lettering = useLettering()
   const faces = useFaces(catalog, { nameFont: lettering.display, textFont: lettering.body, ink: theme.surfaceDark })
   const { words, names } = catalog
-  const { nickname, color: seatColorOf } = useGame()
+  const { nickname } = useGame()
   const meId = view.me?.id ?? null
   const ids = view.players.map((player) => player.id)
   // The line of every player, along the axis of their seat: the plate, the play area and the hand, in the frame of the seat
@@ -158,45 +145,15 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
   const alive = useMemo(() => lensIds(view, !!reveal), [view, reveal])
   useEffect(() => releaseHoveredUnless(alive), [alive])
 
-  // A Guard: its player and the character it names are chosen in one screen of the platform, a window with the players to pick and the nine characters as cards, and Play to confirm. The choices with no object on the table to press are made there, where the
-  // pictures and the words are big enough to read. Confirming plays the Guard; closing the window puts it back in the hand
-  const guard = step.kind === "name" ? step : null
-  const guardId = guard?.card.id ?? null
-  const guardTargets = guard?.targets.join(",") ?? ""
-  const answered = useEffectEvent((answers: Answers | null) => {
-    if (step.kind !== "name") return
-    if (answers) apply(pressName(step, answers.player as string, answers.character as CharacterKey))
-    else onChoice(NO_CHOICE)
-  })
-  useEffect(() => {
-    if (!guard || busy) return
-    let asking = true
-    void ask({
-      title: `${words.play} · ${names[guard.card.type]}`,
-      confirm: words.play,
-      fields: [
-        { id: "player", kind: "choice", label: words.chooseOther, value: guard.targets.length === 1 ? guard.targets[0] : undefined, options: guard.targets.map((id) => ({ value: id, label: nickname(id), player: { nickname: nickname(id), color: seatColorOf(id) } })) },
-        {
-          id: "character",
-          kind: "choice",
-          label: words.nameCharacter,
-          display: "cards",
-          options: GUESSES.map((type) => ({ value: type, label: `${CARDS[type].value} · ${names[type]}`, image: faceImage(faces.source(type)) })),
-        },
-      ],
-    }).then((answers) => asking && answered(answers))
-    return () => {
-      asking = false
-      if (currentPrompt()) closePrompt(null)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the window is opened for a Guard and its players, and again when a move is sent and answered: the words, the names and the faces are the page's and do not change
-  }, [guardId, guardTargets, busy])
+  // The faces as the table painted them, for the row of the characters a Guard names, which is a page element at the foot of the screen (`GuessBar`)
+  useEffect(() => publishFaces(Object.fromEntries(CHARACTER_KEYS.map((key) => [key, faces.source(key)]))))
 
   // The players the picked card can choose are pressed by their cards: an invisible area over each (`Hotspot`) says how it is touched, and their cards are in the state `interactive`, `hover` and `pressed`; a Guard's chosen player is `selected`, the others stay to change one's mind
   const [touches, setTouches] = useState<Record<string, Touch>>({})
-  const choosable = !busy && step.kind === "target" ? step.targets : []
+  const choosable = !busy && (step.kind === "target" || step.kind === "name") ? step.targets : []
   const stateOf = (id: string): CardState | undefined => {
     if (!choosable.includes(id)) return undefined
+    if (step.kind === "name" && step.target === id) return "selected"
     return effectiveState("interactive", touches[id] ?? NO_TOUCH)
   }
 
@@ -219,6 +176,8 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
   const picked = step.kind === "target" || step.kind === "name" ? step.card : null
   const { middle, front } = tableCards(view, picked)
   const hand = (view.me?.hand ?? []).filter((face) => face.id !== picked?.id)
+  // while a Guard names a character, the foot of the screen is the row of the characters (`GuessBar`): the hand steps aside for it and comes back when the Guard is played or put back
+  const held = step.kind === "name" ? [] : hand
   // the card kept after a Chancellor, or the one under the pointer, is brought forward in the hand
   const raised = hand.findIndex((face) => face.id === ((picked ? null : choice.card) ?? hovered))
   /** How a card of the viewer's hand stands: it can be pressed while there is something to do with it, picked when it is held, and dark when the Countess rule forbids it; the table draws the rest */
@@ -244,8 +203,8 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
     if (step.kind === "pick" || step.kind === "target" || step.kind === "name") return `${words.play} · ${names[face.type]}`
     return names[face.type]
   }
-  const handCards = (toFrame: (pose: Pose) => Pose): ZoneCard[] =>
-    (onStartScreen ? [] : hand).map((face) => ({
+  const handCards = (cards: readonly Face[], toFrame: (pose: Pose) => Pose): ZoneCard[] =>
+    (onStartScreen ? [] : cards).map((face) => ({
       ...cardOf(face, {}, toFrame),
       state: handState(face),
       onPress: () => {
@@ -278,7 +237,7 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
       key={`press-${id}`}
       {...hotspotOf({ frame: line.seat, box: line.press })}
       ariaLabel={fill(words.targetPlayer, { target: nickname(id) })}
-      {...(step.kind === "target" ? { onPress: () => apply(pressPlayer(step, id)) } : {})}
+      {...(step.kind === "target" ? { onPress: () => apply(pressPlayer(step, id)) } : step.kind === "name" ? { onPress: () => apply(pickPlayer(step, id)) } : {})}
       onTouch={(touch) => setTouches((now) => ({ ...now, [id]: touch }))}
     />
   )
@@ -349,7 +308,7 @@ function World({ view, catalog, onAction, busy, choice, step, onChoice, entrance
       {/* The viewer's hand, held at the bottom left of the screen: one card between turns, two on their turn (the card drawn last), three while a Chancellor is read */}
       {meId && (
         <ScreenHand settings={HAND_SETTINGS}>
-          {(screen) => <Zone layout={screenHandLayout(hand.length, screen, CARD_SIZE, HAND_SETTINGS, raised)} size={CARD_SIZE} {...(entering ? { enter: screen.local(entering) } : {})} cards={handCards(screen.local)} />}
+          {(screen) => <Zone layout={screenHandLayout(held.length, screen, CARD_SIZE, HAND_SETTINGS, raised)} size={CARD_SIZE} {...(entering ? { enter: screen.local(entering) } : {})} cards={handCards(held, screen.local)} />}
         </ScreenHand>
       )}
 
@@ -394,9 +353,10 @@ export function Scene(props: SceneProps) {
   const camera = useMemo(() => cameraFor(players, viewport, seated), [players, viewport, seated])
   // A card picked that picks a player lies in front of the viewer: a press on the empty table puts it back in the hand, as pressing it again or pressing another card does (the Prince's own area answers a press, so it is the way back when the Prince is the card)
   const letGo = (props.step.kind === "target" || props.step.kind === "name") && !props.busy ? () => props.onChoice(NO_CHOICE) : undefined
-  // The mat is data, the kit lays it: the table is its edge colour, flat and endless, with no grain and no picture, and the pool of light the cards lie on, `surface` in the middle falling away to `surfaceDark`, is the only thing on it that changes
+  // The mat is data, the kit lays it (`matOf`): a wine velvet with a damask woven into it and a felt grain, in the colours of the settings, and the pool of light the cards lie on, `surface` in the middle falling away to `surfaceDark`
+  const mat = useMemo(() => matOf({ surface: theme.surface, surfaceDark: theme.surfaceDark, accent: theme.accent }, POOL_RADIUS), [theme.surface, theme.surfaceDark, theme.accent])
   return (
-    <Table camera={camera} photo={PHOTO} surface={{ color: theme.surfaceDark, light: { center: theme.surface, radius: POOL_RADIUS } }} held={props.held} onLoaded={props.onLoaded} onEmptyPress={letGo}>
+    <Table camera={camera} photo={PHOTO} surface={mat} held={props.held} onLoaded={props.onLoaded} onEmptyPress={letGo}>
       <World {...props} />
     </Table>
   )
